@@ -20,7 +20,7 @@ HISTSIZE=1000
 SAVEHIST=1000
 bindkey -v
 # End of lines configured by zsh-newuser-install
-source ~/powerlevel10k/powerlevel10k.zsh-theme
+# source ~/powerlevel10k/powerlevel10k.zsh-theme
 ZSH_THEME="powerlevel10k/powerlevel10k"
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
@@ -43,3 +43,6 @@ fi
 
 # Source your static plugins file.
 source $zsh_plugins
+if which rbenv >/dev/null; then
+  eval "$(rbenv init - zsh)"
+fi

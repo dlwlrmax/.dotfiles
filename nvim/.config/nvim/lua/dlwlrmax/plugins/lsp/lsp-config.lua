@@ -17,6 +17,7 @@ if not typescript_setup then
   return
 end
 
+
 -- local lsp_signature_setup, lsp_signature = pcall(require, "lsp_signature");
 -- if not lsp_signature_setup then
 --   return
@@ -67,7 +68,7 @@ end
 local capabilities = cmp_nvim_lsp.default_capabilities()
 
 
-local servers = { 'tsserver', 'cssls', 'tailwindcss', 'emmet_language_server', 'html', 'lua_ls', 'phpactor' }
+local servers = { 'tsserver', 'cssls', 'emmet_language_server', 'html', 'lua_ls', 'phpactor' }
 
 for _, lsp in ipairs(servers) do
   lspconfig[lsp].setup {
@@ -79,6 +80,7 @@ end
 
 lspconfig.phpactor.setup {
   on_attach = on_attach,
+  capabilities = capabilities,
   init_options = {
     ["language_server_phpstan.enabled"] = false,
     ["language_server_psalm.enabled"] = false,
@@ -90,7 +92,8 @@ lspconfig.phpactor.setup {
 
     -- prefer cwd if root is a descendant
     return util.path.is_descendant(cwd, root) and cwd or root
-  end, }
+  end, 
+}
 
 typescript.setup({
   server = {

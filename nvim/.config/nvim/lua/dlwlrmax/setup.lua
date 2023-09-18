@@ -14,7 +14,15 @@ vim.opt.rtp:prepend(lazypath)
 vim.g.mapleader = " " -- Make sure to set `mapleader` before lazy so your mappings are correct
 
 local plugins = {
-  { "catppuccin/nvim",                 name = "catppuccin", priority = 1000 },
+  {
+    "catppuccin/nvim",
+    name = "catppuccin",
+    priority = 1000,
+    config = function()
+      require('catppuccin').setup({ background = { dark = "macchiato" } })
+      vim.cmd.colorscheme "catppuccin"
+    end,
+  },
   { "nvim-lua/plenary.nvim" },
   { "christoomey/vim-tmux-navigator" },
   { "tpope/vim-surround" },
@@ -62,7 +70,9 @@ local plugins = {
     "williamboman/mason.nvim",
   },
   { "williamboman/mason-lspconfig.nvim" },
-  { "neovim/nvim-lspconfig" },
+  {
+    "neovim/nvim-lspconfig",
+  },
   { "jose-elias-alvarez/null-ls.nvim" },
   { "jayp0521/mason-null-ls.nvim" },
   { 'lukas-reineke/indent-blankline.nvim' },
@@ -71,7 +81,8 @@ local plugins = {
     dependencies = {
       'nvim-treesitter/nvim-treesitter', -- optional
       'nvim-tree/nvim-web-devicons',     -- optional
-      "nvim-treesitter/nvim-treesitter-textobjects"
+      "nvim-treesitter/nvim-treesitter-textobjects",
+      "nvim-treesitter/nvim-treesitter-context"
     }
   },
   { 'windwp/nvim-ts-autotag' },
@@ -158,7 +169,14 @@ local plugins = {
     },
     { 'MunifTanjim/nui.nvim' },
     { 'folke/which-key.nvim' },
-    { "junegunn/fzf",        build = ":call fzf#install()" },
+    {
+      "roobert/search-replace.nvim",
+      config = function()
+        require("search-replace").setup({})
+      end,
+    },
+    { 'akinsho/toggleterm.nvim', version = "*",                config = true },
+    { "junegunn/fzf",            build = ":call fzf#install()" },
     {
       "linrongbin16/fzfx.nvim",
       dependencies = { "junegunn/fzf" },

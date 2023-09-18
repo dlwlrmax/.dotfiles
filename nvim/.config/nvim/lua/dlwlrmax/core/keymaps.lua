@@ -6,6 +6,7 @@ local api = vim.api
 keymap.set("i", "jj", "<ESC>");
 keymap.set("n", "<leader>w", ":w!<cr>");
 keymap.set("n", "<leader>fq", ":q!<cr>");
+keymap.set("n", "<leader>y", ":+y<cr>");
 keymap.set("n", "<leader>rr", ":so ~/.config/nvim/init.lua<cr>");
 keymap.set("n", "<leader><cr>", ":noh<cr>");
 keymap.set("n", "<leader>fw", "/");
@@ -31,6 +32,8 @@ keymap.set("n", "<A-q>", "<Cmd>wq!<CR>");
 keymap.set("n", "<leader>h", "<Cmd>BufferPrevious<CR>");
 keymap.set("n", "<leader>l", "<Cmd>BufferNext<CR>");
 keymap.set("n", "<leader>p", "<Cmd>BufferPin<CR>");
+keymap.set("n", "<leader>ml", "<Cmd>BufferMoveNext<CR>");
+keymap.set("n", "<leader>mh", "<Cmd>BufferMovePrevious<CR>");
 keymap.set("n", "<A-1>", "<Cmd>BufferGoto 1<CR>");
 keymap.set("n", "<A-2>", "<Cmd>BufferGoto 2<CR>");
 keymap.set("n", "<A-3>", "<Cmd>BufferGoto 3<CR>");

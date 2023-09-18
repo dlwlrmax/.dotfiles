@@ -3,11 +3,11 @@
     "position": "top", // Waybar position (top|bottom|left|right)
     "height": 30, // Waybar height (to be removed for auto height)
     // "width": 1280, // Waybar width
-    "spacing": 4, // Gaps between modules (4px)
+    "spacing": 2, // Gaps between modules (4px)
     // Choose the order of the modules
-    "modules-left": ["hyprland/workspaces", "custom/media"],
+    "modules-left": ["hyprland/workspaces"],
     "modules-center": ["clock"],
-    "modules-right": ["idle_inhibitor", "network", "pulseaudio", "cpu", "memory", "tray"],
+    "modules-right": ["custom/chromium", "custom/media", "idle_inhibitor", "network", "pulseaudio", "cpu", "memory", "tray"],
     // Modules configuration
     "hyprland/workspaces": {
         "disable-scroll": true,
@@ -129,7 +129,7 @@
     "network": {
         // "interface": "wlp2*", // (Optional) To force the use of this interface
         "format-wifi": "{essid} ({signalStrength}%) ",
-        "format-ethernet": "{ipaddr}/{cidr} 󰛳",
+        "format-ethernet": "{ipaddr} 󰛳",
         "tooltip-format": "{ifname} via {gwaddr} 󰛳",
         "format-linked": "{ifname} (No IP) 󰛳",
         "format-disconnected": "Disconnected ⚠",
@@ -155,16 +155,32 @@
         "on-click": "pavucontrol"
     },
     "custom/media": {
-        "format": "{icon} {}",
+        "format": "{icon}  {}",
         "return-type": "json",
-        "max-length": 40,
+        "max-length": 25,
         "format-icons": {
             "spotify": "",
             "default": "🎜"
         },
         "escape": true,
-        // "exec": "$HOME/.config/waybar/mediaplayer.py 2> /dev/null" // Script in resources folder
-        "exec": "$HOME/.config/waybar/mediaplayer.py --player spotify 2> /dev/null" // Filter player based on name
+        "on-click": "playerctl --player=spotify play-pause",
+        "on-scroll-up": "playerctl --player=spotify next",
+        "on-scroll-down": "playerctl --player=spotify previous",
+        "exec-if": "pgrep spotify",
+        "exec": "/usr/bin/python3 $HOME/.config/waybar/mediaplayer.py --player spotify" // Filter player based on name
+    },
+    "custom/chromium": {
+        "format": "{icon}  {}",
+        "return-type": "json",
+        "max-length": 20,
+        "format-icons": {
+            "spotify": "",
+            "default": ""
+        },
+        "escape": true,
+        "on-click": "playerctl --player=chromium play-pause",
+        "exec-if": "pgrep chromium",
+        "exec": "/usr/bin/python3 $HOME/.config/waybar/mediaplayer.py --player chromium" // Filter player based on name
     }
 }
 

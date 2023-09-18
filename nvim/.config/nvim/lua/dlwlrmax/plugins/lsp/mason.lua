@@ -20,7 +20,8 @@ mason_lsp.setup({
     "tsserver",
     "html",
     "cssls",
-    "tailwindcss",
+    -- "tailwindcss",
+    "lua_ls",
     "phpactor",
   }
 })

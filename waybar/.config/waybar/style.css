@@ -183,6 +183,20 @@ label:focus {
 }
 
 #custom-media.custom-spotify {
+  padding: 0 10px;
+  margin: 0 4px;
+  background-color: #1DB954;
+  color: #ffffff;
+  border-radius: 10px;
+  margin: 3px;
+}
+.custom-chromium {
+  padding: 0 10px;
+  margin: 0 4px;
+  background-color: #FF8989;
+  color: #ffffff;
+  border-radius: 10px;
+  margin: 3px;
 }
 
 #custom-media.custom-vlc {
