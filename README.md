@@ -25,4 +25,4 @@ Dependencies
 
     cmake ripgrep fzf fd
 ## Rate-mirrors
-    rate-mirrors --allow-root --protocol https endeavouros | sudo tee /etc/pacman.d/mirrorlis
+    rate-mirrors --allow-root --protocol https endeavouros | sudo tee /etc/pacman.d/mirrorlist
