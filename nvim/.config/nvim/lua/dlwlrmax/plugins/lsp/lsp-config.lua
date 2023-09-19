@@ -31,10 +31,10 @@ local on_attach = function(client, bufnr)
   local opts = { noremap = true, silent = true, buffer = bufnr }
 
   -- set keybinds
-  keymap.set("n", "gf", "<cmd>Lspsaga lsp_finder<CR>", opts)           -- show definition, references
+  keymap.set("n", "gf", "<cmd>Lspsaga lsp_finder<CR>", opts) -- show definition, references
   -- keymap.set("n", "gD", "<Cmd>lua vim.lsp.buf.declaration()<CR>", opts) -- got to declaration
-  keymap.set("n", "gd", "<cmd>Lspsaga peek_definition<CR>", opts)      -- see definition and make edits in window
-  -- keymap.set("n", "gd", "<cmd>Lspsaga goto_definition<CR>", opts) -- see definition and make edits in window
+  -- keymap.set("n", "gd", "<cmd>Lspsaga peek_definition<CR>", opts)      -- see definition and make edits in window
+  keymap.set("n", "gd", "<cmd>Lspsaga goto_definition<CR>", opts)      -- see definition and make edits in window
   keymap.set("n", "gt", "<cmd>Lspsaga peek_type_definition<CR>", opts) -- see definition and make edits in window
   -- keymap.set("n", "gt", "<cmd>Lspsaga goto_type_definition<CR>", opts) -- see definition and make edits in window
 
@@ -85,14 +85,14 @@ lspconfig.phpactor.setup {
     ["language_server_phpstan.enabled"] = false,
     ["language_server_psalm.enabled"] = false,
   },
-  cmd = {"phpactor", "language-server"},
+  cmd = { "phpactor", "language-server" },
   root_dir = function(pattern)
     local cwd = vim.loop.cwd()
     local root = util.root_pattern('composer.json', '.git')(pattern)
 
     -- prefer cwd if root is a descendant
     return util.path.is_descendant(cwd, root) and cwd or root
-  end, 
+  end,
 }
 
 typescript.setup({

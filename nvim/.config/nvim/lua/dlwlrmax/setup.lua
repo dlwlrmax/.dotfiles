@@ -138,8 +138,8 @@ local plugins = {
   },
   { "sindrets/diffview.nvim" },
   { "folke/flash.nvim" },
-  { 'koenverburg/peepsight.nvim' },
   { 'kevinhwang91/nvim-hlslens' },
+  { 'yamatsum/nvim-cursorline' },
   {
     'nvim-telescope/telescope.nvim',
     tag = '0.1.3',
@@ -174,6 +174,10 @@ local plugins = {
       config = function()
         require("search-replace").setup({})
       end,
+    },
+    {
+      'mg979/vim-visual-multi',
+      branch = "master"
     },
     { 'akinsho/toggleterm.nvim', version = "*",                config = true },
     { "junegunn/fzf",            build = ":call fzf#install()" },
