@@ -75,7 +75,7 @@ local plugins = {
   },
   { "jose-elias-alvarez/null-ls.nvim" },
   { "jayp0521/mason-null-ls.nvim" },
-  { 'lukas-reineke/indent-blankline.nvim' },
+  { "lukas-reineke/indent-blankline.nvim", main = "ibl", opts = {} },
   {
     "nvimdev/lspsaga.nvim",
     dependencies = {

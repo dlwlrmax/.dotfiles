@@ -23,6 +23,9 @@ bindkey -v
 # source ~/powerlevel10k/powerlevel10k.zsh-theme
 ZSH_THEME="powerlevel10k/powerlevel10k"
 
+# ALIASES
+tmux="tmux attach"
+
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
@@ -46,6 +49,8 @@ source $zsh_plugins
 if which rbenv >/dev/null; then
   eval "$(rbenv init - zsh)"
 fi
+
+unset ZSH_AUTOSUGGEST_USE_ASYNC
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
