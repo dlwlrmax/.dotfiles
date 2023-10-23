@@ -9,4 +9,12 @@ vim.opt.listchars:append "tab:|⇢"
 vim.opt.listchars:append "trail:·"
 
 indent_blankline.setup {
+  scope = {
+    enabled = true,
+    show_start = true,
+    show_end = false,
+    injected_languages = false,
+    highlight = { "Function", "Label" },
+    priority = 500,
+  }
 }
