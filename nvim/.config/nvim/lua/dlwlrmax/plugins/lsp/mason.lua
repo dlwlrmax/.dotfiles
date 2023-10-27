@@ -8,11 +8,6 @@ if not mason_lsp_status then
   return
 end
 
-local null_ls_status, null_ls = pcall(require, "null-ls")
-if not null_ls_status then
-  return
-end
-
 mason.setup()
 
 mason_lsp.setup({
@@ -23,12 +18,5 @@ mason_lsp.setup({
     -- "tailwindcss",
     "lua_ls",
     "phpactor",
-  }
-})
-
-null_ls.setup({
-  ensure_installed = {
-    "prettier",
-    "stylelua"
   }
 })

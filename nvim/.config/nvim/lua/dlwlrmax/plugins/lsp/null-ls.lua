@@ -15,7 +15,7 @@ if not setup then
 end
 
 -- for conciseness
-local formatting = null_ls.builtins.formatting -- to setup formatters
+local formatting = null_ls.builtins.formatting   -- to setup formatters
 local diagnostics = null_ls.builtins.diagnostics -- to setup linters
 local code_actions = null_ls.builtins.code_actions
 
@@ -29,7 +29,7 @@ null_ls.setup({
     --  to disable file types use
     --  "formatting.prettier.with({disabled_filetypes: {}})" (see null-ls docs)
     formatting.prettierd.with({
-      filetypes = { "javascript","scss", "css", "typescript", "json", "html", "vue" },
+      filetypes = { "javascript", "scss", "css", "typescript", "json", "html", "vue" },
     }), -- js/ts formatter
     formatting.phpcsfixer,
     formatting.stylua.with({
@@ -40,9 +40,9 @@ null_ls.setup({
       filetypes = { "blade" },
     }),
     code_actions.eslint_d,
-    code_actions.gitsigns,
+    -- code_actions.gitsigns,
     diagnostics.cspell,
-    diagnostics.eslint_d.with({ -- js/ts lintek
+    diagnostics.eslint_d.with({                    -- js/ts lintek
       condition = function(utils)
         return utils.root_has_file(".eslintrc.js") -- change file extension if you use something else
       end,
@@ -72,4 +72,4 @@ null_ls.setup({
   end,
 })
 
-mason_null.setup()
+-- mason_null.setup()
