@@ -23,6 +23,6 @@ Run antidote
 ## Neovim
 Dependencies
 
-    cmake ripgrep fzf fd
+    cmake ripgrep fzf fd python3.10-venv
 ## Rate-mirrors
     rate-mirrors --allow-root --protocol https endeavouros | sudo tee /etc/pacman.d/mirrorlist
