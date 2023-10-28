@@ -73,7 +73,7 @@ local plugins = {
 	{
 		"neovim/nvim-lspconfig",
 	},
-	{ "jose-elias-alvarez/null-ls.nvim" },
+	{ "nvimtools/none-ls.nvim" },
 	{ "jayp0521/mason-null-ls.nvim" },
 	{ "lukas-reineke/indent-blankline.nvim", main = "ibl", opts = {} },
 	{
