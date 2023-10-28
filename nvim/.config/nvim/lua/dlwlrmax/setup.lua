@@ -196,6 +196,11 @@ local plugins = {
 				require("fzfx").setup()
 			end,
 		},
+		{
+			"danymat/neogen",
+			dependencies = "nvim-treesitter/nvim-treesitter",
+			config = true,
+		},
 	},
 }
 local opts = {}
