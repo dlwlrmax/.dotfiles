@@ -179,8 +179,13 @@ local plugins = {
       'mg979/vim-visual-multi',
       branch = "master"
     },
-    { 'akinsho/toggleterm.nvim', version = "*",                config = true },
-    { "junegunn/fzf",            build = ":call fzf#install()" },
+    { 'akinsho/toggleterm.nvim', version = "*", config = true },
+    {
+      "junegunn/fzf",
+      build = function()
+        vim.fn["fzf#install"]()
+      end,
+    },
     {
       "linrongbin16/fzfx.nvim",
       dependencies = { "junegunn/fzf" },
