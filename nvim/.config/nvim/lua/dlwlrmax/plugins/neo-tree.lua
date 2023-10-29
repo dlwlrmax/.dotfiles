@@ -8,6 +8,7 @@ neotree.setup({
 	popup_border_style = "rounded",
 	enable_git_status = true,
 	enable_diagnostics = true,
+	auto_clean_after_session_restore = true,
 	open_files_do_not_replace_types = { "terminal", "trouble", "qf" }, -- when opening files, do not use windows containing these filetypes or buftypes
 	sort_case_insensitive = false, -- used when sorting files and directories in the tree
 	sort_function = nil, -- use a custom function for sorting files and directories in the tree
@@ -95,9 +96,11 @@ neotree.setup({
 	},
 	-- Add this section only if you've configured source selector.
 	source_selector = {
+		winbar = true,
+		statusline = true,
 		sources = {
-			{ source = "filesystem", display_name = " 󰉓 Files " },
-			{ source = "git_status", display_name = " 󰊢 Git " },
+			{ source = "filesystem", enabled = true, display_name = " 󰉓 Files " },
+			{ source = "git_status", enabled = true, display_name = " 󰊢 Git " },
 			{ source = "winbar" },
 			{ source = "statusline" },
 		},

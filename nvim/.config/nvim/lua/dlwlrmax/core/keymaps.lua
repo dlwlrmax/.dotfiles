@@ -93,7 +93,7 @@ api.nvim_set_keymap("n", "<leader>rW", "<CMD>SearchReplaceSingleBufferCWORD<CR>"
 -- back to home page
 keymap.set("n", "<leader>gh", "<CMD>Startify<CR>")
 
-keymap.set("n", "<leader>gf", "<CMD>AerialToggle!<CR>")
+keymap.set("n", "<leader>gf", "<CMD>SymbolsOutline<CR>")
 
 -- neoclip
 keymap.set("n", "<leader>p", "<CMD>lua require('neoclip.fzf')()<CR>")

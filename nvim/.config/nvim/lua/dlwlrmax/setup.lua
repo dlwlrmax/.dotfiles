@@ -25,7 +25,6 @@ local plugins = {
 	},
 	{ "nvim-lua/plenary.nvim" },
 	{ "christoomey/vim-tmux-navigator" },
-	{ "tpope/vim-surround" },
 	{ "inkarkat/vim-ReplaceWithRegister" },
 	{
 		"numToStr/Comment.nvim",
@@ -128,7 +127,7 @@ local plugins = {
 	{ "kevinhwang91/nvim-ufo", dependencies = { "kevinhwang91/promise-async" } },
 	{ "petertriho/nvim-scrollbar" },
 	{
-		"stevearc/aerial.nvim",
+		"simrat39/symbols-outline.nvim",
 	},
 	{
 		"NeogitOrg/neogit",
@@ -143,7 +142,41 @@ local plugins = {
 	{ "sindrets/diffview.nvim" },
 	{ "folke/flash.nvim" },
 	{ "kevinhwang91/nvim-hlslens" },
-	{ "yamatsum/nvim-cursorline" },
+	--mini stuff
+	{
+		"echasnovski/mini.animate",
+		version = "*",
+		config = function()
+			require("mini.animate").setup()
+		end,
+	},
+	{
+		"echasnovski/mini.cursorword",
+		version = "*",
+		config = function()
+			require("mini.cursorword").setup()
+		end,
+	},
+	{
+		"echasnovski/mini.surround",
+		version = "*",
+		config = function()
+			require("mini.surround").setup({
+				mappings = {
+					add = "ya", -- Add surrounding in Normal and Visual modes
+					delete = "yd", -- Delete surrounding
+					find = "", -- Find surrounding (to the right)
+					find_left = "", -- Find surrounding (to the left)
+					highlight = "yh", -- Highlight surrounding
+					replace = "yr", -- Replace surrounding
+					update_n_lines = "yn", -- Update `n_lines`
+
+					suffix_last = "l", -- Suffix to search with "prev" method
+					suffix_next = "n", -- Suffix to search with "next" method
+				},
+			})
+		end,
+	},
 	{
 		"nvim-telescope/telescope.nvim",
 		tag = "0.1.3",
@@ -173,9 +206,9 @@ local plugins = {
 		{ "MunifTanjim/nui.nvim" },
 		{ "folke/which-key.nvim" },
 		{
-			"roobert/search-replace.nvim",
+			"nvim-pack/nvim-spectre",
 			config = function()
-				require("search-replace").setup({})
+				require("spectre").setup()
 			end,
 		},
 		{
