@@ -40,7 +40,8 @@ null_ls.setup({
 		--   filetypes = { "blade" },
 		-- }),
 		code_actions.eslint_d,
-		diagnostics.codespell,
+		code_actions.cspell,
+		diagnostics.cspell,
 		diagnostics.eslint_d.with({ -- js/ts lintek
 			condition = function(utils)
 				return utils.root_has_file(".eslintrc.js") -- change file extension if you use something else
