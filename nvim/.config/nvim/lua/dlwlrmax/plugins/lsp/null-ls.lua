@@ -31,14 +31,15 @@ null_ls.setup({
 		formatting.prettierd.with({
 			filetypes = { "javascript", "scss", "css", "typescript", "json", "html", "vue" },
 		}), -- js/ts formatter
-		formatting.phpcsfixer,
+		formatting.phpcsfixer.with({
+			filetypes = { "php" },
+		}),
+		formatting.blade_formatter.with({
+			filetypes = { "blade" },
+		}),
 		formatting.stylua.with({
 			filetypes = { "lua" },
 		}), -- lua formatter
-		-- format blade
-		-- formatting.tlint.with({
-		--   filetypes = { "blade" },
-		-- }),
 		code_actions.eslint_d,
 		code_actions.cspell,
 		diagnostics.cspell,
