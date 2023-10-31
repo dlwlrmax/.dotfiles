@@ -110,14 +110,14 @@ cmp.setup({
 				luasnip = "[Sni]",
 				path = "[Pat]",
 				nvim_lsp = "[LSP]",
-				cmp_tabnine = "[TAB]",
+				-- cmp_tabnine = "[TAB]",
 			})[entry.source.name]
 			return vim_item
 		end,
 	},
 	sources = {
 		{ name = "nvim_lsp" },
-		{ name = "cmp_tabnine" },
+		-- { name = "cmp_tabnine" },
 		{ name = "luasnip" },
 		{ name = "buffer" },
 		{ name = "path" },
