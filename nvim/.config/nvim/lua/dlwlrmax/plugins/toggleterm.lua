@@ -11,7 +11,7 @@ toggleterm.setup({
 	shade_terminals = true,
 	shading_factor = 2,
 	start_in_insert = true,
-	direction = "horizontal",
+	direction = "float",
 	persis_size = true,
 	close_on_exit = false,
 	float_opts = {
