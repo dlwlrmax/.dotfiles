@@ -1,0 +1,10 @@
+{
+    "diagnostics.globals": [
+        "os_name",
+        "getOS",
+        "jit"
+    ],
+    "diagnostics.disable": [
+        "unused-local"
+    ]
+}
