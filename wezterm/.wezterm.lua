@@ -1,3 +1,18 @@
+function getOS()
+	-- ask LuaJIT first
+	if jit then
+		return jit.os
+	end
+
+	-- Unix, Linux variants
+	local fh, err = assert(io.popen("uname -o 2>/dev/null", "r"))
+	if fh then
+		osname = fh:read()
+	end
+
+	return osname or "Windows"
+end
+
 -- Pull in the wezterm API
 local wezterm = require("wezterm")
 
@@ -13,21 +28,26 @@ end
 -- This is where you actually apply your config choices
 
 -- For example, changing the color scheme:
-config.color_scheme = "Catppuccin Mocha"
-config.default_domain = "WSL:Arch"
+config.color_scheme = "Catppuccin Macchiato"
+
+local currentOs = getOS()
+if currentOs == "Windows" then
+	config.default_domain = "WSL:Arch"
+end
+
 config.font = wezterm.font_with_fallback({
-	{ family = "JetBrainsMonoNL Nerd Font Mono", weight = "Bold" },
 	{ family = "JetBrainsMonoNL Nerd Font Mono", weight = "Medium" },
 	"FiraCode Nerd Font Mono",
 	"Noto Sans JP",
 	"Noto Sans KR",
 	"Noto Sans",
 })
-config.font_size = 10.5
+config.font_size = 10
 config.hide_tab_bar_if_only_one_tab = true
-config.window_background_opacity = 0.9
-config.win32_system_backdrop = "Mica"
-config.window_close_confirmation = "NeverPrompt"
-
+config.window_background_opacity = 0.5
+if currentOs == "Windows" then
+	config.win32_system_backdrop = "Mica"
+	config.window_close_confirmation = "NeverPrompt"
+end
 -- and finally, return the configuration to wezterm
 return config
