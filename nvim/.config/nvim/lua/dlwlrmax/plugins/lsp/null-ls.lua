@@ -19,8 +19,6 @@ local formatting = null_ls.builtins.formatting -- to setup formatters
 local diagnostics = null_ls.builtins.diagnostics -- to setup linters
 local code_actions = null_ls.builtins.code_actions
 
--- to setup format on save
-local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
 mason.setup()
 -- configure null_ls
 null_ls.setup({
@@ -43,7 +41,7 @@ null_ls.setup({
 		code_actions.eslint_d,
 		code_actions.cspell,
 		diagnostics.cspell,
-		diagnostics.eslint_d.with({ -- js/ts lintek
+		diagnostics.eslint_d.with({ -- js/ts lint
 			condition = function(utils)
 				return utils.root_has_file(".eslintrc.js") -- change file extension if you use something else
 			end,
@@ -53,22 +51,6 @@ null_ls.setup({
 	on_attach = function(current_client, bufnr)
 		if current_client.name == "tsserver" then
 			current_client.resolved_capabilities.document_formatting = false
-		end
-		if current_client.supports_method("textDocument/formatting") then
-			vim.api.nvim_clear_autocmds({ group = augroup, buffer = bufnr })
-			vim.api.nvim_create_autocmd("BufWritePre", {
-				group = augroup,
-				buffer = bufnr,
-				callback = function()
-					vim.lsp.buf.format({
-						filter = function(client)
-							--  only use null-ls for formatting instead of lsp server
-							return client.name == "null-ls"
-						end,
-						bufnr = bufnr,
-					})
-				end,
-			})
 		end
 	end,
 })
