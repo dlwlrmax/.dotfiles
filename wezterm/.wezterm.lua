@@ -35,12 +35,15 @@ if currentOs == "Windows" then
 	config.default_domain = "WSL:Arch"
 end
 
+-- Font scale factor
+local scale = 1.05
+
 config.font = wezterm.font_with_fallback({
-	{ family = "JetBrainsMonoNL Nerd Font Mono", weight = "Medium" },
-	"FiraCode Nerd Font Mono",
-	"Noto Sans JP",
-	"Noto Sans KR",
-	"Noto Sans",
+	{ family = "JetBrainsMonoNL Nerd Font Mono", weight = "Medium", scale = scale },
+	{ family = "FiraCode Nerd Font Mono", weight = "Medium", scale = scale },
+	{ family = "Noto Sans JP", scale = scale },
+	{ family = "Noto Sans KR", scale = scale },
+	{ family = "Noto Sans", scale = scale },
 })
 config.font_size = 10
 config.hide_tab_bar_if_only_one_tab = true
