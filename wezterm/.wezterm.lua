@@ -42,7 +42,7 @@ if currentOs == "Windows" then
 end
 
 config.font = wezterm.font_with_fallback({
-	{ family = "JetBrainsMonoNL Nerd Font Mono", weight = "Medium", scale = scale },
+	{ family = "JetBrainsMono Nerd Font Mono", weight = "Medium", scale = scale },
 	{ family = "FiraCode Nerd Font Mono", weight = "Medium", scale = scale },
 	{ family = "Noto Sans JP", scale = scale },
 	{ family = "Noto Sans KR", scale = scale },
