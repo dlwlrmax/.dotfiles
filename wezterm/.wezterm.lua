@@ -58,14 +58,11 @@ config.window_padding = {
 }
 config.line_height = 1.1
 -- Other useful config options:
-if currentOs == "Windows" then
-	config.disable_default_key_bindings = true
-end
 config.use_dead_keys = false
 config.scrollback_lines = 3500
 config.adjust_window_size_when_changing_font_size = false
 --UI related config
-config.window_background_opacity = 0.5
+config.window_background_opacity = 0.7
 if currentOs == "Windows" then
 	config.window_background_opacity = 0
 	config.win32_system_backdrop = "Mica"
