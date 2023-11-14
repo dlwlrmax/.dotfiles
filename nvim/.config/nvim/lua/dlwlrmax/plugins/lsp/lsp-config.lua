@@ -17,11 +17,6 @@ if not typescript_setup then
 	return
 end
 
--- local lsp_signature_setup, lsp_signature = pcall(require, "lsp_signature");
--- if not lsp_signature_setup then
---   return
--- end
-
 local keymap = vim.keymap -- for conciseness
 
 -- enable keybinds only for when lsp server available
@@ -101,14 +96,6 @@ typescript.setup({
 	},
 })
 
--- local lsp_signature_config = {
---   bind = true,
---   hint_enable = false,
---   handler_opts = {
---     border = "rounded"
---   }
--- }
--- lsp_signature.setup(lsp_signature_config)
 vim.api.nvim_create_autocmd({ "FileType" }, {
 	pattern = "astro,css,eruby,html,htmldjango,javascriptreact,less,pug,sass,scss,svelte,typescriptreact,vue,php",
 	callback = function()
