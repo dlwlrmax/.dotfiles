@@ -68,7 +68,6 @@ local plugins = {
 	{
 		"williamboman/mason.nvim",
 	},
-	{ "williamboman/mason-lspconfig.nvim" },
 	{
 		"neovim/nvim-lspconfig",
 		event = { "BufReadPre", "BufNewFile" },
@@ -77,7 +76,6 @@ local plugins = {
 		"nvimtools/none-ls.nvim",
 		event = { "BufReadPre", "BufNewFile" },
 	},
-	{ "jayp0521/mason-null-ls.nvim" },
 	{ "lukas-reineke/indent-blankline.nvim", main = "ibl", opts = {} },
 	{
 		"nvimdev/lspsaga.nvim",
@@ -118,14 +116,18 @@ local plugins = {
 	{
 		"ray-x/lsp_signature.nvim",
 		event = "VeryLazy",
-		opts = {},
+		opts = {
+			bind = true,
+			handler_opts = {
+				border = "rounded",
+			},
+		},
 		config = function(_, opts)
 			require("lsp_signature").setup(opts)
 		end,
 	},
 	{ "m-demare/hlargs.nvim" },
 	{ "winston0410/cmd-parser.nvim" },
-	{ "NvChad/nvim-colorizer.lua" },
 	{ "ThePrimeagen/harpoon" },
 	{ "uga-rosa/translate.nvim" },
 	{ "kevinhwang91/nvim-ufo", dependencies = { "kevinhwang91/promise-async" } },
@@ -143,7 +145,6 @@ local plugins = {
 		},
 		config = true,
 	},
-	{ "sindrets/diffview.nvim" },
 	{ "folke/flash.nvim" },
 	{ "kevinhwang91/nvim-hlslens" },
 	--mini stuff
@@ -207,57 +208,51 @@ local plugins = {
 			"nvim-tree/nvim-web-devicons", -- not strictly required, but recommended
 			"MunifTanjim/nui.nvim",
 		},
-		{ "MunifTanjim/nui.nvim" },
-		{ "folke/which-key.nvim" },
-		{
-			"nvim-pack/nvim-spectre",
-			config = function()
-				require("spectre").setup()
-			end,
-		},
-		{
-			"mg979/vim-visual-multi",
-			branch = "master",
-		},
-		{ "akinsho/toggleterm.nvim", version = "*", config = true },
-		{
-			"junegunn/fzf",
-			build = function()
-				vim.fn["fzf#install"]()
-			end,
-		},
-		{
-			"linrongbin16/fzfx.nvim",
-			dependencies = { "junegunn/fzf" },
-			config = function()
-				require("fzfx").setup()
-			end,
-		},
-		{
-			"danymat/neogen",
-			dependencies = "nvim-treesitter/nvim-treesitter",
-			config = true,
-		},
-		{
-			"zbirenbaum/copilot.lua",
-			cmd = "Copilot",
-			event = "InsertEnter",
-			config = function()
-				require("copilot").setup({
-					suggestion = {
-						enabled = true,
-						auto_trigger = true,
-						debounce = 50,
-						keymap = {
-							accept = "<M-l>",
-							next = "<M-j>",
-							prev = "<M-k>",
-							dismiss = "<M-h>",
-						},
+	},
+	-- { "MunifTanjim/nui.nvim" },
+	{ "folke/which-key.nvim" },
+	{
+		"mg979/vim-visual-multi",
+		branch = "master",
+	},
+	{ "akinsho/toggleterm.nvim", version = "*", config = true },
+	{
+		"junegunn/fzf",
+		build = function()
+			vim.fn["fzf#install"]()
+		end,
+	},
+	{
+		"linrongbin16/fzfx.nvim",
+		dependencies = { "junegunn/fzf" },
+		config = function()
+			require("fzfx").setup()
+		end,
+	},
+	{
+		"danymat/neogen",
+		dependencies = "nvim-treesitter/nvim-treesitter",
+		config = true,
+	},
+	{
+		"zbirenbaum/copilot.lua",
+		cmd = "Copilot",
+		event = "InsertEnter",
+		config = function()
+			require("copilot").setup({
+				suggestion = {
+					enabled = true,
+					auto_trigger = true,
+					debounce = 50,
+					keymap = {
+						accept = "<M-l>",
+						next = "<M-j>",
+						prev = "<M-k>",
+						dismiss = "<M-h>",
 					},
-				})
-			end,
-		},
+				},
+			})
+		end,
 	},
 }
 local opts = {}

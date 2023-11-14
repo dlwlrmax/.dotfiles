@@ -9,17 +9,11 @@ if not mason_status then
 	return
 end
 
-local mason_null_status, mason_null = pcall(require, "mason-null-ls")
-if not mason_null_status then
-	return
-end
-
 -- for conciseness
 local formatting = null_ls.builtins.formatting -- to setup formatters
 local diagnostics = null_ls.builtins.diagnostics -- to setup linters
 local code_actions = null_ls.builtins.code_actions
 
-mason.setup()
 -- configure null_ls
 null_ls.setup({
 	-- setup formatters & linters
@@ -54,5 +48,3 @@ null_ls.setup({
 		end
 	end,
 })
-
-mason_null.setup()
