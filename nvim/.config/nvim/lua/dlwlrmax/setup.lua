@@ -169,6 +169,9 @@ local plugins = {
 				close = {
 					enable = false,
 				},
+        scroll = {
+          enable = false,
+        }
 			})
 		end,
 	},
@@ -320,6 +323,7 @@ local plugins = {
 				load = {
 					["core.defaults"] = {},
 					["core.concealer"] = {},
+          ["core.qol.todo_items"] = {},
 					["core.dirman"] = {
 						config = {
 							workspaces = {
