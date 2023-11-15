@@ -60,6 +60,10 @@ config.line_height = 1.1
 -- Other useful config options:
 config.use_dead_keys = false
 config.scrollback_lines = 3500
+config.disable_default_key_bindings = true
+if currentOs == "Windows" then
+  config.disable_default_key_bindings = false
+end
 config.adjust_window_size_when_changing_font_size = false
 --UI related config
 config.window_background_opacity = 0.7
