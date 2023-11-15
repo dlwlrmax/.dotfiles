@@ -97,7 +97,7 @@ typescript.setup({
 })
 
 vim.api.nvim_create_autocmd({ "FileType" }, {
-	pattern = "astro,css,eruby,html,htmldjango,javascriptreact,less,pug,sass,scss,svelte,typescriptreact,vue,php",
+	pattern = "astro,css,eruby,html,htmldjango,javascriptreact,less,pug,sass,scss,svelte,typescriptreact,vue",
 	callback = function()
 		vim.lsp.start({
 			cmd = { "emmet-language-server", "--stdio" },
