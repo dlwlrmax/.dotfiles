@@ -62,8 +62,30 @@ config.use_dead_keys = false
 config.scrollback_lines = 3500
 config.disable_default_key_bindings = true
 if currentOs == "Windows" then
-  config.disable_default_key_bindings = false
+	config.disable_default_key_bindings = false
 end
+config.keys = {
+	{
+		key = "c",
+		mods = "SHIFT|CTRL",
+		action = wezterm.action.CopyTo("ClipboardAndPrimarySelection"),
+	},
+	{
+		key = "v",
+		mods = "SHIFT|CTRL",
+		action = wezterm.action.PasteFrom("Clipboard"),
+	},
+	{
+		key = "v",
+		mods = "SHIFT|CTRL",
+		action = wezterm.action.PasteFrom("PrimarySelection"),
+	},
+	{
+		key = "r",
+		mods = "SHIFT|CTRL",
+		action = wezterm.action.ReloadConfiguration,
+	},
+}
 config.adjust_window_size_when_changing_font_size = false
 --UI related config
 config.window_background_opacity = 0.7
