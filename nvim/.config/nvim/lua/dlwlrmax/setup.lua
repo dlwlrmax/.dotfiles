@@ -169,9 +169,9 @@ local plugins = {
 				close = {
 					enable = false,
 				},
-        scroll = {
-          enable = false,
-        }
+				scroll = {
+					enable = false,
+				},
 			})
 		end,
 	},
@@ -278,7 +278,53 @@ local plugins = {
 		"folke/noice.nvim",
 		event = "VeryLazy",
 		opts = {
-			-- add any options here
+      cmdline = {
+        format = {
+          cmdline = {
+            icon = "󰅬",
+          }
+        }
+      },
+			views = {
+				cmdline_popup = {
+					position = {
+						row = 5,
+						col = "50%",
+					},
+					size = {
+						height = "auto",
+						width = 60,
+					},
+				},
+				popupmenu = {
+					relative = "editor",
+					position = {
+						row = 8,
+						col = "50%",
+					},
+					size = {
+						width = 60,
+						height = 10,
+					},
+					border = {
+						style = "rounded",
+						padding = { 0, 1 },
+					},
+					win_options = {
+						winhighlight = { Normal = "Normal", FloatBorder = "DiagnosticInfo" },
+					},
+				},
+			},
+			routes = {
+				{
+					filter = {
+						event = "msg_show",
+						kind = "",
+						find = "written",
+					},
+					opts = { skip = true },
+				},
+			},
 			lsp = {
 				-- override markdown rendering so that **cmp** and other plugins use **Treesitter**
 				override = {
@@ -286,6 +332,12 @@ local plugins = {
 					["vim.lsp.util.stylize_markdown"] = true,
 					["cmp.entry.get_documentation"] = true,
 				},
+				progress = {
+					enabled = false,
+				},
+			},
+			messages = {
+				view_search = false,
 			},
 			-- you can enable a preset for easier configuration
 			presets = {
@@ -323,7 +375,7 @@ local plugins = {
 				load = {
 					["core.defaults"] = {},
 					["core.concealer"] = {},
-          ["core.qol.todo_items"] = {},
+					["core.qol.todo_items"] = {},
 					["core.dirman"] = {
 						config = {
 							workspaces = {

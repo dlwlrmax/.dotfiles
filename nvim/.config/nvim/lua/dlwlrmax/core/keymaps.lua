@@ -7,7 +7,6 @@ keymap.set("i", "jj", "<ESC>")
 keymap.set("n", "<leader>w", ":w!<cr>")
 keymap.set("n", "<leader>fq", ":q!<cr>")
 keymap.set("n", "<leader>y", ":+y<cr>")
-keymap.set("n", "<leader>rr", ":so ~/.config/nvim/init.lua<cr>")
 keymap.set("n", "<leader><cr>", ":noh<cr>")
 keymap.set("n", "<leader>fw", "/")
 keymap.set("n", "<A-f>", "/")
@@ -84,16 +83,11 @@ keymap.set("n", "<leader>gp", "<cmd>Gitsigns prev_hunk<cr>")
 -- Translate
 keymap.set("n", "<leader>t", "<Cmd>Translate EN<CR>")
 
--- Search and replace
-api.nvim_set_keymap("n", "<leader>rs", "<CMD>SearchReplaceSingleBufferSelections<CR>", opts)
-api.nvim_set_keymap("n", "<leader>ro", "<CMD>SearchReplaceSingleBufferOpen<CR>", opts)
-api.nvim_set_keymap("n", "<leader>rw", "<CMD>SearchReplaceSingleBufferCWord<CR>", opts)
-api.nvim_set_keymap("n", "<leader>rW", "<CMD>SearchReplaceSingleBufferCWORD<CR>", opts)
-
 -- back to home page
 keymap.set("n", "<leader>gh", "<CMD>Startify<CR>")
 
 keymap.set("n", "<leader>gf", "<CMD>SymbolsOutline<CR>")
 
--- neoclip
-keymap.set("n", "<leader>p", "<CMD>lua require('neoclip.fzf')()<CR>")
+keymap.set("n", "<leader>bo", "<CMD>%bd|e#|bd#<CR>", { desc = "Close all buffer but current" })
+keymap.set("n", "<leader>rr", "<CMD>%bd|e#|bd#<CR>", { desc = "Close all buffer but current" })
+-- keymap.set("n", "<leader>rr", ":so ~/.config/nvim/init.lua<cr>")
