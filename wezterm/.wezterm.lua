@@ -42,13 +42,14 @@ if currentOs == "Windows" then
 end
 
 config.font = wezterm.font_with_fallback({
-	{ family = "JetBrainsMono Nerd Font Mono", weight = "Medium", scale = scale },
-	{ family = "FiraCode Nerd Font Mono", weight = "Medium", scale = scale },
+	{ family = "JetBrainsMono Nerd Font", weight = "Medium", scale = scale },
+	{ family = "FiraCode Nerd Font", weight = "Medium", scale = scale },
 	{ family = "Noto Sans JP", scale = scale },
 	{ family = "Noto Sans KR", scale = scale },
 	{ family = "Noto Sans", scale = scale },
 })
 config.font_size = 10
+config.use_cap_height_to_scale_fallback_fonts = true
 config.hide_tab_bar_if_only_one_tab = true
 config.window_padding = {
 	left = 8,
