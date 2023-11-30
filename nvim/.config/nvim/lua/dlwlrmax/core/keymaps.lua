@@ -25,7 +25,6 @@ keymap.set("n", "J", ":m .+1<CR>==")
 keymap.set("n", "K", ":m .-2<CR>==")
 keymap.set("n", "H", "^")
 keymap.set("n", "L", "$")
-keymap.set("n", "<A-q>", "<Cmd>wq!<CR>")
 -- keymap.set("n", "<leader>bd", ":BClose<cr>:tabclose<cr>gT");
 -- bufferline
 keymap.set("n", "<leader>h", "<Cmd>BufferPrevious<CR>")
@@ -60,6 +59,7 @@ keymap.set("n", "<leader>b", "<CMD>Neotree focus<CR>")
 -- keymap.set("n", "<C-e>", "<cmd>Telescope find_files<cr>");
 keymap.set("n", "<leader>ff", "<cmd>Telescope find_files theme=dropdown<cr>")
 keymap.set("n", "<leader>fs", "<cmd>FzfxLiveGrepW<cr>")
+keymap.set("v", "<leader>fs", "<cmd>FzfxLiveGrepV<cr>")
 keymap.set("n", "<leader><space>", "<cmd>FzfxFiles<cr>")
 keymap.set("n", "?", "<cmd>Telescope live_grep theme=dropdown<cr>")
 keymap.set("n", "<leader>fc", "<cmd>Telescope grep_string<cr>")
