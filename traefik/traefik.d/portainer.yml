@@ -1,0 +1,11 @@
+http:
+  routers:
+    portainer:
+      rule: Host(`portainer.localhost`)
+      service: portainer
+
+  services:
+    portainer:
+      loadBalancer:
+        servers:
+          - url: "http://172.20.0.1:9443"
