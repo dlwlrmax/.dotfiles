@@ -89,13 +89,14 @@ config.keys = {
 }
 config.adjust_window_size_when_changing_font_size = false
 --UI related config
-config.window_background_opacity = 0.7
+config.window_background_opacity = 0.8
 if currentOs == "Windows" then
 	config.window_background_opacity = 0
 	config.win32_system_backdrop = "Mica"
 	config.window_close_confirmation = "NeverPrompt"
 end
 
+config.enable_wayland = false
 -- Keybindings
 local act = wezterm.action
 local keys = {

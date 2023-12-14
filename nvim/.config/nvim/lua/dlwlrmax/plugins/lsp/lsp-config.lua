@@ -30,6 +30,8 @@ local on_attach = function(client, bufnr)
 	-- keymap.set("n", "gd", "<cmd>Lspsaga peek_definition<CR>", opts)      -- see definition and make edits in window
 	keymap.set("n", "gd", "<cmd>Lspsaga goto_definition<CR>", opts) -- see definition and make edits in window
 	keymap.set("n", "gt", "<cmd>Lspsaga peek_type_definition<CR>", opts) -- see definition and make edits in window
+	keymap.set("n", "<leader>kk", "<cmd>Lspsaga peek_type_definition<CR>", opts) -- see definition and make edits in window
+	keymap.set("n", "<leader>jk", "<cmd>Lspsaga hover_doc<CR>", opts) -- show documentation for what is under cursor
 	-- keymap.set("n", "gt", "<cmd>Lspsaga goto_type_definition<CR>", opts) -- see definition and make edits in window
 
 	keymap.set("n", "<leader>sl", "<cmd>Lspsaga show_line_diagnostics<CR>", opts)
@@ -48,7 +50,6 @@ local on_attach = function(client, bufnr)
 	keymap.set("n", "<leader>dD", "<cmd>Lspsaga show_cursor_diagnostics<CR>", opts) -- show diagnostics for cursor
 	keymap.set("n", "dp", "<cmd>Lspsaga diagnostic_jump_prev<CR>", opts) -- jump to previous diagnostic in buffer
 	keymap.set("n", "dn", "<cmd>Lspsaga diagnostic_jump_next<CR>", opts) -- jump to next diagnostic in buffer
-	keymap.set("n", "<leader>kk", "<cmd>Lspsaga hover_doc<CR>", opts) -- show documentation for what is under cursor
 	keymap.set("n", "<leader>o", "<cmd>LSoutlineToggle<CR>", opts) -- see outline on right hand side
 
 	-- typescript specific keymaps (e.g. rename file and update imports)
