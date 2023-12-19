@@ -278,13 +278,13 @@ local plugins = {
 		"folke/noice.nvim",
 		event = "VeryLazy",
 		opts = {
-      cmdline = {
-        format = {
-          cmdline = {
-            icon = "󰅬",
-          }
-        }
-      },
+			cmdline = {
+				format = {
+					cmdline = {
+						icon = "󰅬",
+					},
+				},
+			},
 			views = {
 				cmdline_popup = {
 					position = {
@@ -323,6 +323,10 @@ local plugins = {
 						find = "written",
 					},
 					opts = { skip = true },
+				},
+				{
+					view = "notify",
+					filter = { event = "msg_showmode" },
 				},
 			},
 			lsp = {
