@@ -58,8 +58,8 @@ keymap.set("n", "<leader>b", "<CMD>Neotree focus<CR>")
 --Telescope
 -- keymap.set("n", "<C-e>", "<cmd>Telescope find_files<cr>");
 keymap.set("n", "<leader>ff", "<cmd>Telescope find_files theme=dropdown<cr>")
-keymap.set("n", "<leader>fs", "<cmd>FzfxLiveGrepW<cr>")
-keymap.set("v", "<leader>fs", "<cmd>FzfxLiveGrepV<cr>")
+keymap.set("n", "<leader>fs", "<cmd>FzfxLiveGrep<cr>")
+keymap.set("v", "<leader>fs", "<cmd>FzfxLiveGrep<cr>")
 keymap.set("n", "<leader><space>", "<cmd>FzfxFiles<cr>")
 keymap.set("n", "?", "<cmd>Telescope live_grep theme=dropdown<cr>")
 keymap.set("n", "<leader>fc", "<cmd>Telescope grep_string<cr>")

@@ -32,14 +32,14 @@ null_ls.setup({
 		formatting.stylua.with({
 			filetypes = { "lua" },
 		}), -- lua formatter
-		code_actions.eslint_d,
-		code_actions.cspell,
-		diagnostics.cspell,
-		diagnostics.eslint_d.with({ -- js/ts lint
-			condition = function(utils)
-				return utils.root_has_file(".eslintrc.js") -- change file extension if you use something else
-			end,
-		}),
+		-- code_actions.eslint_d,
+		-- code_actions.cspell,
+		-- diagnostics.cspell,
+		-- diagnostics.eslint_d.with({ -- js/ts lint
+		-- 	condition = function(utils)
+		-- 		return utils.root_has_file(".eslintrc.js") -- change file extension if you use something else
+		-- 	end,
+		-- }),
 	},
 	-- configure format on save
 	on_attach = function(current_client, bufnr)
