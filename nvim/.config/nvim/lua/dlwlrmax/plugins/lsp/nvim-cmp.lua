@@ -10,7 +10,7 @@ end
 
 local neogen = require("neogen")
 
-require("luasnip/loaders/from_vscode").lazy_load()
+require("luasnip.loaders.from_vscode").lazy_load()
 
 local has_words_before = function()
 	unpack = unpack or table.unpack

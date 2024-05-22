@@ -89,7 +89,7 @@ config.keys = {
 }
 config.adjust_window_size_when_changing_font_size = false
 --UI related config
-config.window_background_opacity = 0.98
+config.window_background_opacity = 0.95
 
 config.enable_wayland = false
 if currentOs == "Windows" then
@@ -101,6 +101,7 @@ end
 
 config.initial_rows = 42
 config.initial_cols = 192
+config.warn_about_missing_glyphs = false
 
 -- Keybindings
 local act = wezterm.action
