@@ -46,10 +46,6 @@ keymap.set("n", "<C-w>", "<Cmd>BufferClose<CR>")
 keymap.set("n", "<Leader>rt", "<Cmd>BufferRestore<CR>")
 keymap.set("n", "<leader>q", "<Cmd>b#<CR>")
 
--- Replace
-
-keymap.set("n", "<leader>rp", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]])
-
 --Nvim Tree
 keymap.set("n", "<leader>e", "<CMD>Neotree toggle<CR>")
 keymap.set("n", "<leader>b", "<CMD>Neotree focus<CR>")
@@ -57,10 +53,12 @@ keymap.set("n", "<leader>b", "<CMD>Neotree focus<CR>")
 
 --Telescope
 -- keymap.set("n", "<C-e>", "<cmd>Telescope find_files<cr>");
+keymap.set("n", "<leader><space>", "<cmd>Telescope resume<cr>")
 keymap.set("n", "<leader>ff", "<cmd>Telescope find_files theme=dropdown<cr>")
-keymap.set("n", "<leader>fs", "<cmd>FzfxLiveGrep<cr>")
-keymap.set("v", "<leader>fs", "<cmd>FzfxLiveGrep cword<cr>")
-keymap.set("n", "<leader><space>", "<cmd>FzfxFiles<cr>")
+keymap.set("n", "<leader>fa", "<cmd>Telescope git_files theme=dropdown<cr>")
+keymap.set("n", "<leader>fs", "<cmd>Telescope live_grep<cr>")
+keymap.set("n", "<leader>km", "<cmd>Telescope keymaps<cr>")
+keymap.set("v", "<leader>fs", "<cmd>Telescope grep_string<cr>")
 keymap.set("n", "?", "<cmd>Telescope live_grep theme=dropdown<cr>")
 keymap.set("n", "<leader>fc", "<cmd>Telescope grep_string<cr>")
 keymap.set("n", "<leader>fb", "<cmd>Telescope buffers<cr>")
@@ -90,4 +88,6 @@ keymap.set("n", "<leader>gf", "<CMD>SymbolsOutline<CR>")
 
 keymap.set("n", "<leader>bo", "<CMD>%bd|e#|bd#<CR>", { desc = "Close all buffer but current" })
 keymap.set("n", "<leader>rr", "<CMD>%bd|e#|bd#<CR>", { desc = "Close all buffer but current" })
--- keymap.set("n", "<leader>rr", ":so ~/.config/nvim/init.lua<cr>")
+
+-- Oils
+keymap.set("n", "-", "<CMD>Oil --float<CR>", { desc = "Open oil" })

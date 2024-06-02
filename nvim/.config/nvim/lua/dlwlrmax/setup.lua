@@ -120,19 +120,6 @@ local plugins = {
 		version = "^1.0.0", -- optional: only update when a new 1.x version is released
 	},
 	{ "mhinz/vim-startify" },
-	-- {
-	-- 	"ray-x/lsp_signature.nvim",
-	-- 	event = "VeryLazy",
-	-- 	opts = {
-	-- 		bind = true,
-	-- 		handler_opts = {
-	-- 			border = "rounded",
-	-- 		},
-	-- 	},
-	-- 	config = function(_, opts)
-	-- 		require("lsp_signature").setup(opts)
-	-- 	end,
-	-- },
 	{ "m-demare/hlargs.nvim" },
 	{ "winston0410/cmd-parser.nvim" },
 	{ "ThePrimeagen/harpoon" },
@@ -155,53 +142,8 @@ local plugins = {
 	{ "folke/flash.nvim" },
 	{ "kevinhwang91/nvim-hlslens" },
 	-- mini stuff
-	{
-		"echasnovski/mini.animate",
-		version = "*",
-		config = function()
-			require("mini.animate").setup({
-				resize = {
-					enable = false,
-				},
-				open = {
-					enable = false,
-				},
-				close = {
-					enable = false,
-				},
-				scroll = {
-					enable = false,
-				},
-			})
-		end,
-	},
-	{
-		"echasnovski/mini.cursorword",
-		version = "*",
-		config = function()
-			require("mini.cursorword").setup()
-		end,
-	},
-	{
-		"echasnovski/mini.surround",
-		version = "*",
-		config = function()
-			require("mini.surround").setup({
-				mappings = {
-					add = "ya", -- Add surrounding in Normal and Visual modes
-					delete = "yd", -- Delete surrounding
-					find = "", -- Find surrounding (to the right)
-					find_left = "", -- Find surrounding (to the left)
-					highlight = "yh", -- Highlight surrounding
-					replace = "yr", -- Replace surrounding
-					update_n_lines = "yn", -- Update `n_lines`
-
-					suffix_last = "l", -- Suffix to search with "prev" method
-					suffix_next = "n", -- Suffix to search with "next" method
-				},
-			})
-		end,
-	},
+	--
+	{ "echasnovski/mini.nvim", version = "*" },
 	{
 		"nvim-telescope/telescope.nvim",
 		tag = "0.1.3",
@@ -240,13 +182,6 @@ local plugins = {
 		"junegunn/fzf",
 		build = function()
 			vim.fn["fzf#install"]()
-		end,
-	},
-	{
-		"linrongbin16/fzfx.nvim",
-		dependencies = { "junegunn/fzf" },
-		config = function()
-			require("fzfx").setup()
 		end,
 	},
 	{
@@ -366,31 +301,12 @@ local plugins = {
 			})
 		end,
 	},
-	-- {
-	-- 	"nvim-neorg/neorg",
-	-- 	build = ":Neorg sync-parsers",
-	-- 	dependencies = { "nvim-lua/plenary.nvim" },
-	-- 	config = function()
-	-- 		require("neorg").setup({
-	-- 			load = {
-	-- 				["core.defaults"] = {},
-	-- 				["core.concealer"] = {},
-	-- 				["core.qol.todo_items"] = {},
-	-- 				["core.dirman"] = {
-	-- 					config = {
-	-- 						workspaces = {
-	-- 							notes = "~/notes",
-	-- 						},
-	-- 						default_workspace = "notes",
-	-- 					},
-	-- 				},
-	-- 			},
-	-- 		})
-	--
-	-- 		vim.wo.foldlevel = 99
-	-- 		vim.wo.conceallevel = 2
-	-- 	end,
-	-- },
+	{
+		"stevearc/oil.nvim",
+		opts = {},
+		-- Optional dependencies
+		dependencies = { "nvim-tree/nvim-web-devicons" },
+	},
 }
 local opts = {}
 require("lazy").setup(plugins, opts)
