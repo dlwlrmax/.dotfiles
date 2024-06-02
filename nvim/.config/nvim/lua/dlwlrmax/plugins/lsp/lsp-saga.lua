@@ -32,7 +32,7 @@ saga.setup({
 		quit = "q",
 	},
 	lightbulb = {
-		enable = false,
+		enable = true,
 		enable_in_insert = false,
 		sign = true,
 		sign_priority = 40,

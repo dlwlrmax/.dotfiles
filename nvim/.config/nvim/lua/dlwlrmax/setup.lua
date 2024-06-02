@@ -25,7 +25,6 @@ local plugins = {
 	},
 	{ "nvim-lua/plenary.nvim" },
 	{ "christoomey/vim-tmux-navigator" },
-	{ "inkarkat/vim-ReplaceWithRegister" },
 	{
 		"numToStr/Comment.nvim",
 		opts = {
@@ -34,11 +33,23 @@ local plugins = {
 		lazy = false,
 	},
 	{ "nvim-tree/nvim-web-devicons" },
-	{ "nvim-lualine/lualine.nvim", event = "VeryLazy" },
+	{ "nvim-lualine/lualine.nvim",  event = "VeryLazy" },
 	{ "nvim-lua/popup.nvim" },
 	{
 		"hrsh7th/nvim-cmp",
+		event = "InsertEnter",
 		dependencies = {
+			{
+				"L3MON4D3/LuaSnip",
+				dependencies = { "rafamadriz/friendly-snippets" },
+				-- follow latest release.
+				version = "2.*", -- Replace <CurrentMajor> by the latest released major (first number of latest release)
+				-- install jsregexp (optional!).
+				build = "make install_jsregexp",
+				keys = function()
+					return {}
+				end,
+			},
 			"hrsh7th/cmp-emoji",
 			"hrsh7th/cmp-buffer",
 			"hrsh7th/cmp-path",
@@ -49,17 +60,6 @@ local plugins = {
 		},
 	},
 	{
-		"L3MON4D3/LuaSnip",
-		dependencies = { "rafamadriz/friendly-snippets" },
-		-- follow latest release.
-		version = "2.*", -- Replace <CurrentMajor> by the latest released major (first number of latest release)
-		-- install jsregexp (optional!).
-		build = "make install_jsregexp",
-		keys = function()
-			return {}
-		end,
-	},
-	{
 		"tzachar/cmp-tabnine",
 		build = "./install.sh",
 		dependencies = "hrsh7th/nvim-cmp",
@@ -67,6 +67,7 @@ local plugins = {
 	{ "saadparwaiz1/cmp_luasnip" },
 	{
 		"williamboman/mason.nvim",
+		"williamboman/mason-lspconfig.nvim",
 	},
 	{
 		"neovim/nvim-lspconfig",
@@ -74,6 +75,9 @@ local plugins = {
 	},
 	{
 		"nvimtools/none-ls.nvim",
+		dependencies = {
+			"nvimtools/none-ls-extras.nvim",
+		},
 		event = { "BufReadPre", "BufNewFile" },
 	},
 	{ "lukas-reineke/indent-blankline.nvim", main = "ibl", opts = {} },
@@ -97,7 +101,7 @@ local plugins = {
 				javascript = { "template_string" },
 				java = false, -- don't check treesitter on java
 			},
-		}, -- this is equalent to setup({}) function
+		},              -- this is equalent to setup({}) function
 	},
 	{ "lewis6991/gitsigns.nvim" },
 	{ "jose-elias-alvarez/typescript.nvim" },
@@ -124,18 +128,15 @@ local plugins = {
 	{ "winston0410/cmd-parser.nvim" },
 	{ "ThePrimeagen/harpoon" },
 	{ "uga-rosa/translate.nvim" },
-	{ "kevinhwang91/nvim-ufo", dependencies = { "kevinhwang91/promise-async" } },
+	{ "kevinhwang91/nvim-ufo",      dependencies = { "kevinhwang91/promise-async" } },
 	{ "petertriho/nvim-scrollbar" },
-	{
-		"simrat39/symbols-outline.nvim",
-	},
 	{
 		"NeogitOrg/neogit",
 		dependencies = {
 			"nvim-lua/plenary.nvim", -- required
 			"nvim-telescope/telescope.nvim", -- optional
 			"sindrets/diffview.nvim", -- optional
-			"ibhagwan/fzf-lua", -- optional
+			"ibhagwan/fzf-lua",     -- optional
 		},
 		config = true,
 	},
@@ -143,7 +144,30 @@ local plugins = {
 	{ "kevinhwang91/nvim-hlslens" },
 	-- mini stuff
 	--
-	{ "echasnovski/mini.nvim", version = "*" },
+	{
+		"echasnovski/mini.nvim",
+		version = "*",
+		config = function()
+			-- Better Around/Inside text objects
+			-- Example:
+			--  - va) => Select Around ()
+			--  - yinq => Yank Inside Quotes
+			--  -  ci'  => Change Inside Quotes
+			require("mini.ai").setup { n_lines = 500 }
+
+			-- Add/delete/replace surrounding text objects
+			-- - saiw) => Surround Around Inner Word with ()
+			-- - sd' => Surround Delete '
+			-- - sr)' => Surround Replace ) with '
+			require("mini.surround").setup()
+
+			-- Cursor world
+			require("mini.cursorword").setup()
+
+			-- Visited paths
+			require('mini.visits').setup()
+		end
+	},
 	{
 		"nvim-telescope/telescope.nvim",
 		tag = "0.1.3",
@@ -151,7 +175,8 @@ local plugins = {
 	},
 	{
 		"nvim-telescope/telescope-fzf-native.nvim",
-		build = "cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build",
+		build =
+		"cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build",
 	},
 	{ "smartpde/telescope-recent-files" },
 	{
@@ -306,6 +331,15 @@ local plugins = {
 		opts = {},
 		-- Optional dependencies
 		dependencies = { "nvim-tree/nvim-web-devicons" },
+	},
+	{
+		"folke/todo-comments.nvim",
+		dependencies = { "nvim-lua/plenary.nvim" },
+		opts = {
+			-- your configuration comes here
+			-- or leave it empty to use the default settings
+			-- refer to the configuration section below
+		},
 	},
 }
 local opts = {}

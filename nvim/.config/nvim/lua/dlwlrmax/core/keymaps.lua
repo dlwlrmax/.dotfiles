@@ -55,10 +55,10 @@ keymap.set("n", "<leader>b", "<CMD>Neotree focus<CR>")
 -- keymap.set("n", "<C-e>", "<cmd>Telescope find_files<cr>");
 keymap.set("n", "<leader><space>", "<cmd>Telescope resume<cr>")
 keymap.set("n", "<leader>ff", "<cmd>Telescope find_files theme=dropdown<cr>")
-keymap.set("n", "<leader>fa", "<cmd>Telescope git_files theme=dropdown<cr>")
-keymap.set("n", "<leader>fs", "<cmd>Telescope live_grep<cr>")
+keymap.set("n", "<leader>fa", "<cmd>Telescope git_files<cr>")
+keymap.set("n", "<leader>fs", "<cmd>Telescope live_grep theme=dropdown<cr>")
 keymap.set("n", "<leader>km", "<cmd>Telescope keymaps<cr>")
-keymap.set("v", "<leader>fs", "<cmd>Telescope grep_string<cr>")
+keymap.set("v", "<leader>fs", "<cmd>Telescope grep_string theme=dropdown<cr>")
 keymap.set("n", "?", "<cmd>Telescope live_grep theme=dropdown<cr>")
 keymap.set("n", "<leader>fc", "<cmd>Telescope grep_string<cr>")
 keymap.set("n", "<leader>fb", "<cmd>Telescope buffers<cr>")
@@ -91,3 +91,32 @@ keymap.set("n", "<leader>rr", "<CMD>%bd|e#|bd#<CR>", { desc = "Close all buffer 
 
 -- Oils
 keymap.set("n", "-", "<CMD>Oil --float<CR>", { desc = "Open oil" })
+
+local opts = { noremap = true, silent = true }
+
+-- set keybinds
+keymap.set("n", "gr", "<cmd>Lspsaga finder<CR>", opts) -- show definition, references
+-- keymap.set("n", "gD", "<Cmd>lua vim.lsp.buf.declaration()<CR>", opts) -- got to declaration
+keymap.set("n", "gD", "<cmd>Lspsaga peek_definition<CR>", opts) -- see definition and make edits in window
+keymap.set("n", "gd", "<cmd>Lspsaga goto_definition<CR>", opts) -- see definition and make edits in window
+keymap.set("n", "gt", "<cmd>Lspsaga peek_type_definition<CR>", opts) -- see definition and make edits in window
+keymap.set("n", "<leader>kk", "<cmd>Lspsaga peek_type_definition<CR>", opts) -- see definition and make edits in window
+keymap.set("n", "<leader>K", "<cmd>Lspsaga hover_doc<CR>", opts) -- show documentation for what is under cursor
+-- keymap.set("n", "gt", "<cmd>Lspsaga goto_type_definition<CR>", opts) -- see definition and make edits in window
+
+keymap.set("n", "<leader>sl", "<cmd>Lspsaga show_line_diagnostics<CR>", opts)
+
+-- Like show_line_diagnostics, it supports passing the ++unfocus argument
+keymap.set("n", "<leader>sc", "<cmd>Lspsaga show_cursor_diagnostics<CR>", opts)
+
+-- Show buffer diagnostics
+keymap.set("n", "<leader>sb", "<cmd>Lspsaga show_buf_diagnostics<CR>", opts)
+
+keymap.set("n", "gi", "<cmd>lua vim.lsp.buf.implementation()<CR>", opts) -- go to implementation
+keymap.set("n", "<leader>ca", "<cmd>Lspsaga code_action<CR>", opts) -- see available code actions
+keymap.set("n", "<leader>rn", "<cmd>Lspsaga rename<CR>", opts) -- smart rename
+keymap.set("n", "<leader>dd", "<cmd>Lspsaga show_line_diagnostics<CR>", opts) -- show  diagnostics for line
+keymap.set("n", "<leader>dD", "<cmd>Lspsaga show_cursor_diagnostics<CR>", opts) -- show diagnostics for cursor
+keymap.set("n", "dp", "<cmd>Lspsaga diagnostic_jump_prev<CR>", opts) -- jump to previous diagnostic in buffer
+keymap.set("n", "dn", "<cmd>Lspsaga diagnostic_jump_next<CR>", opts) -- jump to next diagnostic in buffer
+keymap.set("n", "<leader>o", "<cmd>Lspsaga outline<CR>", opts) -- see outline on right hand side
