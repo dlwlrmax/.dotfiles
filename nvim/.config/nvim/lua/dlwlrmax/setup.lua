@@ -33,7 +33,7 @@ local plugins = {
 		lazy = false,
 	},
 	{ "nvim-tree/nvim-web-devicons" },
-	{ "nvim-lualine/lualine.nvim",  event = "VeryLazy" },
+	{ "nvim-lualine/lualine.nvim", event = "VeryLazy" },
 	{ "nvim-lua/popup.nvim" },
 	{
 		"hrsh7th/nvim-cmp",
@@ -101,34 +101,17 @@ local plugins = {
 				javascript = { "template_string" },
 				java = false, -- don't check treesitter on java
 			},
-		},              -- this is equalent to setup({}) function
+		}, -- this is equalent to setup({}) function
 	},
 	{ "lewis6991/gitsigns.nvim" },
 	{ "jose-elias-alvarez/typescript.nvim" },
 	{ "onsails/lspkind.nvim" },
-	{
-		"romgrk/barbar.nvim",
-		dependencies = {
-			"lewis6991/gitsigns.nvim", -- OPTIONAL: for git status
-			"nvim-tree/nvim-web-devicons", -- OPTIONAL: for file icons
-		},
-		init = function()
-			vim.g.barbar_auto_setup = false
-		end,
-		opts = {
-			-- lazy.nvim will automatically call setup for you. put your options here, anything missing will use the default:
-			-- animation = true,
-			-- insert_at_start = true,
-			-- …etc.
-		},
-		version = "^1.0.0", -- optional: only update when a new 1.x version is released
-	},
 	{ "mhinz/vim-startify" },
 	{ "m-demare/hlargs.nvim" },
 	{ "winston0410/cmd-parser.nvim" },
 	{ "ThePrimeagen/harpoon" },
 	{ "uga-rosa/translate.nvim" },
-	{ "kevinhwang91/nvim-ufo",      dependencies = { "kevinhwang91/promise-async" } },
+	{ "kevinhwang91/nvim-ufo", dependencies = { "kevinhwang91/promise-async" } },
 	{ "petertriho/nvim-scrollbar" },
 	{
 		"NeogitOrg/neogit",
@@ -136,7 +119,7 @@ local plugins = {
 			"nvim-lua/plenary.nvim", -- required
 			"nvim-telescope/telescope.nvim", -- optional
 			"sindrets/diffview.nvim", -- optional
-			"ibhagwan/fzf-lua",     -- optional
+			"ibhagwan/fzf-lua", -- optional
 		},
 		config = true,
 	},
@@ -153,7 +136,7 @@ local plugins = {
 			--  - va) => Select Around ()
 			--  - yinq => Yank Inside Quotes
 			--  -  ci'  => Change Inside Quotes
-			require("mini.ai").setup { n_lines = 500 }
+			require("mini.ai").setup({ n_lines = 500 })
 
 			-- Add/delete/replace surrounding text objects
 			-- - saiw) => Surround Around Inner Word with ()
@@ -165,8 +148,17 @@ local plugins = {
 			require("mini.cursorword").setup()
 
 			-- Visited paths
-			require('mini.visits').setup()
-		end
+			require("mini.visits").setup()
+
+			-- Highlighters
+			local hipatterns = require("mini.hipatterns")
+			hipatterns.setup({
+				highlighters = {
+					-- Highlight hex color strings (`#rrggbb`) using that color
+					hex_color = hipatterns.gen_highlighter.hex_color(),
+				},
+			})
+		end,
 	},
 	{
 		"nvim-telescope/telescope.nvim",
@@ -175,8 +167,7 @@ local plugins = {
 	},
 	{
 		"nvim-telescope/telescope-fzf-native.nvim",
-		build =
-		"cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build",
+		build = "cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build",
 	},
 	{ "smartpde/telescope-recent-files" },
 	{
@@ -340,6 +331,36 @@ local plugins = {
 			-- or leave it empty to use the default settings
 			-- refer to the configuration section below
 		},
+	},
+	{
+		"akinsho/bufferline.nvim",
+		version = "*",
+		dependencies = "nvim-tree/nvim-web-devicons",
+		config = function()
+			require("bufferline").setup({
+				options = {
+					hover = {
+						enable = true,
+						delay = 200,
+						reveal = { "close" },
+					},
+					diagnostics = "nvim_lsp",
+					diagnostics_indicator = function(count, level)
+						local icon = level:match("error") and " " or ""
+						return " " .. icon .. count
+					end,
+					offsets = {
+						{
+							filetype = "NvimTree",
+							text = function()
+								return vim.fn.getcwd()
+							end,
+							highlight = "Directory",
+						},
+					},
+				},
+			})
+		end,
 	},
 }
 local opts = {}

@@ -27,24 +27,16 @@ keymap.set("n", "H", "^")
 keymap.set("n", "L", "$")
 -- keymap.set("n", "<leader>bd", ":BClose<cr>:tabclose<cr>gT");
 -- bufferline
-keymap.set("n", "<leader>h", "<Cmd>BufferPrevious<CR>")
-keymap.set("n", "<leader>l", "<Cmd>BufferNext<CR>")
-keymap.set("n", "<leader>p", "<Cmd>BufferPin<CR>")
-keymap.set("n", "<leader>ml", "<Cmd>BufferMoveNext<CR>")
-keymap.set("n", "<leader>mh", "<Cmd>BufferMovePrevious<CR>")
-keymap.set("n", "<A-1>", "<Cmd>BufferGoto 1<CR>")
-keymap.set("n", "<A-2>", "<Cmd>BufferGoto 2<CR>")
-keymap.set("n", "<A-3>", "<Cmd>BufferGoto 3<CR>")
-keymap.set("n", "<A-4>", "<Cmd>BufferGoto 4<CR>")
-keymap.set("n", "<A-5>", "<Cmd>BufferGoto 5<CR>")
-keymap.set("n", "<A-6>", "<Cmd>BufferGoto 6<CR>")
-keymap.set("n", "<A-7>", "<Cmd>BufferGoto 7<CR>")
-keymap.set("n", "<A-8>", "<Cmd>BufferGoto 8<CR>")
-keymap.set("n", "<A-9>", "<Cmd>BufferGoto 9<CR>")
-keymap.set("n", "<A-0>", "<Cmd>BufferGoto 0<CR>")
-keymap.set("n", "<C-w>", "<Cmd>BufferClose<CR>")
+keymap.set("n", "<leader>h", "<Cmd>BufferLineCyclePrev<CR><CR>")
+keymap.set("n", "<leader>l", "<Cmd>BufferLineCycleNext<CR>")
+keymap.set("n", "<leader>ml", "<Cmd>BufferLineMoveNext<CR><CR>")
+keymap.set("n", "<leader>mh", "<Cmd>BufferLineMovePrev<CR>")
+keymap.set("n", "<C-w>", "<Cmd>bd<CR>")
 keymap.set("n", "<Leader>rt", "<Cmd>BufferRestore<CR>")
 keymap.set("n", "<leader>q", "<Cmd>b#<CR>")
+keymap.set("n", "<leader>rr", "<Cmd>BufferLineCloseOthers<CR>")
+keymap.set("n", "<leader>bo", "<Cmd>BufferLinePick<CR>")
+keymap.set("n", "<leader>bO", "<Cmd>BufferLinePick<CR>")
 
 --Nvim Tree
 keymap.set("n", "<leader>e", "<CMD>Neotree toggle<CR>")
@@ -86,8 +78,7 @@ keymap.set("n", "<leader>gh", "<CMD>Startify<CR>")
 
 keymap.set("n", "<leader>gf", "<CMD>SymbolsOutline<CR>")
 
-keymap.set("n", "<leader>bo", "<CMD>%bd|e#|bd#<CR>", { desc = "Close all buffer but current" })
-keymap.set("n", "<leader>rr", "<CMD>%bd|e#|bd#<CR>", { desc = "Close all buffer but current" })
+keymap.set("n", "<leader>rr", "<CMD>%bd|e#<CR>", { desc = "Close all buffer but current" })
 
 -- Oils
 keymap.set("n", "-", "<CMD>Oil --float<CR>", { desc = "Open oil" })

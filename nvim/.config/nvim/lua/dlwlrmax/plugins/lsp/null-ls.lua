@@ -20,7 +20,7 @@ null_ls.setup({
 	sources = {
 		--  to disable file types use
 		--  "formatting.prettier.with({disabled_filetypes: {}})" (see null-ls docs)
-		formatting.prettierd.with({
+		formatting.prettier.with({
 			filetypes = { "javascript", "scss", "css", "typescript", "json", "html", "vue" },
 		}), -- js/ts formatter
 		formatting.phpcsfixer.with({
@@ -32,13 +32,13 @@ null_ls.setup({
 		formatting.stylua.with({
 			filetypes = { "lua" },
 		}), -- lua formatter
-    require("none-ls.diagnostics.eslint"),
+		require("none-ls.diagnostics.eslint"),
 		require("none-ls.code_actions.eslint"),
 	},
 	-- configure format on save
 	on_attach = function(current_client, bufnr)
 		if current_client.name == "tsserver" then
-			current_client.resolved_capabilities.document_formatting = false
+			current_client.server_capabilities.documentFormattingProvider = false -- 0.8 and later
 		end
 	end,
 })

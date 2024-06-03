@@ -61,7 +61,6 @@ require('catppuccin').setup({
     notify = true,
     noice = true,
     mini = true,
-    barbar = true,
     barbecue = {
       dim_context = false,
       alt_background = false,
