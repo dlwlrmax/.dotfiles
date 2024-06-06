@@ -41,6 +41,9 @@ if currentOs == "Windows" then
   scale = 1.05
 end
 
+config.use_ime = true
+config.ime_preedit_rendering = "Builtin"
+
 config.font = wezterm.font_with_fallback({
   { family = "JetBrainsMono Nerd Font", weight = "Medium", scale = scale },
   { family = "FiraCode Nerd Font",      weight = "Medium", scale = scale },
