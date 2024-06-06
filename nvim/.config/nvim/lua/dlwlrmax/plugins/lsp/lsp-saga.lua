@@ -35,8 +35,8 @@ saga.setup({
 		enable = true,
 		enable_in_insert = false,
 		sign = true,
-		sign_priority = 40,
-		virtual_text = true,
+		sign_priority = 140,
+		virtual_text = false,
 	},
 	ui = {
 		-- This option only works in Neovim 0.9
