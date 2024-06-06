@@ -46,16 +46,16 @@ keymap.set("n", "<leader>b", "<CMD>Neotree focus<CR>")
 --Telescope
 -- keymap.set("n", "<C-e>", "<cmd>Telescope find_files<cr>");
 keymap.set("n", "<leader><space>", "<cmd>Telescope resume<cr>")
-keymap.set("n", "<leader>fa", "<cmd>Telescope find_files<cr>")
-keymap.set("n", "<leader>ff", "<cmd>Telescope git_files<cr>")
-keymap.set("n", "<leader>fs", "<cmd>Telescope live_grep theme=dropdown<cr>")
+keymap.set("n", "<leader>fa", "<cmd>Telescope find_files hidden=true<cr>")
+keymap.set("n", "<leader>ff", "<cmd>Telescope find_files<cr>")
+keymap.set("n", "<leader>fs", "<cmd>Telescope live_grep<cr>")
+keymap.set("n", "<leader>fr", "<cmd>Telescope live_grep hidden=true<cr>")
 keymap.set("n", "<leader>km", "<cmd>Telescope keymaps<cr>")
-keymap.set("v", "<leader>fs", "<cmd>Telescope grep_string theme=dropdown<cr>")
-keymap.set("n", "?", "<cmd>Telescope live_grep theme=dropdown<cr>")
+keymap.set("v", "<leader>fs", "<cmd>Telescope grep_string<cr>")
+keymap.set("n", "?", "<cmd>Telescope live_grep<cr>")
 keymap.set("n", "<leader>fc", "<cmd>Telescope grep_string<cr>")
 keymap.set("n", "<leader>fb", "<cmd>Telescope buffers<cr>")
 keymap.set("n", "<leader>fh", "<cmd>Telescope help_tags<cr>")
-keymap.set("n", "<leader>tr", "<CMD>Telescope resume<CR>")
 
 --Format
 api.nvim_set_keymap(

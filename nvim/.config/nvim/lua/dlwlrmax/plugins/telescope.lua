@@ -34,7 +34,6 @@ telescope.setup({
 				require("telescope.previewers.utils").job_maker(cmd, bufnr, opts)
 			end,
 		},
-		hidden = true,
 	},
 	extensions = {
 		recent_files = {
