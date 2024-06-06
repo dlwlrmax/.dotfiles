@@ -8,7 +8,21 @@ if not mason_lspconfig_status then
   return
 end
 
-mason.setup()
+mason.setup({
+  ensure_installed = {
+    "typos",
+    "phpactor",
+    "intelephense",
+    "lua_ls",
+    "eslint-lsp",
+    "lua-language-server",
+    "typescript-language-server",
+    "vue-language-server",
+    "stylua",
+    "php-cs-fixer",
+    "prettier"
+  }
+})
 mason_lspconfig.setup()
 
 require("mason-lspconfig").setup_handlers({
@@ -62,13 +76,13 @@ require("mason-lspconfig").setup_handlers({
       }
     }
   end,
-  ["phpstan"] = function ()
-    local lspconfig = require("lspconfig")
-    lspconfig.phpstan.setup {
-      on_attach = require("lsp").common_on_attach,
-      root_dir = function(_)
-        return vim.loop.cwd()
-      end
-    }
-  end
+  -- ["cspell"] = function ()
+  --   local lspconfig = require("lspconfig")
+  --   lspconfig.cspell.setup {
+  --     on_attach = require("lsp").common_on_attach,
+  --     root_dir = function(_)
+  --       return vim.loop.cwd()
+  --     end
+  --   }
+  -- end
 })

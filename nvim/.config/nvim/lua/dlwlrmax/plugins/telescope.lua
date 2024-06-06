@@ -14,7 +14,7 @@ telescope.load_extension("fzf")
 telescope.load_extension("recent_files")
 telescope.setup({
 	defaults = {
-		file_ignore_patterns = { "node_modules" },
+		file_ignore_patterns = { "node_modules", "ckeditor5" },
 		color_devicons = true,
 		mappings = {
 			n = { ["q"] = require("telescope.actions").close },
