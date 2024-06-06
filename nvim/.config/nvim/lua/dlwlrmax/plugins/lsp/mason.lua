@@ -23,4 +23,52 @@ require("mason-lspconfig").setup_handlers({
   -- ["rust_analyzer"] = function()
   -- 	require("rust-tools").setup({})
   -- end,
+  ["lua_ls"] = function()
+    local lspconfig = require("lspconfig")
+    lspconfig.lua_ls.setup {
+      settings = {
+        Lua = {
+          diagnostics = {
+            globals = { "vim" }
+          }
+        }
+      }
+    }
+  end,
+  ["phpactor"] = function()
+    local lspconfig = require("lspconfig")
+    lspconfig.phpactor.setup {
+      root_dir = function(_)
+        return vim.loop.cwd()
+      end,
+      init_options = {
+        ["language_server.diagnostics_on_update"] = false,
+        ["language_server.diagnostics_on_open"] = false,
+        ["language_server.diagnostics_on_save"] = false,
+        ["language_server_phpstan.enabled"] = false,
+        ["language_server_psalm.enabled"] = false,
+      }
+    }
+  end,
+  ["intelephense"] = function()
+    local lspconfig = require("lspconfig")
+    lspconfig.intelephense.setup {
+      settings = {
+        intelephense = {
+          files = {
+            maxSize = 1000000
+          }
+        }
+      }
+    }
+  end,
+  ["phpstan"] = function ()
+    local lspconfig = require("lspconfig")
+    lspconfig.phpstan.setup {
+      on_attach = require("lsp").common_on_attach,
+      root_dir = function(_)
+        return vim.loop.cwd()
+      end
+    }
+  end
 })

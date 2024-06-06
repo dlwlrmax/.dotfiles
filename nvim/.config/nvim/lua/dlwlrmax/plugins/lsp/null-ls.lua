@@ -23,12 +23,15 @@ null_ls.setup({
     formatting.prettier.with({
       filetypes = { "javascript", "scss", "css", "typescript", "json", "html", "vue" },
     }), -- js/ts formatter
-    formatting.phpcsfixer.with({
-      filetypes = { "php" },
-    }),
     formatting.stylua.with({
       filetypes = { "lua" },
     }), -- lua formatter
+    formatting.phpcsfixer.with({
+      filetypes = { "php" },
+    }), -- php formatter
+    diagnostics.phpstan.with({
+      filetypes = { "php" },
+    }), -- php linter
     require("none-ls.diagnostics.eslint"),
     require("none-ls.code_actions.eslint"),
     require("none-ls-php.diagnostics.php"),
