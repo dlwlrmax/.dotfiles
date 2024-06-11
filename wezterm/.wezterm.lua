@@ -65,9 +65,6 @@ config.line_height = 1.1
 config.use_dead_keys = false
 config.scrollback_lines = 3500
 config.disable_default_key_bindings = true
-if currentOs == "Windows" then
-	config.disable_default_key_bindings = false
-end
 config.keys = {
 	{
 		key = "c",

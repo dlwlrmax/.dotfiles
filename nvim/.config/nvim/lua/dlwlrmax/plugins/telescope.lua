@@ -24,6 +24,8 @@ telescope.setup({
 				["<C-k>"] = require("telescope.actions").move_selection_previous,
 				["<C-c>"] = require("telescope.actions").close,
 				["<C-p>"] = require("telescope.actions.layout").toggle_preview,
+        ["<C-->"] = require("telescope.actions").cycle_history_prev,
+        ["<C-=>"] = require("telescope.actions").cycle_history_next,
 			},
 		},
 		path_display = { "truncate" },
