@@ -4,7 +4,7 @@ require('catppuccin').setup({
     light = "mocha",
     dark = "mocha",
   },
-  transparent_background = true,
+  transparent_background = false,
   term_colors = true,
   dim_inactive = {
     enabled = false,
@@ -35,16 +35,16 @@ require('catppuccin').setup({
     native_lsp = {
       enable = true,
       virtual_text = {
-        errors = { "italic" },
+        errors = { "italic", "bold" },
         hints = { "italic" },
         warning = { "italic" },
-        infomation = { "italic" },
+        information = { "italic" },
       },
       underlines = {
         errors = { "italic" },
         hints = { "italic" },
         warning = { "italic" },
-        infomation = { "italic" },
+        information = { "italic" },
       },
       inlay_hints = {
         background = true,
