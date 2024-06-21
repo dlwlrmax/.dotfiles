@@ -240,7 +240,7 @@ local plugins = {
 			views = {
 				cmdline_popup = {
 					position = {
-						row = 5,
+						row = 10,
 						col = "50%",
 					},
 					size = {
@@ -250,12 +250,9 @@ local plugins = {
 				},
 				popupmenu = {
 					relative = "editor",
-					position = {
-						row = 8,
-						col = "50%",
-					},
+          position = "auto",
 					size = {
-						width = 60,
+						width = 40,
 						height = 10,
 					},
 					border = {
@@ -275,6 +272,13 @@ local plugins = {
 						find = "written",
 					},
 					opts = { skip = true },
+				},
+				{
+					filter = {
+						event = "msg_show",
+						kind = "search_count",
+					},
+          opts = { skip = true },
 				},
 			},
 			lsp = {
@@ -314,7 +318,9 @@ local plugins = {
 		event = "VeryLazy",
 		config = function()
 			require("notify").setup({
-				background_colour = "#000000",
+        timeout = 300,
+        max_width = 50,
+        top_down = false
 			})
 		end,
 	},
