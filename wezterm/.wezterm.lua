@@ -89,7 +89,7 @@ config.keys = {
 }
 config.adjust_window_size_when_changing_font_size = false
 --UI related config
-config.window_background_opacity = 0.90
+config.window_background_opacity = 0.98
 
 config.enable_wayland = false
 if currentOs == "Windows" then
