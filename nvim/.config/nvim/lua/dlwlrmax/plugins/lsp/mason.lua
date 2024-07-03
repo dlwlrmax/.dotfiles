@@ -1,94 +1,98 @@
 local mason_status, mason = pcall(require, "mason")
 if not mason_status then
-  return
+	return
 end
 
 local mason_lspconfig_status, mason_lspconfig = pcall(require, "mason-lspconfig")
 if not mason_lspconfig_status then
-  return
+	return
 end
 
 mason.setup({
-  ensure_installed = {
-    "typos",
-    "phpactor",
-    "intelephense",
-    "lua_ls",
-    "eslint-lsp",
-    "lua-language-server",
-    "typescript-language-server",
-    "vue-language-server",
-    "stylua",
-    "php-cs-fixer",
-    "prettier"
-  }
+	ensure_installed = {
+		"typos",
+		"phpactor",
+		"intelephense",
+		"lua_ls",
+		"eslint-lsp",
+		"lua-language-server",
+		"typescript-language-server",
+		"vue-language-server",
+		"stylua",
+		"php-cs-fixer",
+		"prettier",
+	},
 })
+
 mason_lspconfig.setup()
 
+local mason_registry = require('mason-registry')
+local vue_language_server_path = mason_registry.get_package('vue-language-server'):get_install_path() .. '/node_modules/@vue/language-server'
+
 require("mason-lspconfig").setup_handlers({
-  -- The first entry (without a key) will be the default handler
-  -- and will be called for each installed server that doesn't have
-  -- a dedicated handler.
-  function(server_name) -- default handler (optional)
-    require("lspconfig")[server_name].setup({})
-  end,
-  -- Next, you can provide a dedicated handler for specific servers.
-  -- For example, a handler override for the `rust_analyzer`:
-  -- ["rust_analyzer"] = function()
-  -- 	require("rust-tools").setup({})
-  -- end,
-  ["lua_ls"] = function()
+	-- The first entry (without a key) will be the default handler
+	-- and will be called for each installed server that doesn't have
+	-- a dedicated handler.
+	function(server_name) -- default handler (optional)
+		require("lspconfig")[server_name].setup({})
+	end,
+	-- Next, you can provide a dedicated handler for specific servers.
+	-- For example, a handler override for the `rust_analyzer`:
+	-- ["rust_analyzer"] = function()
+	-- 	require("rust-tools").setup({})
+	-- end,
+	["lua_ls"] = function()
+		local lspconfig = require("lspconfig")
+		lspconfig.lua_ls.setup({
+			settings = {
+				Lua = {
+					diagnostics = {
+						globals = { "vim" },
+					},
+				},
+			},
+		})
+	end,
+	["phpactor"] = function()
+		local lspconfig = require("lspconfig")
+		lspconfig.phpactor.setup({
+			root_dir = function(_)
+				return vim.loop.cwd()
+			end,
+			init_options = {
+				["language_server.diagnostics_on_update"] = false,
+				["language_server.diagnostics_on_open"] = false,
+				["language_server.diagnostics_on_save"] = false,
+				["language_server_phpstan.enabled"] = false,
+				["language_server_psalm.enabled"] = false,
+			},
+		})
+	end,
+	["intelephense"] = function()
+		local lspconfig = require("lspconfig")
+		lspconfig.intelephense.setup({
+			settings = {
+				intelephense = {
+					files = {
+						maxSize = 1000000,
+					},
+				},
+			},
+		})
+	end,
+	["tsserver"] = function()
     local lspconfig = require("lspconfig")
-    lspconfig.lua_ls.setup {
-      settings = {
-        Lua = {
-          diagnostics = {
-            globals = { "vim" }
-          }
-        }
-      }
-    }
-  end,
-  ["phpactor"] = function()
-    local lspconfig = require("lspconfig")
-    lspconfig.phpactor.setup {
-      root_dir = function(_)
-        return vim.loop.cwd()
-      end,
-      init_options = {
-        ["language_server.diagnostics_on_update"] = false,
-        ["language_server.diagnostics_on_open"] = false,
-        ["language_server.diagnostics_on_save"] = false,
-        ["language_server_phpstan.enabled"] = false,
-        ["language_server_psalm.enabled"] = false,
-      }
-    }
-  end,
-  ["intelephense"] = function()
-    local lspconfig = require("lspconfig")
-    lspconfig.intelephense.setup {
-      settings = {
-        intelephense = {
-          files = {
-            maxSize = 1000000
-          }
-        }
-      }
-    }
-  end,
-  ['volar'] = function ()
-    local lspconfig = require("lspconfig")
-    lspconfig.volar.setup {
-      filetypes = { "vue", "javascript", "typescript", "javascriptreact", "typescriptreact" }
-    }
-  end
-  -- ["cspell"] = function ()
-  --   local lspconfig = require("lspconfig")
-  --   lspconfig.cspell.setup {
-  --     on_attach = require("lsp").common_on_attach,
-  --     root_dir = function(_)
-  --       return vim.loop.cwd()
-  --     end
-  --   }
-  -- end
+		lspconfig.tsserver.setup({
+			init_options = {
+				plugins = {
+					{
+						name = "@vue/typescript-plugin",
+						location = vue_language_server_path,
+						languages = { "vue" },
+					},
+				},
+			},
+			filetypes = { "typescript", "javascript", "javascriptreact", "typescriptreact", "vue" },
+		})
+	end,
 })
