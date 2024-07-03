@@ -63,3 +63,15 @@ vim.api.nvim_set_keymap(
 	[[<cmd>lua require('telescope').extensions.recent_files.pick()<CR>]],
 	{ noremap = true, silent = true }
 )
+vim.api.nvim_set_keymap(
+	"n",
+	"<C-e>",
+	[[<cmd>lua require('telescope').extensions.recent_files.pick()<CR>]],
+	{ noremap = true, silent = true }
+)
+vim.api.nvim_set_keymap(
+	"i",
+	"<C-e>",
+	[[<cmd>lua require('telescope').extensions.recent_files.pick()<CR>]],
+	{ noremap = true, silent = true }
+)
