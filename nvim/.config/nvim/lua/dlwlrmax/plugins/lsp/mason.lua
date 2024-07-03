@@ -76,6 +76,12 @@ require("mason-lspconfig").setup_handlers({
       }
     }
   end,
+  ['volar'] = function ()
+    local lspconfig = require("lspconfig")
+    lspconfig.volar.setup {
+      filetypes = { "vue", "javascript", "typescript", "javascriptreact", "typescriptreact" }
+    }
+  end
   -- ["cspell"] = function ()
   --   local lspconfig = require("lspconfig")
   --   lspconfig.cspell.setup {

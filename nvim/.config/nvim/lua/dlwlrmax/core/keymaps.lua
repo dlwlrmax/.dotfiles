@@ -56,6 +56,8 @@ keymap.set("n", "?", "<cmd>Telescope live_grep<cr>")
 keymap.set("v", "<leader>fc", "<cmd>Telescope grep_string hidden=true<cr>")
 keymap.set("n", "<leader>fb", "<cmd>Telescope buffers<cr>")
 keymap.set("n", "<leader>fh", "<cmd>Telescope help_tags<cr>")
+keymap.set("n", "<C-e>", "<cmd>Telescope resume<cr>")
+keymap.set("i", "<C-e>", "<cmd>Telescope resume<cr>")
 
 --Format
 api.nvim_set_keymap(
