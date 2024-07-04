@@ -191,7 +191,19 @@ local plugins = {
       -- - saiw) => Surround Around Inner Word with ()
       -- - sd' => Surround Delete '
       -- - sr)' => Surround Replace ) with '
-      require("mini.surround").setup()
+      require("mini.surround").setup({
+        mappings = {
+          add= 'ya',
+          delete= 'yd',
+          find= 'yf',
+          find_left= 'yF',
+          highlight= 'yh',
+          replace= 'yr',
+          update_n_lines = 'yn',
+          suffix_last = 'l',
+          suffix_next = 'n',
+        }
+      })
 
       -- Cursor world
       require("mini.cursorword").setup()
