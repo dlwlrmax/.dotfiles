@@ -148,8 +148,8 @@ local plugins = {
         desc = "Flash Treesitter",
       },
       {
-        "r",
         mode = "o",
+        "r",
         function()
           require("flash").remote()
         end,
@@ -434,6 +434,14 @@ local plugins = {
       })
     end,
   },
+  {
+    'chentoast/marks.nvim',
+    config = function ()
+      require('marks').setup({
+        default_mappings = true,
+      })
+    end
+  }
 }
 local opts = {}
 require("lazy").setup(plugins, opts)
