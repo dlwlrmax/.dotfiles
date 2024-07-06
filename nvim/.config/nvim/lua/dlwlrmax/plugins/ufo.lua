@@ -33,24 +33,18 @@ local handler = function(virtText, lnum, endLnum, width, truncate)
   return newVirtText
 end
 require('ufo').setup({
-  open_fold_hl_timeout = 150,
-  close_fold_kinds = { "imports", "comment" },
-  preview = {
-    win_config = {
-      border = { "", "─", "", "", "", "─", "", "" },
-      winhighlight = "Normal:Folded",
-      winblend = 0
-    },
-    mappings = {
-      scrollU = "<C-u>",
-      scrollD = "<C-d>"
-    }
+  close_fold_kinds_for_ft = { 
+    default = { 'imports', 'comment' },
+    php = { 'phpdoc', 'array', 'namespace', 'use', 'comment', 'include' },
+    vue = { 'comment', 'script', 'style', 'import' },
+    lua = { 'comment' },
+    javascript = { 'comment', 'import' },
   },
   fold_virt_text_handler = handler,
   ---@diagnostic disable-next-line: unused-local
-  -- provider_selector = function(bufnr, filetype, buftype)
-  --   return { 'treesitter', 'indent' }
-  -- end
+  provider_selector = function(bufnr, filetype, buftype)
+    return { 'treesitter', 'indent' }
+  end
 })
 vim.keymap.set('n', 'zR', require('ufo').openAllFolds)
 vim.keymap.set('n', 'zM', require('ufo').closeAllFolds)
