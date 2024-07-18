@@ -79,6 +79,18 @@ local plugins = {
 			"nvimtools/none-ls-extras.nvim",
 			"gbprod/none-ls-php.nvim",
 		},
+    options = {
+      debounce = 500,
+      timeout = 10000,
+      diagnostics = {
+        enable = true,
+        severity_sort = true,
+        virtual_text = true,
+        signs = true,
+        underline = true,
+        update_in_insert = false,
+      },
+    },
 		event = { "BufReadPre", "BufNewFile" },
 	},
 	{ "lukas-reineke/indent-blankline.nvim", main = "ibl", opts = {} },

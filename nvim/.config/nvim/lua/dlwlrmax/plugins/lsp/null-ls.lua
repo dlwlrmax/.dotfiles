@@ -32,7 +32,9 @@ null_ls.setup({
 		diagnostics.phpstan.with({
 			filetypes = { "php" },
 		}), -- php linter
-		require("none-ls.diagnostics.eslint"),
+		require("none-ls.diagnostics.eslint").with({
+      method = null_ls.methods.DIAGNOSTICS_ON_SAVE,
+    }), -- eslint linter
 		require("none-ls.code_actions.eslint"),
 		require("none-ls-php.diagnostics.php"),
 	},
