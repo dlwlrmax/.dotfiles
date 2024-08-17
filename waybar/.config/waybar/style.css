@@ -96,6 +96,9 @@ button:hover {
     color: #ffffff;
     margin: 0;
 }
+#clock {
+  font-weight: 700;
+}
 
 #window,
 #workspaces {
