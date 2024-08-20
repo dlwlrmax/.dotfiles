@@ -6,11 +6,11 @@
 }
 
 window#waybar {
-    background-color: rgba(43, 48, 59, 0.5);
-    border-bottom: 2px solid rgba(100, 114, 125, 0.5);
+    background-color: rgba(43, 48, 59, 0.8);
+    border-bottom: 2px solid rgba(100, 114, 125, 0.8);
     color: #ffffff;
     transition-property: background-color;
-    transition-duration: .5s;
+    transition-duration: .3s;
 }
 
 window#waybar.hidden {
@@ -60,6 +60,7 @@ button:hover {
 }
 #workspaces button.active {
     box-shadow: inset 0 -3px #1d74f5;
+    padding: 0 20px;
 }
 
 #workspaces button.focused {
@@ -69,6 +70,7 @@ button:hover {
 
 #workspaces button.urgent {
     background-color: #eb4d4b;
+    padding: 0 20px;
 }
 
 #mode {
