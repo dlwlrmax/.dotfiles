@@ -55,10 +55,10 @@ config.font_size = 10
 config.use_cap_height_to_scale_fallback_fonts = true
 config.hide_tab_bar_if_only_one_tab = true
 config.window_padding = {
-	left = 8,
-	right = 8,
-	top = 8,
-	bottom = 8,
+	left = 10,
+	right = 10,
+	top = 5,
+	bottom = 5,
 }
 config.line_height = 1.1
 -- Other useful config options:

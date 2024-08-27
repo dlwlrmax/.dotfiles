@@ -1,14 +1,15 @@
+@import "macchiato.css";
+
 * {
     /* `otf-font-awesome` is required to be installed for icons */
     font-family: "JetBrainMonoNL Nerd Font", "Helvetica Neue", Helvetica, Arial;
     font-size: 12px;
     font-weight: Bold;
+    color: @text;
 }
 
 window#waybar {
-    background-color: rgba(43, 48, 59, 0.8);
-    border-bottom: 2px solid rgba(100, 114, 125, 0.8);
-    color: #ffffff;
+    background-color: transparent;
     transition-property: background-color;
     transition-duration: .3s;
 }
@@ -26,7 +27,7 @@ window#waybar.solo {
 }
 */
 
-window#waybar.termite {
+window#waybar.wezterm {
     background-color: #3F3F3F;
 }
 
@@ -48,34 +49,45 @@ button:hover {
     box-shadow: inset 0 -3px #ffffff;
 }
 
+#workspaces {
+    margin: 0 2px;
+    padding-right: 10px;
+    border-radius: 0 15px 15px 0;
+    color: @subtext;
+    background-color: @surface;
+}
+
 #workspaces button {
     padding: 0 10px;
     background-color: transparent;
-    color: #ffffff;
 }
 
 #workspaces button:hover {
     background: rgba(0, 0, 0, 0.2);
-    box-shadow: inset 0 -3px #1d74f5;
+    color: @blue;
+    box-shadow: inset 0 -3px @blue;
 }
 #workspaces button.active {
-    box-shadow: inset 0 -3px #1d74f5;
-    padding: 0 20px;
+    box-shadow: inset 0 -3px @blue;
+    color: @blue;
+    padding: 0 15px;
 }
 
 #workspaces button.focused {
     background-color: #64727D;
-    box-shadow: inset 0 -3px #ffffff;
+    color: @blue;
+    box-shadow: inset 0 -3px @blue;
 }
 
 #workspaces button.urgent {
-    background-color: #eb4d4b;
+    background-color: @red;
     padding: 0 20px;
+    border-radius: 15px;
 }
 
 #mode {
     background-color: #64727D;
-    border-bottom: 3px solid #ffffff;
+    border-bottom: 3px solid @text;
 }
 
 #clock,
@@ -94,17 +106,24 @@ button:hover {
 #idle_inhibitor,
 #scratchpad,
 #mpd {
-    padding: 0 10px;
-    color: #ffffff;
+    padding: 0 8px;
     margin: 0;
-}
-#clock {
-  font-weight: 700;
+    background-color: @surface;
 }
 
-#window,
-#workspaces {
-    margin: 0 4px;
+#network {
+  border-radius: 15px 0 0 15px;
+}
+
+#clock {
+  background-color: @surface;
+  border-radius: 0 0 15px 15px;
+  padding-right: 15px;
+  padding-left: 20px;
+}
+
+#window {
+  padding-left: 10px;
 }
 
 /* If workspaces is the leftmost module, omit left margin */
@@ -184,23 +203,24 @@ label:focus {
 }
 
 #custom-media {
-    min-width: 100px;
+    min-width: 120px;
 }
 
 #custom-media.custom-spotify {
   padding: 0 10px;
   margin: 0 4px;
-  background-color: #1DB954;
-  color: #ffffff;
+  background-color: @green;
   border-radius: 10px;
+  color: @text;
   margin: 3px;
 }
+
 .custom-chromium {
   padding: 0 10px;
   margin: 0 4px;
-  background-color: #FF8989;
-  color: #ffffff;
+  background-color: @red;
   border-radius: 10px;
+  color: @text;
   margin: 3px;
 }
 
@@ -222,7 +242,7 @@ label:focus {
 
 #tray > .needs-attention {
     -gtk-icon-effect: highlight;
-    background-color: #eb4d4b;
+    background-color: @red;
 }
 
 #idle_inhibitor {
