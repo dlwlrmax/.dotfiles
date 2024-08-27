@@ -14,26 +14,13 @@ wk.setup({
 		bufftype = {},
 		filetype = { "TelescopePrompt" },
 	},
-	triggers = "auto",
-	triggers_blacklist = {
-		i = { "j", "k" },
-		v = { "j", "k" },
-	},
 	show_help = true,
 	show_keys = true,
-	ignore_missing = false,
 	layout = {
 		height = { min = 4, max = 25 },
 		width = { min = 20, max = 50 },
 		spacing = 3,
 		align = "center",
-	},
-	window = {
-		border = "single",
-		position = "bottom",
-		margin = { 1, 1, 1, 1 },
-		padding = { 2, 2, 2, 2 },
-		winblend = 0,
 	},
 	presets = {
 		operators = true,
