@@ -61,10 +61,10 @@ export NVM_DIR="$HOME/.nvm"
 # To customize prompt, run `p10k configure` or edit ~/.dotfiles/zsh/.p10k.zsh.
 [[ ! -f ~/.dotfiles/zsh/.p10k.zsh ]] || source ~/.dotfiles/zsh/.p10k.zsh
 
-if [ -z "$TMUX" ]
-then
-    tmux attach -t TMUX || tmux new -s TMUX
-fi
+# if [ -z "$TMUX" ]
+# then
+#     tmux attach -t TMUX || tmux new -s TMUX
+# fi
 # Start Docker daemon automatically when logging in if not running.
 RUNNING=`ps aux | grep dockerd | grep -v grep`
 if [ -z "$RUNNING" ]; then
