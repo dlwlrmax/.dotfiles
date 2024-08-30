@@ -1,6 +1,7 @@
 local opt = vim.opt
 local g = vim.g
 local prefix = vim.env.XDG_CONFIG_HOME or vim.fn.expand("~/.config")
+vim.o.termguicolors = true
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
 opt.undodir = { prefix .. "/nvim/.undo//" }

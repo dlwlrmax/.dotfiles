@@ -5,7 +5,7 @@ require('catppuccin').setup({
     dark = "mocha",
   },
   transparent_background = true,
-  term_colors = true,
+  term_colors = false,
   dim_inactive = {
     enabled = false,
     shade = "dark",
@@ -26,6 +26,7 @@ require('catppuccin').setup({
     types = { "bold" },
   },
   compile_path = vim.fn.stdpath("cache") .. "/catppuccin",
+  default_integrations = true,
   integrations = {
     cmp = true,
     gitsigns = true,
