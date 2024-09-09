@@ -102,6 +102,7 @@ end
 config.initial_rows = 42
 config.initial_cols = 192
 config.warn_about_missing_glyphs = false
+config.enable_undercurl = true
 
 -- Keybindings
 local act = wezterm.action
