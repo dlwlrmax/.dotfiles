@@ -3,7 +3,7 @@ if not mason_status then
 	return
 end
 
-local navic_status, navic = pcall(require, "navic")
+local navic_status, navic = pcall(require, "nvim-navic")
 if not navic_status then
 	return
 end
@@ -36,7 +36,7 @@ local vue_language_server_path = mason_registry.get_package('vue-language-server
 
 local on_attach = function(client, bufnr)
 	if client.server_capabilities.documentSymbolProvider then
-		navic.attach(client.bufnr)
+		navic.attach(client, bufnr)
 	end
 end
 
@@ -74,10 +74,10 @@ require("mason-lspconfig").setup_handlers({
 			end,
 			init_options = {
 				["language_server.diagnostics_on_update"] = false,
-				["language_server.diagnostics_on_open"] = false,
-				["language_server.diagnostics_on_save"] = false,
-				["language_server_phpstan.enabled"] = false,
-				["language_server_psalm.enabled"] = false,
+				["language_server.diagnostics_on_open"] = true,
+				["language_server.diagnostics_on_save"] = true,
+				["language_server.phpstan.enabled"] = true,
+				["language_server.psalm.enabled"] = false,
 			},
 		})
 	end,
