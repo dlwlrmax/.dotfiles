@@ -1,15 +1,15 @@
 require('catppuccin').setup({
   flavour = "macchiato",   -- latte, frappe, macchiato, mocha
   background = {           -- :h background
-    light = "mocha",
-    dark = "mocha",
+    light = "macchiato",
+    dark = "macchiato",
   },
-  transparent_background = true,
+  transparent_background = false,
   term_colors = false,
   dim_inactive = {
-    enabled = false,
+    enabled = true,
     shade = "dark",
-    percentage = 0.15,
+    percentage = 0.2,
   },
   styles = {
     comments = { "italic" },
@@ -41,17 +41,15 @@ require('catppuccin').setup({
         warning = { "italic" },
         information = { "italic" },
       },
-      underlines = {
-        errors = { "italic" },
-        hints = { "italic" },
-        warning = { "italic" },
-        information = { "italic" },
-      },
       inlay_hints = {
         background = true,
       },
     },
-    lsp_saga = true,
+    lsp_saga = {
+      ui = {
+        kind = require('catppuccin.groups.integrations.lsp_saga').custom_kind(),
+      }
+    },
     which_key = true,
     indent_blankline = {
       enabled = true,
@@ -60,11 +58,12 @@ require('catppuccin').setup({
     mason = true,
     treesitter_context = true,
     notify = true,
-    noice = true,
     mini = true,
     barbecue = {
-      dim_context = false,
+      dim_context = true,
       alt_background = false,
+      bold_basename = true,
+      dim_dirname = true
     },
     beacon = true,
     harpoon = true,

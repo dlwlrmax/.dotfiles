@@ -5,6 +5,14 @@ if not saga_status then
 end
 
 saga.setup({
+  symbol_in_winbar = {
+    enabled = false,
+    hide_keyword = true,
+    show_file = true,
+    folder_level = 1,
+    color_mode = true,
+    delay = 500
+  },
 	move_in_saga = { prev = "<C-k>", next = "<C-j>" },
 	finder_action_keys = {
 		open = "<CR>",

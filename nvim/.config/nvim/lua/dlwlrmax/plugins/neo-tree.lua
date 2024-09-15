@@ -96,7 +96,7 @@ neotree.setup({
 	},
 	-- Add this section only if you've configured source selector.
 	source_selector = {
-		winbar = true,
+		winbar = false,
 		statusline = true,
 		sources = {
 			{ source = "filesystem", enabled = true, display_name = " 󰉓 Files " },
@@ -198,8 +198,8 @@ neotree.setup({
 			["<esc>"] = "revert_preview",
 			["P"] = { "toggle_preview", config = { use_float = true } },
 			["l"] = "focus_preview",
-			["S"] = "open_split",
-			["s"] = "open_vsplit",
+			["v"] = "open_split",
+			["h"] = "open_vsplit",
 			-- ["S"] = "split_with_window_picker",
 			-- ["s"] = "vsplit_with_window_picker",
 			["t"] = "open_tabnew",
