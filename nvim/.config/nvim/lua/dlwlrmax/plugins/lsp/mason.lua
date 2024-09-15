@@ -3,6 +3,11 @@ if not mason_status then
 	return
 end
 
+local navic_status, navic = pcall(require, "navic")
+if not navic_status then
+	return
+end
+
 local mason_lspconfig_status, mason_lspconfig = pcall(require, "mason-lspconfig")
 if not mason_lspconfig_status then
 	return
@@ -29,12 +34,20 @@ mason_lspconfig.setup()
 local mason_registry = require('mason-registry')
 local vue_language_server_path = mason_registry.get_package('vue-language-server'):get_install_path() .. '/node_modules/@vue/language-server'
 
+local on_attach = function(client, bufnr)
+	if client.server_capabilities.documentSymbolProvider then
+		navic.attach(client.bufnr)
+	end
+end
+
 require("mason-lspconfig").setup_handlers({
 	-- The first entry (without a key) will be the default handler
 	-- and will be called for each installed server that doesn't have
 	-- a dedicated handler.
 	function(server_name) -- default handler (optional)
-		require("lspconfig")[server_name].setup({})
+		require("lspconfig")[server_name].setup({
+			on_attach = on_attach
+		})
 	end,
 	-- Next, you can provide a dedicated handler for specific servers.
 	-- For example, a handler override for the `rust_analyzer`:
