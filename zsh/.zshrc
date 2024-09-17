@@ -53,6 +53,8 @@ export EDITOR="nvim"
 export VISUAL="nvim"
 
 alias beaver="GDK_BACKEND=x11 dbeaver"
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
