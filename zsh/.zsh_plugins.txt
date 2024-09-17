@@ -5,7 +5,18 @@ ohmyzsh/ohmyzsh path:lib
 ohmyzsh/ohmyzsh path:plugins/colored-man-pages
 ohmyzsh/ohmyzsh path:plugins/magic-enter
 
+sindresorhus/pure     kind:fpath
+romkatv/powerlevel10k kind:fpath
+
+belak/zsh-utils
+
+romkatv/zsh-bench kind:path
+olets/zsh-abbr    kind:defer
+
+rupa/z
+
 # popular fish-like plugins
+zsh-users/zsh-completions
 mattmc3/zfunctions
 zsh-users/zsh-autosuggestions
 zdharma-continuum/fast-syntax-highlighting kind:defer
