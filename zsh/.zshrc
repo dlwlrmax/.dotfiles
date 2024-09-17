@@ -93,7 +93,17 @@ plugins=(
   zsh-history-substring-search
   auto-notify
   fzf-zsh-plugin
+  tmux
 )
+
+# CONFIGURE FOR TMUX
+# Autostart only if tmux hasn't been started previously
+ZSH_TMUX_AUTOSTART_ONCE=true
+# Automatically connect to a previous session if it exits
+ZSH_TMUX_AUTOCONNECT=true
+# Automatically name new sessions based on the basename of the directory
+ZSH_TMUX_AUTONAME_SESSION=true
+
 
 # This for zsh-completions
 fpath+=${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions/src
