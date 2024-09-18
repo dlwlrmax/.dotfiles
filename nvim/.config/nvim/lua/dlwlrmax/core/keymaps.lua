@@ -69,14 +69,10 @@ api.nvim_set_keymap("v", "<leader>nf", "<ESC><cmd>lua vim.lsp.buf.range_formatti
 --Gitsigns
 keymap.set("n", "<leader>gn", "<cmd>Gitsigns next_hunk<cr>")
 keymap.set("n", "<leader>gp", "<cmd>Gitsigns prev_hunk<cr>")
+keymap.set("n", "<leader>ph", "<CMD>Gitsigns preview_hunk<CR>")
 
 -- Translate
 keymap.set("n", "<leader>t", "<Cmd>Translate EN<CR>")
-
--- back to home page
-keymap.set("n", "<leader>gh", "<CMD>Startify<CR>")
-
-keymap.set("n", "<leader>gf", "<CMD>SymbolsOutline<CR>")
 
 keymap.set("n", "<leader>rr", "<CMD>%bd|e#<CR>", { desc = "Close all buffer but current" })
 

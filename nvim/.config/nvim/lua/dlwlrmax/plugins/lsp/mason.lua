@@ -93,7 +93,7 @@ require("mason-lspconfig").setup_handlers({
 			},
 		})
 	end,
-	["tsserver"] = function()
+	["ts_ls"] = function()
     local lspconfig = require("lspconfig")
 		lspconfig.tsserver.setup({
 			init_options = {
