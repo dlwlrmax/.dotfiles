@@ -10,7 +10,6 @@ opt.backup = false
 opt.swapfile = false
 opt.updatetime = 200
 
-opt.relativenumber = true
 opt.guifont = { "JetBrainsMono Nerd Font", ":h14" }
 
 opt.tabstop = 2
@@ -58,3 +57,5 @@ vim.o.scrolloff = 5
 -- vim.diagnostic.config({
 --   virtual_text = false,
 -- })
+
+opt.relativenumber = true
