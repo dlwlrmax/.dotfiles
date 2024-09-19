@@ -45,6 +45,9 @@ require("mason-lspconfig").setup_handlers({
 	-- and will be called for each installed server that doesn't have
 	-- a dedicated handler.
 	function(server_name) -- default handler (optional)
+    if server_name == 'tsserver' then
+      server_name = 'ts_ls'
+    end
 		require("lspconfig")[server_name].setup({
 			on_attach = on_attach
 		})
@@ -95,7 +98,7 @@ require("mason-lspconfig").setup_handlers({
 	end,
 	["ts_ls"] = function()
     local lspconfig = require("lspconfig")
-		lspconfig.tsserver.setup({
+		lspconfig.ts_ls.setup({
 			init_options = {
 				plugins = {
 					{

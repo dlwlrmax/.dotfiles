@@ -14,8 +14,8 @@ lualine.setup({
 		lualine_a = {
       { 'mode', upper = true },
 			{
-				noice.api.statusline.mode.get,
-				cond = noice.api.statusline.mode.has,
+				-- noice.api.statusline.mode.get,
+				-- cond = noice.api.statusline.mode.has,
 			},
 		},
 		lualine_b = { "branch", "diff", "diagnostics" },

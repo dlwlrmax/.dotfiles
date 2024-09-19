@@ -38,10 +38,4 @@ null_ls.setup({
 		require("none-ls.code_actions.eslint"),
 		require("none-ls-php.diagnostics.php"),
 	},
-	-- configure format on save
-	on_attach = function(current_client, bufnr)
-		if current_client.name == "tsserver" then
-			current_client.server_capabilities.documentFormattingProvider = false -- 0.8 and later
-		end
-	end,
 })
