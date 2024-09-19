@@ -47,11 +47,6 @@ vim.diagnostic.config({
 	},
 })
 
--- vim.o.foldcolumn = "1"
--- vim.o.foldlevel = 99
--- vim.o.foldlevelstart = 99
--- vim.o.foldenable = true
-
 vim.o.scrolloff = 5
 -- -- Disable virtual_text since it's redundant due to lsp_lines.
 -- vim.diagnostic.config({

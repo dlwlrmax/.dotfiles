@@ -2,6 +2,7 @@ return {
     'nvim-lualine/lualine.nvim',
     dependencies = {'nvim-tree/nvim-web-devicons'},
     config = function()
+        local noice = require('noice')
         require('lualine').setup({
             options = {
                 theme = "catppuccin",
@@ -12,8 +13,8 @@ return {
                     'mode',
                     upper = true
                 }, {
-                    -- noice.api.statusline.mode.get,
-                    -- cond = noice.api.statusline.mode.has,
+                    noice.api.statusline.mode.get,
+                    cond = noice.api.statusline.mode.has,
                 }},
                 lualine_b = {"branch", "diff", "diagnostics"},
                 lualine_c = {{

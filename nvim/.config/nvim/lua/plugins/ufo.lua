@@ -6,7 +6,6 @@ return {
 		vim.o.foldlevel = 99
 		vim.o.foldlevelstart = 99
 		vim.o.foldenable = true
-
 		local handler = function(virtText, lnum, endLnum, width, truncate)
 			local newVirtText = {}
 			local suffix = ("... 󰘢 %d line(s)"):format(endLnum - lnum)
@@ -38,10 +37,9 @@ return {
 		require("ufo").setup({
 			close_fold_kinds_for_ft = {
 				default = { "imports", "comment" },
+                javascript = { "imports", "comment" },
+                vue = { "imports" },
 				php = { "phpdoc", "array", "namespace", "use", "comment", "include" },
-				vue = { "comment", "script", "style", "import" },
-				lua = { "comment" },
-				javascript = { "comment", "import" },
 			},
 			fold_virt_text_handler = handler,
 			---@diagnostic disable-next-line: unused-local
