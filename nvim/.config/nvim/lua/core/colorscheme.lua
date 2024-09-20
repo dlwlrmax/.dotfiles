@@ -1,8 +1,8 @@
 require('catppuccin').setup({
-  flavour = "macchiato",   -- latte, frappe, macchiato, mocha
+  flavour = "mocha",   -- latte, frappe, macchiato, mocha
   background = {           -- :h background
-    light = "macchiato",
-    dark = "macchiato",
+    light = "mocha",
+    dark = "latte",
   },
   transparent_background = false,
   term_colors = false,
