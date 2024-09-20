@@ -35,6 +35,19 @@ return {
 					filetypes = { "typescript", "javascript", "javascriptreact", "typescriptreact", "vue" },
 				})
 			end,
+			["phpactor"] = function()
+				local lspconfig = require("lspconfig")
+				lspconfig.phpactor.setup({
+					root_dir = function(_)
+						return vim.loop.cwd()
+					end,
+					init_options = {
+						["language_server.diagnostics_on_update"] = false,
+						["language_server.diagnostics_on_open"] = true,
+						["language_server.diagnostics_on_save"] = true,
+					},
+				})
+			end,
 		})
 	end,
 }
