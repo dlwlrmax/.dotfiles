@@ -11,10 +11,6 @@ return {
 		},
 		views = {
 			cmdline_popup = {
-				position = {
-					row = 10,
-					col = "50%",
-				},
 				size = {
 					height = "auto",
 					width = 60,
@@ -48,6 +44,7 @@ return {
 			{
 				filter = {
 					event = "msg_show",
+					kind = "search_count",
 				},
 				opts = { skip = true },
 			},
@@ -60,7 +57,7 @@ return {
 				["cmp.entry.get_documentation"] = true,
 			},
 			progress = {
-				enabled = true,
+				enabled = false,
 			},
 		},
 		messages = {
