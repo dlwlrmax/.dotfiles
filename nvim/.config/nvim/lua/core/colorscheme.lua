@@ -4,7 +4,7 @@ require('catppuccin').setup({
     light = "macchiato",
     dark = "macchiato",
   },
-  transparent_background = true,
+  transparent_background = false,
   term_colors = false,
   dim_inactive = {
     enabled = true,
