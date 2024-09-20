@@ -7,7 +7,7 @@ return {
 			suggestion = {
 				enabled = true,
 				auto_trigger = true,
-				debounce = 50,
+				debounce = 150,
 				keymap = {
 					accept = "<M-l>",
 					next = "<M-j>",
@@ -15,6 +15,10 @@ return {
 					dismiss = "<M-h>",
 				},
 			},
+            filetypes = {
+                ["grug-far"] = false,
+                ["grug-far-history"] = false
+            }
 		})
 	end,
 }
