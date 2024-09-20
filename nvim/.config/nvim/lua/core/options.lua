@@ -54,3 +54,4 @@ vim.o.scrolloff = 5
 -- })
 
 opt.relativenumber = true
+opt.number = true
