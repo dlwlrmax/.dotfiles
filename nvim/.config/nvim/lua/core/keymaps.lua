@@ -1,5 +1,4 @@
 vim.g.mapleader = " "
-local opts = {}
 local keymap = vim.keymap
 local api = vim.api
 
@@ -44,16 +43,16 @@ keymap.set("n", "<leader>b", "<CMD>Neotree focus<CR>", { desc = "Focus Nvim Tree
 --Telescope
 -- keymap.set("n", "<C-e>", "<cmd>Telescope find_files<cr>");
 keymap.set("n", "<leader>ff", "<cmd>Telescope resume<cr>", { desc = "Telescope Resume last telescope" })
-keymap.set("n", "<leader>fa", "<cmd>Telescope find_files<cr>", { desc = "Telescope Find files" })
-keymap.set("n", "<leader><space>", "<cmd>Telescope find_files hidden=true<cr>", { desc = "TelescopeFind hidden files" })
+keymap.set("n", "<leader><space>", "<cmd>Telescope find_files<cr>", { desc = "Telescope Find files" })
+keymap.set("n", "<leader>fa", "<cmd>Telescope find_files hidden=true<cr>", { desc = "TelescopeFind hidden files" })
 keymap.set("n", "<leader>fs", "<cmd>Telescope live_grep<cr>", { desc = "Telescope Live grep" })
 keymap.set("n", "<leader>fc", "<cmd>Telescope live_grep hidden=true<cr>", { desc = "Telescope Live grep hidden" })
 keymap.set("n", "<leader>km", "<cmd>Telescope keymaps<cr>", { desc = "Telescope Keymaps" })
 keymap.set("v", "<leader>fs", "<cmd>Telescope grep_string<cr>", { desc = "Telescope Grep string" })
 keymap.set("n", "?", "<cmd>Telescope live_grep<cr>", { desc = "Telescope Live grep" })
 keymap.set("v", "<leader>fc", "<cmd>Telescope grep_string hidden=true<cr>", { desc = "Telescope Grep string hidden" })
-keymap.set("n", "<leader>fb", "<cmd>Telescope buffers<cr>", { desc = "Telescope Buffers" })
 keymap.set("n", "<leader>fh", "<cmd>Telescope help_tags<cr>", { desc = "Telescope Help tags" })
+keymap.set("n", "<C-e>", "<cmd>Telescope buffers<cr>", { desc = "Telescope Buffers" })
 
 --Format
 api.nvim_set_keymap(
