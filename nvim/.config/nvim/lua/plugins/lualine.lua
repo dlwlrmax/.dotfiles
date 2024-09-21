@@ -1,44 +1,43 @@
 return {
-    'nvim-lualine/lualine.nvim',
-    dependencies = {'nvim-tree/nvim-web-devicons'},
-    config = function()
-        local noice = require('noice')
-        require('lualine').setup({
-            options = {
-                theme = "catppuccin",
-                component_separators = "|"
-            },
-            sections = {
-                lualine_a = {{
-                    'mode',
-                    upper = true
-                }, {
-                    noice.api.statusline.mode.get,
-                    cond = noice.api.statusline.mode.has,
-                }},
-                lualine_b = {"branch", "diff", "diagnostics"},
-                lualine_c = {{
-                    "filename",
-                    file_status = false,
-                    path = 1
-                }},
-                lualine_x = {"encoding", "fileformat", "filetype", "tabnine"},
-                lualine_y = {"tabnine"},
-                lualine_z = {{
-                    "location",
-                    left_padding = 2
-                }}
-            },
-            inactive_sections = {
-                lualine_a = {"filename"},
-                lualine_b = {},
-                lualine_c = {},
-                lualine_x = {},
-                lualine_y = {},
-                lualine_z = {"location"}
-            },
-            tabline = {},
-            extensions = {}
-        })
-    end
+	"nvim-lualine/lualine.nvim",
+	dependencies = { "nvim-tree/nvim-web-devicons" },
+	config = function()
+		local noice = require("noice")
+		require("lualine").setup({
+			options = {
+				icons_enabled = true,
+				theme = 'catppuccin',
+				component_separators = { left = "|", right = "|" },
+				section_separators = { left = "", right = "" },
+				disabled_filetypes = {},
+				lways_divide_middle = true,
+			},
+			sections = {
+				lualine_a = { "mode" },
+				lualine_b = {
+					"branch",
+					"diff",
+					{
+						"diagnostics",
+						sources = { "nvim_diagnostic" },
+						symbols = { error = " ", warn = " ", info = " ", hint = " " },
+					},
+				},
+				lualine_c = { "filename" },
+				lualine_x = { "copilot", "encoding", "fileformat", "filetype" }, -- I added copilot here
+				lualine_y = { "progress" },
+				lualine_z = { "location" },
+			},
+			inactive_sections = {
+				lualine_a = {},
+				lualine_b = {},
+				lualine_c = { "filename" },
+				lualine_x = { "location" },
+				lualine_y = {},
+				lualine_z = {},
+			},
+			tabline = {},
+			extensions = {},
+		})
+	end,
 }
