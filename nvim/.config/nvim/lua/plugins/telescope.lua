@@ -6,6 +6,7 @@ return {
 		local telescope = require("telescope")
 		telescope.load_extension("fzf")
 		telescope.load_extension("recent_files")
+        telescope.load_extension("harpoon")
 		telescope.setup({
 			defaults = {
 				file_ignore_partterns = { "node_modules", "ckeditor5", ".git" },
