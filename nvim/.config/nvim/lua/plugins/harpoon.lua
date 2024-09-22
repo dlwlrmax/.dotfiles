@@ -9,7 +9,6 @@ return {
 
 		vim.keymap.set("n", "<leader>a", mark.add_file)
 		vim.keymap.set("n", "<leader>re", ui.toggle_quick_menu)
-        vim.keymap.set("n", "<leader><Esc>", ui.toggle_quick_menu)
 		vim.keymap.set("n", "<leader>1", function()
 			ui.nav_file(1)
 		end)
