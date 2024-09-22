@@ -35,17 +35,14 @@ return {
 					filetypes = { "typescript", "javascript", "javascriptreact", "typescriptreact", "vue" },
 				})
 			end,
-			["phpactor"] = function()
+			["intelephense"] = function()
 				local lspconfig = require("lspconfig")
-				lspconfig.phpactor.setup({
-					root_dir = function(_)
-						return vim.loop.cwd()
-					end,
-					init_options = {
-						["language_server.diagnostics_on_update"] = false,
-						["language_server.diagnostics_on_open"] = false,
-						["language_server.diagnostics_on_save"] = false,
-					},
+				lspconfig.intelephense.setup({
+                    settings = {
+                        intelephense = {
+                            maxSize = 1000000
+                        }
+                    }
 				})
 			end,
 		})
