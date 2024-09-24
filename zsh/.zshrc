@@ -149,3 +149,8 @@ bindkey '^[[B' history-substring-search-down
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
+# Check if hbr.sh exists run it
+if [ -f ~/hbr.sh ]; then
+  source ~/hbr.sh
+fi
