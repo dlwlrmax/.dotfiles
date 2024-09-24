@@ -11,7 +11,7 @@ return {
 				debounce = 75,
 				keymap = {
 					accept = "<M-l>",
-                    accept_word = "<M-w>",
+					accept_word = "<M-w>",
 					next = "<M-j>",
 					prev = "<M-k>",
 					dismiss = "<M-h>",
@@ -35,8 +35,9 @@ return {
 			filetypes = {
 				["grug-far"] = false,
 				["grug-far-history"] = false,
+				["grug-far-help"] = false,
 			},
-            copilot_node_command = 'node', -- Node.js version must be > 18.x
+			copilot_node_command = "node", -- Node.js version must be > 18.x
 		})
 	end,
 }
