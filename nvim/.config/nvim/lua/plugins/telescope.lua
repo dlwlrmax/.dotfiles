@@ -1,4 +1,5 @@
 return {
+    { 'junegunn/fzf', run = ":call fzf#install()" },
 	{
 		"nvim-telescope/telescope-fzf-native.nvim",
 		build = "cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build",
@@ -13,9 +14,6 @@ return {
 		config = function()
 			local telescope = require("telescope")
             local actions = require "telescope.actions"
-			telescope.load_extension("fzf")
-			telescope.load_extension("recent_files")
-			telescope.load_extension("harpoon")
 			telescope.setup({
 				defaults = {
 					file_ignore_partterns = { "node_modules", "ckeditor5", ".git" },
@@ -56,16 +54,13 @@ return {
 						fuzzy = true,
 						override_generic_sorter = true,
 						override_file_sorter = true,
-					},
-					media_files = {
-						-- filetypes whitelist
-						-- defaults to {"png", "jpg", "mp4", "webm", "pdf"}
-						filetypes = { "png", "webp", "jpg", "jpeg" },
-						-- find command (defaults to `fd`)
-						find_cmd = "rg",
-					},
+					}
 				},
 			})
+
+			telescope.load_extension("fzf")
+			telescope.load_extension("recent_files")
+			telescope.load_extension("harpoon")
 		end,
 	},
 }

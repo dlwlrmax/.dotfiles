@@ -7,19 +7,11 @@ return {
 		bufferline.setup({
 			highlights = require("catppuccin.groups.integrations.bufferline").get({
 				styles = { "bold" },
-				custom = {
-					all = {
-						fill = { bg = "#000000" },
-					},
-					mocha = {
-						background = { fg = "#ffffff" },
-					},
-					latte = {
-						background = { fg = "#000000" },
-					},
-				},
 			}),
 			options = {
+				indicator = {
+					style = "underline",
+				},
 				separator_style = "slop",
 				diagnostics = "nvim_lsp",
 				diagnostics_indicator = function(count, level)

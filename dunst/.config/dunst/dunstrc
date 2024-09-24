@@ -1,0 +1,4 @@
+[global]
+geometry = "300x100-10+10"  # Width x Height - X Offset + Y Offset
+font = "monospace 8"
+timeout = 5  # Time in seconds before notifications disappear

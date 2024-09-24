@@ -186,7 +186,7 @@
         "ignored-sinks": ["Easy Effects Sink"]
     },
     "custom/media": {
-        "format": "{icon}  {}",
+        "format": "{icon}  {text}",
         "return-type": "json",
         "max-length": 25,
         "format-icons": {
@@ -195,13 +195,13 @@
         },
         "escape": true,
         "on-click": "playerctl --player=spotify play-pause",
-        "on-scroll-up": "playerctl --player=spotify next",
-        "on-scroll-down": "playerctl --player=spotify previous",
+        "on-scroll-up": "playerctl --player=spotify previous",
+        "on-scroll-down": "playerctl --player=spotify next",
         "exec-if": "pgrep spotify",
         "exec": "/usr/bin/python3 $HOME/.config/waybar/mediaplayer.py --player spotify" // Filter player based on name
     },
     "custom/chromium": {
-        "format": "{icon}  {}",
+        "format": "{icon}  {text}",
         "return-type": "json",
         "max-length": 20,
         "format-icons": {
