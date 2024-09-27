@@ -6,10 +6,10 @@ return {
     config = function()
         require('lspsaga').setup({
             symbol_in_winbar = {
-                enabled = false,
+                enable = true,
                 hide_keyword = true,
                 show_file = true,
-                folder_level = 1,
+                folder_level = 3,
                 color_mode = true,
                 delay = 500
             },
