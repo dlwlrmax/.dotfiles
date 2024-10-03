@@ -45,6 +45,14 @@ return {
                     }
 				})
 			end,
+            ["typos_lsp"] = function ()
+                local lspconfig = require("lspconfig")
+                lspconfig.typos_lsp.setup({
+                    init_options = {
+                        config = '~/.config/nvim/typos.toml'
+                    }
+                })
+            end
 		})
 	end,
 }

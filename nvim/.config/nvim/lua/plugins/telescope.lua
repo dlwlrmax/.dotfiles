@@ -16,7 +16,7 @@ return {
             local actions = require "telescope.actions"
 			telescope.setup({
 				defaults = {
-					file_ignore_partterns = { "node_modules", "ckeditor5", ".git" },
+					file_ignore_partterns = { "node_modules", "ckeditor5" },
 				},
 				color_devicons = true,
 				mappings = {

@@ -8,7 +8,7 @@ return {
 				enabled = true,
 				auto_trigger = true,
 				hide_during_completion = false,
-				debounce = 75,
+				debounce = 150,
 				keymap = {
 					accept = "<M-l>",
 					accept_word = "<M-w>",

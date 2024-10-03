@@ -1,0 +1,7 @@
+[default.extend-words]
+# Don't correct the surname "Teh"
+Thay = "Thay"
+thay = "thay"
+Nam = "Nam"
+thead = "thead"
+theads = "theads"
