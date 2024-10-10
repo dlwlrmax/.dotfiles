@@ -43,26 +43,31 @@ keymap.set("n", "<leader>b", "<CMD>Neotree focus<CR>", { desc = "Focus Nvim Tree
 --Telescope
 -- keymap.set("n", "<C-e>", "<cmd>Telescope find_files<cr>");
 keymap.set("n", "<leader>ff", "<cmd>Telescope resume<cr>", { desc = "Telescope Resume last telescope" })
-keymap.set("n", "<leader><space>", "<cmd>Telescope find_files<cr>", { desc = "Telescope Find files" })
+keymap.set("n", "<leader><space>", "<cmd>Telescope find_files theme=dropdown<cr>", { desc = "Telescope Find files" })
 keymap.set("n", "<leader>fa", "<cmd>Telescope find_files hidden=true<cr>", { desc = "TelescopeFind hidden files" })
 -- keymap.set("n", "<leader>fs", "<cmd>Telescope live_grep<cr>", { desc = "Telescope Live grep" })
-keymap.set("n", "<leader>fs", "<cmd>lua require('grug-far').open({ prefills = { search = vim.fn.expand('<cword>') }})<cr>", { desc = "GrugFar Live grep" })
+keymap.set(
+	"n",
+	"<leader>fs",
+	"<cmd>lua require('grug-far').open({ prefills = { search = vim.fn.expand('<cword>') }})<cr>",
+	{ desc = "GrugFar Live grep" }
+)
 keymap.set("n", "<leader>fc", "<cmd>Telescope live_grep hidden=true<cr>", { desc = "Telescope Live grep hidden" })
 keymap.set("n", "<leader>km", "<cmd>Telescope keymaps<cr>", { desc = "Telescope Keymaps" })
 -- keymap.set("v", "<leader>fs", "<cmd>Telescope grep_string<cr>", { desc = "Telescope Grep string" })
-keymap.set("v", "<leader>fs", "<cmd>lua require('grug-far').with_visual_selection()<cr>", { desc = "Telescope Grep string" })
+keymap.set(
+	"v",
+	"<leader>fs",
+	"<cmd>lua require('grug-far').with_visual_selection()<cr>",
+	{ desc = "Telescope Grep string" }
+)
 keymap.set("n", "?", "<cmd>Telescope live_grep<cr>", { desc = "Telescope Live grep" })
 keymap.set("v", "<leader>fc", "<cmd>Telescope grep_string hidden=true<cr>", { desc = "Telescope Grep string hidden" })
 keymap.set("n", "<leader>fh", "<cmd>Telescope help_tags<cr>", { desc = "Telescope Help tags" })
 keymap.set("n", "<C-e>", "<cmd>Telescope buffers<cr>", { desc = "Telescope Buffers" })
 
 --Format
-api.nvim_set_keymap(
-	"n",
-	"<leader>i",
-	"<ESC><cmd>lua vim.lsp.buf.format({ timeout_ms = 2000 })<CR>",
-	{ noremap = true }
-)
+-- api.nvim_set_keymap("n", "<leader>i", "<ESC><cmd>lua vim.lsp.buf.format({ timeout_ms = 2000 })<CR>", { noremap = true })
 -- keymap.set("n", "<leader>nf", "<cmd>lua require('conform').format()<CR>", { desc = "Format" })
 -- api.nvim_set_keymap("v", "<leader>nf", "<ESC><cmd>lua vim.lsp.buf.range_formatting()<CR>", { noremap = true })
 
@@ -108,4 +113,4 @@ keymap.set("n", "dp", "<cmd>Lspsaga diagnostic_jump_prev<CR>", opts) -- jump to 
 keymap.set("n", "dn", "<cmd>Lspsaga diagnostic_jump_next<CR>", opts) -- jump to next diagnostic in buffer
 keymap.set("n", "<leader>o", "<cmd>Lspsaga outline<CR>", opts) -- see outline on right hand side
 
-keymap.set("n", "<leader>F", "<cmd>GrugFar<CR>", { desc = 'Find and replace' })
+keymap.set("n", "<leader>F", "<cmd>GrugFar<CR>", { desc = "Find and replace" })

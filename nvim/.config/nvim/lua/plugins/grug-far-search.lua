@@ -2,7 +2,7 @@ return {
 	"MagicDuck/grug-far.nvim",
 	config = function()
 		require("grug-far").setup({
-            transient = true
-        })
+			transient = true,
+		})
 	end,
 }

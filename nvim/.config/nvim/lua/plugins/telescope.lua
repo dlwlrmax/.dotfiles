@@ -1,5 +1,5 @@
 return {
-    { 'junegunn/fzf', run = ":call fzf#install()" },
+	{ "junegunn/fzf", run = ":call fzf#install()" },
 	{
 		"nvim-telescope/telescope-fzf-native.nvim",
 		build = "cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build",
@@ -13,7 +13,7 @@ return {
 		dependencies = { "nvim-lua/plenary.nvim" },
 		config = function()
 			local telescope = require("telescope")
-            local actions = require "telescope.actions"
+			local actions = require("telescope.actions")
 			telescope.setup({
 				defaults = {
 					file_ignore_partterns = { "node_modules", "ckeditor5" },
@@ -23,7 +23,7 @@ return {
 					n = {
 						["q"] = require("telescope.actions").close,
 						["<C-h>"] = require("telescope.actions").select_horizontal,
-                        ["<C-x>"] = actions.select_horizontal,
+						["<C-x>"] = actions.select_horizontal,
 						["<C-v>"] = require("telescope.actions").select_vertical,
 					},
 					i = {
@@ -33,7 +33,7 @@ return {
 						["<C-c>"] = require("telescope.actions").close,
 						["<C-p>"] = require("telescope.actions.layout").toggle_preview,
 						["<C-h>"] = actions.select_horizontal,
-                        ["<C-x>"] = actions.select_horizontal,
+						["<C-x>"] = actions.select_horizontal,
 						["<C-v>"] = require("telescope.actions").select_vertical,
 					},
 				},
@@ -54,7 +54,7 @@ return {
 						fuzzy = true,
 						override_generic_sorter = true,
 						override_file_sorter = true,
-					}
+					},
 				},
 			})
 

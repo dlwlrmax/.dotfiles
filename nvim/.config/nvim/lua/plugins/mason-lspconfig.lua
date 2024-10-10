@@ -8,7 +8,7 @@ return {
 		local vue_language_server_path = mason_registry.get_package("vue-language-server"):get_install_path()
 			.. "/node_modules/@vue/language-server"
 		require("mason-lspconfig").setup({
-			ensure_installed = {},
+			ensure_installed = { "ts_ls", "intelephense", "typos_lsp", "phpactor", "volar" },
 		})
 		require("mason-lspconfig").setup_handlers({
 			function(server_name)
@@ -38,21 +38,33 @@ return {
 			["intelephense"] = function()
 				local lspconfig = require("lspconfig")
 				lspconfig.intelephense.setup({
-                    settings = {
-                        intelephense = {
-                            maxSize = 1000000
-                        }
-                    }
+					settings = {
+						intelephense = {
+							maxSize = 1000000,
+						},
+					},
 				})
 			end,
-            ["typos_lsp"] = function ()
-                local lspconfig = require("lspconfig")
-                lspconfig.typos_lsp.setup({
-                    init_options = {
-                        config = '~/.config/nvim/typos.toml'
-                    }
-                })
-            end
+			["typos_lsp"] = function()
+				local lspconfig = require("lspconfig")
+				lspconfig.typos_lsp.setup({
+					init_options = {
+						config = "~/.config/nvim/typos.toml",
+					},
+				})
+			end,
+			["phpactor"] = function()
+				local lspconfig = require("lspconfig")
+				lspconfig.phpactor.setup({
+					filetypes = { "php" },
+					root_dir = lspconfig.util.root_pattern("composer.json", ".git"),
+					init_options = {
+                        ["language_server.diagnostics_on_update"] = false,
+                        ["language_server.diagnostics_on_save"] = false,
+                        ["language_server.diagnostics_on_open"] = false
+					},
+				})
+			end,
 		})
 	end,
 }

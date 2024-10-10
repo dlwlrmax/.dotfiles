@@ -1,7 +1,6 @@
 -- ~/nvim/lua/slydragonn/plugins/cmp.lua
 return {
 	"hrsh7th/nvim-cmp",
-	event = "InsertEnter",
 	dependencies = {
 		"hrsh7th/cmp-buffer", -- source for text in buffer
 		"hrsh7th/cmp-path", -- source for file system paths
@@ -70,7 +69,6 @@ return {
 				format = function(entry, vim_item)
 					-- Kind icons
 					vim_item.kind = string.format("%s", kind_icons[vim_item.kind])
-					-- vim_item.kind = string.format('%s %s', kind_icons[vim_item.kind], vim_item.kind) -- This concatonates the icons with the name of the item kind
 					vim_item.menu = ({
 						buffer = "[Buf]",
 						luasnip = "[Sni]",
@@ -163,6 +161,12 @@ return {
 					},
 				},
 			}),
+		})
+		cmp.setup.cmdline("/", {
+			mapping = cmp.mapping.preset.cmdline(),
+			sources = {
+				{ name = "buffer" },
+			},
 		})
 		vim.cmd([[
       set completeopt=menuone,noinsert,noselect
