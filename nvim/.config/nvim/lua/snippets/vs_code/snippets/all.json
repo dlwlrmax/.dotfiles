@@ -1,0 +1,9 @@
+{
+    "php": {
+        "prefix": "php",
+        "body": [
+            "<?php"
+        ],
+        "description": "open php"
+    }
+}

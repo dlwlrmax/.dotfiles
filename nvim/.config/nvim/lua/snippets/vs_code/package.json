@@ -1,0 +1,15 @@
+{
+    "name" : "vscode-like-snippets",
+    "contributes": {
+        "snippets": [
+            {
+                "language": "all",
+                "path": "./snippets/all.json"
+            },
+            {
+                "language": "php",
+                "path": "./snippets/php.json"
+            }
+        ]
+    }
+}

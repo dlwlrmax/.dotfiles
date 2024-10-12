@@ -67,7 +67,7 @@ keymap.set("n", "<leader>fh", "<cmd>Telescope help_tags<cr>", { desc = "Telescop
 keymap.set("n", "<C-e>", "<cmd>Telescope buffers<cr>", { desc = "Telescope Buffers" })
 
 --Format
--- api.nvim_set_keymap("n", "<leader>i", "<ESC><cmd>lua vim.lsp.buf.format({ timeout_ms = 2000 })<CR>", { noremap = true })
+api.nvim_set_keymap("n", "<leader>i", "<ESC><cmd>lua vim.lsp.buf.format({ timeout_ms = 2000 })<CR>", { noremap = true })
 -- keymap.set("n", "<leader>nf", "<cmd>lua require('conform').format()<CR>", { desc = "Format" })
 -- api.nvim_set_keymap("v", "<leader>nf", "<ESC><cmd>lua vim.lsp.buf.range_formatting()<CR>", { noremap = true })
 

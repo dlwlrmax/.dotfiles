@@ -1,0 +1,35 @@
+{
+  "echo and print": {
+    "prefix": "ecp",
+    "body": [
+      "echo '<pre>';",
+      "print_r($1);",
+      "echo '</pre>';"
+    ],
+    "description": "echo and print"
+  },
+  "create class and implement interface": {
+    "prefix": "cci",
+    "body": [
+      "class ${1:ClassName} implements ${2:InterfaceName}",
+      "{",
+      "    public function __construct($3)",
+      "    {",
+      "    }",
+      "}"
+    ],
+    "description": "Create class and implement interface"
+  },
+  "create class and extend class": {
+    "prefix": "cce",
+    "body": [
+      "class ${1:ClassName} extends ${2:ParentClassName}",
+      "{",
+      "    public function __construct($3)",
+      "    {",
+      "    }",
+      "}"
+    ],
+    "description": "Create class and extend class"
+  }
+}
