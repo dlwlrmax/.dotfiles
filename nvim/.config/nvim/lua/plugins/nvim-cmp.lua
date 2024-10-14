@@ -61,6 +61,10 @@ return {
 					luasnip.lsp_expand(args.body)
 				end,
 			},
+            completion = {
+                completeopt = "menu,menuone,noinsert",
+                keyword_length = 1
+            },
 			window = {
 				completion = cmp.config.window.bordered(),
 				documentation = cmp.config.window.bordered(),
@@ -81,9 +85,6 @@ return {
 				end,
 			},
 			mapping = {
-				["<Up>"] = cmp.mapping.select_prev_item(select_opts),
-				["<Down>"] = cmp.mapping.select_next_item(select_opts),
-
 				["<C-p>"] = cmp.mapping.select_prev_item(select_opts),
 				["<C-n>"] = cmp.mapping.select_next_item(select_opts),
 
