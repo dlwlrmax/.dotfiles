@@ -7,7 +7,7 @@
     // Choose the order of the modules
     "modules-left": ["hyprland/workspaces", "hyprland/window"],
     "modules-center": ["clock"],
-    "modules-right": ["custom/chromium", "custom/media", "network", "pulseaudio", "cpu", "memory", "tray"],
+    "modules-right": ["custom/chromium", "custom/media", "network", "pulseaudio", "cpu", "memory", "custom/notification", "tray"],
     // Modules configuration
     "hyprland/workspaces": {
         "disable-scroll": true,
@@ -212,6 +212,26 @@
         "on-click": "playerctl --player=chromium play-pause",
         "exec-if": "pgrep chromium",
         "exec": "/usr/bin/python3 $HOME/.config/waybar/mediaplayer.py --player chromium" // Filter player based on name
-    }
+    },
+    "custom/notification": {
+      "tooltip": false,
+      "format": "{} {icon}",
+      "format-icons": {
+        "notification": "<span foreground='red'><sup></sup></span>",
+        "none": "",
+        "dnd-notification": "<span foreground='red'><sup></sup></span>",
+        "dnd-none": "",
+        "inhibited-notification": "<span foreground='red'><sup></sup></span>",
+        "inhibited-none": "",
+        "dnd-inhibited-notification": "<span foreground='red'><sup></sup></span>",
+        "dnd-inhibited-none": ""
+      },
+      "return-type": "json",
+      "exec-if": "which swaync-client",
+      "exec": "swaync-client -swb",
+      "on-click": "swaync-client -t -sw",
+      "on-click-right": "swaync-client -d -sw",
+      "escape": true
+    },
 }
 

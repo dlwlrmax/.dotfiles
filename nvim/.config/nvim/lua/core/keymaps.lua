@@ -82,7 +82,7 @@ keymap.set("n", "<leader>t", "<Cmd>Translate EN<CR>", { desc = "Translate" })
 keymap.set("n", "<leader>rr", "<CMD>%bd|e#<CR>", { desc = "Close all buffer but current" })
 
 -- Oils
-keymap.set("n", "-", "<CMD>Oil --float<CR>", { desc = "Open oil" })
+keymap.set("n", "`", "<CMD>Oil --float<CR>", { desc = "Open oil" })
 
 local opts = { noremap = true, silent = true }
 
