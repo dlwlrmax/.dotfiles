@@ -61,10 +61,11 @@ return {
 					luasnip.lsp_expand(args.body)
 				end,
 			},
-            completion = {
-                completeopt = "menu,menuone,noinsert",
-                keyword_length = 1
-            },
+			completion = {
+				completeopt = "menu,menuone,noinsert,noselect",
+				keyword_length = 1,
+                keyword_pattern = ".*",
+			},
 			window = {
 				completion = cmp.config.window.bordered(),
 				documentation = cmp.config.window.bordered(),
@@ -171,7 +172,6 @@ return {
 			},
 		})
 		vim.cmd([[
-      set completeopt=menuone,noinsert,noselect
       highlight! default link CmpItemKind CmpItemMenuDefault
     ]])
 	end,
