@@ -61,10 +61,6 @@ return {
 					luasnip.lsp_expand(args.body)
 				end,
 			},
-			completion = {
-				completeopt = "menu,menuone,noinsert",
-				keyword_length = 1,
-			},
 			window = {
 				completion = cmp.config.window.bordered(),
 				documentation = cmp.config.window.bordered(),
@@ -95,9 +91,6 @@ return {
 				["<C-y>"] = cmp.mapping.confirm({
 					select = true,
 				}),
-				["<CR>"] = cmp.mapping.confirm({
-					select = false,
-				}),
 
 				["<C-f>"] = cmp.mapping(function(fallback)
 					if luasnip.jumpable(1) then
@@ -115,21 +108,35 @@ return {
 					end
 				end, { "i", "s" }),
 
-				["<Tab>"] = cmp.mapping(function(fallback)
-					local col = vim.fn.col(".") - 1
-
+				["<CR>"] = cmp.mapping(function(fallback)
 					if cmp.visible() then
-						cmp.select_next_item(select_opts)
-					elseif col == 0 or vim.fn.getline("."):sub(col, col):match("%s") then
-						fallback()
+						if luasnip.expandable() then
+							luasnip.expand()
+						else
+							cmp.confirm({
+								select = true,
+							})
+						end
 					else
-						cmp.complete()
+						fallback()
+					end
+				end),
+
+				["<Tab>"] = cmp.mapping(function(fallback)
+					if cmp.visible() then
+						cmp.select_next_item()
+					elseif luasnip.locally_jumpable(1) then
+						luasnip.jump(1)
+					else
+						fallback()
 					end
 				end, { "i", "s" }),
 
 				["<S-Tab>"] = cmp.mapping(function(fallback)
 					if cmp.visible() then
-						cmp.select_prev_item(select_opts)
+						cmp.select_prev_item()
+					elseif luasnip.locally_jumpable(-1) then
+						luasnip.jump(-1)
 					else
 						fallback()
 					end
