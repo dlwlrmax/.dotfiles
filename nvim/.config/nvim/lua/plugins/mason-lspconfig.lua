@@ -44,15 +44,16 @@ return {
 
 					-- NOTE: Uncomment to restrict Volar to only Vue/Nuxt projects. This will enable Volar to work alongside other language servers (tsserver).
 
-					-- root_dir = require("lspconfig").util.root_pattern(
-					--   "vue.config.js",
-					--   "vue.config.ts",
-					--   "nuxt.config.js",
-					--   "nuxt.config.ts"
-					-- ),
+					root_dir = require("lspconfig").util.root_pattern(
+						"vite.config.js",
+						"vue.config.js",
+						"vue.config.ts",
+						"nuxt.config.js",
+						"nuxt.config.ts"
+					),
 					init_options = {
 						vue = {
-							hybridMode = false,
+							hybridMode = true,
 						},
 						-- NOTE: This might not be needed. Uncomment if you encounter issues.
 
@@ -93,7 +94,7 @@ return {
 					-- NOTE: To enable hybridMode, change HybrideMode to true above and uncomment the following filetypes block.
 					-- WARN: THIS MAY CAUSE HIGHLIGHTING ISSUES WITHIN THE TEMPLATE SCOPE WHEN TSSERVER ATTACHES TO VUE FILES
 
-					-- filetypes = { "typescript", "javascript", "javascriptreact", "typescriptreact", "vue" },
+					filetypes = { "typescript", "javascript", "javascriptreact", "typescriptreact", "vue" },
 					init_options = {
 						plugins = {
 							{
