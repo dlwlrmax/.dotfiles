@@ -13,12 +13,12 @@ return {
 					current = "DiffText",
 				},
 			})
-			vim.keymap.set("n", "co", "<Plug>(git-conflict-ours)")
-			vim.keymap.set("n", "ct", "<Plug>(git-conflict-theirs)")
-			vim.keymap.set("n", "cb", "<Plug>(git-conflict-both)")
-			vim.keymap.set("n", "c0", "<Plug>(git-conflict-none)")
-			vim.keymap.set("n", "cp", "<Plug>(git-conflict-prev-conflict)")
-			vim.keymap.set("n", "cn", "<Plug>(git-conflict-next-conflict)")
+			vim.keymap.set("n", "co", "<Plug>(git-conflict-ours)", { desc = "git conflict - choose ours" })
+			vim.keymap.set("n", "ct", "<Plug>(git-conflict-theirs)", { desc = "git conflict - choose theirs" })
+			vim.keymap.set("n", "cb", "<Plug>(git-conflict-both)", { desc = "git conflict - choose both" })
+			vim.keymap.set("n", "c0", "<Plug>(git-conflict-none)", { desc = "git conflict - choose none" })
+			vim.keymap.set("n", "cp", "<Plug>(git-conflict-prev-conflict)", { desc = "git conflict - previous conflict" })
+			vim.keymap.set("n", "cn", "<Plug>(git-conflict-next-conflict)", { desc = "git conflict - next conflict" })
 		end,
 	},
 	{
@@ -78,7 +78,7 @@ return {
 				current_line_blame_opts = {
 					virt_text = true,
 					virt_text_pos = "eol", -- 'eol' | 'overlay' | 'right_align'
-					delay = 2000,
+					delay = 1000,
 					ignore_whitespace = false,
 					virt_text_priority = 500,
 					use_focus = true,
