@@ -72,22 +72,13 @@ return {
 			},
 			formatting = {
 				fields = { "kind", "abbr", "menu" },
-				format = function(entry, vim_item)
-					-- Kind icons
-					vim_item.kind = string.format("%s", kind_icons[vim_item.kind])
-					vim_item.menu = ({
-						buffer = "[Buf]",
-						luasnip = "[Sni]",
-						path = "[Pat]",
-						nvim_lsp = "[LSP]",
-						-- cmp_tabnine = "[TAB]",
-					})[entry.source.name]
-					return vim_item
-				end,
+				format = lspkind.cmp_format({
+                    before = require('tailwind-tools.cmp').lspkind_format
+				}),
 			},
 			mapping = {
-				["<C-p>"] = cmp.mapping.select_prev_item(select_opts),
-				["<C-n>"] = cmp.mapping.select_next_item(select_opts),
+				["<C-p>"] = cmp.mapping.select_prev_item(),
+				["<C-n>"] = cmp.mapping.select_next_item(),
 
 				["<C-u>"] = cmp.mapping.scroll_docs(-4),
 				["<C-d>"] = cmp.mapping.scroll_docs(4),

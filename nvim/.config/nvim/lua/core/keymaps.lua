@@ -28,10 +28,10 @@ keymap.set("n", "<leader>h", "<Cmd>BufferLineCyclePrev<CR><CR>", { desc = "Previ
 keymap.set("n", "<leader>l", "<Cmd>BufferLineCycleNext<CR>", { desc = "Next buffer" })
 keymap.set("n", "<leader>ml", "<Cmd>BufferLineMoveNext<CR><CR>", { desc = "Move buffer right" })
 keymap.set("n", "<leader>mh", "<Cmd>BufferLineMovePrev<CR>", { desc = "Move buffer left" })
-keymap.set("n", "<C-w>", "<Cmd>bd<CR>", { desc = "Close buffer" })
+keymap.set("n", "<C-w>", "<Cmd>Bdelete<CR>", { desc = "Close buffer" })
 keymap.set("n", "<Leader>rt", "<Cmd>BufferRestore<CR>", { desc = "Restore last closed buffer" })
 keymap.set("n", "<leader>q", "<Cmd>b#<CR>", { desc = "Switch to last buffer" })
-keymap.set("n", "<leader>rr", "<Cmd>BufferLineCloseOthers<CR>", { desc = "Close all buffer but current" })
+keymap.set("n", "<leader>rr", "<Cmd>Bwipeout<CR>", { desc = "Close all buffer but current" })
 keymap.set("n", "<leader>bo", "<Cmd>BufferLinePick<CR>", { desc = "Pick buffer" })
 keymap.set("n", "<leader>bO", "<Cmd>BufferLinePick<CR>", { desc = "Pick buffer" })
 
