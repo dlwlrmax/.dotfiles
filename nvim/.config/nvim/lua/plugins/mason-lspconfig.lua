@@ -15,7 +15,6 @@ return {
 		event = { "BufReadPre", "BufNewFile" },
 		config = function()
 			local capabilities = require("cmp_nvim_lsp").default_capabilities()
-			capabilities.textDocument.completion.completionItem.snippetSupport = true
 			require("mason-lspconfig").setup({
 				ensure_installed = {
 					"ts_ls",
@@ -34,12 +33,21 @@ return {
 					end,
 					["volar"] = function()
 						require("lspconfig").volar.setup({
-							capabilities = capabilities,
+							capabilities = {
+                                textDocument = {
+                                    completion = {
+                                        completionItem = {
+                                            snippetSupport = true,
+                                        },
+                                    },
+                                },
+                            },
 							init_options = {
 								vue = {
 									hybridMode = false,
 								},
 							},
+                            filetypes = { "vue", "typescript", "javascript" },
 						})
 					end,
 					["ts_ls"] = function()
@@ -77,16 +85,13 @@ return {
 					["tailwindcss"] = function()
 						local lspconfig = require("lspconfig")
 						lspconfig.tailwindcss.setup({
-							root_dir = function(fname)
-								local root_pattern = lspconfig.util.root_pattern(
-									"tailwind.config.cjs",
-									"tailwind.config.js",
-                                    "tailwind.config.ts",
-									"postcss.config.js"
-								)
-
-								return root_pattern(fname)
-							end,
+							root_dir = require("lspconfig").util.root_pattern(
+								"tailwind.config.js",
+								"tailwind.config.ts",
+								"postcss.config.js",
+								"postcss.config.ts",
+								"windi.config.ts"
+							),
 						})
 					end,
 				},
