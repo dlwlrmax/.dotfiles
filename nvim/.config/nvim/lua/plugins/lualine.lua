@@ -1,46 +1,44 @@
 return {
-	{ "arkav/lualine-lsp-progress" },
+	{
+		"linrongbin16/lsp-progress.nvim",
+		config = function()
+			require("lsp-progress").setup()
+		end,
+	},
 	{
 		"nvim-lualine/lualine.nvim",
 		dependencies = { "nvim-tree/nvim-web-devicons" },
 		config = function()
-			local noice = require("noice")
-			local colors = {
-				yellow = "#ECBE7B",
-				cyan = "#008080",
-				darkblue = "#081633",
-				green = "#98be65",
-				orange = "#FF8800",
-				violet = "#a9a1e1",
-				magenta = "#c678dd",
-				blue = "#51afef",
-				red = "#ec5f67",
-			}
-			local config = {
+			require("lualine").setup({
 				options = {
 					icons_enabled = true,
-					theme = "catppuccin",
-					component_separators = { left = "|", right = "|" },
+					theme = "auto",
+					component_separators = { left = "", right = "" },
 					section_separators = { left = "", right = "" },
 					disabled_filetypes = {
-						"dashboard",
-						"Neotree",
+						statusline = {},
+						winbar = {},
 					},
-					lways_divide_middle = true,
+					ignore_focus = {},
+					always_divide_middle = true,
+					always_show_tabline = true,
+					globalstatus = false,
+					refresh = {
+						statusline = 1000,
+						tabline = 1000,
+						winbar = 1000,
+					},
 				},
 				sections = {
 					lualine_a = { "mode" },
-					lualine_b = {
-						"branch",
-						"diff",
-						{
-							"diagnostics",
-							sources = { "nvim_diagnostic" },
-							symbols = { error = " ", warn = " ", info = " ", hint = " " },
-						},
+					lualine_b = { "branch", "diff", "diagnostics" },
+					lualine_c = {
+						"filename",
+						function()
+							return require("lsp-progress").progress()
+						end,
 					},
-					lualine_c = { "filename", "lsp_progress" },
-					lualine_x = { "copilot", "encoding", "fileformat", "filetype" }, -- I added copilot here
+					lualine_x = { "encoding", "fileformat", "filetype" },
 					lualine_y = { "progress" },
 					lualine_z = { "location" },
 				},
@@ -53,48 +51,17 @@ return {
 					lualine_z = {},
 				},
 				tabline = {},
+				winbar = {},
+				inactive_winbar = {},
 				extensions = {},
-			}
-
-			-- Inserts a component in lualine_c at left section
-			local function ins_left(component)
-				table.insert(config.sections.lualine_c, component)
-			end
-
-			-- Inserts a component in lualine_x ot right section
-			local function ins_right(component)
-				table.insert(config.sections.lualine_x, component)
-			end
-
-			ins_left({
-				"lsp_progress",
-				display_components = { "lsp_client_name", { "title", "percentage", "message" } },
-				-- With spinner
-				-- display_components = { 'lsp_client_name', 'spinner', { 'title', 'percentage', 'message' }},
-				colors = {
-					percentage = colors.cyan,
-					title = colors.cyan,
-					message = colors.cyan,
-					spinner = colors.cyan,
-					lsp_client_name = colors.magenta,
-					use = true,
-				},
-				separators = {
-					component = " ",
-					progress = " | ",
-					message = { pre = "(", post = ")" },
-					percentage = { pre = "", post = "%% " },
-					title = { pre = "", post = ": " },
-					lsp_client_name = { pre = "[", post = "]" },
-					spinner = { pre = "", post = "" },
-					message = { commenced = "In Progress", completed = "Completed" },
-				},
-				display_components = { "lsp_client_name", "spinner", { "title", "percentage", "message" } },
-				timer = { progress_enddelay = 500, spinner = 1000, lsp_client_name_enddelay = 1000 },
-				spinner_symbols = { "🌑 ", "🌒 ", "🌓 ", "🌔 ", "🌕 ", "🌖 ", "🌗 ", "🌘 " },
 			})
-
-			require("lualine").setup(config)
+			-- listen lsp-progress event and refresh lualine
+			vim.api.nvim_create_augroup("lualine_augroup", { clear = true })
+			vim.api.nvim_create_autocmd("User", {
+				group = "lualine_augroup",
+				pattern = "LspProgressStatusUpdated",
+				callback = require("lualine").refresh,
+			})
 		end,
 	},
 }

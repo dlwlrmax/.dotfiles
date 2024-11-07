@@ -15,7 +15,7 @@ return {
 		event = { "BufReadPre", "BufNewFile" },
 		config = function()
 			local capabilities = require("cmp_nvim_lsp").default_capabilities()
-            capabilities.textDocument.completion.completionItem.snippetSupport = true
+			capabilities.textDocument.completion.completionItem.snippetSupport = true
 			require("mason-lspconfig").setup({
 				ensure_installed = {
 					"ts_ls",
@@ -34,13 +34,10 @@ return {
 					end,
 					["volar"] = function()
 						require("lspconfig").volar.setup({
-                            capabilities = capabilities,
+							capabilities = capabilities,
 							init_options = {
 								vue = {
 									hybridMode = false,
-								},
-								typescript = {
-									tsdk = vim.fn.getcwd() .. "/node_modules/typescript/lib",
 								},
 							},
 						})
@@ -54,7 +51,7 @@ return {
 									{
 										name = "@vue/typescript-plugin",
 										location = volar_path,
-										languages = { "vue" },
+										languages = { "vue", "typescript", "javascript" },
 									},
 								},
 							},
@@ -75,6 +72,21 @@ return {
 							init_options = {
 								config = "~/.config/nvim/typos.toml",
 							},
+						})
+					end,
+					["tailwindcss"] = function()
+						local lspconfig = require("lspconfig")
+						lspconfig.tailwindcss.setup({
+							root_dir = function(fname)
+								local root_pattern = lspconfig.util.root_pattern(
+									"tailwind.config.cjs",
+									"tailwind.config.js",
+                                    "tailwind.config.ts",
+									"postcss.config.js"
+								)
+
+								return root_pattern(fname)
+							end,
 						})
 					end,
 				},
