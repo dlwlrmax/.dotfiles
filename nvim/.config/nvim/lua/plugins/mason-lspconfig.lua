@@ -15,6 +15,11 @@ return {
 		event = { "BufReadPre", "BufNewFile" },
 		config = function()
 			local capabilities = require("cmp_nvim_lsp").default_capabilities()
+			local opts = { noremap = true, silent = true }
+			vim.keymap.set({ "n", "i" }, "gI", function()
+				vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())
+			end, opts)
+
 			require("mason-lspconfig").setup({
 				ensure_installed = {
 					"ts_ls",
@@ -34,20 +39,42 @@ return {
 					["volar"] = function()
 						require("lspconfig").volar.setup({
 							capabilities = {
-                                textDocument = {
-                                    completion = {
-                                        completionItem = {
-                                            snippetSupport = true,
-                                        },
-                                    },
-                                },
-                            },
+								textDocument = {
+									completion = {
+										completionItem = {
+											snippetSupport = true,
+										},
+									},
+								},
+							},
 							init_options = {
 								vue = {
 									hybridMode = false,
 								},
 							},
-                            filetypes = { "vue", "typescript", "javascript" },
+							filetypes = { "vue", "typescript", "javascript" },
+							settings = {
+								typescript = {
+									inlayHints = {
+										enumMemberValues = {
+											enabled = true,
+										},
+										functionLikeReturnTypes = {
+											enabled = true,
+										},
+										propertyDeclarationTypes = {
+											enabled = true,
+										},
+										parameterTypes = {
+											enabled = true,
+											suppressWhenArgumentMatchesName = true,
+										},
+										variableTypes = {
+											enabled = true,
+										},
+									},
+								},
+							},
 						})
 					end,
 					["ts_ls"] = function()
@@ -59,7 +86,21 @@ return {
 									{
 										name = "@vue/typescript-plugin",
 										location = volar_path,
-										languages = { "vue", "typescript", "javascript" },
+										languages = { "vue", "typescript" },
+									},
+								},
+							},
+							settings = {
+								typescript = {
+									inlayHints = {
+										includeInlayParameterNameHints = "all",
+										includeInlayParameterNameHintsWhenArgumentMatchesName = true,
+										includeInlayFunctionParameterTypeHints = true,
+										includeInlayVariableTypeHints = true,
+										includeInlayVariableTypeHintsWhenTypeMatchesName = true,
+										includeInlayPropertyDeclarationTypeHints = true,
+										includeInlayFunctionLikeReturnTypeHints = true,
+										includeInlayEnumMemberValueHints = true,
 									},
 								},
 							},
