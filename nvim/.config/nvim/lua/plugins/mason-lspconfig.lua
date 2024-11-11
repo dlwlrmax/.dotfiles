@@ -3,6 +3,12 @@ return {
 		"neovim/nvim-lspconfig",
 	},
 	{
+		"j-hui/fidget.nvim",
+		opts = {
+			-- options
+		},
+	},
+	{
 		"dmmulroy/ts-error-translator.nvim",
 		config = function()
 			require("ts-error-translator").setup({
@@ -51,8 +57,12 @@ return {
 								vue = {
 									hybridMode = false,
 								},
+
+								typescript = {
+								  tsdk = vim.fn.getcwd() .. "/node_modules/typescript/lib",
+								},
 							},
-							filetypes = { "vue", "typescript", "javascript" },
+							filetypes = { "vue" },
 							settings = {
 								typescript = {
 									inlayHints = {
@@ -86,7 +96,7 @@ return {
 									{
 										name = "@vue/typescript-plugin",
 										location = volar_path,
-										languages = { "vue", "typescript" },
+										languages = { "vue", "typescript", "javascript" },
 									},
 								},
 							},

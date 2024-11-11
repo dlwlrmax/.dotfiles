@@ -1,10 +1,10 @@
 return {
-	{
-		"linrongbin16/lsp-progress.nvim",
-		config = function()
-			require("lsp-progress").setup()
-		end,
-	},
+	-- {
+	-- 	"linrongbin16/lsp-progress.nvim",
+	-- 	config = function()
+	-- 		require("lsp-progress").setup()
+	-- 	end,
+	-- },
 	{
 		"nvim-lualine/lualine.nvim",
 		dependencies = { "nvim-tree/nvim-web-devicons" },
@@ -34,9 +34,9 @@ return {
 					lualine_b = { "branch", "diff", "diagnostics" },
 					lualine_c = {
 						"filename",
-						function()
-							return require("lsp-progress").progress()
-						end,
+						-- function()
+						-- 	return require("lsp-progress").progress()
+						-- end,
 					},
 					lualine_x = { "encoding", "fileformat", "filetype" },
 					lualine_y = { "progress" },
@@ -55,13 +55,13 @@ return {
 				inactive_winbar = {},
 				extensions = {},
 			})
-			-- listen lsp-progress event and refresh lualine
-			vim.api.nvim_create_augroup("lualine_augroup", { clear = true })
-			vim.api.nvim_create_autocmd("User", {
-				group = "lualine_augroup",
-				pattern = "LspProgressStatusUpdated",
-				callback = require("lualine").refresh,
-			})
+			-- -- listen lsp-progress event and refresh lualine
+			-- vim.api.nvim_create_augroup("lualine_augroup", { clear = true })
+			-- vim.api.nvim_create_autocmd("User", {
+			-- 	group = "lualine_augroup",
+			-- 	pattern = "LspProgressStatusUpdated",
+			-- 	callback = require("lualine").refresh,
+			-- })
 		end,
 	},
 }
