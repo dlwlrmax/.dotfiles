@@ -55,4 +55,5 @@ vim.o.scrolloff = 5
 
 opt.relativenumber = true
 opt.number = true
-vim.o.sessionoptions="blank,buffers,curdir,folds,help,tabpages,winsize,winpos,terminal,localoptions"
+vim.o.sessionoptions = "blank,buffers,curdir,folds,help,tabpages,winsize,winpos,terminal,localoptions"
+

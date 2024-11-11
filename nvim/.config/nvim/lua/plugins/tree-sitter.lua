@@ -38,6 +38,9 @@ return {
 				"typescript",
 				"vim",
 				"vue",
+				"css",
+				"scss",
+				"sql",
 				"vimdoc",
 				"xml",
 				"php",
@@ -77,6 +80,21 @@ return {
 		---@param opts TSConfig
 		config = function(_, opts)
 			require("nvim-treesitter.configs").setup(opts)
+			vim.filetype.add({
+				pattern = {
+					[".*%.blade%.php"] = "blade",
+				},
+			})
+
+			local parser_config = require("nvim-treesitter.parsers").get_parser_configs()
+			parser_config.blade = {
+				install_info = {
+					url = "https://github.com/EmranMR/tree-sitter-blade",
+					files = { "src/parser.c" },
+					branch = "main",
+				},
+				filetype = "blade",
+			}
 		end,
 	},
 	{
