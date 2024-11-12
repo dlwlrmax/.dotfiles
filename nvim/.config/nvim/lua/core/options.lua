@@ -9,6 +9,7 @@ opt.directory = { prefix .. "/nvim/.swp//" }
 opt.backup = false
 opt.swapfile = false
 opt.updatetime = 200
+opt.cursorline = true
 
 opt.guifont = { "JetBrainsMono Nerd Font", ":h14" }
 
