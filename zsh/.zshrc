@@ -124,6 +124,7 @@ export LANG=en_US.UTF-8
 #   export EDITOR='nvim'
 # fi
 export EDITOR="nvim"
+export BROWSER="chromium"
 
 # Compilation flags
 # export ARCHFLAGS="-arch $(uname -m)"
