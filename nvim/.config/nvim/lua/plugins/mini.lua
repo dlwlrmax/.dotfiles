@@ -4,6 +4,7 @@ return {
 	config = function()
 		require("mini.pairs").setup()
 		require("mini.cursorword").setup()
+        require('mini.diff').setup()
 
 		local hipatterns = require("mini.hipatterns")
 		hipatterns.setup({
@@ -18,5 +19,6 @@ return {
 				hex_color = hipatterns.gen_highlighter.hex_color(),
 			},
 		})
+
 	end,
 }

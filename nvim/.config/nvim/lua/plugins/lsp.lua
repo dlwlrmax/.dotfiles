@@ -4,9 +4,7 @@ return {
 	},
 	{
 		"j-hui/fidget.nvim",
-		opts = {
-			-- options
-		},
+		opts = {},
 	},
 	{
 		"dmmulroy/ts-error-translator.nvim",
@@ -44,15 +42,21 @@ return {
 					end,
 					["volar"] = function()
 						require("lspconfig").volar.setup({
-							capabilities = {
-								textDocument = {
-									completion = {
-										completionItem = {
-											snippetSupport = true,
-										},
-									},
+							-- capabilities = {
+							-- 	textDocument = {
+							-- 		completion = {
+							-- 			completionItem = {
+							-- 				snippetSupport = true,
+							-- 			},
+							-- 		},
+							-- 	},
+							-- },
+							init_options = {
+								vue = {
+									hybridMode = true,
 								},
 							},
+							vtsls = {},
 						})
 					end,
 					["vtsls"] = function()
@@ -112,6 +116,46 @@ return {
 					end,
 				},
 			})
+		end,
+	},
+	{
+		"stevearc/conform.nvim",
+		event = { "BufWritePre" },
+		cmd = { "ConformInfo" },
+		keys = {
+			{
+				"<leader>nf",
+				function()
+					require("conform").format({ async = true })
+				end,
+				mode = "",
+				desc = "Format Buffer",
+			},
+		},
+		opts = {
+			formatters_by_ft = {
+				lua = { "stylua" },
+				-- Conform will run multiple formatters sequentially
+				python = { "isort", "black" },
+				-- You can customize some of the format options for the filetype (:help conform.format)
+				rust = { "rustfmt", lsp_format = "fallback" },
+				-- Conform will run the first available formatter
+				javascript = { "prettierd", "prettier", stop_after_first = true },
+				vue = { "prettierd", "prettier", stop_after_first = true },
+				php = { "php_cs_fixer", "easy_coding_standard", stop_after_first = true },
+			},
+			default_format_opts = {
+				lsp_format = "fallback",
+			},
+		},
+	},
+	{
+		"mfussenegger/nvim-lint",
+		config = function()
+			require("lint").linters_by_fr = {
+				lua = { "luacheck" },
+				php = { "intelephense", "phpcs" },
+			}
 		end,
 	},
 }
