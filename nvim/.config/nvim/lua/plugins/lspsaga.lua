@@ -11,7 +11,7 @@ return {
                 show_file = true,
                 folder_level = 3,
                 color_mode = true,
-                delay = 500
+                delay = 1000
             },
             move_in_saga = {
                 prev = "<C-k>",
