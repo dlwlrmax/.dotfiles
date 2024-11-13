@@ -28,12 +28,12 @@ return {
 
 			require("mason-lspconfig").setup({
 				ensure_installed = {
-					"ts_ls",
 					"intelephense",
 					"typos_lsp",
 					"volar",
 					"emmet_language_server",
 					"tailwindcss",
+					"vtsls",
 				},
 				handlers = {
 					function(server_name)
@@ -53,67 +53,32 @@ return {
 									},
 								},
 							},
-							init_options = {
-								vue = {
-									hybridMode = false,
-								},
-
-								typescript = {
-								  tsdk = vim.fn.getcwd() .. "/node_modules/typescript/lib",
-								},
-							},
-							filetypes = { "vue" },
-							settings = {
-								typescript = {
-									inlayHints = {
-										enumMemberValues = {
-											enabled = true,
-										},
-										functionLikeReturnTypes = {
-											enabled = true,
-										},
-										propertyDeclarationTypes = {
-											enabled = true,
-										},
-										parameterTypes = {
-											enabled = true,
-											suppressWhenArgumentMatchesName = true,
-										},
-										variableTypes = {
-											enabled = true,
-										},
-									},
-								},
-							},
 						})
 					end,
-					["ts_ls"] = function()
-						local mason_packages = vim.fn.stdpath("data") .. "/mason/packages"
-						local volar_path = mason_packages .. "/vue-language-server/node_modules/@vue/language-server"
-						require("lspconfig").ts_ls.setup({
-							init_options = {
-								plugins = {
-									{
-										name = "@vue/typescript-plugin",
-										location = volar_path,
-										languages = { "vue", "typescript", "javascript" },
-									},
-								},
-							},
+					["vtsls"] = function()
+						require("lspconfig").vtsls.setup({
+							filetypes = { "typescript", "javascript", "javascriptreact", "typescriptreact", "vue" },
 							settings = {
-								typescript = {
-									inlayHints = {
-										includeInlayParameterNameHints = "all",
-										includeInlayParameterNameHintsWhenArgumentMatchesName = true,
-										includeInlayFunctionParameterTypeHints = true,
-										includeInlayVariableTypeHints = true,
-										includeInlayVariableTypeHintsWhenTypeMatchesName = true,
-										includeInlayPropertyDeclarationTypeHints = true,
-										includeInlayFunctionLikeReturnTypeHints = true,
-										includeInlayEnumMemberValueHints = true,
-									},
-								},
+								vtsls = { tsserver = { globalPlugins = {} } },
 							},
+							before_init = function(params, config)
+								local result = vim.system(
+									{ "npm", "query", "#vue" },
+									{ cwd = params.workspaceFolders[1].name, text = true }
+								):wait()
+								if result.stdout ~= "[]" then
+									local vuePluginConfig = {
+										name = "@vue/typescript-plugin",
+										location = require("mason-registry")
+											.get_package("vue-language-server")
+											:get_install_path() .. "/node_modules/@vue/language-server",
+										languages = { "vue" },
+										configNamespace = "typescript",
+										enableForWorkspaceTypeScriptVersions = true,
+									}
+									table.insert(config.settings.vtsls.tsserver.globalPlugins, vuePluginConfig)
+								end
+							end,
 						})
 					end,
 					["intelephense"] = function()
