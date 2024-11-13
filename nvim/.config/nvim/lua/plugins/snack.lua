@@ -41,7 +41,7 @@ return {
 			desc = "Lazygit",
 		},
 		{
-			"<leader>gB",
+			"<leader>gb",
 			function()
 				Snacks.gitbrowse()
 			end,
