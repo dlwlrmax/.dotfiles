@@ -31,12 +31,15 @@ return {
 				},
 				sections = {
 					lualine_a = { "mode" },
-					lualine_b = { "branch", "diff", "diagnostics" },
+					lualine_b = {
+						function()
+							return require("auto-session.lib").current_session_name(true)
+						end,
+						"diff",
+						"diagnostics",
+					},
 					lualine_c = {
-						"filename",
-						-- function()
-						-- 	return require("lsp-progress").progress()
-						-- end,
+						"filename"
 					},
 					lualine_x = { "encoding", "fileformat", "filetype" },
 					lualine_y = { "progress" },
