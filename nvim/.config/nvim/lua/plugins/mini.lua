@@ -4,7 +4,6 @@ return {
 	config = function()
 		require("mini.pairs").setup()
 		require("mini.cursorword").setup()
-        require('mini.diff').setup()
 
 		local hipatterns = require("mini.hipatterns")
 		hipatterns.setup({
