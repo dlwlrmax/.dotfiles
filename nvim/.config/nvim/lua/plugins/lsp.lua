@@ -42,15 +42,15 @@ return {
 					end,
 					["volar"] = function()
 						require("lspconfig").volar.setup({
-							-- capabilities = {
-							-- 	textDocument = {
-							-- 		completion = {
-							-- 			completionItem = {
-							-- 				snippetSupport = true,
-							-- 			},
-							-- 		},
-							-- 	},
-							-- },
+							capabilities = {
+								textDocument = {
+									completion = {
+										completionItem = {
+											snippetSupport = true,
+										},
+									},
+								},
+							},
 							init_options = {
 								vue = {
 									hybridMode = true,
