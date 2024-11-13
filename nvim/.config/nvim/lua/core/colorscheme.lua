@@ -34,19 +34,24 @@ require("catppuccin").setup({
 		neogit = true,
 		telescope = true,
 		native_lsp = {
-			enable = true,
+			enabled = true,
 			virtual_text = {
-				errors = { "italic", "bold" },
+				errors = { "italic" },
 				hints = { "italic" },
-				warning = { "italic" },
+				warnings = { "italic" },
 				information = { "italic" },
+				ok = { "italic" },
+			},
+			underlines = {
+				errors = { "underline" },
+				hints = { "underline" },
+				warnings = { "underline" },
+				information = { "underline" },
+				ok = { "underline" },
 			},
 			inlay_hints = {
 				background = true,
 			},
-		},
-		lsp_saga = {
-			ui = { kind = require("catppuccin.groups.integrations.lsp_saga").custom_kind() },
 		},
 		which_key = true,
 		indent_blankline = {
@@ -63,6 +68,7 @@ require("catppuccin").setup({
 			bold_basename = true,
 			dim_dirname = true,
 		},
+        blink_cmp = true,
 		beacon = true,
 		harpoon = true,
 		fidget = true,
