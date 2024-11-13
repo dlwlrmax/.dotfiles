@@ -17,13 +17,12 @@ return {
 	{
 		"williamboman/mason-lspconfig.nvim",
 		event = { "BufReadPre", "BufNewFile" },
-		config = function()
-			local capabilities = require("cmp_nvim_lsp").default_capabilities()
-			local opts = { noremap = true, silent = true }
-			vim.keymap.set({ "n", "i" }, "gI", function()
-				vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())
-			end, opts)
-
+		config = function(_, opts)
+            local lspconfig = require("lspconfig")
+            for server, config in pairs(opts.server or {}) do
+                config.capabilities = require('blink.cmp').get_lsp_capabilities(config.capabilities)
+                lspconfig[server].setup(config)
+            end
 			require("mason-lspconfig").setup({
 				ensure_installed = {
 					"intelephense",
@@ -35,10 +34,7 @@ return {
 				},
 				handlers = {
 					function(server_name)
-						require("lspconfig")[server_name].setup({
-							capabilities = capabilities,
-							-- on_attach = on_attach
-						})
+						require("lspconfig")[server_name].setup({})
 					end,
 					["volar"] = function()
 						require("lspconfig").volar.setup({
