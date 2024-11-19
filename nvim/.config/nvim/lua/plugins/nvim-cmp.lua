@@ -16,6 +16,7 @@ return {
 		"rafamadriz/friendly-snippets",
 		"onsails/lspkind.nvim", -- vs-code like pictograms
 	},
+    event = { "InsertEnter", "CmdlineEnter" },
 	config = function()
 		local cmp = require("cmp")
 		local lspkind = require("lspkind")
@@ -61,6 +62,9 @@ return {
 		}
 
 		cmp.setup({
+            completion = {
+                completeopt = 'menuone,noinsert,noselect,menu'
+            },
 			snippet = {
 				expand = function(args)
 					luasnip.lsp_expand(args.body)
@@ -84,10 +88,10 @@ return {
 				["<C-d>"] = cmp.mapping.scroll_docs(4),
 
 				["<C-e>"] = cmp.mapping.abort(),
+                ["<C-a>"] = cmp.mapping.complete(),
 				["<C-y>"] = cmp.mapping.confirm({
 					select = true,
 				}),
-
 				["<C-f>"] = cmp.mapping(function(fallback)
 					if luasnip.jumpable(1) then
 						luasnip.jump(1)
@@ -183,7 +187,6 @@ return {
 			},
 		})
 		vim.cmd([[
-      set completeopt=menuone,noinsert,noselect
       highlight! default link CmpItemKind CmpItemMenuDefault
     ]])
 	end,
