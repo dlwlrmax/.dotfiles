@@ -73,7 +73,7 @@ return {
 			formatting = {
 				fields = { "kind", "abbr", "menu" },
 				format = lspkind.cmp_format({
-                    before = require('tailwind-tools.cmp').lspkind_format
+					before = require("tailwind-tools.cmp").lspkind_format,
 				}),
 			},
 			mapping = {
@@ -140,15 +140,25 @@ return {
 			sources = cmp.config.sources({
 				{
 					name = "nvim_lsp",
+					option = { keyword_length = 0 },
 				},
 				{
 					name = "luasnip",
+					option = {
+						keyword_length = 2,
+					},
 				},
 				{
 					name = "buffer",
+					option = {
+						keyword_length = 1,
+					},
 				},
 				{
 					name = "path",
+					option = {
+						keyword_length = 1,
+					},
 				},
 			}),
 		})
