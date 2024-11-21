@@ -4,17 +4,6 @@ return {
 	config = function()
 		require("mini.pairs").setup()
         require("mini.ai").setup()
-        require("mini.surround").setup({
-            mapping = {
-                add = "ya",
-                delete = "yd",
-                find = "yf",
-                find_left = "yF",
-                highlight = "yh",
-                replace = "yr",
-                update_n_lines = "yn",
-            }
-        })
 		require("mini.cursorword").setup()
 
 		local hipatterns = require("mini.hipatterns")

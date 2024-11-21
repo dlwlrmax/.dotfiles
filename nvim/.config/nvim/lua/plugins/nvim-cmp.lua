@@ -23,9 +23,6 @@ return {
 		local luasnip = require("luasnip")
 
 		require("luasnip.loaders.from_vscode").lazy_load()
-		-- require("luasnip.loaders.from_lua").load({
-		-- 	paths = { "~/.config/nvim/lua/snippets/common.lua" },
-		-- }) -- working on this
 		require("luasnip.loaders.from_vscode").lazy_load({ paths = "~/.config/nvim/lua/snippets/vs_code" })
 		local has_words_before = function()
 			unpack = unpack or table.unpack
