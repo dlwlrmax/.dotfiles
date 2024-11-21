@@ -65,7 +65,7 @@
                 },
                 {
                     "label": "󰌾",
-                    "command": "$HOME/.config/hypr/scripts/lock-session.sh"
+                    "command": "hyprlock"
                 },
                 {
                     "label": "󰍃",
@@ -94,6 +94,10 @@
                 {
                     "label": "",
                     "command": "obs"
+                },
+                {
+                    "command": "GDK_BACKEND=x11 dbeaver",
+                    "label": ""
                 }
             ]
         }

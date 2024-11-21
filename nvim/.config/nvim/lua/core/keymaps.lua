@@ -43,6 +43,7 @@ keymap.set("n", "<leader>b", "<CMD>Neotree focus<CR>", { desc = "Focus Nvim Tree
 keymap.set("n", "<leader>ff", "<cmd>Telescope resume<cr>", { desc = "Telescope Resume last telescope" })
 keymap.set("n", "<leader><space>", "<cmd>Telescope find_files theme=dropdown<cr>", { desc = "Telescope Find files" })
 keymap.set("n", "<leader>fa", "<cmd>Telescope find_files hidden=true<cr>", { desc = "TelescopeFind hidden files" })
+keymap.set("n", "<leader>a", "<cmd>Telescope find_files hidden=true theme=dropdown<cr>", { desc = "TelescopeFind hidden files" })
 keymap.set("n", "<leader>fs", "<cmd>Telescope live_grep<cr>", { desc = "Telescope Live grep" })
 keymap.set(
 	"n",
