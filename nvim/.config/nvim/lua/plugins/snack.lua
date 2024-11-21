@@ -9,6 +9,7 @@ return {
 			enabled = true,
 			timeout = 2000,
 		},
+        dashboard = { enabled = true },
 		quickfile = { enabled = true },
 		statuscolumn = { enabled = true },
 		words = { enabled = true },
