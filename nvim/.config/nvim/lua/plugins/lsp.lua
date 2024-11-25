@@ -19,10 +19,9 @@ return {
 		event = { "BufReadPre", "BufNewFile" },
 		config = function()
 			local capabilities = require("cmp_nvim_lsp").default_capabilities()
-			local opts = { noremap = true, silent = true }
-			vim.keymap.set({ "n", "i" }, "gI", function()
+			vim.keymap.set({ "n" }, "gI", function()
 				vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())
-			end, opts)
+			end, { noremap = true, silent = true, desc = "Toggle inlay hints" })
 
 			require("mason-lspconfig").setup({
 				ensure_installed = {

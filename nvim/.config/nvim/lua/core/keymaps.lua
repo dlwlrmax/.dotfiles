@@ -45,7 +45,7 @@ keymap.set("n", "<leader><space>", "<cmd>Telescope find_files theme=dropdown<cr>
 keymap.set("n", "<leader>fa", "<cmd>Telescope find_files hidden=true<cr>", { desc = "TelescopeFind hidden files" })
 keymap.set(
 	"n",
-	"<leader>a",
+	"<leader>aa",
 	"<cmd>Telescope find_files hidden=true theme=dropdown<cr>",
 	{ desc = "TelescopeFind hidden files" }
 )

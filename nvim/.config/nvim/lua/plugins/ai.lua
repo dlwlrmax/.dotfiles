@@ -60,6 +60,7 @@ return {
             behaviour = {
                 auto_suggestions = false
             },
+            -- remove default mappings
             mappings = {
                 ask = "<leader>ua",
                 edit = "<leader>ue",
