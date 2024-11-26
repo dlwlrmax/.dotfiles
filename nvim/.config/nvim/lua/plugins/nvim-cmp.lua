@@ -59,9 +59,6 @@ return {
 		}
 
 		cmp.setup({
-            completion = {
-                completeopt = 'menuone,noinsert,noselect,menu'
-            },
 			snippet = {
 				expand = function(args)
 					luasnip.lsp_expand(args.body)
@@ -184,6 +181,7 @@ return {
 			},
 		})
 		vim.cmd([[
+      set completeopt=menuone,noinsert,noselect
       highlight! default link CmpItemKind CmpItemMenuDefault
     ]])
 	end,
