@@ -22,7 +22,7 @@ require("catppuccin").setup({
 		strings = {},
 		variables = {},
 		numbers = {},
-		properties = {},
+		properties = { "bold" },
 		types = { "bold" },
 	},
 	compile_path = vim.fn.stdpath("cache") .. "/catppuccin",
