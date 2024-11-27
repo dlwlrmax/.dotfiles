@@ -2,7 +2,7 @@
 
 * {
   /* `otf-font-awesome` is required to be installed for icons */
-  font-family: "JetBrainMonoNL Nerd Font", "Helvetica Neue", Helvetica, Arial;
+  font-family: "JetBrainsMono Nerd Font", "Helvetica Neue", Helvetica, Arial;
   font-size: 12px;
   font-weight: Bold;
   color: @text;
@@ -207,7 +207,7 @@ label:focus {
   min-width: 120px;
 }
 
-#custom-media.custom-spotify {
+#custom-media {
   padding: 0 10px;
   margin: 0 4px;
   background-color: @green;
