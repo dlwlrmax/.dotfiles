@@ -129,6 +129,11 @@ button:hover {
 
 #window {
   padding-left: 10px;
+  padding-right: 10px;
+  border-radius: 15px;
+  background-color: @surface;
+  opacity: 0.8;
+
 }
 
 /* If workspaces is the leftmost module, omit left margin */

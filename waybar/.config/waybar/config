@@ -7,7 +7,7 @@
     // Choose the order of the modules
     "modules-left": ["hyprland/workspaces", "hyprland/window"],
     "modules-center": ["clock"],
-    "modules-right": ["custom/chromium", "custom/media", "network", "pulseaudio", "cpu", "memory", "custom/notification", "tray"],
+    "modules-right": ["custom/media", "network", "pulseaudio", "cpu", "memory", "custom/notification", "tray"],
     // Modules configuration
     "hyprland/workspaces": {
         "disable-scroll": true,
@@ -186,7 +186,7 @@
         "ignored-sinks": ["Easy Effects Sink"]
     },
     "custom/media": {
-        "format": "{icon}  {text}",
+        "format": "{} {icon}",
         "return-type": "json",
         "max-length": 25,
         "format-icons": {
@@ -194,24 +194,10 @@
             "default": "🎜"
         },
         "escape": true,
-        "on-click": "playerctl --player=spotify play-pause",
-        "on-scroll-up": "playerctl --player=spotify previous",
-        "on-scroll-down": "playerctl --player=spotify next",
-        "exec-if": "pgrep spotify",
-        "exec": "/usr/bin/python3 $HOME/.config/waybar/mediaplayer.py --player spotify" // Filter player based on name
-    },
-    "custom/chromium": {
-        "format": "{icon}  {text}",
-        "return-type": "json",
-        "max-length": 20,
-        "format-icons": {
-            "spotify": "",
-            "default": ""
-        },
-        "escape": true,
-        "on-click": "playerctl --player=chromium play-pause",
-        "exec-if": "pgrep chromium",
-        "exec": "/usr/bin/python3 $HOME/.config/waybar/mediaplayer.py --player chromium" // Filter player based on name
+        "on-click": "playerctl play-pause",
+        "on-scroll-up": "playerctl previous",
+        "on-scroll-down": "playerctl next",
+        "exec": "/usr/bin/python3 $HOME/.config/waybar/mediaplayer.py" // Filter player based on name
     },
     "custom/notification": {
       "tooltip": false,
