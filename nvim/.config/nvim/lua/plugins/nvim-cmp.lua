@@ -59,6 +59,9 @@ return {
 		}
 
 		cmp.setup({
+            completion = {
+                keyword_length = 1,
+            },
 			snippet = {
 				expand = function(args)
 					luasnip.lsp_expand(args.body)
@@ -144,6 +147,7 @@ return {
 					name = "luasnip",
 					option = {
 						keyword_length = 2,
+                        max_item_count = 5,
 					},
 				},
 				{
