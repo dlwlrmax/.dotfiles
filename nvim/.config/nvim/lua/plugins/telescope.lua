@@ -17,6 +17,10 @@ return {
 			telescope.setup({
 				defaults = {
 					file_ignore_partterns = { "node_modules", "ckeditor5" },
+					get_selection_window = function()
+						require("edgy").goto_main()
+						return 0
+					end,
 				},
 				color_devicons = true,
 				mappings = {

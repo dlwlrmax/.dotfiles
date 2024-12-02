@@ -315,6 +315,7 @@ return {
 		-- vim.cmd([[nnoremap \ :Neotree reveal<cr>]])
 	end,
 	opts = function(_, opts)
+        opts.open_files_do_not_replace_types = opts.open_files_do_not_replace_types or { "terminal", "trouble", "qf", "Outline", "trouble"}
 		local function on_move(data)
 			Snacks.rename.on_rename_file(data.source, data.destination)
 		end
@@ -324,5 +325,6 @@ return {
 			{ event = events.FILE_MOVED, handler = on_move },
 			{ event = events.FILE_RENAMED, handler = on_move },
 		})
+        table.insert(opts.open_files_do_not_replace_types, "edgy")
 	end,
 }
