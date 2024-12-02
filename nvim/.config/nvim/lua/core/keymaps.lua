@@ -67,7 +67,7 @@ keymap.set(
 )
 keymap.set("n", "?", "<cmd>Telescope live_grep<cr>", { desc = "Telescope Live grep" })
 keymap.set("v", "<leader>fc", "<cmd>Telescope grep_string hidden=true<cr>", { desc = "Telescope Grep string hidden" })
-keymap.set("n", "<leader>fh", "<cmd>Telescope help_tags<cr>", { desc = "Telescope Help tags" })
+keymap.set("n", "<leader>fh", "<cmd>DiffviewToggleFiles %<cr>", { desc = "Telescope Help tags" })
 keymap.set("n", "<C-e>", "<cmd>Telescope buffers<cr>", { desc = "Telescope Buffers" })
 
 --Format

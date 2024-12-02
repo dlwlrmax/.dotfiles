@@ -82,9 +82,17 @@ return {
 			"rcarriga/nvim-notify",
 		},
 	},
-    {
-        'stevearc/dressing.nvim',
-        event = "VeryLazy",
-        opts = {}
-    }
+	{
+		"stevearc/dressing.nvim",
+		event = "VeryLazy",
+		opts = {},
+	},
+	{
+		"petertriho/nvim-scrollbar",
+		event = "BufRead",
+		lazy = true,
+		config = function()
+			require("scrollbar").setup()
+		end,
+	},
 }
