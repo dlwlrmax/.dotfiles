@@ -7,6 +7,9 @@ return {
 	{
 		"smartpde/telescope-recent-files",
 	},
+    {
+        "nvim-telescope/telescope-media-files.nvim",
+    },
 	{
 		"nvim-telescope/telescope.nvim",
 		tag = "0.1.8",
@@ -59,12 +62,16 @@ return {
 						override_generic_sorter = true,
 						override_file_sorter = true,
 					},
+                    media_files = {
+                        filetypes = { "png", "jpg", "mp4", "webm", "pdf" },
+                        find_cmd = "rg",
+                    },
 				},
 			})
 
 			telescope.load_extension("fzf")
 			telescope.load_extension("recent_files")
-			telescope.load_extension("harpoon")
+            telescope.load_extension('media_files')
 		end,
 	},
 }
