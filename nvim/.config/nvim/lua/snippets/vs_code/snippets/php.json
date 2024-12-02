@@ -9,7 +9,7 @@
         "description": "echo and print"
     },
     "echo, print and die": {
-        "prefix": "epd",
+        "prefix": "edp",
         "body": [
             "echo '<pre>';",
             "print_r($1);",
