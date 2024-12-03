@@ -65,7 +65,7 @@ return {
 			desc = "Dismiss All Notifications",
 		},
         {
-            "<C-/>",
+            "<C-t>",
             function()
                 Snacks.terminal.toggle()
             end,

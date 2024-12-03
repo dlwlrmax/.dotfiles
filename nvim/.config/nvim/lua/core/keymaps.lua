@@ -122,4 +122,4 @@ keymap.set("n", "<leader>F", "<cmd>GrugFar<CR>", { desc = "Find and replace" })
 -- AI / Copilot Chat
 
 -- Terminal Mappings
-keymap.set("t", "<C-/>", "<cmd>close<cr>", { desc = "Hide Terminal" })
+keymap.set("t", "<C-t>", "<cmd>close<cr>", { desc = "Hide Terminal" })
