@@ -141,6 +141,7 @@ alias zshconfig="mate ~/.zshrc"
 alias szsh="source ~/.zshrc"
 alias hstart="~/scripts/hbr.sh"
 alias rr="yazi"
+alias waybar-reload="killall -SIGUSR2 waybar"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
 # This for zsh-history-substring-search
