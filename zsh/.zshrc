@@ -124,7 +124,6 @@ export LANG=en_US.UTF-8
 #   export EDITOR='nvim'
 # fi
 export EDITOR="nvim"
-export BROWSER="chromium"
 
 # Compilation flags
 # export ARCHFLAGS="-arch $(uname -m)"
@@ -147,6 +146,7 @@ alias rr="yazi"
 # This for zsh-history-substring-search
 bindkey '^[[A' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
+bindkey -v
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh

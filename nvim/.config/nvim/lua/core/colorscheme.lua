@@ -31,6 +31,7 @@ require("catppuccin").setup({
 		cmp = true,
 		gitsigns = true,
 		neotree = true,
+        treesitter = true,
 		neogit = true,
 		telescope = true,
 		native_lsp = {
@@ -47,7 +48,6 @@ require("catppuccin").setup({
 				hints = { "underline" },
 				warnings = { "underline" },
 				information = { "underline" },
-				ok = { "underline" },
 			},
 			inlay_hints = {
 				background = true,
@@ -72,6 +72,7 @@ require("catppuccin").setup({
 		beacon = true,
 		harpoon = true,
 		fidget = true,
+        snacks = true,
 		-- For more plugins integrations please scroll down (https://github.com/catppuccin/nvim#integrations)
 	},
 })

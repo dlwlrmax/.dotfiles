@@ -9,7 +9,7 @@ return {
 			enabled = true,
 			timeout = 2000,
 		},
-        dashboard = { enabled = true },
+		dashboard = { enabled = true },
 		quickfile = { enabled = true },
 		statuscolumn = { enabled = true },
 		words = { enabled = true },
@@ -18,7 +18,44 @@ return {
 				wo = { wrap = true }, -- Wrap notifications
 			},
 		},
+		terminal = {
+			bo = {
+				filetype = "snacks_terminal",
+			},
+			wo = {},
+			keys = {
+				q = "hide",
+				gf = function(self)
+					local f = vim.fn.findfile(vim.fn.expand("<cfile>"), "**")
+					if f == "" then
+						Snacks.notify.warn("No file under cursor")
+					else
+						self:hide()
+						vim.schedule(function()
+							vim.cmd("e " .. f)
+						end)
+					end
+				end,
+				term_normal = {
+					"<esc>",
+					function(self)
+						self.esc_timer = self.esc_timer or (vim.uv or vim.loop).new_timer()
+						if self.esc_timer:is_active() then
+							self.esc_timer:stop()
+							vim.cmd("stopinsert")
+						else
+							self.esc_timer:start(200, 0, function() end)
+							return "<esc>"
+						end
+					end,
+					mode = "t",
+					expr = true,
+					desc = "Double escape to normal mode",
+				},
+			},
+		},
 	},
+    win = { style = "terminal" },
 	keys = {
 		{
 			"<leader>un",
@@ -27,6 +64,12 @@ return {
 			end,
 			desc = "Dismiss All Notifications",
 		},
+        {
+            "<C-/>",
+            function()
+                Snacks.terminal.toggle()
+            end,
+        },
 		{
 			"<C-w>",
 			function()
@@ -42,7 +85,7 @@ return {
 			desc = "Lazygit",
 		},
 		{
-			"<leader>gb",
+			"<leader>ob",
 			function()
 				Snacks.gitbrowse()
 			end,
@@ -84,24 +127,6 @@ return {
 			end,
 			desc = "Prev Reference",
 			mode = { "n", "t" },
-		},
-		{
-			"<leader>N",
-			desc = "Neovim News",
-			function()
-				Snacks.win({
-					file = vim.api.nvim_get_runtime_file("doc/news.txt", false)[1],
-					width = 0.6,
-					height = 0.6,
-					wo = {
-						spell = false,
-						wrap = false,
-						signcolumn = "yes",
-						statuscolumn = " ",
-						conceallevel = 3,
-					},
-				})
-			end,
 		},
 	},
 	init = function()
