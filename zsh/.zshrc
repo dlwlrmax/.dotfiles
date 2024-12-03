@@ -139,7 +139,7 @@ export EDITOR="nvim"
 # Example aliases
 alias zshconfig="mate ~/.zshrc"
 alias szsh="source ~/.zshrc"
-alias hstart="~/hbr.sh"
+alias hstart="~/scripts/hbr.sh"
 alias rr="yazi"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
