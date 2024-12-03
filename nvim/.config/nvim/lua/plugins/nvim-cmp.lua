@@ -16,7 +16,7 @@ return {
 		"rafamadriz/friendly-snippets",
 		"onsails/lspkind.nvim", -- vs-code like pictograms
 	},
-    event = { "InsertEnter", "CmdlineEnter" },
+    event = { "InsertEnter", "CmdlineEnter", "BufNewFile" },
 	config = function()
 		local cmp = require("cmp")
 		local lspkind = require("lspkind")
@@ -30,37 +30,9 @@ return {
 			return col ~= 0 and vim.api.nvim_buf_get_lines(0, line - 1, line, true)[1]:sub(col, col):match("%s") == nil
 		end
 
-		local kind_icons = {
-			Text = "󰊄 [Text]",
-			Method = " [Method]",
-			Function = "󰊕 [Function]",
-			Constructor = " [Constructor]",
-			Field = " [Field]",
-			Variable = "󰫧 [Variable]",
-			Class = " [Class]",
-			Interface = " [Interface]",
-			Module = " [Module]",
-			Property = " [Property]",
-			Unit = " [Unit]",
-			Value = " [Value]",
-			Enum = " [Enum]",
-			Keyword = " [Keyword]",
-			Snippet = " [Snippet]",
-			Color = " [Color]",
-			File = " [File]",
-			Reference = " [Reference]",
-			Folder = " [Folder]",
-			EnumMember = " [EnumMember]",
-			Constant = " [Constant]",
-			Struct = " [Struct]",
-			Event = " [Event]",
-			Operator = " [Operator]",
-			TypeParameter = "󰉺 [TypeParameter]",
-		}
-
 		cmp.setup({
             completion = {
-                keyword_length = 1,
+                completeopt = "menu,menuone,noinsert",
             },
 			snippet = {
 				expand = function(args)
@@ -141,7 +113,6 @@ return {
 			sources = cmp.config.sources({
 				{
 					name = "nvim_lsp",
-					option = { keyword_length = 0 },
 				},
 				{
 					name = "luasnip",
@@ -185,7 +156,6 @@ return {
 			},
 		})
 		vim.cmd([[
-      set completeopt=menuone,noinsert,noselect
       highlight! default link CmpItemKind CmpItemMenuDefault
     ]])
 	end,
