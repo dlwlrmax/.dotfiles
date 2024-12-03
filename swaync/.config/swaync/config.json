@@ -12,7 +12,7 @@
   "notification-body-image-width": 200,
   "timeout": 3,
   "timeout-low": 2,
-  "timeout-critical": 120,
+  "timeout-critical": 60,
   "fit-to-screen": false,
   "control-center-width": 500,
   "control-center-height": 1025,

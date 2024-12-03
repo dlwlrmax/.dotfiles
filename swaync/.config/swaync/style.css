@@ -1,8 +1,8 @@
  
-@define-color cc-bg #32302f;
-@define-color noti-border-color #32302f;
-@define-color noti-bg #3c3836;
-@define-color noti-bg-darker #3c3836;
+@define-color cc-bg #24273a;
+@define-color noti-border-color #24273a;
+@define-color noti-bg #363a4f;
+@define-color noti-bg-darker #363a4f;
 @define-color noti-bg-hover rgb(27, 27, 43);
 @define-color noti-bg-focus rgba(27, 27, 27, 0.6);
 @define-color text-color #f9f5d7;
@@ -12,18 +12,18 @@
 * {
     font-family: JetBrainsMono NFP;
     font-weight: bold;
-	font-size: 14px
+    font-size: 14px
 }
  
 .control-center .notification-row:focus,
 .control-center .notification-row:hover {
     opacity: 1;
-    background: @noti-bg-darker
+    background: @noti-bg-darker;
 }
  
 .notification-row {
     outline: none;
-    margin: 20px;
+    margin: 0px;
     padding: 0;
 }
  
@@ -35,7 +35,7 @@
 .notification-content {
     background: @cc-bg;
     padding: 7px;
-    border-radius: 0px;
+    border-radius: 10px;
     border: 2px solid #85796f;
     margin: 0;
 }
@@ -72,7 +72,7 @@
 }
  
 .summary {
-	padding-top: 7px;
+	  padding-top: 7px;
     font-size: 13px;
     color: #ebdbb2;
 }
@@ -91,7 +91,7 @@
 .control-center {
     background: @cc-bg;
     border: 2px solid #85796f;
-    border-radius: 0px;
+    border-radius: 10px;
 }
  
 .control-center-list {
