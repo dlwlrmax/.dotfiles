@@ -1,65 +1,68 @@
 return {
-	{ "christoomey/vim-tmux-navigator" },
 	{
-		"sindrets/winshift.nvim",
+		"aserowy/tmux.nvim",
 		config = function()
-			require("winshift").setup({
-				highlight_moving_win = true, -- Highlight the window being moved
-				focused_hl_group = "Visual", -- The highlight group used for the moving window
-				moving_win_options = {
-					-- These are local options applied to the moving window while it's
-					-- being moved. They are unset when you leave Win-Move mode.
-					wrap = false,
-					cursorline = false,
-					cursorcolumn = false,
-					colorcolumn = "",
+			return require("tmux").setup({
+				copy_sync = {
+					-- enables copy sync. by default, all registers are synchronized.
+					-- to control which registers are synced, see the `sync_*` options.
+					enable = true,
+
+					-- ignore specific tmux buffers e.g. buffer0 = true to ignore the
+					-- first buffer or named_buffer_name = true to ignore a named tmux
+					-- buffer with name named_buffer_name :)
+					ignore_buffers = { empty = false },
+
+					-- TMUX >= 3.2: all yanks (and deletes) will get redirected to system
+					-- clipboard by tmux
+					redirect_to_clipboard = true,
+
+					-- offset controls where register sync starts
+					-- e.g. offset 2 lets registers 0 and 1 untouched
+					register_offset = 0,
+
+					-- overwrites vim.g.clipboard to redirect * and + to the system
+					-- clipboard using tmux. If you sync your system clipboard without tmux,
+					-- disable this option!
+					sync_clipboard = true,
+
+					-- synchronizes registers *, +, unnamed, and 0 till 9 with tmux buffers.
+					sync_registers = true,
+
+					-- synchronizes registers when pressing p and P.
+					sync_registers_keymap_put = true,
+
+					-- synchronizes registers when pressing (C-r) and ".
+					sync_registers_keymap_reg = true,
+
+					-- syncs deletes with tmux clipboard as well, it is advised to
+					-- do so. Nvim does not allow syncing registers 0 and 1 without
+					-- overwriting the unnamed register. Thus, ddp would not be possible.
+					sync_deletes = true,
+
+					-- syncs the unnamed register with the first buffer entry from tmux.
+					sync_unnamed = true,
 				},
-				keymaps = {
-					disable_defaults = false, -- Disable the default keymaps
-					win_move_mode = {
-						["h"] = "left",
-						["j"] = "down",
-						["k"] = "up",
-						["l"] = "right",
-						["H"] = "far_left",
-						["J"] = "far_down",
-						["K"] = "far_up",
-						["L"] = "far_right",
-						["<left>"] = "left",
-						["<down>"] = "down",
-						["<up>"] = "up",
-						["<right>"] = "right",
-						["<S-left>"] = "far_left",
-						["<S-down>"] = "far_down",
-						["<S-up>"] = "far_up",
-						["<S-right>"] = "far_right",
-					},
+				navigation = {
+					-- cycles to opposite pane while navigating into the border
+					cycle_navigation = true,
+
+					-- enables default keybindings (C-hjkl) for normal mode
+					enable_default_keybindings = true,
+
+					-- prevents unzoom tmux when navigating beyond vim border
+					persist_zoom = false,
 				},
-				---A function that should prompt the user to select a window.
-				---
-				---The window picker is used to select a window while swapping windows with
-				---`:WinShift swap`.
-				---@return integer? winid # Either the selected window ID, or `nil` to
-				---   indicate that the user cancelled / gave an invalid selection.
-				window_picker = function()
-					return require("winshift.lib").pick_window({
-						-- A string of chars used as identifiers by the window picker.
-						picker_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890",
-						filter_rules = {
-							-- This table allows you to indicate to the window picker that a window
-							-- should be ignored if its buffer matches any of the following criteria.
-							cur_win = true, -- Filter out the current window
-							floats = true, -- Filter out floating windows
-							filetype = {}, -- List of ignored file types
-							buftype = {}, -- List of ignored buftypes
-							bufname = {}, -- List of vim regex patterns matching ignored buffer names
-						},
-						---A function used to filter the list of selectable windows.
-						---@param winids integer[] # The list of selectable window IDs.
-						---@return integer[] filtered # The filtered list of window IDs.
-						filter_func = nil,
-					})
-				end,
+				resize = {
+					-- enables default keybindings (A-hjkl) for normal mode
+					enable_default_keybindings = true,
+
+					-- sets resize steps for x axis
+					resize_step_x = 5,
+
+					-- sets resize steps for y axis
+					resize_step_y = 5,
+				},
 			})
 		end,
 	},
