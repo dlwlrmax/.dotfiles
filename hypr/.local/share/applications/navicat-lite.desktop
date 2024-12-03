@@ -1,0 +1,6 @@
+[Desktop Entry]
+Version=17.0
+Exec=sh -e -c "${HOME}/Downloads/navicat17-premium-lite-en-x86_64.AppImage"
+Type=Application
+Categories=Development
+Name=Navicat Premium Lite
