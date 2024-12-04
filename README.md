@@ -74,3 +74,9 @@ rate-mirrors --allow-root --protocol https endeavouros | sudo tee /etc/pacman.d/
 ```bash
 export DISPLAY="$(grep nameserver /etc/resolv.conf | sed 's/nameserver //'):0"
 ```
+
+## Config
+
+```bash
+yay -S nwg-look nwg-display
+```
