@@ -1,4 +1,3 @@
-
 #!/bin/bash
 SESH="BACKGROUND"
 
@@ -30,7 +29,7 @@ if [ $? != 0 ]; then
   tmux select-pane -T "Laravel Dev" -t $SESH:laravel
 fi
 
-CODE="CODE"
+CODE="MAIN EDITOR"
 
 tmux has-session -t $CODE 2>/dev/null
 if [ $? != 0 ]; then
@@ -52,3 +51,5 @@ if [ $? != 0 ]; then
   tmux select-window -t $CODE:vuejs
   tmux attach-session -t $CODE
 fi
+
+tmux kill-session -t 0
