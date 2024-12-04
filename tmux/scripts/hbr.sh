@@ -29,24 +29,24 @@ if [ $? != 0 ]; then
   tmux select-pane -T "Laravel Dev" -t $SESH:laravel
 fi
 
-CODE="MAIN EDITOR"
+CODE="EDITOR"
 
 tmux has-session -t $CODE 2>/dev/null
 if [ $? != 0 ]; then
   tmux new-session -d -s $CODE -n "vuejs"
   tmux send-keys -t $CODE:vuejs "cd ~/gitlab/reload/daotao.binggo.vn.vuejs" C-m
   tmux send-keys -t $CODE:vuejs "clear" C-m
-  tmux select-pane -T "Vue.js Code" -t $CODE:vuejs
+  tmux select-pane -T "[FE] daotao.binggo" -t $CODE:vuejs
 
   tmux new-window -t $CODE: -n "api"
   tmux send-keys -t $CODE:api "cd ~/gitlab/reload/api-daotao.binggo.vn" C-m
   tmux send-keys -t $CODE:api "clear" C-m
-  tmux select-pane -T "API Code" -t $CODE:api
+  tmux select-pane -T "[API] daotao.binggo" -t $CODE:api
 
   tmux new-window -t $CODE: -n "erp"
   tmux send-keys -t $CODE:erp "cd ~/gitlab/erp.langmaster.vn" C-m
   tmux send-keys -t $CODE:erp "clear" C-m
-  tmux select-pane -T "ERP Code" -t $CODE:erp
+  tmux select-pane -T "erp.langmaster" -t $CODE:erp
 
   tmux select-window -t $CODE:vuejs
   tmux attach-session -t $CODE
