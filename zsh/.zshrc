@@ -19,6 +19,7 @@ done
 
 if [ ${#missing_apps[@]} -ne 0 ]; then
   yay -S ${missing_apps[@]}
+  echo "Installed missing applications."
 fi
 
 # If you come from bash you might have to change your $PATH.
@@ -159,6 +160,7 @@ alias hstart="~/scripts/hbr.sh"
 alias rr="yazi"
 alias waybar-reload="killall -SIGUSR2 waybar"
 alias ls="eza -G --color=auto --icons=auto" 
+alias lgit="lazygit"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
 # This for zsh-history-substring-search
@@ -171,4 +173,4 @@ bindkey -v
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-source ~/.dotfiles/fzf-git.sh/fzf-git.sh
+source ~/.dotfiles/fzf-git.sh/script.sh
