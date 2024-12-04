@@ -173,4 +173,4 @@ bindkey -v
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-source ~/.dotfiles/fzf-git.sh/script.sh
+source ~/.dotfiles/fzf-git/script.sh
