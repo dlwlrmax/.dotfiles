@@ -5,6 +5,22 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
+# List of required applications
+# Check if required applications are installed. If not, install them using yay.
+required_apps=(eza nvim tmux fzf bat yazi)
+missing_apps=()
+
+for app in ${required_apps[@]}; do
+  if ! command -v $app &> /dev/null; then
+    echo "$app is not installed."
+    missing_apps+=($app)
+  fi
+done
+
+if [ ${#missing_apps[@]} -ne 0 ]; then
+  yay -S ${missing_apps[@]}
+fi
+
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
 
@@ -142,6 +158,7 @@ alias szsh="source ~/.zshrc"
 alias hstart="~/scripts/hbr.sh"
 alias rr="yazi"
 alias waybar-reload="killall -SIGUSR2 waybar"
+alias ls="eza -G --color=auto --icons=auto" 
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
 # This for zsh-history-substring-search
