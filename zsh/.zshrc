@@ -153,3 +153,5 @@ bindkey -v
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
+source ~/.dotfiles/fzf-git.sh/fzf-git.sh
