@@ -106,4 +106,8 @@ return {
 			require("scrollbar").setup()
 		end,
 	},
+	-- {
+	-- 	"j-hui/fidget.nvim",
+	-- 	opts = {},
+	-- },
 }
