@@ -65,6 +65,7 @@ return {
                 ask = "<leader>ua",
                 edit = "<leader>ue",
                 refresh = "<leader>ur",
+                switch = "<leader>ua",
             }
 		},
 		-- if you want to build from source then do `make BUILD_FROM_SOURCE=true`

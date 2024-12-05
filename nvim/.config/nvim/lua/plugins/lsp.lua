@@ -138,7 +138,7 @@ return {
 				javascript = { "prettierd", "prettier", stop_after_first = true },
 				vue = { "prettierd", "prettier", stop_after_first = true },
 				php = { "php_cs_fixer", "easy_coding_standard", stop_after_first = true },
-                markdown = { "prettierd", "prettier", stop_after_first = true },
+				markdown = { "prettierd", "prettier", stop_after_first = true },
 			},
 			default_format_opts = {
 				lsp_format = "fallback",
@@ -152,6 +152,69 @@ return {
 				lua = { "luacheck" },
 				php = { "intelephense", "phpcs" },
 			}
+		end,
+	},
+	{
+		"nvimdev/lspsaga.nvim",
+		dependencies = {
+			"nvim-treesitter/nvim-treesitter", -- optional
+			"nvim-tree/nvim-web-devicons", -- optional
+		},
+		after = "nvim-lspconfig",
+		config = function()
+			require("lspsaga").setup({
+				symbol_in_winbar = {
+					enable = true,
+					hide_keyword = true,
+					show_file = true,
+					color_mode = true,
+					delay = 1000,
+				},
+				code_action = {
+					num_shortcut = true,
+					show_server_name = true,
+					extend_gitsigns = true,
+					keys = {
+						quit = "q",
+						exec = "<CR>",
+					},
+				},
+				definition = {
+                    keys = {
+                        quit = "q",
+                        edit = "<CR>",
+                        vsplit = "<C-v>",
+                        split = "<C-x>",
+                        tabe = "<C-t>",
+                    }
+				},
+				lightbulb = {
+					enable = true,
+					enable_in_insert = false,
+					sign = true,
+					sign_priority = 140,
+					debounce = 300,
+					virtual_text = false,
+				},
+				ui = {
+					title = true,
+					border = "rounded",
+					winblend = 0,
+					expand = "",
+					collapse = "",
+					code_action = "",
+					incoming = " ",
+					outgoing = " ",
+					hover = " ",
+					kind = require("catppuccin.groups.integrations.lsp_saga").custom_kind(),
+				},
+				implement = {
+					enable = true,
+					sign = true,
+					virtual_text = true,
+					priority = 100,
+				},
+			})
 		end,
 	},
 }

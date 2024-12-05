@@ -65,7 +65,7 @@ return {
 			desc = "Dismiss All Notifications",
 		},
 		{
-			"<C-`>",
+			"<C-\\>",
 			function()
 				Snacks.terminal.toggle()
 			end,
@@ -131,7 +131,7 @@ return {
 	},
 	init = function()
 		-- Terminal Mappings
-		vim.keymap.set("t", "<C-`>", "<cmd>close<cr>", { desc = "Hide Terminal" })
+		vim.keymap.set("t", "<C-\\>", "<cmd>close<cr>", { desc = "Hide Terminal" })
 		vim.api.nvim_create_autocmd("User", {
 			pattern = "VeryLazy",
 			callback = function()
