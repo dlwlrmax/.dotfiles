@@ -7,7 +7,7 @@ fi
 
 # List of required applications
 # Check if required applications are installed. If not, install them using yay.
-required_apps=(eza nvim tmux fzf bat yazi)
+required_apps=(eza nvim tmux fzf bat yazi tree)
 missing_apps=()
 
 for app in ${required_apps[@]}; do
@@ -173,4 +173,26 @@ bindkey -v
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
+## fzf config
+# Open in tmux popup if on tmux, otherwise use --height mode
+export FZF_DEFAULT_OPTS='--height 90% --tmux center,90% --layout reverse --border --margin=1 --padding=1'
+
+# Preview file content using bat (https://github.com/sharkdp/bat)
+export FZF_CTRL_T_OPTS="
+  --walker-skip .git,node_modules,target
+  --preview 'bat -n --color=always {}'
+  --bind 'ctrl-/:change-preview-window(down|hidden|)'"
+
+# CTRL-Y to copy the command into clipboard using pbcopy
+export FZF_CTRL_R_OPTS="
+  --bind 'ctrl-y:execute-silent(echo -n {2..} | xclip -selection clipboard)+abort'
+  --color header:italic
+  --header 'Press CTRL-Y to copy command into clipboard'"
+
+# Print tree structure in the preview window
+export FZF_ALT_C_OPTS="
+  --walker-skip .git,node_modules,target
+  --preview 'tree -C {}'"
+
+source <(fzf --zsh)
 source ~/.dotfiles/fzf-git/script.sh

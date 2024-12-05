@@ -55,7 +55,7 @@ return {
 			},
 		},
 	},
-    win = { style = "terminal" },
+	win = { style = "terminal" },
 	keys = {
 		{
 			"<leader>un",
@@ -64,12 +64,12 @@ return {
 			end,
 			desc = "Dismiss All Notifications",
 		},
-        {
-            "<C-t>",
-            function()
-                Snacks.terminal.toggle()
-            end,
-        },
+		{
+			"<C-`>",
+			function()
+				Snacks.terminal.toggle()
+			end,
+		},
 		{
 			"<C-w>",
 			function()
@@ -130,6 +130,8 @@ return {
 		},
 	},
 	init = function()
+		-- Terminal Mappings
+		vim.keymap.set("t", "<C-`>", "<cmd>close<cr>", { desc = "Hide Terminal" })
 		vim.api.nvim_create_autocmd("User", {
 			pattern = "VeryLazy",
 			callback = function()

@@ -120,6 +120,3 @@ keymap.set("n", "<leader>op", "<cmd>Lspsaga outline<CR>", opts) -- see outline o
 keymap.set("n", "<leader>F", "<cmd>GrugFar<CR>", { desc = "Find and replace" })
 
 -- AI / Copilot Chat
-
--- Terminal Mappings
-keymap.set("t", "<C-t>", "<cmd>close<cr>", { desc = "Hide Terminal" })
