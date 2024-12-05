@@ -2,7 +2,7 @@ return {
 	{
 		"akinsho/bufferline.nvim",
 		version = "*",
-        after = 'catppuccin',
+        event = "VeryLazy",
 		dependencies = "nvim-tree/nvim-web-devicons",
 		opts = function()
 			local Offset = require("bufferline.offset")
@@ -35,10 +35,19 @@ return {
 				Offset.edgy = true
 			end
 		end,
+		keys = {
+			{ "<leader>h", "<Cmd>BufferLineCyclePrev<CR><CR>", desc = "Previous buffer" },
+			{ "<leader>l", "<Cmd>BufferLineCycleNext<CR>", desc = "Next buffer" },
+			{ "<leader>ml", "<Cmd>BufferLineMoveNext<CR><CR>", desc = "Move buffer right" },
+			{ "<leader>mh", "<Cmd>BufferLineMovePrev<CR>", desc = "Move buffer left" },
+			{ "<Leader>rt", "<Cmd>BufferRestore<CR>", desc = "Restore last closed buffer" },
+			{ "<leader>q", "<Cmd>b#<CR>", desc = "Switch to last buffer" },
+			{ "<C-p>", "<Cmd>BufferLinePick<CR>", desc = "Pick buffer" },
+		},
 		config = function()
 			local bufferline = require("bufferline")
-            local mocha = require("catppuccin.palettes").get_palette "mocha"
-            bufferline.setup({
+			local mocha = require("catppuccin.palettes").get_palette("mocha")
+			bufferline.setup({
 				highlights = require("catppuccin.groups.integrations.bufferline").get({
 					styles = { "italic", "bold" },
 					custom = {
@@ -48,9 +57,6 @@ return {
 						mocha = {
 							background = { fg = mocha.text },
 						},
-						latte = {
-							background = { fg = "#000000" },
-						},
 					},
 				}),
 				options = {
@@ -59,7 +65,6 @@ return {
 					},
 					separator_style = "slope",
 					diagnostics = "nvim_lsp",
-					show_close_icon = false,
 					diagnostics_indicator = function(count, level)
 						local icon = level:match("error") and " " or " "
 						return "(" .. icon .. count .. ")"

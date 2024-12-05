@@ -17,7 +17,12 @@ return {
 			vim.keymap.set("n", "ct", "<Plug>(git-conflict-theirs)", { desc = "git conflict - choose theirs" })
 			vim.keymap.set("n", "cb", "<Plug>(git-conflict-both)", { desc = "git conflict - choose both" })
 			vim.keymap.set("n", "c0", "<Plug>(git-conflict-none)", { desc = "git conflict - choose none" })
-			vim.keymap.set("n", "cp", "<Plug>(git-conflict-prev-conflict)", { desc = "git conflict - previous conflict" })
+			vim.keymap.set(
+				"n",
+				"cp",
+				"<Plug>(git-conflict-prev-conflict)",
+				{ desc = "git conflict - previous conflict" }
+			)
 			vim.keymap.set("n", "cn", "<Plug>(git-conflict-next-conflict)", { desc = "git conflict - next conflict" })
 		end,
 	},
@@ -46,6 +51,14 @@ return {
 	},
 	{
 		"lewis6991/gitsigns.nvim",
+		keys = {
+			{ "gn", "<cmd>Gitsigns next_hunk<cr>", desc = "Gitsigns - Goto next hunk" },
+			{ "gp", "<cmd>Gitsigns prev_hunk<cr>", desc = "Gitsigns - Goto previous hunk" },
+			{ "<leader>ph", "<CMD>Gitsigns preview_hunk<CR>", desc = "Gitsigns - Preview hunk" },
+			{ "<leader>dh", "<CMD>DiffviewFileHistory %<CR>", desc = "Diffview File History" },
+            { "<leader>dq", "<CMD>DiffviewClose<CR>", desc = "Diffview Close" },
+            { "<leader>do", "<CMD>DiffviewOpen<CR>", desc = "Diffview Open" },
+		},
 		config = function()
 			require("gitsigns").setup({
 				signs = {

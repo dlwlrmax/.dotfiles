@@ -5,23 +5,47 @@ return {
 		build = "cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build",
 	},
 	{
-		"smartpde/telescope-recent-files",
-	},
-    {
-        "nvim-telescope/telescope-media-files.nvim",
-    },
-	{
 		"nvim-telescope/telescope.nvim",
-		tag = "0.1.8",
-		dependencies = { "nvim-lua/plenary.nvim" },
-        opts = {
-            defaults = {
-                get_selection_window = function ()
-                    require('edgy').goto_main()
-                    return 0
-                end,
-            }
-        },
+		dependencies = {
+			"nvim-lua/plenary.nvim",
+			"smartpde/telescope-recent-files",
+			"nvim-telescope/telescope-media-files.nvim",
+		},
+		opts = {
+			defaults = {
+				get_selection_window = function()
+					require("edgy").goto_main()
+					return 0
+				end,
+			},
+		},
+		keys = {
+			{
+				"<C-e>",
+				"<cmd>lua require('telescope').extensions.recent_files.pick()<CR>",
+				{ noremap = true, silent = true, desc = "Telescope Recent files" },
+			},
+			{
+				"<C-f>",
+				"<cmd>lua require('telescope.builtin').find_files()<CR>",
+				{ noremap = true, silent = true, desc = "Telescope Find files" },
+			},
+			{
+				"<leader><space>",
+				"<cmd>Telescope find_files theme=dropdown<cr>",
+				{ desc = "Telescope Find files" },
+			},
+			{
+				"<leader>rs",
+				"<cmd>Telescope resume<cr>",
+				{ desc = "Telescope Resume last telescope" },
+			},
+			{
+				"<leader>aa",
+				"<cmd>Telescope find_files hidden=true theme=dropdown<cr>",
+				{ desc = "TelescopeFind hidden files" },
+			},
+		},
 		config = function()
 			local telescope = require("telescope")
 			local actions = require("telescope.actions")
@@ -70,16 +94,16 @@ return {
 						override_generic_sorter = true,
 						override_file_sorter = true,
 					},
-                    media_files = {
-                        filetypes = { "png", "jpg", "mp4", "webm", "pdf" },
-                        find_cmd = "rg",
-                    },
+					media_files = {
+						filetypes = { "png", "jpg", "mp4", "webm", "pdf" },
+						find_cmd = "rg",
+					},
 				},
 			})
-
+			-- Eagerly load the extension.
 			telescope.load_extension("fzf")
 			telescope.load_extension("recent_files")
-            telescope.load_extension('media_files')
+			telescope.load_extension("media_files")
 		end,
 	},
 }

@@ -8,7 +8,6 @@ keymap.set("n", "<leader>fq", ":q!<cr>", { desc = "Quit file" })
 keymap.set("n", "<leader>y", ":+y<cr>", { desc = "Yank line" })
 keymap.set("n", "<leader><cr>", ":noh<cr>", { desc = "Clear highlights" })
 keymap.set("n", "<leader>fw", "/", { desc = "Search" })
-keymap.set("n", "<C-f>", "/", { desc = "Search" })
 keymap.set("n", "n", "nzzzv", { desc = "Center search result" })
 keymap.set("n", "N", "Nzzzv", { desc = "Center search result" })
 keymap.set("v", "<", "<gv", { desc = "Indent left" })
@@ -23,15 +22,6 @@ keymap.set("n", "K", ":m .-2<CR>==", { desc = "Move line up" })
 keymap.set("n", "H", "^", { desc = "Move to start of line" })
 keymap.set("n", "L", "$", { desc = "Move to end of line" })
 -- keymap.set("n", "<leader>bd", ":BClose<cr>:tabclose<cr>gT");
--- bufferline
-keymap.set("n", "<leader>h", "<Cmd>BufferLineCyclePrev<CR><CR>", { desc = "Previous buffer" })
-keymap.set("n", "<leader>l", "<Cmd>BufferLineCycleNext<CR>", { desc = "Next buffer" })
-keymap.set("n", "<leader>ml", "<Cmd>BufferLineMoveNext<CR><CR>", { desc = "Move buffer right" })
-keymap.set("n", "<leader>mh", "<Cmd>BufferLineMovePrev<CR>", { desc = "Move buffer left" })
-keymap.set("n", "<Leader>rt", "<Cmd>BufferRestore<CR>", { desc = "Restore last closed buffer" })
-keymap.set("n", "<leader>q", "<Cmd>b#<CR>", { desc = "Switch to last buffer" })
-keymap.set("n", "<leader>rr", "<Cmd>Bwipeout<CR>", { desc = "Close all buffer but current" })
-keymap.set("n", "<leader>P", "<Cmd>BufferLinePick<CR>", { desc = "Pick buffer" })
 
 --Nvim Tree
 keymap.set("n", "<leader>e", "<CMD>Neotree toggle<CR>", { desc = "Toggle Nvim Tree" })
@@ -40,16 +30,6 @@ keymap.set("n", "<leader>b", "<CMD>Neotree focus<CR>", { desc = "Focus Nvim Tree
 
 --Telescope
 -- keymap.set("n", "<C-e>", "<cmd>Telescope find_files<cr>");
-keymap.set("n", "<leader>ff", "<cmd>Telescope resume<cr>", { desc = "Telescope Resume last telescope" })
-keymap.set("n", "<leader><space>", "<cmd>Telescope find_files theme=dropdown<cr>", { desc = "Telescope Find files" })
-keymap.set("n", "<leader>fa", "<cmd>Telescope find_files hidden=true<cr>", { desc = "TelescopeFind hidden files" })
-keymap.set(
-	"n",
-	"<leader>aa",
-	"<cmd>Telescope find_files hidden=true theme=dropdown<cr>",
-	{ desc = "TelescopeFind hidden files" }
-)
-keymap.set("n", "<leader>fs", "<cmd>Telescope live_grep<cr>", { desc = "Telescope Live grep" })
 keymap.set(
 	"n",
 	"<leader>F",
@@ -67,23 +47,14 @@ keymap.set(
 )
 keymap.set("n", "?", "<cmd>Telescope live_grep<cr>", { desc = "Telescope Live grep" })
 keymap.set("v", "<leader>fc", "<cmd>Telescope grep_string hidden=true<cr>", { desc = "Telescope Grep string hidden" })
-keymap.set("n", "<leader>fh", "<cmd>DiffviewToggleFiles %<cr>", { desc = "Telescope Help tags" })
-keymap.set("n", "<C-e>", "<cmd>Telescope buffers<cr>", { desc = "Telescope Buffers" })
 
 --Format
 api.nvim_set_keymap("n", "<leader>i", "<ESC><cmd>lua vim.lsp.buf.format({ timeout_ms = 2000 })<CR>", { noremap = true })
 -- keymap.set("n", "<leader>nf", "<cmd>lua require('conform').format()<CR>", { desc = "Format" })
 -- api.nvim_set_keymap("v", "<leader>nf", "<ESC><cmd>lua vim.lsp.buf.range_formatting()<CR>", { noremap = true })
 
---Gitsigns
-keymap.set("n", "<leader>gn", "<cmd>Gitsigns next_hunk<cr>", { desc = "Gitsigns - Goto next hunk" })
-keymap.set("n", "<leader>gp", "<cmd>Gitsigns prev_hunk<cr>", { desc = "Gitsigns - Goto previous hunk" })
-keymap.set("n", "<leader>ph", "<CMD>Gitsigns preview_hunk<CR>", { desc = "Gitsigns - Preview hunk" })
-
 -- Translate
 keymap.set("n", "<leader>t", "<Cmd>Translate EN<CR>", { desc = "Translate" })
-
-keymap.set("n", "<leader>rr", "<CMD>%bd|e#<CR>", { desc = "Close all buffer but current" })
 
 -- Oils
 keymap.set("n", "`", "<CMD>Oil --float<CR>", { desc = "Open oil" })
