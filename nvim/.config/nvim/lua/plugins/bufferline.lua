@@ -2,6 +2,7 @@ return {
 	{
 		"akinsho/bufferline.nvim",
 		version = "*",
+        after = 'catppuccin',
 		dependencies = "nvim-tree/nvim-web-devicons",
 		opts = function()
 			local Offset = require("bufferline.offset")
@@ -36,16 +37,29 @@ return {
 		end,
 		config = function()
 			local bufferline = require("bufferline")
-			bufferline.setup({
+            local mocha = require("catppuccin.palettes").get_palette "mocha"
+            bufferline.setup({
 				highlights = require("catppuccin.groups.integrations.bufferline").get({
-					styles = { "bold" },
+					styles = { "italic", "bold" },
+					custom = {
+						all = {
+							fill = { bg = "#000000" },
+						},
+						mocha = {
+							background = { fg = mocha.text },
+						},
+						latte = {
+							background = { fg = "#000000" },
+						},
+					},
 				}),
 				options = {
 					indicator = {
-						style = "underline",
+						style = "icon",
 					},
-					separator_style = "slop",
+					separator_style = "slope",
 					diagnostics = "nvim_lsp",
+					show_close_icon = false,
 					diagnostics_indicator = function(count, level)
 						local icon = level:match("error") and " " or " "
 						return "(" .. icon .. count .. ")"

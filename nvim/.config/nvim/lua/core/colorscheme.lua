@@ -9,7 +9,7 @@ require("catppuccin").setup({
 	dim_inactive = {
 		enabled = true,
 		shade = "dark",
-		percentage = 0.15,
+		percentage = 0.3,
 	},
 	styles = {
 		comments = { "italic" },
@@ -58,9 +58,13 @@ require("catppuccin").setup({
 			enabled = true,
 			colored_indent_levels = true,
 		},
+        lsp_trouble = true,
 		mason = true,
+        flash = true,
+        grug_far = true,
 		treesitter_context = true,
 		notify = true,
+        lsp_saga = true,
 		mini = true,
 		barbecue = {
 			dim_context = true,
