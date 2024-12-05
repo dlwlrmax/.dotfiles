@@ -36,10 +36,10 @@ return {
 				},
 				filetypes = {
 					yaml = false,
-					markdown = false,
+					markdown = true,
 					help = false,
-					gitcommit = false,
-					gitrebase = false,
+					gitcommit = true,
+					gitrebase = true,
 					hgcommit = false,
 					svn = false,
 					cvs = false,

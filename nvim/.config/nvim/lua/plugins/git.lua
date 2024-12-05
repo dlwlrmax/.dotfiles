@@ -56,7 +56,7 @@ return {
 			{ "gn", "<cmd>Gitsigns next_hunk<cr>", desc = "Gitsigns - Goto next hunk" },
 			{ "gp", "<cmd>Gitsigns prev_hunk<cr>", desc = "Gitsigns - Goto previous hunk" },
 			{ "<leader>ph", "<CMD>Gitsigns preview_hunk<CR>", desc = "Gitsigns - Preview hunk" },
-			{ "<leader>dh", "<CMD>DiffviewFileHistory %<CR>", desc = "Diffview File History" },
+			{ "<leader>df", "<CMD>DiffviewFileHistory %<CR>", desc = "Diffview File History" },
             { "<leader>dq", "<CMD>DiffviewClose<CR>", desc = "Diffview Close" },
             { "<leader>do", "<CMD>DiffviewOpen<CR>", desc = "Diffview Open" },
 		},
@@ -87,7 +87,7 @@ return {
 					follow_files = true,
 				},
 				auto_attach = true,
-				attach_to_untracked = true,
+				attach_to_untracked = false,
 				current_line_blame = true, -- Toggle with `:Gitsigns toggle_current_line_blame`
 				current_line_blame_opts = {
 					virt_text = true,
