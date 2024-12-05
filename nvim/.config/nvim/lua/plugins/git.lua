@@ -51,6 +51,7 @@ return {
 	},
 	{
 		"lewis6991/gitsigns.nvim",
+        event = "BufRead",
 		keys = {
 			{ "gn", "<cmd>Gitsigns next_hunk<cr>", desc = "Gitsigns - Goto next hunk" },
 			{ "gp", "<cmd>Gitsigns prev_hunk<cr>", desc = "Gitsigns - Goto previous hunk" },
@@ -86,7 +87,7 @@ return {
 					follow_files = true,
 				},
 				auto_attach = true,
-				attach_to_untracked = false,
+				attach_to_untracked = true,
 				current_line_blame = true, -- Toggle with `:Gitsigns toggle_current_line_blame`
 				current_line_blame_opts = {
 					virt_text = true,
