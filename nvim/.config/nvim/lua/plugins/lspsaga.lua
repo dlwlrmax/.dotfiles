@@ -48,6 +48,7 @@ return {
                 enable_in_insert = false,
                 sign = true,
                 sign_priority = 140,
+                debounce = 300,
                 virtual_text = false
             },
             ui = {
@@ -63,6 +64,12 @@ return {
                 outgoing = " ",
                 hover = " ",
                 kind = require("catppuccin.groups.integrations.lsp_saga").custom_kind()
+            },
+            implement = {
+                enable = true,
+                sign = true,
+                virtual_text = true,
+                priority = 100
             }
         })
     end,
