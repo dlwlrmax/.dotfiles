@@ -91,3 +91,8 @@ keymap.set("n", "<leader>op", "<cmd>Lspsaga outline<CR>", opts) -- see outline o
 keymap.set("n", "<leader>F", "<cmd>GrugFar<CR>", { desc = "Find and replace" })
 
 -- AI / Copilot Chat
+
+-- Split
+--
+keymap.set("n", "<leader>-", "<C-W>s", { desc = "Vertical Split" })
+keymap.set("n", "<leader>|", "<C-W>v", { desc = "Horizontal Split" })

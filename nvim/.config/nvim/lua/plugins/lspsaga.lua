@@ -3,6 +3,7 @@ return {
     dependencies = {'nvim-treesitter/nvim-treesitter', -- optional
     'nvim-tree/nvim-web-devicons' -- optional
     },
+    after = 'nvim-lspconfig',
     config = function()
         require('lspsaga').setup({
             symbol_in_winbar = {
