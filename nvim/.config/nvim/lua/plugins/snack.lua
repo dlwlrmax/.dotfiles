@@ -8,6 +8,9 @@ return {
 		notifier = {
 			enabled = true,
 			timeout = 2000,
+            margin = {
+                top = 1
+            }
 		},
 		dashboard = { enabled = true },
 		quickfile = { enabled = true },
@@ -15,7 +18,18 @@ return {
 		words = { enabled = true },
 		styles = {
 			notification = {
-				wo = { wrap = true }, -- Wrap notifications
+                border = "rounded",
+                zindex = 100,
+                ft = "markdown",
+                wo = {
+                    winblend = 5,
+                    wrap = false,
+                    conceallevel = 2,
+                    colorcolumn = "",
+                },
+                bo = {
+                    filetype = "snacks_notif",
+                },
 			},
 		},
 		terminal = {
@@ -127,7 +141,7 @@ return {
 			end,
 			desc = "Prev Reference",
 			mode = { "n", "t" },
-		},
+		}
 	},
 	init = function()
 		-- Terminal Mappings
