@@ -9,7 +9,6 @@ return {
 		dependencies = {
 			"nvim-lua/plenary.nvim",
 			"smartpde/telescope-recent-files",
-			"nvim-telescope/telescope-media-files.nvim",
 		},
 		opts = {
 			defaults = {
@@ -103,7 +102,6 @@ return {
 			-- Eagerly load the extension.
 			telescope.load_extension("fzf")
 			telescope.load_extension("recent_files")
-			telescope.load_extension("media_files")
 		end,
 	},
 }
