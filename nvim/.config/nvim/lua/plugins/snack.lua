@@ -8,31 +8,55 @@ return {
 		notifier = {
 			enabled = true,
 			timeout = 2000,
-            margin = {
-                top = 1
-            }
+			margin = {
+				top = 1,
+			},
 		},
-		dashboard = { enabled = true },
+		dashboard = {
+			enabled = true,
+			sections = {
+				{
+					section = "header",
+				},
+				{ icon = " ", title = "Keymaps", section = "keys", indent = 2, padding = 1 },
+				{ icon = " ", title = "Recent Files", section = "recent_files", indent = 2, padding = 1 },
+				{ icon = " ", title = "Projects", section = "projects", indent = 2, padding = 1 },
+				{
+					icon = " ",
+					title = "Git Status",
+					section = "terminal",
+					enabled = function()
+						return Snacks.git.get_root() ~= nil
+					end,
+					cmd = "hub status --short --branch --renames",
+					height = 5,
+					padding = 1,
+					ttl = 5 * 60,
+					indent = 3,
+				},
+				{ section = "startup" },
+			},
+		},
 		quickfile = { enabled = true },
 		statuscolumn = { enabled = true },
 		words = { enabled = true },
-        scroll = { enabled = true },
-        indent = { enabled = false },
-        input = { enabled = true },
+		scroll = { enabled = true },
+		indent = { enabled = false },
+		input = { enabled = true },
 		styles = {
 			notification = {
-                border = "rounded",
-                zindex = 100,
-                ft = "markdown",
-                wo = {
-                    winblend = 5,
-                    wrap = false,
-                    conceallevel = 2,
-                    colorcolumn = "",
-                },
-                bo = {
-                    filetype = "snacks_notif",
-                },
+				border = "rounded",
+				zindex = 100,
+				ft = "markdown",
+				wo = {
+					winblend = 5,
+					wrap = false,
+					conceallevel = 2,
+					colorcolumn = "",
+				},
+				bo = {
+					filetype = "snacks_notif",
+				},
 			},
 		},
 		terminal = {
@@ -144,7 +168,7 @@ return {
 			end,
 			desc = "Prev Reference",
 			mode = { "n", "t" },
-		}
+		},
 	},
 	init = function()
 		-- Terminal Mappings

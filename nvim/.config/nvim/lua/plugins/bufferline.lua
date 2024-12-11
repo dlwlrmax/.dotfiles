@@ -50,14 +50,6 @@ return {
 			bufferline.setup({
 				highlights = require("catppuccin.groups.integrations.bufferline").get({
 					styles = { "italic", "bold" },
-					custom = {
-						all = {
-							fill = { bg = "#000000" },
-						},
-						mocha = {
-							background = { fg = mocha.text },
-						},
-					},
 				}),
 				options = {
 					indicator = {
