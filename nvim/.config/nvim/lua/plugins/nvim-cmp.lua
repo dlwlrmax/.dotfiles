@@ -62,7 +62,7 @@ return {
 
 				["<C-e>"] = cmp.mapping.abort(),
                 ["<C-a>"] = cmp.mapping.complete(),
-				["<C-y>"] = cmp.mapping.confirm({
+				["<C-o>"] = cmp.mapping.confirm({
 					select = true,
 				}),
 				["<C-f>"] = cmp.mapping(function(fallback)

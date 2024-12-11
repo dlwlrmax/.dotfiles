@@ -130,16 +130,11 @@ return {
 		opts = {
 			formatters_by_ft = {
 				lua = { "stylua" },
-				-- Conform will run multiple formatters sequentially
-				python = { "isort", "black" },
-				-- You can customize some of the format options for the filetype (:help conform.format)
-				rust = { "rustfmt", lsp_format = "fallback" },
-				-- Conform will run the first available formatter
 				javascript = { "prettierd", "prettier", stop_after_first = true },
 				vue = { "prettierd", "prettier", stop_after_first = true },
 				php = { "php_cs_fixer", "easy_coding_standard", stop_after_first = true },
 				markdown = { "prettierd", "prettier", stop_after_first = true },
-			},
+            },
 			default_format_opts = {
 				lsp_format = "fallback",
 			},
