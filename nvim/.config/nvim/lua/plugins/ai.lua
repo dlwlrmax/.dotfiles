@@ -66,6 +66,14 @@ return {
                 edit = "<leader>ue",
                 refresh = "<leader>ur",
                 switch = "<leader>ua",
+            },
+            windows = {
+                position = "right",
+                wrap = true,
+                width = 40,
+                ask = {
+                    start_insert = true
+                }
             }
 		},
 		-- if you want to build from source then do `make BUILD_FROM_SOURCE=true`
