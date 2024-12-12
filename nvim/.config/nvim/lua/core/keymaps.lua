@@ -25,7 +25,6 @@ keymap.set("n", "L", "$", { desc = "Move to end of line" })
 
 --Nvim Tree
 keymap.set("n", "<leader>e", "<CMD>Neotree toggle<CR>", { desc = "Toggle Nvim Tree" })
-keymap.set("n", "<leader>b", "<CMD>Neotree focus<CR>", { desc = "Focus Nvim Tree" })
 -- keymap.set("n", "<leader>e", ":Neotree source=filesystem reveal=true position=right<cr>");
 
 --Telescope
@@ -85,3 +84,7 @@ keymap.set("n", "<leader>F", "<cmd>GrugFar<CR>", { desc = "Find and replace" })
 --
 keymap.set("n", "<leader>-", "<C-W>s", { desc = "Vertical Split" })
 keymap.set("n", "<leader>|", "<C-W>v", { desc = "Horizontal Split" })
+
+-- Disable q for recording macros because it stop nvim-cmp
+keymap.set("n", "q", "<Nop>", { silent = true })
+
