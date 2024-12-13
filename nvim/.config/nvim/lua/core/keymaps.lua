@@ -55,8 +55,6 @@ api.nvim_set_keymap("n", "<leader>i", "<ESC><cmd>lua vim.lsp.buf.format({ timeou
 -- Translate
 keymap.set("n", "<leader>t", "<Cmd>Translate EN<CR>", { desc = "Translate" })
 
--- Oils
--- keymap.set("n", "<leader>`", "<CMD>Oil --float<CR>", { desc = "Open oil" })
 
 local opts = { noremap = true, silent = true }
 
