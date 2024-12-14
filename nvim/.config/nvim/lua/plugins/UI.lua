@@ -94,11 +94,6 @@ return {
 		},
 	},
 	{
-		"stevearc/dressing.nvim",
-		event = "VeryLazy",
-		opts = {},
-	},
-	{
 		"petertriho/nvim-scrollbar",
 		event = "BufRead",
 		lazy = true,
@@ -106,8 +101,4 @@ return {
 			require("scrollbar").setup()
 		end,
 	},
-	-- {
-	-- 	"j-hui/fidget.nvim",
-	-- 	opts = {},
-	-- },
 }
