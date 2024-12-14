@@ -40,7 +40,7 @@ return {
 		quickfile = { enabled = true },
 		statuscolumn = { enabled = true },
 		words = { enabled = true },
-		scroll = { enabled = false },
+		scroll = { enabled = true },
 		indent = { enabled = false },
 		input = { enabled = true },
 		styles = {
