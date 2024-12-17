@@ -7,7 +7,6 @@ keymap.set("n", "<leader>w", ":w!<cr>", { desc = "Save file" })
 keymap.set("n", "<leader>fq", ":q!<cr>", { desc = "Quit file" })
 keymap.set("n", "<leader>y", ":+y<cr>", { desc = "Yank line" })
 keymap.set("n", "<leader><cr>", ":noh<cr>", { desc = "Clear highlights" })
-keymap.set("n", "<leader>fw", "/", { desc = "Search" })
 keymap.set("n", "n", "nzzzv", { desc = "Center search result" })
 keymap.set("n", "N", "Nzzzv", { desc = "Center search result" })
 keymap.set("v", "<", "<gv", { desc = "Indent left" })
@@ -27,25 +26,18 @@ keymap.set("n", "L", "$", { desc = "Move to end of line" })
 keymap.set("n", "<leader>e", "<CMD>Neotree toggle<CR>", { desc = "Toggle Nvim Tree" })
 -- keymap.set("n", "<leader>e", ":Neotree source=filesystem reveal=true position=right<cr>");
 
---Telescope
--- keymap.set("n", "<C-e>", "<cmd>Telescope find_files<cr>");
 keymap.set(
 	"n",
 	"<leader>F",
 	"<cmd>lua require('grug-far').open({ prefills = { search = vim.fn.expand('<cword>') }})<cr>",
 	{ desc = "GrugFar Live grep" }
 )
-keymap.set("n", "<leader>fc", "<cmd>Telescope live_grep hidden=true<cr>", { desc = "Telescope Live grep hidden" })
-keymap.set("n", "<leader>km", "<cmd>Telescope keymaps<cr>", { desc = "Telescope Keymaps" })
--- keymap.set("v", "<leader>fs", "<cmd>Telescope grep_string<cr>", { desc = "Telescope Grep string" })
 keymap.set(
 	"v",
 	"<leader>fs",
 	"<cmd>lua require('grug-far').with_visual_selection()<cr>",
-	{ desc = "Telescope Grep string" }
+	{ desc = "GrugFar Grep string" }
 )
-keymap.set("n", "?", "<cmd>Telescope live_grep<cr>", { desc = "Telescope Live grep" })
-keymap.set("v", "<leader>fc", "<cmd>Telescope grep_string hidden=true<cr>", { desc = "Telescope Grep string hidden" })
 
 --Format
 api.nvim_set_keymap("n", "<leader>i", "<ESC><cmd>lua vim.lsp.buf.format({ timeout_ms = 2000 })<CR>", { noremap = true })
