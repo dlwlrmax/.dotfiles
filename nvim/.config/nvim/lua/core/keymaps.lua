@@ -44,10 +44,6 @@ api.nvim_set_keymap("n", "<leader>i", "<ESC><cmd>lua vim.lsp.buf.format({ timeou
 -- keymap.set("n", "<leader>nf", "<cmd>lua require('conform').format()<CR>", { desc = "Format" })
 -- api.nvim_set_keymap("v", "<leader>nf", "<ESC><cmd>lua vim.lsp.buf.range_formatting()<CR>", { noremap = true })
 
--- Translate
-keymap.set("n", "<leader>t", "<Cmd>Translate EN<CR>", { desc = "Translate" })
-
-
 local opts = { noremap = true, silent = true }
 
 -- set keybinds
@@ -78,3 +74,9 @@ keymap.set("n", "<leader>|", "<C-W>v", { desc = "Horizontal Split" })
 -- Disable q for recording macros because it stop nvim-cmp
 keymap.set("n", "q", "<Nop>", { silent = true })
 
+
+-- Tab
+keymap.set("n", "<leader>to", "<cmd>tabnew<CR>", { desc = "New tab" })
+keymap.set("n", "<leader>tc", "<cmd>tabclose<CR>", { desc = "Close tab" })
+keymap.set("n", "<leader>tp", "<cmd>tabprevious<CR>", { desc = "First tab" })
+keymap.set("n", "<leader>tn", "<cmd>tabnext<CR>", { desc = "Next tab" })

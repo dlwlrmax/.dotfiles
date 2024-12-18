@@ -7,7 +7,7 @@ return {
 		keys = {
 			{
 				"<leader><space>",
-				"<cmd>lua require('fzf-lua').files({ resume = true })<cr>",
+				"<cmd>lua require('fzf-lua').files()<cr>",
 				desc = "FZF Files",
 				mode = { "n" },
 			},
