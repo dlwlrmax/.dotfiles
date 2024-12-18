@@ -11,7 +11,7 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 })
 
 -- Check if we need to reload the file when it changed
-vim.api.nvim_create_autocmd({ "FocusGained", "TermClose", "TermLeave" }, {
+vim.api.nvim_create_autocmd({ "FocusGained", "TermClose", "TermLeave", "BufEnter" }, {
 	group = augroup("checktime"),
 	callback = function()
 		if vim.o.buftype ~= "nofile" then
