@@ -3,6 +3,13 @@ return {
 		"neovim/nvim-lspconfig",
 	},
 	{
+		"williamboman/mason.nvim",
+		config = function()
+			local mason = require("mason")
+			mason.setup({})
+		end,
+	},
+	{
 		"dmmulroy/ts-error-translator.nvim",
 		config = function()
 			require("ts-error-translator").setup({
@@ -14,7 +21,6 @@ return {
 		"williamboman/mason-lspconfig.nvim",
 		event = { "BufReadPre", "BufNewFile" },
 		config = function()
-			local capabilities = require("cmp_nvim_lsp").default_capabilities()
 			vim.keymap.set({ "n" }, "gI", function()
 				vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())
 			end, { noremap = true, silent = true, desc = "Toggle inlay hints" })
@@ -30,7 +36,9 @@ return {
 				},
 				handlers = {
 					function(server_name)
-						require("lspconfig")[server_name].setup({
+						local lspconfig = require("lspconfig")
+                        local capabilities = require("blink.cmp").get_lsp_capabilities()
+						lspconfig[server_name].setup({
 							capabilities = capabilities,
 							-- on_attach = on_attach
 						})
@@ -134,7 +142,7 @@ return {
 				vue = { "prettierd", "prettier", stop_after_first = true },
 				php = { "php_cs_fixer", "easy_coding_standard", stop_after_first = true },
 				markdown = { "prettierd", "prettier", stop_after_first = true },
-            },
+			},
 			default_format_opts = {
 				lsp_format = "fallback",
 			},
@@ -162,7 +170,7 @@ return {
 					enable = true,
 					hide_keyword = true,
 					show_file = true,
-                    folder_level = 2,
+					folder_level = 2,
 					color_mode = true,
 					delay = 1000,
 				},
@@ -176,13 +184,13 @@ return {
 					},
 				},
 				definition = {
-                    keys = {
-                        quit = "q",
-                        edit = "<CR>",
-                        vsplit = "<C-v>",
-                        split = "<C-x>",
-                        tabe = "<C-t>",
-                    }
+					keys = {
+						quit = "q",
+						edit = "<CR>",
+						vsplit = "<C-v>",
+						split = "<C-x>",
+						tabe = "<C-t>",
+					},
 				},
 				lightbulb = {
 					enable = true,
