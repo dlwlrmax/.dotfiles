@@ -1,3 +1,4 @@
+---@diagnostic disable: missing-fields
 return {
 	{
 		"saghen/blink.cmp",
@@ -73,6 +74,18 @@ return {
 				completion = {
 					enabled_providers = { "lsp", "path", "luasnip", "buffer" },
 				},
+				cmdline = function()
+					local type = vim.fn.getcmdtype()
+					-- Search forward and backward
+					if type == "/" or type == "?" then
+						return { "buffer" }
+					end
+					-- Commands
+					if type == ":" then
+						return { "cmdline" }
+					end
+					return {}
+				end,
 			},
 
 			completion = {
@@ -101,6 +114,10 @@ return {
 					selection = "auto_insert",
 				},
 			},
+
+            signature = {
+                enabled = true,
+            }
 		},
 		opts_extend = { "sources.default" },
 	},

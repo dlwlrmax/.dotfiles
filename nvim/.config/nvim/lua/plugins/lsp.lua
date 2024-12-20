@@ -1,6 +1,9 @@
 return {
 	{
 		"neovim/nvim-lspconfig",
+		dependencies = {
+			"saghen/blink.cmp",
+		},
 	},
 	{
 		"williamboman/mason.nvim",
@@ -19,6 +22,9 @@ return {
 	},
 	{
 		"williamboman/mason-lspconfig.nvim",
+		dependencies = {
+			"saghen/blink.cmp",
+		},
 		event = { "BufReadPre", "BufNewFile" },
 		config = function()
 			vim.keymap.set({ "n" }, "gI", function()
@@ -37,7 +43,7 @@ return {
 				handlers = {
 					function(server_name)
 						local lspconfig = require("lspconfig")
-                        local capabilities = require("blink.cmp").get_lsp_capabilities()
+						local capabilities = require("blink.cmp").get_lsp_capabilities()
 						lspconfig[server_name].setup({
 							capabilities = capabilities,
 							-- on_attach = on_attach
