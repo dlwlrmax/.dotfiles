@@ -116,7 +116,7 @@ return {
 			},
 
             signature = {
-                enabled = true,
+                enabled = false,
             }
 		},
 		opts_extend = { "sources.default" },
