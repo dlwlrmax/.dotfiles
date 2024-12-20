@@ -9,7 +9,7 @@ return {
 			enabled = true,
 			timeout = 2000,
 			margin = {
-				top = 1,
+				top = 2,
 			},
 		},
 		dashboard = {
