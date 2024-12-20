@@ -2,7 +2,7 @@ return {
 	{
 		"akinsho/bufferline.nvim",
 		version = "*",
-        event = "VeryLazy",
+		event = "VeryLazy",
 		dependencies = "nvim-tree/nvim-web-devicons",
 		opts = function()
 			local Offset = require("bufferline.offset")
@@ -53,7 +53,8 @@ return {
 				}),
 				options = {
 					indicator = {
-						style = "icon",
+						icon = "▎", -- this should be omitted if indicator style is not 'icon'
+						style = "underline",
 					},
 					separator_style = "slope",
 					diagnostics = "nvim_lsp",
