@@ -7,10 +7,24 @@ return {
 		bigfile = { enabled = true },
 		notifier = {
 			enabled = true,
-			timeout = 2000,
+			timeout = 3000,
 			margin = {
 				top = 2,
 			},
+		},
+		notification_history = {
+            enabled = true,
+			border = "rounded",
+			zindex = 100,
+			width = 0.6,
+			height = 0.6,
+			minimal = false,
+			title = " Notification History ",
+			title_pos = "center",
+			ft = "markdown",
+			bo = { filetype = "snacks_notif_history", modifiable = false },
+			wo = { winhighlight = "Normal:SnacksNotifierHistory" },
+			keys = { q = "close" },
 		},
 		dashboard = {
 			enabled = true,
@@ -105,6 +119,12 @@ return {
 			end,
 			desc = "Dismiss All Notifications",
 		},
+        {
+            "<leader>uh",
+            function()
+                Snacks.notifier.show_history()
+            end,
+        },
 		{
 			"<C-\\>",
 			function()
@@ -198,7 +218,7 @@ return {
 				Snacks.toggle
 					.option("background", { off = "light", on = "dark", name = "Dark Background" })
 					:map("<leader>ub")
-				Snacks.toggle.inlay_hints():map("<leader>uh")
+				Snacks.toggle.inlay_hints():map("<leader>gI")
 			end,
 		})
 		---@type table<number, {token:lsp.ProgressToken, msg:string, done:boolean}[]>

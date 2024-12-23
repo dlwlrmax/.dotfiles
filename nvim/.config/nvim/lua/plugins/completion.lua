@@ -71,9 +71,7 @@ return {
 
 			---@diagnostic disable-next-line: missing-fields
 			sources = {
-				completion = {
-					enabled_providers = { "lsp", "path", "luasnip", "buffer" },
-				},
+                default = { "lsp", "path", "luasnip", "buffer" },
 				cmdline = function()
 					local type = vim.fn.getcmdtype()
 					-- Search forward and backward
@@ -86,6 +84,10 @@ return {
 					end
 					return {}
 				end,
+                min_keyword_length = function (ctx)
+                    if ctx.mode == 'cmdline' then return 2 end
+                    return 0
+                end
 			},
 
 			completion = {
@@ -115,9 +117,9 @@ return {
 				},
 			},
 
-            signature = {
-                enabled = false,
-            }
+			signature = {
+				enabled = false,
+			},
 		},
 		opts_extend = { "sources.default" },
 	},
