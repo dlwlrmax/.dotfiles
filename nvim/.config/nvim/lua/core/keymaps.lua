@@ -72,8 +72,7 @@ keymap.set("n", "<leader>-", "<C-W>s", { desc = "Vertical Split" })
 keymap.set("n", "<leader>|", "<C-W>v", { desc = "Horizontal Split" })
 
 -- Disable q for recording macros because it stop nvim-cmp
-keymap.set("n", "q", "<Nop>", { silent = true })
-
+-- keymap.set("n", "q", "<Nop>", { silent = true })
 
 -- Tab
 keymap.set("n", "<leader>to", "<cmd>tabnew<CR>", { desc = "New tab" })
