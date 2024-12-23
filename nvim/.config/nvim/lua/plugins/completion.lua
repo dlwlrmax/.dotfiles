@@ -85,7 +85,7 @@ return {
 					return {}
 				end,
                 min_keyword_length = function (ctx)
-                    if ctx.mode == 'cmdline' then return 2 end
+                    if ctx.mode == 'cmdline' and string.find(ctx.line, ' ') == nil then return 2 end
                     return 0
                 end
 			},
