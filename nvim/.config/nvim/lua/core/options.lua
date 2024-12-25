@@ -48,7 +48,8 @@ vim.diagnostic.config({
 	},
 })
 
-vim.o.scrolloff = 5
+vim.o.scrolloff = 20
+vim.o.sidescrolloff = 20
 -- -- Disable virtual_text since it's redundant due to lsp_lines.
 -- vim.diagnostic.config({
 --   virtual_text = false,

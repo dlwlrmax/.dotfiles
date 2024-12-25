@@ -80,3 +80,8 @@ export DISPLAY="$(grep nameserver /etc/resolv.conf | sed 's/nameserver //'):0"
 ```bash
 yay -S nwg-look nwg-display
 ```
+
+
+## ueberzug
+```bash
+sudo pacman -S ueberzug openslide
