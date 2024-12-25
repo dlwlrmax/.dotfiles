@@ -13,7 +13,7 @@ return {
 			},
 		},
 		notification_history = {
-            enabled = true,
+			enabled = true,
 			border = "rounded",
 			zindex = 100,
 			width = 0.6,
@@ -78,6 +78,12 @@ return {
 				filetype = "snacks_terminal",
 			},
 			wo = {},
+			---@class snacks.terminal.Config
+			---@field win? snacks.win.Config
+			---@field override? fun(cmd?: string|string[], opts?: snacks.terminal.Opts) Use this to use a different terminal implementation
+			{
+				win = { style = "terminal" },
+			},
 			keys = {
 				q = "hide",
 				gf = function(self)
@@ -110,7 +116,6 @@ return {
 			},
 		},
 	},
-	win = { style = "terminal" },
 	keys = {
 		{
 			"<leader>un",
@@ -119,12 +124,12 @@ return {
 			end,
 			desc = "Dismiss All Notifications",
 		},
-        {
-            "<leader>uh",
-            function()
-                Snacks.notifier.show_history()
-            end,
-        },
+		{
+			"<leader>uh",
+			function()
+				Snacks.notifier.show_history()
+			end,
+		},
 		{
 			"<C-\\>",
 			function()

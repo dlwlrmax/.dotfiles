@@ -76,6 +76,6 @@ keymap.set("n", "<leader>|", "<C-W>v", { desc = "Horizontal Split" })
 
 -- Tab
 keymap.set("n", "<leader>to", "<cmd>tabnew<CR>", { desc = "New tab" })
-keymap.set("n", "<leader>tc", "<cmd>tabclose<CR>", { desc = "Close tab" })
-keymap.set("n", "<leader>tp", "<cmd>tabprevious<CR>", { desc = "First tab" })
+keymap.set("n", "<leader>tq", "<cmd>tabclose<CR>", { desc = "Close tab" })
+keymap.set("n", "<leader>tp", "<cmd>tabprevious<CR>", { desc = "Previous tab" })
 keymap.set("n", "<leader>tn", "<cmd>tabnext<CR>", { desc = "Next tab" })

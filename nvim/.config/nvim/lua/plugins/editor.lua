@@ -51,6 +51,13 @@ return {
 				defaults = {
 					formatter = "path.dirname_first",
 				},
+                keys = {
+                    ['<C-j>'] = 'down',
+                    ['<C-k>'] = 'up',
+                    ['<C-t>'] = 'tabnew',
+                    ['<C-v>'] = 'vsplit',
+                    ['<C-x>'] = 'split',
+                },
 				previewers = {
 					builtin = {
 						extensions = {
@@ -76,11 +83,7 @@ return {
 							-- height is number of items minus 15 lines for the preview, with a max of 80% screen height
 							height = math.floor(math.min(vim.o.lines * 0.8 - 16, #items + 2) + 0.5) + 16,
 							width = 0.5,
-							preview = not vim.tbl_isempty(LazyVim.lsp.get_clients({ bufnr = 0, name = "vtsls" })) and {
-								layout = "vertical",
-								vertical = "down:15,border-top",
-								hidden = "hidden",
-							} or {
+							preview = {
 								layout = "vertical",
 								vertical = "down:15,border-top",
 							},
