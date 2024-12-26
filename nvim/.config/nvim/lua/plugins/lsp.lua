@@ -146,7 +146,7 @@ return {
 				lua = { "stylua" },
 				javascript = { "prettierd", "prettier", stop_after_first = true },
 				vue = { "prettierd", "prettier", stop_after_first = true },
-				php = { "php_cs_fixer", "easy_coding_standard", stop_after_first = true },
+				php = { "pint", "php_cs_fixer", stop_after_first = true },
 				markdown = { "prettierd", "prettier", stop_after_first = true },
 			},
 			default_format_opts = {
