@@ -99,9 +99,9 @@ return {
                         transform_items = nil,
                         should_show_items = true,
                         max_items = nil,
-                        min_keyword_length = 0,
+                        min_keyword_length = 2,
                         fallbacks = {},
-                        score_offset = 900,
+                        score_offset = 0,
                         override = nil,
                     },
                     path = {
@@ -116,7 +116,7 @@ return {
                         max_items = nil,
                         min_keyword_length = 0,
                         fallbacks = {},
-                        score_offset = 800,
+                        score_offset = 100,
                         override = nil,
                     },
 				},
@@ -134,7 +134,7 @@ return {
 				end,
 				min_keyword_length = function(ctx)
 					if ctx.mode == "cmdline" and string.find(ctx.line, " ") == nil then
-						return 2
+						return 3
 					end
 					return 0
 				end,
