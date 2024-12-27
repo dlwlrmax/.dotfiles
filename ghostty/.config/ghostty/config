@@ -1,0 +1,27 @@
+# Theme
+theme = catppuccin-mocha
+# Font 
+font-family = JetBrainsMono Nerd Font
+font-size= 10
+window-padding-x = 10
+window-padding-y = 5
+bold-is-bright = true
+adjust-cell-height= 7%
+
+
+# Cursor
+mouse-hide-while-typing = true
+
+# Window
+window-decoration = false
+
+# Notification
+desktop-notifications = true
+
+# Shell Integration
+shell-integration = zsh
+
+# Shader
+# custom-shader = ~/.config/ghostty/shaders/bloom.glsl
+# custom-shader = ~/.config/ghostty/shaders/ctr.glsl
+

@@ -103,7 +103,22 @@ return {
                         fallbacks = {},
                         score_offset = 900,
                         override = nil,
-                    }
+                    },
+                    path = {
+                        name = "Path",
+                        module = "blink.cmp.sources.path",
+                        opts = {},
+                        enabled = true,
+                        async = false,
+                        timeout_ms = 2000,
+                        transform_items = nil,
+                        should_show_items = true,
+                        max_items = nil,
+                        min_keyword_length = 0,
+                        fallbacks = {},
+                        score_offset = 800,
+                        override = nil,
+                    },
 				},
 				cmdline = function()
 					local type = vim.fn.getcmdtype()
