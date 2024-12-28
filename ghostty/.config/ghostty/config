@@ -4,8 +4,8 @@ theme = catppuccin-mocha
 font-family = JetBrainsMono Nerd Font
 font-family-bold = JetBrainsMono NF ExtraBold
 font-size= 10
-window-padding-x = 10
-window-padding-y = 5
+window-padding-x = 5
+window-padding-y = 1
 bold-is-bright = true
 adjust-cell-height= 7%
 font-variation = wght=500
@@ -27,4 +27,11 @@ shell-integration = zsh
 # Shader
 # custom-shader = ~/.config/ghostty/shaders/bloom.glsl
 # custom-shader = ~/.config/ghostty/shaders/ctr.glsl
+
+
+# Keymaps
+keybind = ctrl+b=esc:B
+keybind = ctrl+f=esc:F
+# C-l to escape
+keybind = ctrl+l=esc:esc
 

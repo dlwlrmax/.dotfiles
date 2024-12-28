@@ -6,6 +6,27 @@ return {
 			require("mini.pairs").setup()
 			require("mini.ai").setup()
 			require("mini.cursorword").setup()
+            require("mini.icons").setup()
+			local miniDiff = require("mini.diff")
+			miniDiff.setup({
+				view = {
+					priority = 0,
+				},
+				mappings = {
+                    --- Remove all mappings to avoid conflicts with other plugins and which key
+					apply = "",
+					reset = "",
+					textobject = "",
+					goto_first = "",
+					goto_prev = "",
+					goto_next = "",
+					goto_last = "",
+				},
+			})
+
+			vim.keymap.set("n", "go", function()
+				miniDiff.toggle_overlay(0)
+			end, { noremap = true, silent = true, desc = "Toggle MiniDiff overlay" })
 
 			local hipatterns = require("mini.hipatterns")
 			hipatterns.setup({

@@ -362,7 +362,7 @@ return {
 			vim.keymap.set("n", "-", "<CMD>Oil --float<CR>", { desc = "Open oil" })
 		end,
 		-- Optional dependencies
-		dependencies = { { "echasnovski/mini.icons", opts = {} } },
+		dependencies = { { "echasnovski/mini.nvim", opts = {} } },
 		-- dependencies = { "nvim-tree/nvim-web-devicons" }, -- use if prefer nvim-web-devicons
 	},
 }
