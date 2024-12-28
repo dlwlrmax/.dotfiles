@@ -8,5 +8,6 @@ return {
     opts = {
         suppressed_dirs = {'~/', '~/Projects', '~/Downloads', '/'},
         use_git_branch = true,
+        close_unsupported_windows = true,
     }
 }

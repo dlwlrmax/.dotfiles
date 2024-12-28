@@ -54,10 +54,54 @@ return {
 		quickfile = { enabled = true },
 		statuscolumn = { enabled = true },
 		words = { enabled = true },
-		scroll = { enabled = true },
-		indent = { enabled = false },
+		scroll = {
+			enabled = true,
+			--- @diagnostic disable-next-line: missing-fields
+			animate = {
+				duration = { step = 15, total = 250 },
+				easing = "linear",
+			},
+			spamming = 10, -- threshold for spamming detection
+			-- what buffers to animate
+			filter = function(buf)
+				return vim.g.snacks_scroll ~= false
+					and vim.b[buf].snacks_scroll ~= false
+					and vim.bo[buf].buftype ~= "terminal"
+			end,
+		},
+		indent = {
+			enabled = true,
+			indent = {
+				priority = 1,
+				enabled = true, -- enable indent guides
+				char = "│",
+				only_scope = false, -- only show indent guides of the scope
+				only_current = false, -- only show indent guides in the current window
+				hl = "SnacksIndent", ---@type string|string[] hl groups for indent guides
+			},
+			animate = {
+				enabled = false,
+			},
+			chunk = {
+				enabled = true,
+				only_current = true,
+				priority = 200,
+				hl = "SnacksIndentChunk", ---@type string|string[] hl group for chunk scopes
+				char = {
+					corner_top = "╭",
+					corner_bottom = "╰",
+					horizontal = "─",
+					vertical = "│",
+					arrow = "➤",
+				},
+			},
+			filter = function(buf)
+				return vim.g.snacks_indent ~= false and vim.b[buf].snacks_indent ~= false and vim.bo[buf].buftype == ""
+			end,
+		},
 		input = { enabled = true },
 		styles = {
+			---@diagnostic disable-next-line: missing-fields
 			notification = {
 				border = "rounded",
 				zindex = 100,
@@ -79,7 +123,6 @@ return {
 			},
 			wo = {},
 			---@class snacks.terminal.Config
-			---@field win? snacks.win.Config
 			---@field override? fun(cmd?: string|string[], opts?: snacks.terminal.Opts) Use this to use a different terminal implementation
 			{
 				win = { style = "terminal" },

@@ -44,10 +44,10 @@ require("catppuccin").setup({
 				ok = { "italic" },
 			},
 			underlines = {
-				errors = { "underline" },
-				hints = { "underline" },
-				warnings = { "underline" },
-				information = { "underline" },
+				errors = { "undercurl" },
+				hints = { "underdotted" },
+				warnings = { "undercurl" },
+				information = { "underdotted" },
 			},
 			inlay_hints = {
 				background = true,

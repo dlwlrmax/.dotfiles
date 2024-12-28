@@ -60,3 +60,8 @@ opt.relativenumber = true
 opt.number = true
 vim.o.sessionoptions = "blank,buffers,curdir,folds,help,tabpages,winsize,winpos,terminal,localoptions"
 vim.o.laststatus = 3
+
+
+-- NOTE: This is a workaround for the issue where the indent guides too bright and distracting.
+vim.api.nvim_set_hl(0, "SnacksIndent", { fg = "#4c4f69", bg = "NONE" })
+-- vim.api.nvim_set_hl(0, "SnacksIndentChunk", { fg = "#8839ef", bg = "NONE", bold = true })
