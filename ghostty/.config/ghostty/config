@@ -32,6 +32,3 @@ shell-integration = zsh
 # Keymaps
 keybind = ctrl+b=esc:B
 keybind = ctrl+f=esc:F
-# C-l to escape
-keybind = ctrl+l=esc:esc
-

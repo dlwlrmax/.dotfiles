@@ -6,14 +6,14 @@ return {
 			require("mini.pairs").setup()
 			require("mini.ai").setup()
 			require("mini.cursorword").setup()
-            require("mini.icons").setup()
+			require("mini.icons").setup()
 			local miniDiff = require("mini.diff")
 			miniDiff.setup({
 				view = {
 					priority = 0,
 				},
 				mappings = {
-                    --- Remove all mappings to avoid conflicts with other plugins and which key
+					--- Remove all mappings to avoid conflicts with other plugins and which key
 					apply = "",
 					reset = "",
 					textobject = "",

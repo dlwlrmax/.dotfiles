@@ -32,6 +32,7 @@ return {
 			end, { noremap = true, silent = true, desc = "Toggle inlay hints" })
 
 			require("mason-lspconfig").setup({
+				automatic_installation = true,
 				ensure_installed = {
 					"intelephense",
 					"typos_lsp",
@@ -226,13 +227,5 @@ return {
 				},
 			})
 		end,
-	},
-	{
-		"zeioth/garbage-day.nvim",
-		dependencies = "neovim/nvim-lspconfig",
-		event = "VeryLazy",
-		opts = {
-			-- your options here
-		},
 	},
 }
