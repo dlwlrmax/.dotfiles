@@ -65,7 +65,9 @@ require("catppuccin").setup({
 		treesitter_context = true,
 		notify = true,
         lsp_saga = true,
-		mini = true,
+		mini = {
+            enabled = true,
+        },
 		barbecue = {
 			dim_context = true,
 			alt_background = false,

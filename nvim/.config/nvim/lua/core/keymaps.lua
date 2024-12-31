@@ -79,3 +79,9 @@ keymap.set("n", "<leader>to", "<cmd>tabnew<CR>", { desc = "New tab" })
 keymap.set("n", "<leader>tq", "<cmd>tabclose<CR>", { desc = "Close tab" })
 keymap.set("n", "<leader>tp", "<cmd>tabprevious<CR>", { desc = "Previous tab" })
 keymap.set("n", "<leader>tn", "<cmd>tabnext<CR>", { desc = "Next tab" })
+
+-- Move split around
+-- keymap.set("n", "<leader>wh", "<cmd>wincmd H<CR>", { desc = "Move left" })
+keymap.set("n", "<leader>sx", "<cmd>wincmd J<CR>", { desc = "Move split vertical" })
+-- keymap.set("n", "<leader>wk", "<cmd>wincmd K<CR>", { desc = "Move up" })
+keymap.set("n", "<leader>sv", "<cmd>wincmd L<CR>", { desc = "Move split horizontal" })
