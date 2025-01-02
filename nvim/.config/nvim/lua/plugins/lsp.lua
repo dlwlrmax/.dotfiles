@@ -182,7 +182,6 @@ return {
 					delay = 1000,
 				},
 				code_action = {
-					num_shortcut = true,
 					show_server_name = true,
 					extend_gitsigns = true,
 					keys = {
@@ -215,6 +214,7 @@ return {
 					collapse = "",
 					code_action = "",
 					incoming = " ",
+					lines = { "┗", "┣", "┃", "━", "┏" },
 					outgoing = " ",
 					hover = " ",
 					kind = require("catppuccin.groups.integrations.lsp_saga").custom_kind(),

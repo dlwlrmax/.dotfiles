@@ -13,7 +13,7 @@ return {
 			},
 			{
 				"<C-e>",
-				"<cmd>lua require('fzf-lua').oldfiles({ cwd_only = true })<cr>",
+				"<cmd>lua require('fzf-lua').oldfiles()<cr>",
 				desc = "FZF Oldfiles",
 				mode = { "n" },
 			},
@@ -57,6 +57,12 @@ return {
 					["<C-t>"] = "tabnew",
 					["<C-v>"] = "vsplit",
 					["<C-x>"] = "split",
+				},
+				files = {
+					previewers = "bat",
+				},
+				oldfiles = {
+					cwd_only = true,
 				},
 				previewers = {
 					builtin = {
@@ -145,22 +151,25 @@ return {
 			vim.keymap.set("n", "<leader>re", ui.toggle_quick_menu)
 			vim.keymap.set("n", "<leader>1", function()
 				ui.nav_file(1)
-			end)
+			end, { desc = "Navigate to Harpoon Mark 1" })
 			vim.keymap.set("n", "<leader>2", function()
 				ui.nav_file(2)
-			end)
+			end, { desc = "Navigate to Harpoon Mark 2" })
 			vim.keymap.set("n", "<leader>3", function()
 				ui.nav_file(3)
-			end)
+			end, { desc = "Navigate to Harpoon Mark 3" })
 			vim.keymap.set("n", "<leader>4", function()
 				ui.nav_file(4)
-			end)
+			end, { desc = "Navigate to Harpoon Mark 4" })
 			vim.keymap.set("n", "<leader>5", function()
 				ui.nav_file(5)
-			end)
+			end, { desc = "Navigate to Harpoon Mark 5" })
 			vim.keymap.set("n", "<leader>6", function()
 				ui.nav_file(6)
-			end)
+			end, { desc = "Navigate to Harpoon Mark 6" })
+			vim.keymap.set("n", "<leader>7", function()
+				ui.nav_file(7)
+			end, { desc = "Navigate to Harpoon Mark 7" })
 		end,
 	},
 	{
@@ -189,7 +198,7 @@ return {
 						" ",
 						{ filename, gui = modified and "bold,italic" or "bold" },
 						" ",
-						guibg = "#44406e",
+						guibg = "#500073",
 					}
 				end,
 			})
@@ -208,7 +217,7 @@ return {
 			ncmode = "buffers", -- use 'windows' to fade inactive windows
 			fadelevel = 0.65, -- any value between 0 and 1. 0 is hidden and 1 is opaque.
 			tint = {
-				bg = {rgb={0,0,0}, intensity=0.3}, -- adds 30% black to background
+				bg = { rgb = { 0, 0, 0 }, intensity = 0.3 }, -- adds 30% black to background
 				-- fg = {rgb={0,0,255}, intensity=0.3}, -- adds 30% blue to foreground
 				-- fg = {rgb={120,120,120}, intensity=1}, -- all text will be gray
 				-- sp = {rgb={255,0,0}, intensity=0.5}, -- adds 50% red to special characters
@@ -308,44 +317,7 @@ return {
 		end,
 	},
 	-- {
-	-- 	"lukas-reineke/indent-blankline.nvim",
-	-- 	main = "ibl",
-	-- 	opts = function()
-	-- 		Snacks.toggle({
-	-- 			name = "Indention Guides",
-	-- 			get = function()
-	-- 				return require("ibl.config").get_config(0).enabled
-	-- 			end,
-	-- 			set = function(state)
-	-- 				require("ibl").setup_buffer(0, { enabled = state })
-	-- 			end,
-	-- 		}):map("<leader>ug")
-	--
-	-- 		return {
-	-- 			indent = {
-	-- 				char = "│",
-	-- 				tab_char = "│",
-	-- 			},
-	-- 			scope = { show_start = false, show_end = false },
-	-- 			exclude = {
-	-- 				filetypes = {
-	-- 					"Trouble",
-	-- 					"alpha",
-	-- 					"dashboard",
-	-- 					"help",
-	-- 					"lazy",
-	-- 					"mason",
-	-- 					"neo-tree",
-	-- 					"notify",
-	-- 					"snacks_dashboard",
-	-- 					"snacks_notif",
-	-- 					"snacks_terminal",
-	-- 					"snacks_win",
-	-- 					"toggleterm",
-	-- 					"trouble",
-	-- 				},
-	-- 			},
-	-- 		}
-	-- 	end,
+	-- 	"sphamba/smear-cursor.nvim",
+	-- 	opts = {},
 	-- },
 }

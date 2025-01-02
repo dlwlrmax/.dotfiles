@@ -52,10 +52,21 @@ return {
 			},
 		},
 		quickfile = { enabled = true },
-		statuscolumn = { enabled = true },
+		statuscolumn = {
+			left = { "mark", "sign" },
+			right = { "fold", "git" },
+			folds = {
+				open = "false",
+				git_hl = "false",
+			},
+			git = {
+				pattern = { "GitSigns", "MiniDiffSign" },
+			},
+			refresh = 100,
+		},
 		words = { enabled = true },
 		scroll = {
-			enabled = true,
+			enabled = false,
 			--- @diagnostic disable-next-line: missing-fields
 			animate = {
 				duration = { step = 15, total = 250 },
@@ -78,9 +89,6 @@ return {
 				only_scope = false, -- only show indent guides of the scope
 				only_current = false, -- only show indent guides in the current window
 				hl = "SnacksIndent", ---@type string|string[] hl groups for indent guides
-			},
-			animate = {
-				enabled = false,
 			},
 			chunk = {
 				enabled = true,
@@ -239,6 +247,7 @@ return {
 		},
 	},
 	init = function()
+        vim.g.snacks_animate = false
 		-- Terminal Mappings
 		vim.keymap.set("t", "<C-\\>", "<cmd>close<cr>", { desc = "Hide Terminal" })
 		vim.api.nvim_create_autocmd("User", {
