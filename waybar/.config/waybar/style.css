@@ -104,11 +104,17 @@ button:hover {
 #mode,
 #idle_inhibitor,
 #scratchpad,
+#custom-weather,
 #custom-notification,
 #mpd {
   padding: 0 8px;
   margin: 0;
   background-color: @surface;
+}
+
+#custom-weather {
+  padding-top: 3px;
+  padding-right: 2px;
 }
 
 #network {

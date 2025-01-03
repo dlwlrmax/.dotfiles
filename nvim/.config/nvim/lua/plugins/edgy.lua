@@ -64,15 +64,6 @@ return {
 						collapsed = true, -- show window as closed/collapsed on start
 						open = "Neotree position=top buffers",
 					},
-					{
-						title = function()
-							local buf_name = vim.api.nvim_buf_get_name(0) or "[No Name]"
-							return vim.fn.fnamemodify(buf_name, ":t")
-						end,
-						ft = "Outline",
-						pinned = true,
-						open = "SymbolsOutlineOpen",
-					},
 					-- any other neo-tree windows
 					"neo-tree",
 				},
@@ -95,6 +86,29 @@ return {
 					-- decrease height
 					["<c-Down>"] = function(win)
 						win:resize("height", -5)
+					end,
+					-- close window
+					["q"] = function(win)
+						win:close()
+					end,
+					-- hide window
+					["<c-q>"] = function(win)
+						win:hide()
+					end,
+					["Q"] = function(win)
+						win.view.edgebar:close()
+					end,
+					["]w"] = function(win)
+						win:next({ visible = true, focus = true })
+					end,
+					["[w"] = function(win)
+						win:prev({ visible = true, focus = true })
+					end,
+					["]W"] = function(win)
+						win:next({ pinned = false, focus = true })
+					end,
+					["[W"] = function(win)
+						win:prev({ pinned = false, focus = true })
 					end,
 				},
 				animate = {
