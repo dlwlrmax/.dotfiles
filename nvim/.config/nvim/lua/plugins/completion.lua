@@ -59,46 +59,6 @@ return {
 			---@diagnostic disable-next-line: missing-fields
 			sources = {
 				default = { "lsp", "path", "snippets", "buffer" },
-				providers = {
-					lsp = {
-						name = "LSP",
-						module = "blink.cmp.sources.lsp",
-						opts = {}, -- Passed to the source directly, varies by source
-						enabled = true, -- Whether or not to enable the provider
-						async = false, -- Whether we should wait for the provider to return before showing the completions
-						timeout_ms = 2000, -- How long to wait for the provider to return before showing completions and treating it as asynchronous
-						transform_items = nil, -- Function to transform the items before they're returned
-						should_show_items = true, -- Whether or not to show the items
-						max_items = nil, -- Maximum number of items to display in the menu
-						min_keyword_length = 0, -- Minimum number of characters in the keyword to trigger the provider
-						-- If this provider returns 0 items, it will fallback to these providers.
-						-- If multiple providers falback to the same provider, all of the providers must return 0 items for it to fallback
-						fallbacks = {},
-						score_offset = 1000, -- Boost/penalize the score of the items
-						override = {
-							get_trigger_characters = function(self)
-								local trigger_characters = self:get_trigger_characters()
-								vim.list_extend(trigger_characters, { "\n", "\t", " " })
-								return trigger_characters
-							end,
-						}, -- Override the source's functions
-					},
-					path = {
-						name = "Path",
-						module = "blink.cmp.sources.path",
-						opts = {},
-						enabled = true,
-						async = false,
-						timeout_ms = 2000,
-						transform_items = nil,
-						should_show_items = true,
-						max_items = nil,
-						min_keyword_length = 0,
-						fallbacks = {},
-						score_offset = 100,
-						override = nil,
-					},
-				},
 				cmdline = function()
 					local type = vim.fn.getcmdtype()
 					-- Search forward and backward
@@ -124,10 +84,6 @@ return {
 			},
 
 			completion = {
-				trigger = {
-					show_on_blocked_trigger_characters = {},
-					show_on_x_blocked_trigger_characters = { "'", '"', "(" },
-				},
 				accept = {
 					auto_brackets = {
 						enabled = true,
