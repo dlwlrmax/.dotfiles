@@ -1,4 +1,3 @@
----@diagnostic disable: missing-fields
 return {
 	{
 		"saghen/blink.cmp",
@@ -48,18 +47,7 @@ return {
 			},
 
 			snippets = {
-				expand = function(snippet)
-					require("luasnip").lsp_expand(snippet)
-				end,
-				active = function(filter)
-					if filter and filter.direction then
-						return require("luasnip").jumpable(filter.direction)
-					end
-					return require("luasnip").in_snippet()
-				end,
-				jump = function(direction)
-					require("luasnip").jump(direction)
-				end,
+				preset = "luasnip",
 			},
 
 			---@diagnostic disable-next-line: missing-fields
@@ -70,7 +58,7 @@ return {
 
 			---@diagnostic disable-next-line: missing-fields
 			sources = {
-				default = { "lsp", "path", "luasnip", "buffer" },
+				default = { "lsp", "path", "snippets", "buffer" },
 				providers = {
 					lsp = {
 						name = "LSP",
@@ -87,38 +75,29 @@ return {
 						-- If multiple providers falback to the same provider, all of the providers must return 0 items for it to fallback
 						fallbacks = {},
 						score_offset = 1000, -- Boost/penalize the score of the items
-						override = nil, -- Override the source's functions
+						override = {
+							get_trigger_characters = function(self)
+								local trigger_characters = self:get_trigger_characters()
+								vim.list_extend(trigger_characters, { "\n", "\t", " " })
+								return trigger_characters
+							end,
+						}, -- Override the source's functions
 					},
-                    luasnip = {
-                        name = "LuaSnip",
-                        module = "blink.cmp.sources.luasnip",
-                        opts = {},
-                        enabled = true,
-                        async = false,
-                        timeout_ms = 2000,
-                        transform_items = nil,
-                        should_show_items = true,
-                        max_items = nil,
-                        min_keyword_length = 2,
-                        fallbacks = {},
-                        score_offset = 0,
-                        override = nil,
-                    },
-                    path = {
-                        name = "Path",
-                        module = "blink.cmp.sources.path",
-                        opts = {},
-                        enabled = true,
-                        async = false,
-                        timeout_ms = 2000,
-                        transform_items = nil,
-                        should_show_items = true,
-                        max_items = nil,
-                        min_keyword_length = 0,
-                        fallbacks = {},
-                        score_offset = 100,
-                        override = nil,
-                    },
+					path = {
+						name = "Path",
+						module = "blink.cmp.sources.path",
+						opts = {},
+						enabled = true,
+						async = false,
+						timeout_ms = 2000,
+						transform_items = nil,
+						should_show_items = true,
+						max_items = nil,
+						min_keyword_length = 0,
+						fallbacks = {},
+						score_offset = 100,
+						override = nil,
+					},
 				},
 				cmdline = function()
 					local type = vim.fn.getcmdtype()
@@ -133,7 +112,11 @@ return {
 					return {}
 				end,
 				min_keyword_length = function(ctx)
-					if ctx.mode == "cmdline" and string.find(ctx.line, " ") == nil then
+					if
+						ctx.mode == "cmdline"
+						and string.find(ctx.line, " ") == nil
+						and not vim.tbl_contains({ "/", "?" }, vim.fn.getcmdtype())
+					then
 						return 3
 					end
 					return 0
@@ -141,6 +124,10 @@ return {
 			},
 
 			completion = {
+				trigger = {
+					show_on_blocked_trigger_characters = {},
+					show_on_x_blocked_trigger_characters = { "'", '"', "(" },
+				},
 				accept = {
 					auto_brackets = {
 						enabled = true,
@@ -153,7 +140,9 @@ return {
 							{ "label", "label_description", gap = 1 },
 							{ "kind_icon", "kind", "source_name", gap = 1 },
 						},
+						treesitter = { "lsp" },
 					},
+					auto_show = true,
 				},
 				documentation = {
 					window = {
@@ -163,7 +152,7 @@ return {
 					auto_show_delay_ms = 200,
 				},
 				list = {
-					selection = "preselect",
+					selection = { preselect = false, auto_insert = true },
 				},
 			},
 
