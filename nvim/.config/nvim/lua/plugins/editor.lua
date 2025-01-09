@@ -29,6 +29,12 @@ return {
 				desc = "FZF Live Grep",
 				mode = { "n" },
 			},
+            {
+                "<leader>fb",
+                "<cmd>lua require('fzf-lua').buffers()<cr>",
+                desc = "FZF Buffers",
+                mode = { "n" },
+            }
 		},
 		config = function()
 			local img_previewer ---@type string[]?
@@ -320,4 +326,18 @@ return {
 	-- 	"sphamba/smear-cursor.nvim",
 	-- 	opts = {},
 	-- },
+	{
+		"axkirillov/hbac.nvim",
+		config = function()
+			require("hbac").setup({
+				autoclose = true,
+				threshold = 10,
+				close_command = function(bufnr)
+					vim.api.nvim_buf_delete(bufnr, {})
+				end,
+				close_buffers_with_windows = false,
+				telescope = {},
+			})
+		end,
+	},
 }
