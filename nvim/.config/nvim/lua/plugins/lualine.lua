@@ -1,10 +1,12 @@
 return {
 	-- status for copilot
-	{ "AndreM222/copilot-lualine" },
 	{
 		"nvim-lualine/lualine.nvim",
 		dependencies = { "nvim-tree/nvim-web-devicons" },
 		config = function()
+			local function show_codeium_status()
+				return "{...}" .. vim.fn["codeium#GetStatusString"]()
+			end
 			require("lualine").setup({
 				options = {
 					icons_enabled = true,
@@ -35,7 +37,17 @@ return {
 					lualine_c = {
 						"filename",
 					},
-					lualine_x = { "encoding", "copilot", "filetype" },
+					lualine_x = {
+						"encoding",
+						{
+							'vim.fn["codeium#GetStatusString"]()',
+							fmt = function(str)
+								return "{..}" .. str:lower():match("^%s*(.-)%s*$")
+							end,
+						},
+                        "fileformat",
+						"filetype",
+					},
 					lualine_y = { "progress" },
 					lualine_z = { "location" },
 				},
