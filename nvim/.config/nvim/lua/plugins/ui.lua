@@ -101,4 +101,8 @@ return {
 			require("scrollbar").setup()
 		end,
 	},
+	{
+		"stevearc/dressing.nvim",
+		opts = {},
+	},
 }

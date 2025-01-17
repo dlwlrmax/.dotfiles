@@ -64,7 +64,14 @@ return {
 			},
 			refresh = 100,
 		},
-		words = { enabled = true },
+		words = {
+			debounce = 200,
+			notify_end = true,
+			notify_jump = false,
+			foldopen = true,
+			jumplist = true,
+			modes = { "n", "i", "c" },
+		},
 		scroll = {
 			enabled = false,
 			--- @diagnostic disable-next-line: missing-fields
@@ -247,7 +254,7 @@ return {
 		},
 	},
 	init = function()
-        vim.g.snacks_animate = false
+		vim.g.snacks_animate = false
 		-- Terminal Mappings
 		vim.keymap.set("t", "<C-\\>", "<cmd>close<cr>", { desc = "Hide Terminal" })
 		vim.api.nvim_create_autocmd("User", {

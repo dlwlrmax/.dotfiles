@@ -4,8 +4,8 @@ return {
 		version = "*",
 		config = function()
 			require("mini.pairs").setup()
-			require("mini.ai").setup()
-			require("mini.cursorword").setup()
+			-- require("mini.ai").setup()
+			-- require("mini.cursorword").setup()
 			require("mini.icons").setup()
 			local miniDiff = require("mini.diff")
 			miniDiff.setup({

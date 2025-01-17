@@ -34,6 +34,12 @@ return {
                 "<cmd>lua require('fzf-lua').buffers()<cr>",
                 desc = "FZF Buffers",
                 mode = { "n" },
+            },
+            {
+                "<C-b>",
+                "<cmd>lua require('fzf-lua').buffers()<cr>",
+                desc = "FZF Buffers",
+                mode = { "n" },
             }
 		},
 		config = function()
@@ -322,10 +328,10 @@ return {
 			hlargs.enable()
 		end,
 	},
-	-- {
-	-- 	"sphamba/smear-cursor.nvim",
-	-- 	opts = {},
-	-- },
+	{
+		"sphamba/smear-cursor.nvim",
+		opts = {},
+	},
 	{
 		"axkirillov/hbac.nvim",
 		config = function()
