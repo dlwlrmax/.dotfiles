@@ -1,13 +1,13 @@
 configuration {
-	modes: [ combi ];
-  combi-modi: "window,drun";
+    modes: [ combi ];
+    combi-modi: [window,drun];
 /*	font: "mono 12";*/
 /*	location: 0;*/
 /*	yoffset: 0;*/
 /*	xoffset: 0;*/
-/*	fixed-num-lines: true;*/
+	fixed-num-lines: true;
 	show-icons: true;
-/*	terminal: "rofi-sensible-terminal";*/
+	terminal: "rofi-sensible-terminal";
 /*	ssh-client: "ssh";*/
 /*	ssh-command: "{terminal} -e {ssh-client} {host} [-p {port}]";*/
 /*	run-command: "{cmd}";*/
@@ -40,15 +40,15 @@ configuration {
 /*	dpi: -1;*/
 /*	threads: 0;*/
 /*	scroll-method: 0;*/
-/*	window-format: "{w}    {c}   {t}";*/
+	window-format: "{w}    {c}   {t}";
 /*	click-to-exit: true;*/
 /*	global-kb: false;*/
 /*	max-history-size: 25;*/
-/*	combi-hide-mode-prefix: false;*/
-/*	combi-display-format: "{mode} {text}";*/
+	combi-hide-mode-prefix: false;
+	combi-display-format: "{mode}: {text}";
 /*	matching-negate-char: '-' /* unsupported */;*/
 /*	cache-dir: ;*/
-/*	window-thumbnail: false;*/
+	window-thumbnail: true;
 /*	drun-use-desktop-cache: false;*/
 /*	drun-reload-desktop-cache: false;*/
 /*	normalize-match: false;*/
@@ -155,3 +155,19 @@ configuration {
   }
 }
 
+@theme "Paper"
+/* @theme "paper-float" */
+
+element {
+    orientation: "horizontal";
+    children: [ element-text, element-icon ];
+    spacing: 5px;
+}
+
+element-icon {
+    size: 1.5em;
+}
+
+element-text {
+    vertical-align: 0.5;
+}
