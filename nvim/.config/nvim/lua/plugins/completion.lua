@@ -59,17 +59,17 @@ return {
 			---@diagnostic disable-next-line: missing-fields
 			sources = {
 				default = { "lsp", "path", "snippets", "buffer" },
-				providers = {
-					lsp = {
-						override = {
-							get_trigger_characters = function(self)
-								local trigger_characters = self:get_trigger_characters()
-								vim.list_extend(trigger_characters, { "\n", "\t", '"', " ", "'" })
-								return trigger_characters
-							end,
-						},
-					},
-				},
+				-- providers = {
+				-- 	lsp = {
+				-- 		override = {
+				-- 			get_trigger_characters = function(self)
+				-- 				local trigger_characters = self:get_trigger_characters()
+				-- 				vim.list_extend(trigger_characters, { "\n", "\t", '"', " ", "'" })
+				-- 				return trigger_characters
+				-- 			end,
+				-- 		},
+				-- 	},
+				-- },
 				cmdline = function()
 					local type = vim.fn.getcmdtype()
 					-- Search forward and backward
@@ -95,9 +95,9 @@ return {
 			},
 
 			completion = {
-				trigger = {
-					show_on_blocked_trigger_characters = {},
-				},
+				-- trigger = {
+				-- 	show_on_blocked_trigger_characters = {},
+				-- },
 				accept = {
 					auto_brackets = {
 						enabled = true,

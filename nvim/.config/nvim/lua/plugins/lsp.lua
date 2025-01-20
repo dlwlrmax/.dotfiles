@@ -149,6 +149,7 @@ return {
 				vue = { "prettierd", "prettier", stop_after_first = true },
 				php = { "pint", "php_cs_fixer", stop_after_first = true },
 				markdown = { "prettierd", "prettier", stop_after_first = true },
+                blade = { "blade-formatter" },
 			},
 			default_format_opts = {
 				lsp_format = "fallback",
@@ -160,6 +161,8 @@ return {
 		config = function()
 			require("lint").linters_by_fr = {
 				lua = { "luacheck" },
+                javascript = { "eslint" },
+                typescript = { "eslint" },
 				php = { "intelephense", "phpcs" },
 			}
 		end,

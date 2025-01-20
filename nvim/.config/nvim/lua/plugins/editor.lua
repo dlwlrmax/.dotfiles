@@ -329,10 +329,6 @@ return {
 		end,
 	},
 	{
-		"sphamba/smear-cursor.nvim",
-		opts = {},
-	},
-	{
 		"axkirillov/hbac.nvim",
 		config = function()
 			require("hbac").setup({
