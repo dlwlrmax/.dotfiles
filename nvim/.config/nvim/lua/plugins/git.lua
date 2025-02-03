@@ -34,7 +34,7 @@ return {
 
 			-- Only one of these is needed.
 			"ibhagwan/fzf-lua", -- optional
-			"echasnovski/mini.nvim", -- optional
+			"echasnovski/mini.diff", -- optional
 		},
 		config = function()
 			require("neogit").setup({

@@ -1,12 +1,27 @@
 return {
 	{
-		"echasnovski/mini.nvim",
+		"echasnovski/mini.hipatterns",
 		version = "*",
 		config = function()
-			require("mini.pairs").setup()
-			-- require("mini.ai").setup()
-			-- require("mini.cursorword").setup()
-			require("mini.icons").setup()
+			local hipatterns = require("mini.hipatterns")
+			hipatterns.setup({
+				highlighters = {
+					-- Highlight standalone 'FIXME', 'HACK', 'TODO', 'NOTE'
+					fixme = { pattern = "%f[%w]()FIXME()%f[%W]", group = "MiniHipatternsFixme" },
+					hack = { pattern = "%f[%w]()HACK()%f[%W]", group = "MiniHipatternsHack" },
+					todo = { pattern = "%f[%w]()TODO()%f[%W]", group = "MiniHipatternsTodo" },
+					note = { pattern = "%f[%w]()NOTE()%f[%W]", group = "MiniHipatternsNote" },
+
+					-- Highlight hex color strings (`#rrggbb`) using that color
+					hex_color = hipatterns.gen_highlighter.hex_color(),
+				},
+			})
+		end
+	},
+	{
+		"echasnovski/mini.diff",
+		version = "*",
+		config = function()
 			local miniDiff = require("mini.diff")
 			miniDiff.setup({
 				view = {
@@ -27,20 +42,21 @@ return {
 			vim.keymap.set("n", "go", function()
 				miniDiff.toggle_overlay(0)
 			end, { noremap = true, silent = true, desc = "Toggle MiniDiff overlay" })
+		end
+	},
 
-			local hipatterns = require("mini.hipatterns")
-			hipatterns.setup({
-				highlighters = {
-					-- Highlight standalone 'FIXME', 'HACK', 'TODO', 'NOTE'
-					fixme = { pattern = "%f[%w]()FIXME()%f[%W]", group = "MiniHipatternsFixme" },
-					hack = { pattern = "%f[%w]()HACK()%f[%W]", group = "MiniHipatternsHack" },
-					todo = { pattern = "%f[%w]()TODO()%f[%W]", group = "MiniHipatternsTodo" },
-					note = { pattern = "%f[%w]()NOTE()%f[%W]", group = "MiniHipatternsNote" },
-
-					-- Highlight hex color strings (`#rrggbb`) using that color
-					hex_color = hipatterns.gen_highlighter.hex_color(),
-				},
-			})
+	{
+	"echasnovski/mini.pairs",
+	version = "*",
+	config = function()
+			require("mini.pairs").setup()
+	end
+	},
+	{
+		"echasnovski/mini.icons",
+		version = "*",
+		config = function()
+			require("mini.icons").setup()
 		end,
 	},
 }
