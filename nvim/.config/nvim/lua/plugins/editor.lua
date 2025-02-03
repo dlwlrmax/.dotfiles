@@ -29,18 +29,18 @@ return {
 				desc = "FZF Live Grep",
 				mode = { "n" },
 			},
-            {
-                "<leader>fb",
-                "<cmd>lua require('fzf-lua').buffers()<cr>",
-                desc = "FZF Buffers",
-                mode = { "n" },
-            },
-            {
-                "<C-b>",
-                "<cmd>lua require('fzf-lua').buffers()<cr>",
-                desc = "FZF Buffers",
-                mode = { "n" },
-            }
+			{
+				"<leader>fb",
+				"<cmd>lua require('fzf-lua').buffers()<cr>",
+				desc = "FZF Buffers",
+				mode = { "n" },
+			},
+			{
+				"<C-b>",
+				"<cmd>lua require('fzf-lua').buffers()<cr>",
+				desc = "FZF Buffers",
+				mode = { "n" },
+			},
 		},
 		config = function()
 			local img_previewer ---@type string[]?

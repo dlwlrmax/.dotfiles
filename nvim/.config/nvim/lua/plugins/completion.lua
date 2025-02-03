@@ -59,17 +59,6 @@ return {
 			---@diagnostic disable-next-line: missing-fields
 			sources = {
 				default = { "lsp", "path", "snippets", "buffer" },
-				-- providers = {
-				-- 	lsp = {
-				-- 		override = {
-				-- 			get_trigger_characters = function(self)
-				-- 				local trigger_characters = self:get_trigger_characters()
-				-- 				vim.list_extend(trigger_characters, { "\n", "\t", '"', " ", "'" })
-				-- 				return trigger_characters
-				-- 			end,
-				-- 		},
-				-- 	},
-				-- },
 				cmdline = function()
 					local type = vim.fn.getcmdtype()
 					-- Search forward and backward
@@ -83,12 +72,8 @@ return {
 					return {}
 				end,
 				min_keyword_length = function(ctx)
-					if
-						ctx.mode == "cmdline"
-						and string.find(ctx.line, " ") == nil
-						and not vim.tbl_contains({ "/", "?" }, vim.fn.getcmdtype())
-					then
-						return 3
+					if ctx.mode == "cmdline" and string.find(ctx.line, " ") == nil then
+						return 2
 					end
 					return 0
 				end,
