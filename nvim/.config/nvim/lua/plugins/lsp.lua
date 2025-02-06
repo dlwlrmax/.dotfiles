@@ -180,7 +180,7 @@ return {
 					enable = true,
 					hide_keyword = true,
 					show_file = true,
-					folder_level = 2,
+					folder_level = 3,
 					color_mode = true,
 					delay = 1000,
 				},

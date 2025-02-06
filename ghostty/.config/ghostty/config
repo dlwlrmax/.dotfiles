@@ -10,6 +10,7 @@ bold-is-bright = true
 adjust-cell-height= 7%
 font-variation = wght=500
 font-variation-bold = wght=700
+app-notifications = no-clipboard-copy
 
 
 # Cursor
