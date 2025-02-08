@@ -26,18 +26,18 @@ keymap.set("n", "L", "$", { desc = "Move to end of line" })
 keymap.set("n", "<leader>e", "<CMD>Neotree toggle<CR>", { desc = "Toggle Nvim Tree" })
 -- keymap.set("n", "<leader>e", ":Neotree source=filesystem reveal=true position=right<cr>");
 
-keymap.set(
-	"n",
-	"<leader>F",
-	"<cmd>lua require('grug-far').open({ prefills = { search = vim.fn.expand('<cword>') }})<cr>",
-	{ desc = "GrugFar Live grep" }
-)
-keymap.set(
-	"v",
-	"<leader>fs",
-	"<cmd>lua require('grug-far').with_visual_selection()<cr>",
-	{ desc = "GrugFar Grep string" }
-)
+-- keymap.set(
+-- 	"n",
+-- 	"<leader>F",
+-- 	"<cmd>lua require('grug-far').open({ prefills = { search = vim.fn.expand('<cword>') }})<cr>",
+-- 	{ desc = "GrugFar Live grep" }
+-- )
+-- keymap.set(
+-- 	"v",
+-- 	"<leader>fs",
+-- 	"<cmd>lua require('grug-far').with_visual_selection()<cr>",
+-- 	{ desc = "GrugFar Grep string" }
+-- )
 
 --Format
 api.nvim_set_keymap("n", "<leader>i", "<ESC><cmd>lua vim.lsp.buf.format({ timeout_ms = 2000 })<CR>", { noremap = true })

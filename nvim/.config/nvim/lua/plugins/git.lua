@@ -33,7 +33,7 @@ return {
 			"sindrets/diffview.nvim", -- optional - Diff integration
 
 			-- Only one of these is needed.
-			"ibhagwan/fzf-lua", -- optional
+			-- "ibhagwan/fzf-lua", -- optional
 			"echasnovski/mini.diff", -- optional
 		},
 		config = function()
@@ -41,7 +41,7 @@ return {
 				integrations = {
 					diffview = true,
 					telescope = true,
-					fzf = true,
+					-- fzf = true,
 					mini = true,
 				},
 			})
