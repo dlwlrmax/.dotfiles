@@ -104,7 +104,7 @@ return {
 						border = "rounded",
 					},
 					auto_show = true,
-					auto_show_delay_ms = 200,
+					auto_show_delay_ms = 50,
 				},
 				list = {
 					selection = { preselect = false, auto_insert = true },
