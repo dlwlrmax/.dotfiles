@@ -36,7 +36,9 @@ return {
 				["<C-f>"] = { "snippet_forward", "fallback" },
 				["<C-b>"] = { "snippet_backward", "fallback" },
 				["<C-a>"] = { "show", "hide", "fallback" },
-				cmdline = {
+			},
+			cmdline = {
+				keymap = {
 					preset = "default",
 					["<CR>"] = { "select_and_accept", "fallback" },
 					["<C-o>"] = { "select_and_accept", "fallback" },
@@ -59,18 +61,6 @@ return {
 			---@diagnostic disable-next-line: missing-fields
 			sources = {
 				default = { "lsp", "path", "snippets", "buffer" },
-				cmdline = function()
-					local type = vim.fn.getcmdtype()
-					-- Search forward and backward
-					if type == "/" or type == "?" then
-						return { "buffer" }
-					end
-					-- Commands
-					if type == ":" then
-						return { "cmdline", "path" }
-					end
-					return {}
-				end,
 				min_keyword_length = function(ctx)
 					if ctx.mode == "cmdline" and string.find(ctx.line, " ") == nil then
 						return 2
