@@ -261,7 +261,7 @@ return {
             end,
         },
         {
-            "<C-w>",
+            "<A-w>",
             function()
                 Snacks.bufdelete()
             end,
