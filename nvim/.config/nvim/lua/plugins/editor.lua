@@ -123,7 +123,6 @@ return {
 				default = {
 					buf_opts = { buftype = { "prompt", "terminal", "Avante", "grug-far", "snacks_win" } },
 					win_config = { relative = true },
-					-- buf_name = { "neotree" },
 					-- buf_vars = { variable = {'match1', 'match2'} },
 					-- win_opts = { option = {'match1', 'match2' } },
 					-- win_vars = { variable = {'match1', 'match2'} },
