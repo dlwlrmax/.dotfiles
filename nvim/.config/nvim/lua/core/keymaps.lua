@@ -22,10 +22,6 @@ keymap.set("n", "H", "^", { desc = "Move to start of line" })
 keymap.set("n", "L", "$", { desc = "Move to end of line" })
 -- keymap.set("n", "<leader>bd", ":BClose<cr>:tabclose<cr>gT");
 
---Nvim Tree
-keymap.set("n", "<leader>e", "<CMD>Neotree toggle<CR>", { desc = "Toggle Nvim Tree" })
--- keymap.set("n", "<leader>e", ":Neotree source=filesystem reveal=true position=right<cr>");
-
 -- keymap.set(
 -- 	"n",
 -- 	"<leader>F",

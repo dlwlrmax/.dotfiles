@@ -40,15 +40,14 @@ return {
 			cmdline = {
 				keymap = {
 					preset = "cmdline",
-					["<CR>"] = { "select_and_accept", "fallback" },
 					["<C-o>"] = { "select_and_accept", "fallback" },
 				},
 				completion = {
 					ghost_text = {
-						enabled = true,
+						enabled = false,
 					},
                     menu = {
-                        auto_show = false
+                        auto_show = true
                     }
 				},
 			},

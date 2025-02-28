@@ -15,3 +15,9 @@
 | `<Leader> + dq` | DiffFile Close             |
 | `<Leader> + do` | DiffFile Open              |
 | `<Leader> + ph` | Gitsigns Preview Hunk      |
+
+# Snack
+
+| Key Combination | Action           |
+| --------------- | ---------------- |
+| `<C-g>`         | Live Search mode |
