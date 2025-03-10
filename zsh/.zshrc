@@ -7,7 +7,7 @@ fi
 
 # List of required applications
 # Check if required applications are installed. If not, install them using yay.
-required_apps=(eza nvim tmux fzf bat yazi tree)
+required_apps=(eza tmux fzf bat yazi tree)
 missing_apps=()
 
 for app in ${required_apps[@]}; do
@@ -206,3 +206,9 @@ case ":$PATH:" in
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 # pnpm end
+
+export PHPENV_ROOT="$HOME/.phpenv"
+if [ -d "${PHPENV_ROOT}" ]; then
+  export PATH="${PHPENV_ROOT}/bin:${PATH}"
+  eval "$(phpenv init -)"
+fi

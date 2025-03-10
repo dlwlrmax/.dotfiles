@@ -60,6 +60,13 @@ return {
 					},
 					view = "mini",
 				},
+				{
+					filter = {
+						event = "notify",
+						find = "completion request failed",
+					},
+					opts = { skip = true },
+				},
 			},
 			lsp = {
 				-- override markdown rendering so that **cmp** and other plugins use **Treesitter**

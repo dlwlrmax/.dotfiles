@@ -107,10 +107,12 @@ return {
 				enable_cmp_source = false,
 				virtual_text = {
 					enabled = true,
+                    quiet = true,
 					key_bindings = {
 						accept = "<M-l>",
 						accept_word = "<M-w>",
 						accept_line = false,
+                        idle_delay = 100,
 						next = "<M-]>",
 						prev = "<M-[>",
 						dismiss = "<C-]>",
