@@ -39,13 +39,7 @@ return {
 					},
 					lualine_x = {
 						"encoding",
-						{
-							'vim.fn["codeium#GetStatusString"]()',
-							fmt = function(str)
-								return "{..}" .. str:lower():match("^%s*(.-)%s*$")
-							end,
-						},
-                        "fileformat",
+						"lsp_status",
 						"filetype",
 					},
 					lualine_y = { "progress" },
