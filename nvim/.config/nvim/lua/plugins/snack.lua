@@ -54,10 +54,11 @@ return {
 			sources = {
 				explorer = {
 					auto_close = true,
-                    hidden = true,
-                    layout = {
-                        preset = "left"
-                    }
+					hidden = true,
+                    ignored = true,
+					layout = {
+						preset = "sidebar",
+					},
 				},
 			},
 		},
@@ -251,7 +252,7 @@ return {
 				Snacks.picker.grep({ hidden = true })
 			end,
 			mode = { "n" },
-            desc = "Snacks Picker Word",
+			desc = "Snacks Picker Word",
 		},
 		{
 			"<leader>fw",
@@ -259,7 +260,7 @@ return {
 				Snacks.picker.grep_word({ hidden = true })
 			end,
 			mode = { "v" },
-            desc = "Snacks Picker Word",
+			desc = "Snacks Picker Word",
 		},
 		{
 			"<leader>fs",
@@ -267,24 +268,24 @@ return {
 				Snacks.picker.grep_word({ hidden = true })
 			end,
 			mode = { "v" },
-            desc = "Snacks Picker Word",
+			desc = "Snacks Picker Word",
 		},
 		{
 			"<leader>ff",
 			function()
 				Snacks.picker.smart()
 			end,
-            mode = { "n" },
-            desc = "Smart Picker",
+			mode = { "n" },
+			desc = "Smart Picker",
 		},
-        {
-            "<leader>dl",
-            function ()
-                Snacks.picker.diagnostics()
-            end,
-            mode = { "n" },
-            desc = "Diagnostics Picker",
-        },
+		{
+			"<leader>dl",
+			function()
+				Snacks.picker.diagnostics()
+			end,
+			mode = { "n" },
+			desc = "Diagnostics Picker",
+		},
 		{
 			"<leader>un",
 			function()

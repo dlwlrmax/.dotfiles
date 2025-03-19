@@ -49,9 +49,7 @@ keymap.set("n", "gd", "<cmd>Lspsaga peek_definition<CR>", opts) -- see definitio
 keymap.set("n", "gt", "<cmd>Lspsaga peek_type_definition<CR>", opts) -- see definition and make edits in window
 keymap.set("n", "<leader>kk", "<cmd>Lspsaga peek_type_definition<CR>", opts) -- see definition and make edits in window
 keymap.set("n", "<leader>K", "<cmd>Lspsaga hover_doc<CR>", opts) -- show documentation for what is under cursor
-keymap.set("n", "<leader>sl", "<cmd>Lspsaga show_line_diagnostics<CR>", opts)
-keymap.set("n", "<leader>sc", "<cmd>Lspsaga show_cursor_diagnostics<CR>", opts)
-keymap.set("n", "<leader>sb", "<cmd>Lspsaga show_buf_diagnostics<CR>", opts)
+keymap.set("n", "<leader>sl", "<cmd>lua vim.diagnostic.open_float()<CR>", opts)
 keymap.set("n", "<leader>ca", "<cmd>Lspsaga code_action<CR>", opts) -- see available code actions
 keymap.set("n", "<leader>rn", "<cmd>Lspsaga rename<CR>", opts) -- smart rename
 keymap.set("n", "dp", "<cmd>Lspsaga diagnostic_jump_prev<CR>", opts) -- jump to previous diagnostic in buffer
@@ -64,8 +62,7 @@ keymap.set("n", "<leader>F", "<cmd>GrugFar<CR>", { desc = "Find and replace" })
 
 -- Split
 --
-keymap.set("n", "<leader>-", "<C-W>s", { desc = "Vertical Split" })
-keymap.set("n", "<leader>|", "<C-W>v", { desc = "Horizontal Split" })
+keymap.set("n", "<C-W>\\", "<C-W>|", { desc = "Maximize current window" })
 
 -- Disable q for recording macros because it stop nvim-cmp
 -- keymap.set("n", "q", "<Nop>", { silent = true })
@@ -81,3 +78,4 @@ keymap.set("n", "<leader>tn", "<cmd>tabnext<CR>", { desc = "Next tab" })
 keymap.set("n", "<leader>sx", "<cmd>wincmd J<CR>", { desc = "Move split vertical" })
 -- keymap.set("n", "<leader>wk", "<cmd>wincmd K<CR>", { desc = "Move up" })
 keymap.set("n", "<leader>sv", "<cmd>wincmd L<CR>", { desc = "Move split horizontal" })
+
