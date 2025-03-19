@@ -21,6 +21,7 @@ window-decoration = false
 
 # Notification
 desktop-notifications = true
+confirm-close-surface = false
 
 # Shell Integration
 shell-integration = zsh
