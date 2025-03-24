@@ -37,7 +37,7 @@ vim.api.nvim_create_autocmd("FileType", {
 	callback = function()
 		opt.shiftwidth = 4
 		opt.tabstop = 4
-        opt.expandtab = true
+		opt.expandtab = true
 	end,
 })
 
@@ -46,7 +46,7 @@ vim.api.nvim_create_autocmd("FileType", {
 	callback = function()
 		opt.shiftwidth = 2
 		opt.tabstop = 2
-        opt.expandtab = true
+		opt.expandtab = true
 	end,
 })
 
@@ -73,8 +73,8 @@ vim.api.nvim_create_autocmd("FileType", {
 		"notify",
 		"qf",
 		"snacks_win",
-        "Avante",
-        "AvanteInput",
+		"Avante",
+		"AvanteInput",
 		"spectre_panel",
 		"startuptime",
 		"tsplayground",
@@ -113,5 +113,16 @@ vim.api.nvim_create_autocmd({ "BufWritePre" }, {
 		end
 		local file = vim.uv.fs_realpath(event.match) or event.match
 		vim.fn.mkdir(vim.fn.fnamemodify(file, ":p:h"), "p")
+	end,
+})
+
+-- Show diagnostics on hover
+vim.api.nvim_create_autocmd({ "CursorHold" }, {
+	group = vim.api.nvim_create_augroup("float_diagnostic", { clear = true }),
+	callback = function()
+		vim.diagnostic.open_float(nil, {
+			focus = false,
+			border = "rounded",
+		})
 	end,
 })

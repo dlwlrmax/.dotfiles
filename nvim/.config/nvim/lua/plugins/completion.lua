@@ -24,7 +24,7 @@ return {
 		},
 
 		-- use a release tag to download pre-built binaries
-		version = "v0.*",
+		version = "*",
 		---@module 'blink.cmp'
 		---@type blink.cmp.Config
 		opts = {
@@ -57,11 +57,11 @@ return {
 				preset = "luasnip",
 			},
 
-			---@diagnostic disable-next-line: missing-fields
 			sources = {
 				default = { "lsp", "path", "snippets", "buffer" },
 				per_filetype = {
-					sql = { "snippets", "dadbod", "bufferr" },
+					sql = { "dadbod", "buffer", "snippets" },
+					mysql = { "dadbod", "buffer", "snippets" },
 				},
 				providers = {
 					dadbod = { name = "Dadbod", module = "vim_dadbod_completion.blink" },
@@ -205,7 +205,7 @@ return {
 					},
 					-- If true, try to highlight "not supported" languages.
 					fallback = true,
-					-- this will be applied to label description for unsupport languages
+					-- this will be applied to label description for unsupported languages
 					fallback_extra_info_hl = "@comment",
 				},
 				-- If the built-in logic fails to find a suitable highlight group for a label,

@@ -117,7 +117,7 @@ button:hover {
   padding-right: 2px;
 }
 
-#network {
+#network, #custom-weather {
   padding: 0 8px;
   border-radius: 15px 0 0 15px;
 }

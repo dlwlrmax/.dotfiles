@@ -7,7 +7,7 @@
     // Choose the order of the modules
     "modules-left": ["hyprland/workspaces", "hyprland/window"],
     "modules-center": ["clock"],
-    "modules-right": ["custom/media", "network", "custom/weather", "pulseaudio", "cpu", "memory", "custom/notification", "tray"],
+    "modules-right": ["custom/media", "custom/weather", "pulseaudio", "cpu", "memory", "custom/notification", "tray"],
     // Modules configuration
     "hyprland/workspaces": {
         "disable-scroll": true,

@@ -11,14 +11,22 @@ return {
 			"DBUIAddConnection",
 			"DBUIFindBuffer",
 		},
+        keys = {
+            {
+                "<leader>db",
+                "<cmd>DBUIToggle<cr>",
+                desc = "DB UI",
+            }
+        },
 		init = function()
 			vim.g.db_ui_use_nerd_fonts = 1
 			vim.g.dbs = {
 				{
 					name = "ERP - Local",
-					url = "mysql://dev:LangTech%40123@192.168.0.203:3306?ssl=false",
+					url = "mariadb://dev:LangTech%40123@192.168.0.203:3306?ssl=false",
 				},
 			}
 		end,
 	},
 }
+
