@@ -45,10 +45,10 @@ return {
 				},
 				completion = {
 					ghost_text = {
-						enabled = false,
+						enabled = true,
 					},
 					menu = {
-						auto_show = true,
+						auto_show = false,
 					},
 				},
 			},
@@ -60,6 +60,13 @@ return {
 			---@diagnostic disable-next-line: missing-fields
 			sources = {
 				default = { "lsp", "path", "snippets", "buffer" },
+				per_filetype = {
+					sql = { "snippets", "dadbod", "bufferr" },
+				},
+				providers = {
+					dadbod = { name = "Dadbod", module = "vim_dadbod_completion.blink" },
+					ecolog = { name = "ecolog", module = "ecolog.integrations.cmp.blink_cmp" },
+				},
 			},
 
 			completion = {
@@ -73,7 +80,7 @@ return {
 					draw = {
 						-- We don't need label_description now because label and label_description are already
 						-- combined together in label by colorful-menu.nvim.
-						columns = { { "kind_icon", "label", gap = 1 }, {"source_name", "kind", gap = 1 } },
+						columns = { { "kind_icon", "label", gap = 1 }, { "source_name", "kind", gap = 1 } },
 						components = {
 							label = {
 								width = { fill = true, max = 60 },
@@ -115,9 +122,9 @@ return {
 				},
 			},
 
-            fuzzy = {
-                implementation = "prefer_rust_with_warning"
-            },
+			fuzzy = {
+				implementation = "prefer_rust_with_warning",
+			},
 			signature = {
 				enabled = false,
 			},
