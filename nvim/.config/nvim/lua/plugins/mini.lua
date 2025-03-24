@@ -1,6 +1,6 @@
 return {
 	{
-		"echasnovski/mini.hipatterns",
+		"echasnovski/mini.nvim",
 		version = "*",
 		config = function()
 			local hipatterns = require("mini.hipatterns")
@@ -16,12 +16,7 @@ return {
 					hex_color = hipatterns.gen_highlighter.hex_color(),
 				},
 			})
-		end,
-	},
-	{
-		"echasnovski/mini.diff",
-		version = "*",
-		config = function()
+
 			local miniDiff = require("mini.diff")
 			miniDiff.setup({
 				view = {
@@ -42,27 +37,8 @@ return {
 			vim.keymap.set("n", "go", function()
 				miniDiff.toggle_overlay(0)
 			end, { noremap = true, silent = true, desc = "Toggle MiniDiff overlay" })
-		end,
-	},
-
-	{
-		"echasnovski/mini.pairs",
-		version = "*",
-		config = function()
 			require("mini.pairs").setup()
-		end,
-	},
-	{
-		"echasnovski/mini.icons",
-		version = "*",
-		config = function()
 			require("mini.icons").setup()
-		end,
-	},
-	{
-		"echasnovski/mini.cursorword",
-		version = "*",
-		config = function()
 			require("mini.cursorword").setup({
 				delay = 100,
 			})
