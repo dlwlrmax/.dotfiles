@@ -26,6 +26,12 @@ return {
 					url = "mariadb://dev:LangTech%40123@192.168.0.203:3306?ssl=false",
 				},
 			}
+            vim.g.db_ui_table_helpers = {
+                mariadb = {
+                    Count = 'select count(*) from {table}',
+                    List = 'select * from {dbname}.{table} limit 100;',
+                }
+            }
 		end,
 	},
 }

@@ -8,19 +8,6 @@ fi
 # List of required applications
 # Check if required applications are installed. If not, install them using yay.
 required_apps=(eza tmux fzf bat yazi tree)
-missing_apps=()
-
-for app in ${required_apps[@]}; do
-  if ! command -v $app &> /dev/null; then
-    echo "$app is not installed."
-    missing_apps+=($app)
-  fi
-done
-
-if [ ${#missing_apps[@]} -ne 0 ]; then
-  yay -S ${missing_apps[@]}
-  echo "Installed missing applications."
-fi
 
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH

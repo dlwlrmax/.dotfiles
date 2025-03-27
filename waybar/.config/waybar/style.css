@@ -117,11 +117,9 @@ button:hover {
   padding-right: 2px;
 }
 
-#network, #custom-weather {
+#network {
   padding: 0 8px;
   border-radius: 15px 0 0 15px;
-}
-#custom-notification {
 }
 
 #clock {
