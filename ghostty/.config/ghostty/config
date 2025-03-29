@@ -5,9 +5,10 @@ font-family = JetBrainsMono Nerd Font
 font-family-bold = JetBrainsMono NF ExtraBold
 font-size= 10
 window-padding-x = 5
-window-padding-y = 1
+window-padding-y = 5
 bold-is-bright = true
-adjust-cell-height= 7%
+adjust-cell-height= 0
+adjust-cell-width= 0
 font-variation = wght=500
 font-variation-bold = wght=700
 app-notifications = no-clipboard-copy

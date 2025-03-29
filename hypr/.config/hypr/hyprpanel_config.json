@@ -1,0 +1,87 @@
+{
+  "theme.font.size": "0.8rem",
+  "theme.font.name": "JetBrains Mono",
+  "theme.font.label": "JetBrains Mono Bold",
+  "theme.bar.menus.enableShadow": false,
+  "theme.bar.menus.monochrome": false,
+  "wallpaper.pywal": false,
+  "theme.bar.menus.opacity": 100,
+  "theme.bar.menus.card_radius": "0.4em",
+  "theme.bar.transparent": true,
+  "theme.bar.buttons.monochrome": false,
+  "theme.bar.floating": false,
+  "theme.bar.buttons.enableBorders": false,
+  "theme.bar.border.width": "0.15em",
+  "bar.launcher.autoDetectIcon": false,
+  "theme.bar.buttons.workspaces.enableBorder": false,
+  "bar.workspaces.show_icons": false,
+  "bar.workspaces.show_numbered": true,
+  "bar.workspaces.monitorSpecific": true,
+  "bar.workspaces.showWsIcons": false,
+  "bar.workspaces.showApplicationIcons": false,
+  "bar.workspaces.numbered_active_indicator": "underline",
+  "bar.clock.format": "%a %b %d  %I:%M:%S %p",
+  "menus.media.hideAuthor": false,
+  "menus.clock.weather.location": "Los Angeles",
+  "bar.layouts": {
+    "0": {
+      "left": [
+        "dashboard",
+        "workspaces",
+        "windowtitle"
+      ],
+      "middle": [
+        "media"
+      ],
+      "right": [
+        "volume",
+        "network",
+        "cpu",
+        "ram",
+        "systray",
+        "clock",
+        "notifications"
+      ]
+    },
+    "1": {
+      "left": [
+        "dashboard",
+        "workspaces",
+        "windowtitle"
+      ],
+      "middle": [
+        "media"
+      ],
+      "right": [
+        "netstat",
+        "volume",
+        "cpu",
+        "ram",
+        "update",
+        "power",
+        "hypridle"
+      ]
+    },
+    "2": {
+      "left": [
+        "dashboard",
+        "workspaces",
+        "windowtitle"
+      ],
+      "middle": [
+        "media"
+      ],
+      "right": [
+        "volume",
+        "cpu",
+        "ram",
+        "notifications"
+      ]
+    }
+  },
+  "menus.media.displayTime": false,
+  "menus.media.hideAlbum": false,
+  "bar.customModules.ram.labelType": "used/total",
+  "bar.windowtitle.class_name": true,
+  "theme.bar.buttons.systray.enableBorder": false
+}

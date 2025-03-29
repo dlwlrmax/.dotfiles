@@ -26,6 +26,11 @@ return {
 							return vim.bo[buf].buftype == "help"
 						end,
 					},
+                    {
+                        ft = "dbout",
+                        size = { height = 0.5 },
+                        title = "Database Output"
+                    }
 				},
 				left = {
 					-- Neo-tree filesystem always takes half the screen height
@@ -37,6 +42,10 @@ return {
 						end,
 						size = { height = 0.5 },
 					},
+                    {
+                        ft = "dbui",
+                        size = { height = 0.5 },
+                    }
 				},
 				right = {
 					{ title = "Grug Far", ft = "grug-far", size = { width = 0.4 } },
