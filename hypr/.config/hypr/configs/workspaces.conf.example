@@ -1,10 +1,13 @@
-workspace = DP-1, 1
-workspace = DP-2, 2
-workspace = HDMI-A-2, 3
-workspace = DP-1, 4
-workspace = DP-1, 5
-workspace = DP-1, 6
-workspace = DP-1, 7
-workspace = DP-1, 8
-workspace = DP-1, 9
-workspace = HDMI-A-2, 10
+$monitor1 = HDMI-A-1;
+$monitor2 = DP-1;
+
+workspace = 1, monitor:HDMI-A-1
+workspace = 2, monitor:DP-1
+workspace = 3, monitor:DP-1
+workspace = 4, monitor:HDMI-A-1
+workspace = 5, monitor:DP-1
+workspace = 6, monitor:HDMI-A-1
+workspace = 7, monitor:HDMI-A-1
+workspace = 8, monitor:HDMI-A-1
+workspace = 9, monitor:DP-1
+workspace = 10, monitor:HDMI-A-1
