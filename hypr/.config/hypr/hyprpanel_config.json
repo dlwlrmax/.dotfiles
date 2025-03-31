@@ -4,7 +4,7 @@
   "theme.font.label": "JetBrains Mono Bold",
   "theme.bar.menus.enableShadow": false,
   "theme.bar.menus.monochrome": false,
-  "wallpaper.pywal": false,
+  "wallpaper.pywal": true,
   "theme.bar.menus.opacity": 100,
   "theme.bar.menus.card_radius": "0.4em",
   "theme.bar.transparent": true,
@@ -83,5 +83,11 @@
   "menus.media.hideAlbum": false,
   "bar.customModules.ram.labelType": "used/total",
   "bar.windowtitle.class_name": true,
-  "theme.bar.buttons.systray.enableBorder": false
+  "theme.bar.buttons.systray.enableBorder": false,
+  "notifications.position": "top right",
+  "theme.matugen": true,
+  "wallpaper.image": "/home/kienct/.dotfiles/wallpapers/dunes-sun.jpg",
+  "theme.matugen_settings.scheme_type": "neutral",
+  "theme.matugen_settings.variation": "standard_1",
+  "theme.matugen_settings.contrast": 0.4
 }
