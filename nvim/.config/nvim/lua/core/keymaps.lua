@@ -73,9 +73,23 @@ keymap.set("n", "<leader>tq", "<cmd>tabclose<CR>", { desc = "Close tab" })
 keymap.set("n", "<leader>tp", "<cmd>tabprevious<CR>", { desc = "Previous tab" })
 keymap.set("n", "<leader>tn", "<cmd>tabnext<CR>", { desc = "Next tab" })
 
--- Move split around
--- keymap.set("n", "<leader>wh", "<cmd>wincmd H<CR>", { desc = "Move left" })
-keymap.set("n", "<leader>sx", "<cmd>wincmd J<CR>", { desc = "Move split vertical" })
--- keymap.set("n", "<leader>wk", "<cmd>wincmd K<CR>", { desc = "Move up" })
-keymap.set("n", "<leader>sv", "<cmd>wincmd L<CR>", { desc = "Move split horizontal" })
+vim.keymap.set({ "n", "v" }, "<leader>rp", function()
+	local word = ""
 
+	-- Check if in Visual Mode
+	if vim.fn.mode() == "v" then
+		-- Get the selected text
+		vim.cmd('normal! "vy') -- Copy selection to register v
+		word = vim.fn.getreg("v") -- Retrieve selection
+	else
+		-- Prompt user to type the word manually in Normal mode
+		word = vim.fn.input("Enter word to replace: ")
+	end
+
+	if word ~= "" then
+		local new_word = vim.fn.input("Replace " .. word .. " with: ")
+		if new_word ~= "" then
+			vim.cmd(":%s/\\<" .. word .. "\\>/" .. new_word .. "/gc")
+		end
+	end
+end, { noremap = true, silent = true })

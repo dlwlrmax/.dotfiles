@@ -37,8 +37,6 @@ return {
 				["<C-b>"] = { "snippet_backward", "fallback" },
 				["<C-a>"] = { "show", "hide", "fallback" },
 				["<C-c>"] = { "hide", "fallback" },
-				["<C-k>"] = { "show_signature", "hide_signature", "fallback" },
-                ["<C-K>"] = { "show_documentation", "hide_documentation", "fallback" },
 			},
 			cmdline = {
 				keymap = {
@@ -128,7 +126,7 @@ return {
 				implementation = "prefer_rust_with_warning",
 			},
 			signature = {
-				enabled = true,
+				enabled = false,
 				trigger = {
 					enabled = true,
 					show_on_trigger_character = true,
