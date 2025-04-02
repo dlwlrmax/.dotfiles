@@ -116,13 +116,29 @@ vim.api.nvim_create_autocmd({ "BufWritePre" }, {
 	end,
 })
 
--- Show diagnostics on hover
-vim.api.nvim_create_autocmd({ "CursorHold" }, {
-	group = vim.api.nvim_create_augroup("float_diagnostic", { clear = true }),
+-- -- Show diagnostics on hover
+-- vim.api.nvim_create_autocmd({ "CursorHold" }, {
+-- 	group = vim.api.nvim_create_augroup("float_diagnostic", { clear = true }),
+-- 	callback = function()
+-- 		vim.diagnostic.open_float(nil, {
+-- 			focus = false,
+-- 			border = "rounded",
+-- 		})
+-- 	end,
+-- })
+--
+-- Laravel-ls
+vim.api.nvim_create_autocmd("FileType", {
+	pattern = { "php", "blade" },
 	callback = function()
-		vim.diagnostic.open_float(nil, {
-			focus = false,
-			border = "rounded",
-		})
+		local root_dir = vim.fs.find("composer.json", { upward = true, stop = vim.loop.os_homedir() })[1]
+		if root_dir then
+			root_dir = vim.fn.fnamemodify(root_dir, ":h") -- Get the directory containing composer.json
+			vim.lsp.start({
+				name = "laravel-ls",
+				cmd = { "laravel-ls" },
+				root_dir = root_dir,
+			})
+		end
 	end,
 })

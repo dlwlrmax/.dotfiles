@@ -5,10 +5,6 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-# List of required applications
-# Check if required applications are installed. If not, install them using yay.
-required_apps=(eza tmux fzf bat yazi tree)
-
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
 
@@ -200,3 +196,6 @@ if [ -d "${PHPENV_ROOT}" ]; then
   eval "$(phpenv init -)"
 fi
 export PATH="$HOME/.config/composer/vendor/bin:$PATH"
+
+export GOPATH=$HOME/go
+export PATH=$GOPATH/bin:$PATH

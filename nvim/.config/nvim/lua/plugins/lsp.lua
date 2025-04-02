@@ -149,7 +149,7 @@ return {
 				vue = { "prettierd", "prettier", stop_after_first = true },
 				php = { "pint", "php_cs_fixer", stop_after_first = true },
 				markdown = { "prettierd", "prettier", stop_after_first = true },
-                blade = { "blade-formatter" },
+				blade = { "blade-formatter" },
 			},
 			default_format_opts = {
 				lsp_format = "fallback",
@@ -161,10 +161,31 @@ return {
 		config = function()
 			require("lint").linters_by_fr = {
 				lua = { "luacheck" },
-                javascript = { "eslint" },
-                typescript = { "eslint" },
+				javascript = { "eslint" },
+				typescript = { "eslint" },
 				php = { "intelephense", "phpcs" },
 			}
+		end,
+	},
+	{
+		"rachartier/tiny-inline-diagnostic.nvim",
+		event = "VeryLazy", -- Or `LspAttach`
+		priority = 1000, -- needs to be loaded in first
+		config = function()
+			require("tiny-inline-diagnostic").setup({
+				options = {
+					show_source = true,
+					multilines = {
+						-- Enable multiline diagnostic messages
+						enabled = true,
+
+						-- Always show messages on all lines for multiline diagnostics
+						always_show = false,
+					},
+                    throttle = 200,
+				},
+			})
+			vim.diagnostic.config({ virtual_text = false }) -- Only if needed in your configuration, if you already have native LSP diagnostics
 		end,
 	},
 	{

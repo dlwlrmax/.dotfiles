@@ -45,6 +45,9 @@ return {
 			},
 			layout = {
 				preset = "ivy",
+				layout = {
+					height = 0.5,
+				},
 			},
 			formatters = {
 				file = {
@@ -53,12 +56,9 @@ return {
 			},
 			sources = {
 				explorer = {
-					auto_close = true,
+					auto_close = false,
 					hidden = true,
-                    ignored = true,
-					layout = {
-						preset = "sidebar",
-					},
+					ignored = true,
 				},
 			},
 		},
