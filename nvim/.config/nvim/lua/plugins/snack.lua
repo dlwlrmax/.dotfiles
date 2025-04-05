@@ -306,9 +306,12 @@ return {
 			end,
 		},
 		{
-			"<A-w>",
+			"<leader>q",
 			function()
-				Snacks.bufdelete()
+				local answer = vim.fn.confirm("Close this buffer?", "&Yes\n&No", 1)
+				if answer == 1 then
+					Snacks.bufdelete()
+				end
 			end,
 			desc = "Delete Buffer",
 		},

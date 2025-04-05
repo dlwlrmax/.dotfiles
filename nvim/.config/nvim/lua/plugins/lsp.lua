@@ -182,7 +182,7 @@ return {
 						-- Always show messages on all lines for multiline diagnostics
 						always_show = false,
 					},
-                    throttle = 200,
+					throttle = 200,
 				},
 			})
 			vim.diagnostic.config({ virtual_text = false }) -- Only if needed in your configuration, if you already have native LSP diagnostics
@@ -201,7 +201,6 @@ return {
 					enable = true,
 					hide_keyword = true,
 					show_file = true,
-					folder_level = 3,
 					color_mode = true,
 					delay = 1000,
 				},
