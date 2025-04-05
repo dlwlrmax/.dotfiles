@@ -4,7 +4,12 @@ local api = vim.api
 
 keymap.set("i", "jj", "<ESC>", { desc = "Quick Escape" })
 keymap.set("n", "<leader>w", ":w!<cr>", { desc = "Save file" })
-keymap.set("n", "<leader>fq", "<cmd>qall<cr>", { desc = "Quit file" })
+keymap.set("n", "<leader>fq", function ()
+    local answer = vim.fn.confirm("Are you sure you want to quit?", "&Yes\n&No", 1)
+    if answer == 1 then
+        api.nvim_command("qall")
+    end
+end, { desc = "Quit file" })
 keymap.set("n", "<leader>y", ":+y<cr>", { desc = "Yank line" })
 keymap.set("n", "<leader><cr>", ":noh<cr>", { desc = "Clear highlights" })
 keymap.set("n", "n", "nzzzv", { desc = "Center search result" })
@@ -93,3 +98,6 @@ vim.keymap.set({ "n", "v" }, "<leader>rp", function()
 		end
 	end
 end, { noremap = true, silent = true })
+
+-- Buffer keymap
+keymap.set("n", "<leader><tab>", "<CMD>b#<CR>", { desc = "Previous buffer" })

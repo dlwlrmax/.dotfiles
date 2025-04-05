@@ -5,51 +5,33 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-# If you come from bash you might have to change your $PATH.
-# export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
+# ${ZDOTDIR:-~}/.zshrc
 
-# Path to your Oh My Zsh installation.
-export ZSH=$HOME/.oh-my-zsh
+# Set the root name of the plugins files (.txt and .zsh) antidote will use.
+zsh_plugins=${ZDOTDIR:-~}/.zsh_plugins
 
-# Set name of the theme to load --- if set to "random", it will
-# load a random theme each time Oh My Zsh is loaded, in which case,
-# to know which specific one was loaded, run: echo $RANDOM_THEME
-# See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-# ZSH_THEME="robbyrussell"
-ZSH_THEME="powerlevel10k/powerlevel10k"
+# Ensure the .zsh_plugins.txt file exists so you can add plugins.
+[[ -f ${zsh_plugins}.txt ]] || touch ${zsh_plugins}.txt
 
-# Set list of themes to pick from when loading at random
-# Setting this variable when ZSH_THEME=random will cause zsh to load
-# a theme from this variable instead of looking in $ZSH/themes/
-# If set to an empty array, this variable will have no effect.
-# ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
+# Lazy-load antidote from its functions directory.
+fpath=(~/.antidote/functions $fpath)
+autoload -Uz antidote
 
-# Uncomment the following line to use case-sensitive completion.
-# CASE_SENSITIVE="true"
+# Generate a new static file whenever .zsh_plugins.txt is updated.
+if [[ ! ${zsh_plugins}.zsh -nt ${zsh_plugins}.txt ]]; then
+  antidote bundle <${zsh_plugins}.txt >|${zsh_plugins}.zsh
+fi
 
-# Uncomment the following line to use hyphen-insensitive completion.
-# Case-sensitive completion must be off. _ and - will be interchangeable.
-# HYPHEN_INSENSITIVE="true"
+# Source your static plugins file.
+source ${zsh_plugins}.zsh
 
-# Uncomment one of the following lines to change the auto-update behavior
-# zstyle ':omz:update' mode disabled  # disable automatic updates
-zstyle ':omz:update' mode auto      # update automatically without asking
-# zstyle ':omz:update' mode reminder  # just remind me to update when it's time
-
-# Uncomment the following line to change how often to auto-update (in days).
-zstyle ':omz:update' frequency 13
-
-# Uncomment the following line if pasting URLs and other text is messed up.
-# DISABLE_MAGIC_FUNCTIONS="true"
-
-# Uncomment the following line to disable colors in ls.
-# DISABLE_LS_COLORS="true"
-
-# Uncomment the following line to disable auto-setting terminal title.
-# DISABLE_AUTO_TITLE="true"
+ZSH=$(antidote path ohmyzsh/ohmyzsh)
+ZSH_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/oh-my-zsh"
+[[ -d $ZSH_CACHE_DIR ]] || mkdir -p $ZSH_CACHE_DIR
 
 # Uncomment the following line to enable command auto-correction.
-ENABLE_CORRECTION="true"
+ENABLE_CORRECTION="false"
+plugins=(git tmux)
 
 # Uncomment the following line to display red dots whilst waiting for completion.
 # You can also set it to another string to have that shown instead of the default red dots.
@@ -62,40 +44,6 @@ COMPLETION_WAITING_DOTS="true"
 # much, much faster.
 # DISABLE_UNTRACKED_FILES_DIRTY="true"
 
-# Uncomment the following line if you want to change the command execution time
-# stamp shown in the history command output.
-# You can set one of the optional three formats:
-# "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
-# or set a custom format using the strftime function format specifications,
-# see 'man strftime' for details.
-# HIST_STAMPS="mm/dd/yyyy"
-
-# Would you like to use another custom folder than $ZSH/custom?
-# ZSH_CUSTOM=/path/to/new-custom-folder
-
-# Which plugins would you like to load?
-# Standard plugins can be found in $ZSH/plugins/
-# Custom plugins may be added to $ZSH_CUSTOM/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
-plugins=(
-  git
-  bundler
-  dotenv
-  macos
-  rake
-  rbenv
-  ruby
-  laravel
-  z
-  zsh-autosuggestions
-  fast-syntax-highlighting
-  zsh-history-substring-search
-  auto-notify
-  fzf-zsh-plugin
-  tmux
-)
-
 # CONFIGURE FOR TMUX
 # Autostart only if tmux hasn't been started previously
 ZSH_TMUX_AUTOSTART_ONCE=true
@@ -104,15 +52,6 @@ ZSH_TMUX_AUTOCONNECT=true
 # Automatically name new sessions based on the basename of the directory
 ZSH_TMUX_AUTONAME_SESSION=true
 
-
-# This for zsh-completions
-fpath+=${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions/src
-
-source $ZSH/oh-my-zsh.sh
-
-# User configuration
-
-# export MANPATH="/usr/local/man:$MANPATH"
 
 # You may need to manually set your language environment
 export LANG=en_US.UTF-8
@@ -157,6 +96,20 @@ bindkey -v
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
+export FTB_TMUX_POPUP_SIZE='80%x60%'
+export FTB_TMUX_POPUP_BORDER=true
+
+zstyle ':tmux:*' auto-title on
+zstyle ':fzf-tab:*' fzf-command ftb-tmux-popup
+# Git branches
+zstyle ':completion:*:git-checkout:*' sort false
+
+zstyle ':completion:*:git-checkout:*' preview \
+  'branch={${(Q)words[-1]}}; git for-each-ref --format="%(committerdate:relative)" "refs/heads/$branch" 2>/dev/null || echo "No info"' ftb-tmux-popup
+
+# Git log preview for fzf-tab
+zstyle ':fzf-tab:complete:git-log:*' fzf-preview \
+  '[[ -n "$1" ]] && git show --color=always "$1" || echo "No commit selected"'
 ## fzf config
 # Open in tmux popup if on tmux, otherwise use --height mode
 export FZF_DEFAULT_OPTS='--height 90% --tmux center,90% --layout reverse --border --margin=1 --padding=1'
@@ -179,7 +132,6 @@ export FZF_ALT_C_OPTS="
   --preview 'tree -C {}'"
 
 source <(fzf --zsh)
-source ~/.dotfiles/fzf-git/script.sh
 
 # pnpm
 export PNPM_HOME="$HOME/.local/share/pnpm"
@@ -190,12 +142,15 @@ case ":$PATH:" in
 esac
 # pnpm end
 
-export PHPENV_ROOT="$HOME/.phpenv"
-if [ -d "${PHPENV_ROOT}" ]; then
-  export PATH="${PHPENV_ROOT}/bin:${PATH}"
-  eval "$(phpenv init -)"
-fi
 export PATH="$HOME/.config/composer/vendor/bin:$PATH"
 
+# Golang
 export GOPATH=$HOME/go
 export PATH=$GOPATH/bin:$PATH
+
+source ~/.dotfiles/fzf-git/script.sh
+
+# PHPBREW
+export PHPBREW_SET_PROMPT=1
+export PHPBREW_RC_ENABLE=1
+[[ -e ~/.phpbrew/bashrc ]] && source ~/.phpbrew/bashrc
