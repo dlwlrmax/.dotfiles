@@ -85,3 +85,7 @@ yay -S nwg-look nwg-display
 ## ueberzug
 ```bash
 sudo pacman -S ueberzug openslide
+
+## phpbrew
+```bash
+ phpbrew install 8.3.19 +default +mysql +sqlite +mb +iconv +openssl

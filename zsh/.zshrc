@@ -94,10 +94,19 @@ bindkey -v
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
 export FTB_TMUX_POPUP_SIZE='80%x60%'
 export FTB_TMUX_POPUP_BORDER=true
+
+
+# Config jeffreytse/zsh-vi-mode to resolve conflict issue with zsh-history-substring-search
+function zvm_after_init() {
+  [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+  [ -f ~/.dotfiles/fzf-git/script.sh ] && source ~/.dotfiles/fzf-git/script.sh
+  enable-fzf-tab
+}
+
+ZVM_VI_INSERT_ESCAPE_BINDKEY=jj
 
 zstyle ':tmux:*' auto-title on
 zstyle ':fzf-tab:*' fzf-command ftb-tmux-popup
@@ -148,9 +157,10 @@ export PATH="$HOME/.config/composer/vendor/bin:$PATH"
 export GOPATH=$HOME/go
 export PATH=$GOPATH/bin:$PATH
 
-source ~/.dotfiles/fzf-git/script.sh
 
 # PHPBREW
 export PHPBREW_SET_PROMPT=1
 export PHPBREW_RC_ENABLE=1
 [[ -e ~/.phpbrew/bashrc ]] && source ~/.phpbrew/bashrc
+
+

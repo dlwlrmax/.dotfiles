@@ -11,6 +11,7 @@ rupa/z
 # annotations are also allowed:
 romkatv/zsh-bench kind:path
 olets/zsh-abbr    kind:defer
+junegunn/fzf      path:shell
 
 # set up Zsh completions with plugins
 zsh-users/zsh-completions kind:fpath path:src
