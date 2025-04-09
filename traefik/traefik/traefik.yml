@@ -1,3 +1,7 @@
+entryPoints:
+  web:
+    address: ":80"
+
 providers:
   file:
     directory: /traefik.d
@@ -5,8 +9,12 @@ providers:
   docker:
     watch: true
     exposedByDefault: false
+    endpoint: "unix:///var/run/docker.sock"
     network: "web"
 
 api:
   dashboard: true
   insecure: true
+
+log:
+  level: DEBUG

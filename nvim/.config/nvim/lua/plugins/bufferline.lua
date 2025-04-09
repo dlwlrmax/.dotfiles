@@ -1,4 +1,4 @@
-if true then return {} end
+-- if true then return {} end
 return {
 	{
 		"akinsho/bufferline.nvim",
@@ -42,8 +42,6 @@ return {
 			{ "<leader>ml", "<Cmd>BufferLineMoveNext<CR><CR>", desc = "Move buffer right" },
 			{ "<leader>mh", "<Cmd>BufferLineMovePrev<CR>", desc = "Move buffer left" },
 			{ "<Leader>rt", "<Cmd>BufferRestore<CR>", desc = "Restore last closed buffer" },
-			{ "<leader>q", "<Cmd>b#<CR>", desc = "Switch to last buffer" },
-			{ "<C-p>", "<Cmd>BufferLinePick<CR>", desc = "Pick buffer" },
 		},
 		config = function()
 			local bufferline = require("bufferline")

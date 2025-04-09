@@ -9,3 +9,18 @@
 #       loadBalancer:
 #         servers:
 #           - url: "http://172.20.0.1:9443"
+
+# http:
+#   routers:
+#     inertia-router:
+#       rule: "Host(`inertia.test`)"
+#       service: inertia-service
+#       entrypoints:
+#         - web
+#
+#   services:
+#     inertia-service:
+#       loadBalancer:
+#         servers:
+#           - url: "http://127.0.0.1:8000"
+#
