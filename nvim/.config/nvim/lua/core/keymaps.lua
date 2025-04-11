@@ -100,4 +100,3 @@ vim.keymap.set({ "n", "v" }, "<leader>rp", function()
 end, { noremap = true, silent = true })
 
 -- Buffer keymap
-keymap.set("n", "<leader><tab>", "<CMD>b#<CR>", { desc = "Previous buffer" })

@@ -33,15 +33,6 @@ return {
                     }
 				},
 				left = {
-					-- Neo-tree filesystem always takes half the screen height
-					-- {
-					-- 	title = "File Explorer",
-					-- 	ft = "snacks_picker_list",
-					-- 	filter = function(buf)
-					-- 		return vim.b[buf].neo_tree_source == "filesystem"
-					-- 	end,
-					-- 	size = { height = 0.5 },
-					-- },
                     {
                         ft = "dbui",
                         size = { height = 0.5 },

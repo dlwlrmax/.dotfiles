@@ -189,8 +189,8 @@ return {
 			wo = {},
 			---@class snacks.terminal.Config
 			---@field override? fun(cmd?: string|string[], opts?: snacks.terminal.Opts) Use this to use a different terminal implementation
-			{
-				win = { style = "terminal" },
+			win = {
+				style = "terminal",
 			},
 			keys = {
 				q = "hide",
@@ -316,9 +316,9 @@ return {
 			desc = "Delete Buffer",
 		},
 		{
-			"<leader>og",
+			"<leader>go",
 			function()
-				Snacks.lazygit()
+				Snacks.lazygit.open()
 			end,
 			desc = "Lazygit",
 		},

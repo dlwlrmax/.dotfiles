@@ -37,11 +37,12 @@ return {
 			end
 		end,
 		keys = {
-			{ "<leader>h", "<Cmd>BufferLineCyclePrev<CR><CR>", desc = "Previous buffer" },
-			{ "<leader>l", "<Cmd>BufferLineCycleNext<CR>", desc = "Next buffer" },
-			{ "<leader>ml", "<Cmd>BufferLineMoveNext<CR><CR>", desc = "Move buffer right" },
-			{ "<leader>mh", "<Cmd>BufferLineMovePrev<CR>", desc = "Move buffer left" },
-			{ "<Leader>rt", "<Cmd>BufferRestore<CR>", desc = "Restore last closed buffer" },
+			{ "<leader>h", "<Cmd>BufferLineCyclePrev<CR><CR>", desc = "Previous buffer", mode = { "n", "v" } },
+			{ "<leader>l", "<Cmd>BufferLineCycleNext<CR>", desc = "Next buffer", mode = { "n", "v" } },
+			{ "<leader>ml", "<Cmd>BufferLineMoveNext<CR><CR>", desc = "Move buffer right", mode = { "n", "v" } },
+			{ "<leader>mh", "<Cmd>BufferLineMovePrev<CR>", desc = "Move buffer left", mode = { "n", "v" } },
+			{ "<leader>rt", "<Cmd>BufferRestore<CR>", desc = "Restore last closed buffer", mode = { "n", "v" } },
+			{ "<leader><tab>", "<CMD>b#<CR>", desc = "Previous buffer", mode = { "n", "v" } },
 		},
 		config = function()
 			local bufferline = require("bufferline")
@@ -63,11 +64,11 @@ return {
 					end,
 					offsets = {
 						{
-							filetype = "NeoTree",
+							filetype = "Scratch",
 							text = function()
 								return vim.fn.getcwd()
 							end,
-							highlight = "Directory",
+							highlight = "File Explorer",
 						},
 					},
 				},
