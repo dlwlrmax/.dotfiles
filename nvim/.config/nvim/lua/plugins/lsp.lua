@@ -218,7 +218,6 @@ return {
 						edit = "<CR>",
 						vsplit = "<C-v>",
 						split = "<C-x>",
-						tabe = "<C-t>",
 					},
 				},
 				lightbulb = {

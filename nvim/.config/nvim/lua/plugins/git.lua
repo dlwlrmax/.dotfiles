@@ -33,8 +33,8 @@ return {
 			"sindrets/diffview.nvim", -- optional - Diff integration
 
 			-- Only one of these is needed.
-			-- "ibhagwan/fzf-lua", -- optional
-			"echasnovski/mini.diff", -- optional
+            -- "ibhagwan/fzf-lua", -- optional
+			"echasnovski/mini.nvim", -- optional
 		},
 		config = function()
 			require("neogit").setup({
