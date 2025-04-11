@@ -237,8 +237,15 @@ return {
 			function()
 				Snacks.picker.files({ hidden = true, follow = true })
 			end,
-			desc = "Smart Picker",
+			desc = "File Picker",
 		},
+        {
+            "<leader>rs",
+            function()
+                Snacks.picker.resume()
+            end,
+            desc = "Resume Picker",
+        },
 		{
 			"<C-b>",
 			function()

@@ -4,11 +4,11 @@ local api = vim.api
 
 keymap.set("i", "jj", "<ESC>", { desc = "Quick Escape" })
 keymap.set("n", "<leader>w", ":w!<cr>", { desc = "Save file" })
-keymap.set("n", "<leader>fq", function ()
-    local answer = vim.fn.confirm("Are you sure you want to quit?", "&Yes\n&No", 1)
-    if answer == 1 then
-        api.nvim_command("qall")
-    end
+keymap.set("n", "<leader>fq", function()
+	local answer = vim.fn.confirm("Are you sure you want to quit?", "&Yes\n&No", 1)
+	if answer == 1 then
+		api.nvim_command("qall")
+	end
 end, { desc = "Quit file" })
 keymap.set("n", "<leader>y", ":+y<cr>", { desc = "Yank line" })
 keymap.set("n", "<leader><cr>", ":noh<cr>", { desc = "Clear highlights" })
@@ -78,25 +78,6 @@ keymap.set("n", "<leader>tq", "<cmd>tabclose<CR>", { desc = "Close tab" })
 keymap.set("n", "<leader>tp", "<cmd>tabprevious<CR>", { desc = "Previous tab" })
 keymap.set("n", "<leader>tn", "<cmd>tabnext<CR>", { desc = "Next tab" })
 
-vim.keymap.set({ "n", "v" }, "<leader>rp", function()
-	local word = ""
-
-	-- Check if in Visual Mode
-	if vim.fn.mode() == "v" then
-		-- Get the selected text
-		vim.cmd('normal! "vy') -- Copy selection to register v
-		word = vim.fn.getreg("v") -- Retrieve selection
-	else
-		-- Prompt user to type the word manually in Normal mode
-		word = vim.fn.input("Enter word to replace: ")
-	end
-
-	if word ~= "" then
-		local new_word = vim.fn.input("Replace " .. word .. " with: ")
-		if new_word ~= "" then
-			vim.cmd(":%s/\\<" .. word .. "\\>/" .. new_word .. "/gc")
-		end
-	end
-end, { noremap = true, silent = true })
+vim.keymap.set({ "n", "v" }, "<leader>rp", ':%s/', { noremap = true, silent = true, desc = "Replace word" })
 
 -- Buffer keymap
