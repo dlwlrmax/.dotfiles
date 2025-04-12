@@ -34,7 +34,7 @@ return {
 				},
 			})
 
-			vim.keymap.set("n", "go", function()
+			vim.keymap.set("n", "<leader>gg", function()
 				miniDiff.toggle_overlay(0)
 			end, { noremap = true, silent = true, desc = "Toggle MiniDiff overlay" })
 			require("mini.pairs").setup()

@@ -43,6 +43,7 @@ return {
 			{ "<leader>mh", "<Cmd>BufferLineMovePrev<CR>", desc = "Move buffer left", mode = { "n", "v" } },
 			{ "<leader>rt", "<Cmd>BufferRestore<CR>", desc = "Restore last closed buffer", mode = { "n", "v" } },
 			{ "<leader><tab>", "<CMD>b#<CR>", desc = "Previous buffer", mode = { "n", "v" } },
+			{ "<leader>bc", "<CMD>BufferLineCloseOthers<CR>", desc = "Close other buffers", mode = { "n", "v" } },
 		},
 		config = function()
 			local bufferline = require("bufferline")

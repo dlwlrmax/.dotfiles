@@ -18,6 +18,12 @@ tls:
   certificates:
     - certFile: "./certs/inertia.test.pem"
       keyFile: "./certs/inertia.test-key.pem"
+    - certFile: "./certs/erp.langmaster.test.pem"
+      keyFile: "./certs/erp.langmaster.test-key.pem"
+    - certFile: "./certs/cafemom.test.pem"
+      keyFile: "./certs/cafemom.test-key.pem"
+    - certFile: "./certs/langmaster.edu.pem"
+      keyFile: "./certs/langmaster.edu-key.pem"
 
 api:
   dashboard: true
