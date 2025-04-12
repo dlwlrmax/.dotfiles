@@ -159,12 +159,18 @@ return {
 	{
 		"mfussenegger/nvim-lint",
 		config = function()
-			require("lint").linters_by_fr = {
+			require("lint").linters_by_ft = {
 				lua = { "luacheck" },
-				javascript = { "eslint" },
-				typescript = { "eslint" },
-				php = { "intelephense", "phpcs" },
+				javascript = { "eslint_d" },
+				typescript = { "eslint_d" },
+				vue = { "eslint_d" },
+				php = { "phpstan" },
 			}
+			vim.api.nvim_create_autocmd({ "BufWritePost" }, {
+				callback = function()
+					require("lint").try_lint()
+				end,
+			})
 		end,
 	},
 	{
@@ -249,5 +255,25 @@ return {
 				},
 			})
 		end,
+	},
+	{
+		"WhoIsSethDaniel/mason-tool-installer.nvim",
+		dependencies = {
+			"williamboman/mason.nvim",
+		},
+		opts = {
+			ensure_installed = {
+				"stylua",
+				"phpstan",
+				"blade-formatter",
+				"intelephense",
+				"prettierd",
+				"prettier",
+				"eslint_d",
+				"eslint",
+				"pint",
+			},
+			auto_update = true,
+		},
 	},
 }

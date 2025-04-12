@@ -50,11 +50,6 @@ vim.api.nvim_create_autocmd("FileType", {
 	end,
 })
 
-vim.api.nvim_create_autocmd({ "BufWritePost" }, {
-	callback = function()
-		require("lint").try_lint()
-	end,
-})
 
 -- close some filetypes with <q>
 vim.api.nvim_create_autocmd("FileType", {

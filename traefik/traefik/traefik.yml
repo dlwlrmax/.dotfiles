@@ -1,6 +1,8 @@
 entryPoints:
   web:
     address: ":80"
+  websecure:
+    address: ":443"
 
 providers:
   file:
@@ -10,11 +12,22 @@ providers:
     watch: true
     exposedByDefault: false
     endpoint: "unix:///var/run/docker.sock"
-    network: "web"
+    network: "traefik_net"
+
+tls:
+  certificates:
+    - certFile: "./certs/inertia.test.pem"
+      keyFile: "./certs/inertia.test-key.pem"
 
 api:
   dashboard: true
   insecure: true
+
+http:
+  middlewares:
+    redirect-to-https:
+      redirectScheme:
+        scheme: "https"
 
 log:
   level: DEBUG
