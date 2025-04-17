@@ -270,7 +270,6 @@ return {
 				"prettierd",
 				"prettier",
 				"eslint_d",
-				"eslint",
 				"pint",
 			},
 			auto_update = true,
