@@ -84,6 +84,7 @@ alias waybar-reload="killall -SIGUSR2 waybar"
 alias ls="eza -G --color=auto --icons=auto" 
 alias lgit="lazygit"
 alias gopen="~/git.sh"
+alias async="~/.dotfiles/scripts/async.sh"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
 # This for zsh-history-substring-search
