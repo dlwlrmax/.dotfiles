@@ -76,6 +76,9 @@ return {
 					},
 				},
 			},
+            fold = {
+                enable = true,
+            },
 		},
 		---@param opts TSConfig
 		config = function(_, opts)

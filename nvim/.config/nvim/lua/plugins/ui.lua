@@ -81,6 +81,9 @@ return {
 			},
 			messages = {
 				view_search = false,
+				filter = {
+					{ event = "msg_show", kind = "", find = "written" },
+				},
 			},
 			-- you can enable a preset for easier configuration
 			presets = {

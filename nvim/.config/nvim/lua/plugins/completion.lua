@@ -1,13 +1,12 @@
 return {
 	{
 		"saghen/blink.cmp",
-		-- optional: provides snippets for the snippet source
 		dependencies = {
+			-- "mikavilpas/blink-ripgrep.nvim",
+			"folke/snacks.nvim",
 			{
 				"L3MON4D3/LuaSnip",
-				-- follow latest release.
-				version = "v2.*", -- Replace <CurrentMajor> by the latest released major (first number of latest release)
-				-- install jsregexp (optional!).
+				version = "v2.*",
 				build = "make install_jsregexp",
 				dependencies = {
 					{
@@ -22,8 +21,6 @@ return {
 				},
 			},
 		},
-
-		-- use a release tag to download pre-built binaries
 		version = "*",
 		---@module 'blink.cmp'
 		---@type blink.cmp.Config
@@ -35,7 +32,7 @@ return {
 				["<S-Tab>"] = { "select_prev", "fallback" },
 				["<C-f>"] = { "snippet_forward", "fallback" },
 				["<C-b>"] = { "snippet_backward", "fallback" },
-				["<C-a>"] = { "show", "hide", "fallback" },
+				["<C-space>"] = { "show", "hide", "fallback" },
 				["<C-c>"] = { "hide", "fallback" },
 			},
 			cmdline = {
@@ -52,20 +49,100 @@ return {
 					},
 				},
 			},
-
 			snippets = {
 				preset = "luasnip",
 			},
-
 			sources = {
-				default = { "lsp", "path", "snippets", "buffer" },
+				-- default = { "lsp", "path", "snippets", "buffer" },
+				default = { "lsp", "path", "snippets", "buffer", "codeium" },
 				per_filetype = {
 					sql = { "dadbod", "buffer", "snippets" },
 					mysql = { "dadbod", "buffer", "snippets" },
+					lua = { "lazydev", "lsp", "path", "snippets", "buffer" },
+					-- lua = { "lazydev", "lsp", "path", "snippets", "buffer", "ripgrep" },
 				},
 				providers = {
 					dadbod = { name = "Dadbod", module = "vim_dadbod_completion.blink" },
-					ecolog = { name = "ecolog", module = "ecolog.integrations.cmp.blink_cmp" },
+					codeium = { name = "Codeium", module = "codeium.blink", async = true },
+					-- ecolog = { name = "ecolog", module = "ecolog.integrations.cmp.blink_cmp" },
+					lsp = {
+						score_offset = 99,
+						timeout_ms = 3000,
+					},
+					snippets = {
+						score_offset = 100,
+						min_keyword_length = 2,
+					},
+					buffer = {
+						min_keyword_length = 2,
+						async = false,
+					},
+					lazydev = {
+						name = "LazyDev",
+						module = "lazydev.integrations.blink",
+						async = false,
+						score_offset = 100,
+					},
+					-- ripgrep = {
+					-- 	module = "blink-ripgrep",
+					-- 	name = "Ripgrep",
+					-- 	score_offset = -10,
+					-- 	-- the options below are optional, some default values are shown
+					-- 	---@module "blink-ripgrep"
+					-- 	---@type blink-ripgrep.Options
+					-- 	opts = {
+					-- 		prefix_min_len = 3,
+					-- 		context_size = 5,
+					-- 		max_filesize = "1M",
+					-- 		project_root_marker = { ".git", "package.json" },
+					-- 		project_root_fallback = true,
+					-- 		-- The casing to use for the search in a format that ripgrep
+					-- 		-- accepts. Defaults to "--ignore-case". See `rg --help` for all the
+					-- 		-- available options ripgrep supports, but you can try
+					-- 		-- "--case-sensitive" or "--smart-case".
+					-- 		search_casing = "--ignore-case",
+					-- 		-- (advanced) Any additional options you want to give to ripgrep.
+					-- 		-- See `rg -h` for a list of all available options. Might be
+					-- 		-- helpful in adjusting performance in specific situations.
+					-- 		-- If you have an idea for a default, please open an issue!
+					-- 		--
+					-- 		-- Not everything will work (obviously).
+					-- 		additional_rg_options = {},
+					-- 		-- When a result is found for a file whose filetype does not have a
+					-- 		-- treesitter parser installed, fall back to regex based highlighting
+					-- 		-- that is bundled in Neovim.
+					-- 		fallback_to_regex_highlighting = true,
+					-- 		ignore_paths = {},
+					-- 		additional_paths = {},
+					-- 		toggles = {
+					-- 			-- The keymap to toggle the plugin on and off from blink
+					-- 			-- completion results. Example: "<leader>tg"
+					-- 			on_off = nil,
+					-- 		},
+					-- 		future_features = {
+					-- 			-- Workaround for
+					-- 			-- https://github.com/mikavilpas/blink-ripgrep.nvim/issues/185. This
+					-- 			-- is a temporary fix and will be removed in the future.
+					-- 			issue185_workaround = false,
+					-- 			backend = {
+					-- 				use = "ripgrep",
+					-- 			},
+					-- 		},
+					-- 		debug = false,
+					-- 	},
+					-- 	-- (optional) customize how the results are displayed. Many options
+					-- 	-- are available - make sure your lua LSP is set up so you get
+					-- 	-- autocompletion help
+					-- 	transform_items = function(_, items)
+					-- 		for _, item in ipairs(items) do
+					-- 			-- example: append a description to easily distinguish rg results
+					-- 			item.labelDetails = {
+					-- 				description = "(rg)",
+					-- 			}
+					-- 		end
+					-- 		return items
+					-- 	end,
+					-- },
 				},
 			},
 
@@ -78,8 +155,6 @@ return {
 				menu = {
 					border = "rounded",
 					draw = {
-						-- We don't need label_description now because label and label_description are already
-						-- combined together in label by colorful-menu.nvim.
 						columns = { { "kind_icon", "label", gap = 1 }, { "source_name", "kind", gap = 1 } },
 						components = {
 							label = {
@@ -102,7 +177,6 @@ return {
 									for _, idx in ipairs(ctx.label_matched_indices) do
 										table.insert(highlights, { idx, idx + 1, group = "BlinkCmpLabelMatch" })
 									end
-									-- Do something else
 									return highlights
 								end,
 							},
@@ -124,6 +198,16 @@ return {
 
 			fuzzy = {
 				implementation = "prefer_rust_with_warning",
+				sorts = {
+					"score",
+					"exact",
+					function(item_a, item_b)
+						if item_a.deprecated then
+							return false
+						end
+					end,
+					"sort_text",
+				},
 			},
 			signature = {
 				enabled = false,
@@ -146,55 +230,28 @@ return {
 						arguments_hl = "@comment",
 					},
 					gopls = {
-						-- By default, we render variable/function's type in the right most side,
-						-- to make them not to crowd together with the original label.
-
-						-- when true:
-						-- foo             *Foo
-						-- ast         "go/ast"
-
-						-- when false:
-						-- foo *Foo
-						-- ast "go/ast"
 						align_type_to_right = true,
-						-- When true, label for field and variable will format like "foo: Foo"
-						-- instead of go's original syntax "foo Foo". If align_type_to_right is
-						-- true, this option has no effect.
 						add_colon_before_type = false,
-						-- See https://github.com/xzbdmw/colorful-menu.nvim/pull/36
 						preserve_type_when_truncate = true,
 					},
-					-- for lsp_config or typescript-tools
 					ts_ls = {
-						-- false means do not include any extra info,
-						-- see https://github.com/xzbdmw/colorful-menu.nvim/issues/42
 						extra_info_hl = "@comment",
 					},
 					vtsls = {
-						-- false means do not include any extra info,
-						-- see https://github.com/xzbdmw/colorful-menu.nvim/issues/42
 						extra_info_hl = "@comment",
 					},
 					["rust-analyzer"] = {
-						-- Such as (as Iterator), (use std::io).
 						extra_info_hl = "@comment",
-						-- Similar to the same setting of gopls.
 						align_type_to_right = true,
-						-- See https://github.com/xzbdmw/colorful-menu.nvim/pull/36
 						preserve_type_when_truncate = true,
 					},
 					clangd = {
-						-- Such as "From <stdio.h>".
 						extra_info_hl = "@comment",
-						-- Similar to the same setting of gopls.
 						align_type_to_right = true,
-						-- the hl group of leading dot of "•std::filesystem::permissions(..)"
 						import_dot_hl = "@comment",
-						-- See https://github.com/xzbdmw/colorful-menu.nvim/pull/36
 						preserve_type_when_truncate = true,
 					},
 					zls = {
-						-- Similar to the same setting of gopls.
 						align_type_to_right = true,
 					},
 					roslyn = {
@@ -203,25 +260,13 @@ return {
 					dartls = {
 						extra_info_hl = "@comment",
 					},
-					-- The same applies to pyright/pylance
 					basedpyright = {
-						-- It is usually import path such as "os"
 						extra_info_hl = "@comment",
 					},
-					-- If true, try to highlight "not supported" languages.
 					fallback = true,
-					-- this will be applied to label description for unsupported languages
 					fallback_extra_info_hl = "@comment",
 				},
-				-- If the built-in logic fails to find a suitable highlight group for a label,
-				-- this highlight is applied to the label.
 				fallback_highlight = "@variable",
-				-- If provided, the plugin truncates the final displayed text to
-				-- this width (measured in display cells). Any highlights that extend
-				-- beyond the truncation point are ignored. When set to a float
-				-- between 0 and 1, it'll be treated as percentage of the width of
-				-- the window: math.floor(max_width * vim.api.nvim_win_get_width(0))
-				-- Default 60.
 				max_width = 60,
 			})
 		end,

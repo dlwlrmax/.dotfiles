@@ -1,11 +1,16 @@
 return {
 	"kevinhwang91/nvim-ufo",
-	dependencies = "kevinhwang91/promise-async",
+	dependencies = {
+		"kevinhwang91/promise-async",
+		"nvim-treesitter/nvim-treesitter",
+	},
 	config = function()
 		vim.o.foldcolumn = "1"
 		vim.o.foldlevel = 99
 		vim.o.foldlevelstart = 99
 		vim.o.foldenable = true
+		vim.o.foldmethod = "expr"
+		vim.o.foldexpr = "nvim_treesitter#foldexpr()"
 		local handler = function(virtText, lnum, endLnum, width, truncate)
 			local newVirtText = {}
 			local suffix = ("... 󰘢 %d line(s)"):format(endLnum - lnum)
@@ -37,9 +42,9 @@ return {
 		require("ufo").setup({
 			close_fold_kinds_for_ft = {
 				default = { "imports", "comment" },
-                javascript = { "imports", "comment" },
-                vue = { "imports" },
-				php = { "phpdoc", "array", "namespace", "use", "comment", "include" },
+				javascript = { "imports", "comment" },
+				vue = { "imports", "comment" },
+				php = { "imports", "comment", "region", "marker" },
 			},
 			fold_virt_text_handler = handler,
 			---@diagnostic disable-next-line: unused-local

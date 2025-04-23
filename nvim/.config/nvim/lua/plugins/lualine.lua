@@ -4,8 +4,12 @@ return {
 		"nvim-lualine/lualine.nvim",
 		dependencies = { "nvim-tree/nvim-web-devicons" },
 		config = function()
-			local function show_codeium_status()
-				return "{...}" .. vim.fn["codeium#GetStatusString"]()
+			local lint_progress = function()
+				local linters = require("lint").get_running()
+				if #linters == 0 then
+					return "󰦕"
+				end
+				return "󱉶 " .. table.concat(linters, ", ")
 			end
 			require("lualine").setup({
 				options = {
@@ -38,7 +42,7 @@ return {
 						"filename",
 					},
 					lualine_x = {
-						"encoding",
+						lint_progress,
 						"lsp_status",
 						"filetype",
 					},

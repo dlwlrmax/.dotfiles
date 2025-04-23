@@ -97,22 +97,29 @@ return {
 	-- 		},
 	-- 	},
 	-- },
+
 	{
-		"Exafunction/codeium.nvim",
+		"Exafunction/windsurf.nvim",
 		dependencies = {
 			"nvim-lua/plenary.nvim",
+			"saghen/blink.cmp",
 		},
+        -- commit = "9569c9095a70370849345c861cdb2b06c4cadac7",
 		config = function()
 			require("codeium").setup({
 				enable_cmp_source = false,
 				virtual_text = {
 					enabled = true,
-                    quiet = true,
+					quiet = true,
+                    filetypes = {
+                        markdown = false
+                    },
+                    default_filetype_enabled = true,
 					key_bindings = {
 						accept = "<M-l>",
 						accept_word = "<M-w>",
 						accept_line = false,
-                        idle_delay = 100,
+						idle_delay = 100,
 						next = "<M-]>",
 						prev = "<M-[>",
 						dismiss = "<C-]>",
