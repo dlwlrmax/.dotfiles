@@ -36,5 +36,6 @@ swaylock-effects-git
 visual-studio-code-bin
 wps-office
 xampp
+yaak
 ytermusic
 zsh-antidote

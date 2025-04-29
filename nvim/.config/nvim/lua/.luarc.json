@@ -6,5 +6,5 @@
     "diagnostics.disable": [
         "unused-local"
     ],
-    "completion.autoRequire": false
+    "completion.autoRequire": true
 }

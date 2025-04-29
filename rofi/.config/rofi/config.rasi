@@ -155,7 +155,7 @@ configuration {
   }
 }
 
-@theme "Paper"
+//@theme "Paper"
 /* @theme "paper-float" */
 
 element {
@@ -171,3 +171,7 @@ element-icon {
 element-text {
     vertical-align: 0.5;
 }
+
+//@theme "/home/kienct/.local/share/rofi/themes/spotlight-dark.rasi"
+
+@theme "/usr/share/rofi/themes/paper-float.rasi"

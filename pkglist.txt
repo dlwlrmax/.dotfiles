@@ -159,7 +159,6 @@ mission-center
 modemmanager
 mpv
 mtools
-mysql-workbench
 nano
 nano-syntax-highlighting
 nautilus
@@ -258,6 +257,7 @@ tmux
 totem
 tree
 tree-sitter-javascript
+tree-sitter-rust
 ttf-bitstream-vera
 ttf-dejavu
 ttf-liberation

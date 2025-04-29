@@ -39,7 +39,7 @@ return {
 			noremap = true,
 		},
 		{
-			"<leader>gr",
+			"grf",
 			"<cmd>Lspsaga finder<CR>",
 			desc = "[Saga]Finder",
 			mode = "n",
@@ -99,6 +99,10 @@ return {
 			},
 			rename = {
 				in_select = false,
+                keys = {
+                    quit = "q",
+                    exec = "<CR>",
+                }
 			},
 			outline = {
 				auto_close = true,
@@ -116,9 +120,6 @@ return {
 					vsplit = "<C-v>",
 					split = "<C-x>",
 				},
-			},
-			ui = {
-				code_action = " ",
 			},
 			lightbulb = {
 				enable = true,
