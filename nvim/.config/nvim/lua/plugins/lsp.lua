@@ -197,19 +197,12 @@ return {
 	{
 		"nvimdev/lspsaga.nvim",
 		dependencies = {
-			"nvim-treesitter/nvim-treesitter", -- optional
-			"nvim-tree/nvim-web-devicons", -- optional
+			"nvim-treesitter/nvim-treesitter",
+			"nvim-tree/nvim-web-devicons",
 		},
 		after = "nvim-lspconfig",
 		config = function()
 			require("lspsaga").setup({
-				symbol_in_winbar = {
-					enable = true,
-					hide_keyword = true,
-					show_file = true,
-					color_mode = true,
-					delay = 1000,
-				},
 				code_action = {
 					show_server_name = true,
 					extend_gitsigns = true,
@@ -226,32 +219,15 @@ return {
 						split = "<C-x>",
 					},
 				},
+                ui = {
+                    code_action = ' '
+                },
 				lightbulb = {
 					enable = true,
-					enable_in_insert = false,
-					sign = true,
-					sign_priority = 140,
+					sign = false,
 					debounce = 300,
-					virtual_text = false,
-				},
-				ui = {
-					title = true,
-					border = "rounded",
-					winblend = 0,
-					expand = "",
-					collapse = "",
-					code_action = "",
-					incoming = " ",
-					lines = { "┗", "┣", "┃", "━", "┏" },
-					outgoing = " ",
-					hover = " ",
-					kind = require("catppuccin.groups.integrations.lsp_saga").custom_kind(),
-				},
-				implement = {
-					enable = true,
-					sign = true,
+					sign_priority = 40,
 					virtual_text = true,
-					priority = 100,
 				},
 			})
 		end,
