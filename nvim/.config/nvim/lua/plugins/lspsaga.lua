@@ -47,7 +47,7 @@ return {
 			noremap = true,
 		},
 		{
-			"<leader>gd",
+			"gd",
 			"<cmd>Lspsaga peek_definition<CR>",
 			desc = "[Saga]Goto Definition",
 			mode = "n",
@@ -55,7 +55,7 @@ return {
 			noremap = true,
 		},
 		{
-			"<leader>gD",
+			"gD",
 			"<cmd>Lspsaga goto_definition<CR>",
 			desc = "[Saga]Goto Definition",
 			mode = "n",
@@ -63,7 +63,7 @@ return {
 			noremap = true,
 		},
 		{
-			"<leader>gt",
+			"gt",
 			"<cmd>Lspsaga peek_type_definition<CR>",
 			desc = "[Saga]Goto Type Definition",
 			mode = "n",

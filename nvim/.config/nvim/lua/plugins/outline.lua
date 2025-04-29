@@ -1,3 +1,4 @@
+if true then return {} end
 return {
 	"hedyhli/outline.nvim",
 	lazy = true,
