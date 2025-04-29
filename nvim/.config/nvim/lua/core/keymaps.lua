@@ -48,20 +48,9 @@ api.nvim_set_keymap("n", "<leader>i", "<ESC><cmd>lua vim.lsp.buf.format({ timeou
 local opts = { noremap = true, silent = true }
 
 -- set keybinds
-keymap.set("n", "gr", "<cmd>Lspsaga finder<CR>", opts) -- show definition, references
-keymap.set("n", "gD", "<cmd>Lspsaga goto_definition<CR>", opts) -- see definition and make edits in window
-keymap.set("n", "gd", "<cmd>Lspsaga peek_definition<CR>", opts) -- see definition and make edits in window
-keymap.set("n", "gt", "<cmd>Lspsaga peek_type_definition<CR>", opts) -- see definition and make edits in window
-keymap.set("n", "<leader>kk", "<cmd>Lspsaga peek_type_definition<CR>", opts) -- see definition and make edits in window
-keymap.set("n", "<leader>K", "<cmd>Lspsaga hover_doc<CR>", opts) -- show documentation for what is under cursor
 keymap.set("n", "<leader>sl", "<cmd>lua vim.diagnostic.open_float()<CR>", opts)
-keymap.set("n", "<leader>ca", "<cmd>Lspsaga code_action<CR>", opts) -- see available code actions
-keymap.set("n", "<leader>rn", "<cmd>Lspsaga rename<CR>", opts) -- smart rename
 keymap.set("n", "dp", "<cmd>Lspsaga diagnostic_jump_prev<CR>", opts) -- jump to previous diagnostic in buffer
 keymap.set("n", "dn", "<cmd>Lspsaga diagnostic_jump_next<CR>", opts) -- jump to next diagnostic in buffer
-keymap.set("n", "<leader>op", "<cmd>Lspsaga outline<CR>", opts) -- see outline on right hand side
-
-keymap.set("n", "<leader>F", "<cmd>GrugFar<CR>", { desc = "Find and replace" })
 
 -- AI / Copilot Chat
 

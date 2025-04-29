@@ -20,6 +20,7 @@ return {
             { "<leader>d", group = "DiffView" },
             { "<leader>g", group = "Git" },
             { "<leader>s", group = "LSP Saga/Move Split" },
+            { "<leader>c", group = "LSP Saga/Code Action" },
 		})
 	end,
 }

@@ -195,44 +195,6 @@ return {
 		end,
 	},
 	{
-		"nvimdev/lspsaga.nvim",
-		dependencies = {
-			"nvim-treesitter/nvim-treesitter",
-			"nvim-tree/nvim-web-devicons",
-		},
-		after = "nvim-lspconfig",
-		config = function()
-			require("lspsaga").setup({
-				code_action = {
-					show_server_name = true,
-					extend_gitsigns = true,
-					keys = {
-						quit = "q",
-						exec = "<CR>",
-					},
-				},
-				definition = {
-					keys = {
-						quit = "q",
-						edit = "<CR>",
-						vsplit = "<C-v>",
-						split = "<C-x>",
-					},
-				},
-                ui = {
-                    code_action = ' '
-                },
-				lightbulb = {
-					enable = true,
-					sign = false,
-					debounce = 300,
-					sign_priority = 40,
-					virtual_text = true,
-				},
-			})
-		end,
-	},
-	{
 		"WhoIsSethDaniel/mason-tool-installer.nvim",
 		dependencies = {
 			"williamboman/mason.nvim",
