@@ -76,6 +76,7 @@ gdm
 ghostty
 git
 github-cli
+glab
 glances
 gnome-browser-connector
 gnome-calculator
