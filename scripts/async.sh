@@ -38,7 +38,7 @@ if [[ "$MODE" == "update" ]]; then
   if [[ -s "$TMP_MISSING_PKG" ]]; then
     echo "[+] Installing missing official packages:"
     cat "$TMP_MISSING_PKG"
-    sudo pacman -S --needed -- < "$TMP_MISSING_PKG"
+    sudo pacman -S --needed --noconfirm -- < "$TMP_MISSING_PKG"
   else
     echo "[✓] No official packages to install."
   fi
@@ -46,7 +46,7 @@ if [[ "$MODE" == "update" ]]; then
   if [[ -s "$TMP_MISSING_AUR" ]]; then
     echo "[+] Installing missing AUR packages:"
     cat "$TMP_MISSING_AUR"
-    yay -S --needed -- < "$TMP_MISSING_AUR"
+    yay -S --needed --noconfirm -- < "$TMP_MISSING_AUR"
   else
     echo "[✓] No AUR packages to install."
   fi

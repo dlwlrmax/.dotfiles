@@ -192,4 +192,5 @@ return {
 			auto_update = true,
 		},
 	},
+	{ "sindrets/diffview.nvim" },
 }
