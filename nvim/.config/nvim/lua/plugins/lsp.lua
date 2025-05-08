@@ -6,125 +6,10 @@ return {
 		},
 	},
 	{
-		"williamboman/mason.nvim",
-		config = function()
-			local mason = require("mason")
-			mason.setup({})
-		end,
-	},
-	{
 		"dmmulroy/ts-error-translator.nvim",
 		config = function()
 			require("ts-error-translator").setup({
 				auto_override_publish_diagnostics = true,
-			})
-		end,
-	},
-	{
-		"williamboman/mason-lspconfig.nvim",
-		dependencies = {
-			"saghen/blink.cmp",
-		},
-		event = { "BufReadPre", "BufNewFile" },
-		config = function()
-			vim.keymap.set({ "n" }, "gI", function()
-				vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())
-			end, { noremap = true, silent = true, desc = "Toggle inlay hints" })
-
-			require("mason-lspconfig").setup({
-				automatic_installation = true,
-				ensure_installed = {
-					"intelephense",
-					"typos_lsp",
-					"volar",
-					"emmet_language_server",
-					"tailwindcss",
-					"vtsls",
-				},
-				handlers = {
-					function(server_name)
-						local lspconfig = require("lspconfig")
-						local capabilities = require("blink.cmp").get_lsp_capabilities()
-						lspconfig[server_name].setup({
-							capabilities = capabilities,
-							-- on_attach = on_attach
-						})
-					end,
-					["volar"] = function()
-						require("lspconfig").volar.setup({
-							capabilities = {
-								textDocument = {
-									completion = {
-										completionItem = {
-											snippetSupport = true,
-										},
-									},
-								},
-							},
-							init_options = {
-								vue = {
-									hybridMode = true,
-								},
-							},
-							vtsls = {},
-						})
-					end,
-					["vtsls"] = function()
-						require("lspconfig").vtsls.setup({
-							filetypes = { "typescript", "javascript", "javascriptreact", "typescriptreact", "vue" },
-							settings = {
-								vtsls = { tsserver = { globalPlugins = {} } },
-							},
-							before_init = function(params, config)
-								local result = vim.system(
-									{ "npm", "query", "#vue" },
-									{ cwd = params.workspaceFolders[1].name, text = true }
-								):wait()
-								if result.stdout ~= "[]" then
-									local vuePluginConfig = {
-										name = "@vue/typescript-plugin",
-										location = require("mason-registry")
-											.get_package("vue-language-server")
-											:get_install_path() .. "/node_modules/@vue/language-server",
-										languages = { "vue" },
-										configNamespace = "typescript",
-										enableForWorkspaceTypeScriptVersions = true,
-									}
-									table.insert(config.settings.vtsls.tsserver.globalPlugins, vuePluginConfig)
-								end
-							end,
-						})
-					end,
-					["intelephense"] = function()
-						require("lspconfig").intelephense.setup({
-							settings = {
-								intelephense = {
-									maxSize = 1000000,
-								},
-							},
-						})
-					end,
-					["typos_lsp"] = function()
-						local lspconfig = require("lspconfig")
-						lspconfig.typos_lsp.setup({
-							init_options = {
-								config = "~/.config/nvim/typos.toml",
-							},
-						})
-					end,
-					["tailwindcss"] = function()
-						local lspconfig = require("lspconfig")
-						lspconfig.tailwindcss.setup({
-							root_dir = require("lspconfig").util.root_pattern(
-								"tailwind.config.js",
-								"tailwind.config.ts",
-								"postcss.config.js",
-								"postcss.config.ts",
-								"windi.config.ts"
-							),
-						})
-					end,
-				},
 			})
 		end,
 	},
@@ -173,24 +58,4 @@ return {
 			})
 		end,
 	},
-	{
-		"WhoIsSethDaniel/mason-tool-installer.nvim",
-		dependencies = {
-			"williamboman/mason.nvim",
-		},
-		opts = {
-			ensure_installed = {
-				"stylua",
-				"phpstan",
-				"blade-formatter",
-				"intelephense",
-				"prettierd",
-				"prettier",
-				"eslint_d",
-				"pint",
-			},
-			auto_update = true,
-		},
-	},
-	{ "sindrets/diffview.nvim" },
 }

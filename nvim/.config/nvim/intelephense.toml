@@ -1,0 +1,61 @@
+# Global settings for Intelephense
+[intelephense]
+# Enable or disable the language server
+enabled = true
+
+# File and path settings
+files = { maxSize = 5000000 } # Maximum file size in bytes (5MB default)
+exclude = [
+    "**/node_modules/**",
+    "**/vendor/**",
+    "**/.git/**"
+]
+associations = [ "*.php", "*.phtml" ] # File types to associate with Intelephense
+
+# Completion settings
+completion = { 
+    insertUseDeclaration = true, # Automatically insert use statements
+    fullyQualifyGlobalConstantsAndFunctions = false, # Use fully qualified names for globals
+    triggerParameterHints = true, # Show parameter hints on trigger
+    maxItems = 100 # Maximum number of completion items
+}
+
+# Diagnostics settings
+diagnostics = {
+    enable = true, # Enable diagnostics
+    undefinedSymbols = true, # Warn about undefined symbols
+    undefinedMethods = true, # Warn about undefined methods
+    undefinedProperties = true, # Warn about undefined properties
+    undefinedConstants = true, # Warn about undefined constants
+    deprecated = true # Warn about deprecated code
+}
+
+# Formatting settings (if using Intelephense's built-in formatter)
+format = {
+    enable = false, # Disable built-in formatter (use null-ls or another tool instead)
+    braces = "k&r", # Style for braces (e.g., "k&r" or "allman")
+    indentSize = 4, # Number of spaces per indent
+    tabSize = 4 # Size of a tab character
+}
+
+# Stubs (include external libraries or frameworks)
+stubs = [
+    "apache",
+    "bcmath",
+    "curl",
+    "date",
+    "dom",
+    "fileinfo",
+    "json",
+    "mbstring",
+    "pdo",
+    "phar",
+    "redis",
+    "sodium",
+    "xml",
+    "wordpress", 
+    "laravel" 
+]
+
+# Performance settings
+runtime = { memoryLimit = "512M" } # Maximum memory usage

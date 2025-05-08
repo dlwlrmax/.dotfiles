@@ -8,13 +8,10 @@ return {
 				options = {
 					show_source = true,
 					multilines = {
-						-- Enable multiline diagnostic messages
 						enabled = true,
-
-						-- Always show messages on all lines for multiline diagnostics
 						always_show = false,
 					},
-					throttle = 200,
+					throttle = 300,
 				},
 			})
 			vim.diagnostic.config({ virtual_text = false })
