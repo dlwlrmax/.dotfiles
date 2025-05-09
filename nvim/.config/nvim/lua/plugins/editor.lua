@@ -122,10 +122,7 @@ return {
 				color = "#FAAB78",
 				highlight = {},
 				excluded_filetypes = {},
-				-- disable = function(lang, bufnr)
-				--   return vim.tbl_contains(opts.excluded_filetypes, lang)
-				-- end,
-				paint_arg_declarations = true,
+				pant_arg_declarations = true,
 				paint_arg_usages = true,
 				paint_catch_blocks = {
 					declarations = false,
