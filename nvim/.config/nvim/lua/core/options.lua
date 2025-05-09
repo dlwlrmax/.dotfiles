@@ -1,3 +1,4 @@
+local vim = vim or require("vim")
 local opt = vim.opt
 local g = vim.g
 local prefix = vim.env.XDG_CONFIG_HOME or vim.fn.expand("~/.config")
@@ -17,7 +18,7 @@ opt.guifont = { "JetBrainsMono Nerd Font", ":h14" }
 opt.tabstop = 2
 opt.shiftwidth = 2
 opt.expandtab = true
-opt.autoindent = true
+opt.smartindent = true
 
 opt.wrap = true
 opt.linebreak = true
@@ -35,8 +36,8 @@ opt.clipboard = "unnamedplus"
 opt.splitright = true
 opt.splitbelow = true
 
--- opt.iskeyword:append("-")
--- opt.iskeyword:append("/")
+opt.iskeyword:append("-")
+opt.iskeyword:append("/")
 opt.encoding = "utf-8"
 opt.showmatch = true
 
