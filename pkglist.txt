@@ -64,6 +64,7 @@ fcitx5-configtool
 fcitx5-gtk
 fcitx5-unikey
 fd
+feh
 ffmpegthumbnailer
 file-roller
 firefox
@@ -158,6 +159,7 @@ mercurial
 mesa-utils
 mission-center
 modemmanager
+mpd
 mpv
 mtools
 nano
