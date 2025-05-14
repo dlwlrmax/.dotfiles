@@ -33,6 +33,7 @@ smem
 snapd
 spotify
 swaylock-effects-git
+vesktop
 visual-studio-code-bin
 wps-office
 xampp

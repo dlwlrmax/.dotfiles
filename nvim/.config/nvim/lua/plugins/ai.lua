@@ -104,7 +104,6 @@ return {
 			"nvim-lua/plenary.nvim",
 			"saghen/blink.cmp",
 		},
-        -- commit = "9569c9095a70370849345c861cdb2b06c4cadac7",
 		config = function()
 			require("codeium").setup({
 				enable_cmp_source = false,
@@ -113,7 +112,7 @@ return {
 					quiet = true,
                     filetypes = {
                         markdown = false,
-                        snack_picker_input = false
+                        snacks_picker_input = false
                     },
                     default_filetype_enabled = true,
 					key_bindings = {

@@ -272,14 +272,6 @@ return {
 		{
 			"<leader>fs",
 			function()
-				Snacks.picker.grep_word({ hidden = true })
-			end,
-			mode = { "v" },
-			desc = "Snacks Picker Word",
-		},
-		{
-			"<leader>ff",
-			function()
 				Snacks.picker.smart()
 			end,
 			mode = { "n" },
