@@ -14,7 +14,7 @@ if [ $? != 0 ]; then
     tmux send-keys -t $SESH:vuejs "cd ~/gitlab/reload/daotao.binggo.vn.vuejs" C-m
   fi
   tmux send-keys -t $SESH:vuejs "clear" C-m
-  tmux send-keys -t $SESH:vuejs "npm run dev" C-m
+  # tmux send-keys -t $SESH:vuejs "npm run dev" C-m
   tmux select-pane -T "Vue.js Dev" -t $SESH:vuejs
 
   # cd to laravel project and run php artisan serve --port=8888
@@ -25,7 +25,7 @@ if [ $? != 0 ]; then
     tmux send-keys -t $SESH:laravel "cd ~/gitlab/reload/api-daotao.binggo.vn" C-m
   fi
   tmux send-keys -t $SESH:laravel "clear" C-m
-  tmux send-keys -t $SESH:laravel "php artisan serve --port=8888" C-m
+  # tmux send-keys -t $SESH:laravel "php artisan serve --port=8888" C-m
   tmux select-pane -T "Laravel Dev" -t $SESH:laravel
 fi
 
