@@ -112,7 +112,8 @@ return {
 					enabled = true,
 					quiet = true,
                     filetypes = {
-                        markdown = false
+                        markdown = false,
+                        snack_picker_input = false
                     },
                     default_filetype_enabled = true,
 					key_bindings = {
