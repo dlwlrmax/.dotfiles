@@ -118,7 +118,7 @@ button:hover {
 
 #custom-weather {
     padding-top: 1px;
-    padding-right: 2px;
+    padding-right: 0px;
 }
 
 #network {
@@ -210,7 +210,8 @@ label:focus {
 }
 
 #pulseaudio {
-    color: @maroon;
+    color: @green;
+    padding-right: 0px;
 }
 
 #pulseaudio.muted {
