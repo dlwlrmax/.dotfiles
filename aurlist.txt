@@ -35,6 +35,7 @@ spotify
 swaylock-effects-git
 vesktop
 visual-studio-code-bin
+waypaper
 wps-office
 xampp
 yaak

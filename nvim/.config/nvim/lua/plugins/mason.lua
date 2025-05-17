@@ -11,9 +11,15 @@ return {
 				"phpstan",
 				"blade-formatter",
 				"intelephense",
+				"tailwindcss",
 				"prettierd",
+				"typos_lsp",
 				"prettier",
+				"vtsls",
 				"eslint_d",
+				"intelephense",
+				"volar",
+				"emmet_language_server",
 				"pint",
 			},
 			auto_update = true,
@@ -33,22 +39,13 @@ return {
 		},
 		event = { "BufReadPre", "BufNewFile" },
 		config = function()
-
-            require("lsp.intelephense").setup()
-            require('lsp.tailwindcss').setup()
-            require("lsp.typos_lsp").setup()
-            require("lsp.volar").setup()
+			require("lsp.intelephense").setup()
+			require("lsp.tailwindcss").setup()
+			require("lsp.typos_lsp").setup()
+			require("lsp.volar").setup()
 			require("lsp.vtsls").setup()
 			require("mason-lspconfig").setup({
 				automatic_enable = true,
-				ensure_installed = {
-					"intelephense",
-					"typos_lsp",
-					"volar",
-					"emmet_language_server",
-					"tailwindcss",
-					"vtsls",
-				},
 			})
 		end,
 	},
