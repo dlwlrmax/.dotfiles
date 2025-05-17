@@ -81,7 +81,7 @@ alias szsh="source ~/.zshrc"
 alias hstart="~/scripts/hbr.sh"
 alias rr="yazi"
 alias waybar-reload="killall -SIGUSR2 waybar"
-alias ls="eza -G --color=auto --icons=auto" 
+alias ls="eza -G --color=auto --icons=auto"
 alias lgit="lazygit"
 alias gopen="~/git.sh"
 alias async="~/.dotfiles/scripts/async.sh"
@@ -163,5 +163,3 @@ export PATH=$GOPATH/bin:$PATH
 export PHPBREW_SET_PROMPT=1
 export PHPBREW_RC_ENABLE=1
 [[ -e ~/.phpbrew/bashrc ]] && source ~/.phpbrew/bashrc
-
-

@@ -9,6 +9,7 @@ return {
 			"neovim/nvim-lspconfig", -- optional
 		},
 		opts = {}, -- your configuration
+        ft = { "html", "svelte", "astro", "vue", "typescriptreact", "php", "blade" },
 	},
 	-- {
 	-- 	"razak17/tailwind-fold.nvim",
