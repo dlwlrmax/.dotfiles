@@ -18,7 +18,7 @@ return {
 				"vtsls",
 				"eslint_d",
 				"intelephense",
-				"volar",
+				"vue_ls",
 				"emmet_language_server",
 				"pint",
 			},
