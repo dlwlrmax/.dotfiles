@@ -1,4 +1,3 @@
-local vim = vim or require("vim")
 return {
 	{
 		"WhoIsSethDaniel/mason-tool-installer.nvim",

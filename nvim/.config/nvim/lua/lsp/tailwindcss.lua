@@ -9,6 +9,31 @@ return {
 				"tailwind.config.ts",
 				"tailwind.config.cts"
 			),
+			init_options = {
+				userLanguages = {
+					vue = "html",
+				},
+				blade = {
+					filetypes = { "blade" },
+				},
+			},
+			settings = {
+				tailwindCSS = {
+					experimental = {
+						classRegex = {
+							'class="([^"]*)"', -- Standard HTML/Vue/Blade
+							'class: "[^"]*"', -- Vue/Inertia class bindings
+							"\\$classes\\([^)]+\\)", -- Laravel PHP $classes() helper
+						},
+					},
+                    includeLanguages = {
+                        vue = "html",
+                        php = "html",
+                    },
+                    validate = false,
+                    emmetCompletions = false,
+				},
+			},
 		})
 	end,
 }

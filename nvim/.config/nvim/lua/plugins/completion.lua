@@ -66,22 +66,25 @@ return {
 					codeium = { name = "Codeium", module = "codeium.blink", async = true },
 					-- ecolog = { name = "ecolog", module = "ecolog.integrations.cmp.blink_cmp" },
 					lsp = {
-						score_offset = 99,
+						score_offset = 9,
 						timeout_ms = 3000,
+                        max_items = 25,
 					},
 					snippets = {
-						score_offset = 100,
+						score_offset = 10,
 						min_keyword_length = 2,
+                        max_items = 5,
 					},
 					buffer = {
 						min_keyword_length = 2,
 						async = false,
+                        max_items = 10,
 					},
 					lazydev = {
 						name = "LazyDev",
 						module = "lazydev.integrations.blink",
 						async = false,
-						score_offset = 100,
+						score_offset = 10,
 					},
 					-- ripgrep = {
 					-- 	module = "blink-ripgrep",
