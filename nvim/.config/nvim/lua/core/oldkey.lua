@@ -1,3 +1,6 @@
 vim.keymap.set("n", "<leader>og", function()
 	vim.api.nvim_echo({ { "⚡<leader>go <- <leader>og" } }, false, {})
 end, { desc = "[OLD] lazygit" })
+vim.keymap.set("x", "x", function()
+    vim.api.nvim_echo({ { "Use d instead of x. x causes issues" } }, false, {})
+end, { desc = "[OLD] lazygit" })

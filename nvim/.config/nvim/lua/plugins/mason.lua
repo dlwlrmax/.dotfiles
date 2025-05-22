@@ -1,4 +1,3 @@
-local vim = vim or require("vim")
 return {
 	{
 		"WhoIsSethDaniel/mason-tool-installer.nvim",
@@ -42,7 +41,7 @@ return {
 		event = { "BufReadPre", "BufNewFile" },
 		config = function()
 			require("lsp.intelephense").setup()
-			require("lsp.tailwindcss").setup()
+			-- require("lsp.tailwindcss").setup()
 			require("lsp.typos_lsp").setup()
 			require("lsp.volar").setup()
 			require("lsp.vtsls").setup()

@@ -10,7 +10,7 @@ opt.backupdir = { prefix .. "/nvim/.backup//" }
 opt.directory = { prefix .. "/nvim/.swp//" }
 opt.backup = false
 opt.swapfile = false
-opt.updatetime = 200
+opt.updatetime = 300
 opt.cursorline = true
 opt.undofile = true
 

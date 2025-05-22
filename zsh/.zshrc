@@ -163,3 +163,10 @@ export PATH=$GOPATH/bin:$PATH
 export PHPBREW_SET_PROMPT=1
 export PHPBREW_RC_ENABLE=1
 [[ -e ~/.phpbrew/bashrc ]] && source ~/.phpbrew/bashrc
+
+
+# NVM
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+

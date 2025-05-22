@@ -1,5 +1,8 @@
 ags-hyprpanel-git
+ani-cli
 aylurs-gtk-shell-git
+bibata-cursor-theme
+bruno
 cloudflare-warp-bin
 colortail-git
 ddev-bin
@@ -18,6 +21,7 @@ lazydocker
 matugen-bin
 nautilus-sendto
 navicat-premium-lite-en
+neofetch
 ngrok
 pacman-mirrors-helper-git
 path-of-building-community-git
@@ -38,6 +42,5 @@ visual-studio-code-bin
 waypaper
 wps-office
 xampp
-yaak
 ytermusic
 zsh-antidote

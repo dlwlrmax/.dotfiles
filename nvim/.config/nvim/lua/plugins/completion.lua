@@ -66,83 +66,26 @@ return {
 					codeium = { name = "Codeium", module = "codeium.blink", async = true },
 					-- ecolog = { name = "ecolog", module = "ecolog.integrations.cmp.blink_cmp" },
 					lsp = {
-						score_offset = 99,
+						score_offset = 9,
 						timeout_ms = 3000,
+                        max_items = 25,
 					},
 					snippets = {
-						score_offset = 100,
+						score_offset = 10,
 						min_keyword_length = 2,
+                        max_items = 5,
 					},
 					buffer = {
 						min_keyword_length = 2,
 						async = false,
+                        max_items = 10,
 					},
 					lazydev = {
 						name = "LazyDev",
 						module = "lazydev.integrations.blink",
 						async = false,
-						score_offset = 100,
+						score_offset = 10,
 					},
-					-- ripgrep = {
-					-- 	module = "blink-ripgrep",
-					-- 	name = "Ripgrep",
-					-- 	score_offset = -10,
-					-- 	-- the options below are optional, some default values are shown
-					-- 	---@module "blink-ripgrep"
-					-- 	---@type blink-ripgrep.Options
-					-- 	opts = {
-					-- 		prefix_min_len = 3,
-					-- 		context_size = 5,
-					-- 		max_filesize = "1M",
-					-- 		project_root_marker = { ".git", "package.json" },
-					-- 		project_root_fallback = true,
-					-- 		-- The casing to use for the search in a format that ripgrep
-					-- 		-- accepts. Defaults to "--ignore-case". See `rg --help` for all the
-					-- 		-- available options ripgrep supports, but you can try
-					-- 		-- "--case-sensitive" or "--smart-case".
-					-- 		search_casing = "--ignore-case",
-					-- 		-- (advanced) Any additional options you want to give to ripgrep.
-					-- 		-- See `rg -h` for a list of all available options. Might be
-					-- 		-- helpful in adjusting performance in specific situations.
-					-- 		-- If you have an idea for a default, please open an issue!
-					-- 		--
-					-- 		-- Not everything will work (obviously).
-					-- 		additional_rg_options = {},
-					-- 		-- When a result is found for a file whose filetype does not have a
-					-- 		-- treesitter parser installed, fall back to regex based highlighting
-					-- 		-- that is bundled in Neovim.
-					-- 		fallback_to_regex_highlighting = true,
-					-- 		ignore_paths = {},
-					-- 		additional_paths = {},
-					-- 		toggles = {
-					-- 			-- The keymap to toggle the plugin on and off from blink
-					-- 			-- completion results. Example: "<leader>tg"
-					-- 			on_off = nil,
-					-- 		},
-					-- 		future_features = {
-					-- 			-- Workaround for
-					-- 			-- https://github.com/mikavilpas/blink-ripgrep.nvim/issues/185. This
-					-- 			-- is a temporary fix and will be removed in the future.
-					-- 			issue185_workaround = false,
-					-- 			backend = {
-					-- 				use = "ripgrep",
-					-- 			},
-					-- 		},
-					-- 		debug = false,
-					-- 	},
-					-- 	-- (optional) customize how the results are displayed. Many options
-					-- 	-- are available - make sure your lua LSP is set up so you get
-					-- 	-- autocompletion help
-					-- 	transform_items = function(_, items)
-					-- 		for _, item in ipairs(items) do
-					-- 			-- example: append a description to easily distinguish rg results
-					-- 			item.labelDetails = {
-					-- 				description = "(rg)",
-					-- 			}
-					-- 		end
-					-- 		return items
-					-- 	end,
-					-- },
 				},
 			},
 
