@@ -190,7 +190,7 @@ label:focus {
 }
 
 #cpu {
-    color: @lavender;
+    color: @red;
 }
 
 #memory {

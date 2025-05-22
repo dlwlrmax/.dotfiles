@@ -67,6 +67,7 @@ keymap.set("n", "<leader>tq", "<cmd>tabclose<CR>", { desc = "Close tab" })
 keymap.set("n", "<leader>tp", "<cmd>tabprevious<CR>", { desc = "Previous tab" })
 keymap.set("n", "<leader>tn", "<cmd>tabnext<CR>", { desc = "Next tab" })
 
-vim.keymap.set({ "n", "v" }, "<leader>rp", ':%s/', { noremap = true, silent = true, desc = "Replace word" })
+keymap.set({ "n", "v" }, "<leader>rp", ':%s/', { noremap = true, silent = true, desc = "Replace word" })
 
 -- Buffer keymap
+

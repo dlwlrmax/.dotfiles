@@ -39,9 +39,9 @@ return {
 				file_pos = true, -- support patterns like `file:line:col` and `file:line`
 				-- the bonusses below, possibly require string concatenation and path normalization,
 				-- so this can have a performance impact for large lists and increase memory usage
-				cwd_bonus = true, -- give bonus for matching files in the cwd
+				cwd_bonus = false, -- give bonus for matching files in the cwd
 				frecency = true, -- frecency bonus
-				history_bonus = true, -- give more weight to chronological order
+				history_bonus = false, -- give more weight to chronological order
 			},
 			layout = {
 				preset = "ivy",
@@ -123,14 +123,12 @@ return {
 			modes = { "n", "i", "c" },
 		},
 		scroll = {
-			enabled = false,
-			--- @diagnostic disable-next-line: missing-fields
-			animate = {
-				duration = { step = 15, total = 250 },
+			enabled = true,
+			animate_repeat = {
+				delay = 100,
+				duration = { step = 5, total = 50 },
 				easing = "linear",
 			},
-			spamming = 10, -- threshold for spamming detection
-			-- what buffers to animate
 			filter = function(buf)
 				return vim.g.snacks_scroll ~= false
 					and vim.b[buf].snacks_scroll ~= false
@@ -239,13 +237,13 @@ return {
 			end,
 			desc = "File Picker",
 		},
-        {
-            "<leader>rs",
-            function()
-                Snacks.picker.resume()
-            end,
-            desc = "Resume Picker",
-        },
+		{
+			"<leader>rs",
+			function()
+				Snacks.picker.resume()
+			end,
+			desc = "Resume Picker",
+		},
 		{
 			"<C-b>",
 			function()
@@ -367,7 +365,7 @@ return {
 		},
 	},
 	init = function()
-		vim.g.snacks_animate = false
+		vim.g.snacks_animate = true
 		-- Terminal Mappings
 		vim.keymap.set("t", "<C-\\>", "<cmd>close<cr>", { desc = "Hide Terminal" })
 		vim.api.nvim_create_autocmd("User", {
