@@ -10,7 +10,7 @@ return {
 				"phpstan",
 				"blade-formatter",
 				"intelephense",
-				"tailwindcss",
+				-- "tailwindcss",
 				"prettierd",
 				"typos_lsp",
 				"prettier",
