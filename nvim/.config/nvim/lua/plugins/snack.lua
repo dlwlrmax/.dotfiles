@@ -44,10 +44,7 @@ return {
 				history_bonus = false, -- give more weight to chronological order
 			},
 			layout = {
-				preset = "ivy",
-				layout = {
-					height = 0.5,
-				},
+				preset = "vscode",
 			},
 			formatters = {
 				file = {

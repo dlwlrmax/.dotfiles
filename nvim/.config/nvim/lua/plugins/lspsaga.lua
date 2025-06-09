@@ -5,88 +5,6 @@ return {
 		"nvim-tree/nvim-web-devicons",
 	},
 	after = "nvim-lspconfig",
-	keys = {
-		{
-			"<leader>ca",
-			"<cmd>Lspsaga code_action<CR>",
-			desc = "[Saga]Code Action",
-			mode = "n",
-			silent = true,
-			noremap = true,
-		},
-		{
-			"<leader>K",
-			"<cmd>Lspsaga hover_doc<CR>",
-			desc = "[Saga]Hover",
-			mode = "n",
-			silent = true,
-			noremap = true,
-		},
-		{
-			"<leader>rn",
-			"<cmd>Lspsaga rename<CR>",
-			desc = "[Saga]Rename",
-			mode = "n",
-			silent = true,
-			noremap = true,
-		},
-		{
-			"<leader>kk",
-			"<cmd>Lspsaga peek_type_definition<CR>",
-			desc = "[Saga]Peek Type Definition",
-			mode = "n",
-			silent = true,
-			noremap = true,
-		},
-		{
-			"grf",
-			"<cmd>Lspsaga finder<CR>",
-			desc = "[Saga]Finder",
-			mode = "n",
-			silent = true,
-			noremap = true,
-		},
-		{
-			"gd",
-			"<cmd>Lspsaga peek_definition<CR>",
-			desc = "[Saga]Goto Definition",
-			mode = "n",
-			silent = true,
-			noremap = true,
-		},
-		{
-			"gD",
-			"<cmd>Lspsaga goto_definition<CR>",
-			desc = "[Saga]Goto Definition",
-			mode = "n",
-			silent = true,
-			noremap = true,
-		},
-		{
-			"gt",
-			"<cmd>Lspsaga peek_type_definition<CR>",
-			desc = "[Saga]Goto Type Definition",
-			mode = "n",
-			silent = true,
-			noremap = true,
-		},
-		{
-			"dp",
-			"<cmd>Lspsaga diagnostic_jump_prev<CR>",
-			desc = "[Saga]Prev Diagnostic",
-			mode = "n",
-			silent = true,
-			noremap = true,
-		},
-		{
-			"dn",
-			"<cmd>Lspsaga diagnostic_jump_next<CR>",
-			desc = "[Saga]Next Diagnostic",
-			mode = "n",
-			silent = true,
-			noremap = true,
-		},
-	},
 	config = function()
 		require("lspsaga").setup({
 			code_action = {
@@ -99,10 +17,10 @@ return {
 			},
 			rename = {
 				in_select = false,
-                keys = {
-                    quit = "q",
-                    exec = "<CR>",
-                }
+				keys = {
+					quit = "q",
+					exec = "<CR>",
+				},
 			},
 			outline = {
 				auto_close = true,
@@ -129,5 +47,15 @@ return {
 				virtual_text = true,
 			},
 		})
+		vim.keymap.set("n", "<leader>ca", "<cmd>Lspsaga code_action<CR>")
+		vim.keymap.set("n", "<leader>K", "<cmd>Lspsaga hover_doc<CR>")
+		vim.keymap.set("n", "<leader>rn", "<cmd>Lspsaga rename<CR>")
+		vim.keymap.set("n", "<leader>kk", "<cmd>Lspsaga peek_type_definition<CR>")
+		vim.keymap.set("n", "grf", "<cmd>Lspsaga finder<CR>")
+		vim.keymap.set("n", "gD", "<cmd>Lspsaga peek_definition<CR>")
+		vim.keymap.set("n", "gt", "<cmd>Lspsaga peek_type_definition<CR>")
+		vim.keymap.set("n", "gd", "<cmd>Lspsaga goto_definition<CR>")
+		vim.keymap.set("n", "dp", "<cmd>Lspsaga diagnostic_jump_prev<CR>")
+		vim.keymap.set("n", "dn", "<cmd>Lspsaga diagnostic_jump_next<CR>")
 	end,
 }

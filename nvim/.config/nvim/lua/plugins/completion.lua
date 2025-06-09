@@ -72,11 +72,9 @@ return {
 					},
 					snippets = {
 						score_offset = 10,
-						min_keyword_length = 2,
                         max_items = 5,
 					},
 					buffer = {
-						min_keyword_length = 2,
 						async = false,
                         max_items = 10,
 					},
@@ -136,7 +134,7 @@ return {
 				},
 				list = {
 					selection = { preselect = false, auto_insert = true },
-				},
+				}
 			},
 
 			fuzzy = {
@@ -144,11 +142,6 @@ return {
 				sorts = {
 					"score",
 					"exact",
-					function(item_a, item_b)
-						if item_a.deprecated then
-							return false
-						end
-					end,
 					"sort_text",
 				},
 			},
