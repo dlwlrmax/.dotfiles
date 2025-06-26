@@ -81,6 +81,10 @@ return {
 					trim_left = "<",
 					trim_right = ">",
 				},
+                windows = {
+                    preview = true,
+                    width_preview = 40
+                }
 			})
 		end,
 	},

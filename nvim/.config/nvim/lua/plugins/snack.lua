@@ -43,9 +43,6 @@ return {
 				frecency = true, -- frecency bonus
 				history_bonus = false, -- give more weight to chronological order
 			},
-			layout = {
-				preset = "vscode",
-			},
 			formatters = {
 				file = {
 					truncate = 80,
@@ -53,10 +50,16 @@ return {
 			},
 			sources = {
 				explorer = {
-					auto_close = false,
+					auto_close = true,
 					hidden = true,
 					ignored = true,
 				},
+                files = {
+                    hidden = true,
+                    ignored = true,
+                    follow = true,
+                    exclude = { "node_modules", ".undo" }
+                }
 			},
 		},
 		notification_history = {
@@ -235,6 +238,13 @@ return {
 			desc = "File Picker",
 		},
 		{
+			"<c-e>",
+			function()
+				Snacks.picker.files()
+			end,
+			desc = "File Picker",
+		},
+		{
 			"<leader>rs",
 			function()
 				Snacks.picker.resume()
@@ -299,6 +309,13 @@ return {
 				Snacks.terminal.toggle()
 			end,
 		},
+        {
+            "<leader>gm",
+            function()
+                Snacks.terminal.toggle("gemini")
+            end,
+            desc = "Gemini",
+        },
 		{
 			"<leader>q",
 			function()

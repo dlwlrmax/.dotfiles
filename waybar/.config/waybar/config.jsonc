@@ -10,8 +10,6 @@
     "modules-center": ["clock"],
     "modules-right": [
         "custom/media",
-        "network",
-        "custom/weather",
         "pulseaudio",
         "cpu",
         "memory",
