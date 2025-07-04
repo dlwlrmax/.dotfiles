@@ -1,0 +1,32 @@
+services:
+  erp_hbr_app:
+    build:
+      context: .
+      dockerfile: docker/app.dockerfile
+    container_name: erp.hbr-app
+    volumes:
+      - .:/var/www/html
+    networks:
+      - traefik_net
+    user: '${UID:-1000}:${GID:-1000}'
+
+  erp_hbr_nginx:
+    image: nginx:alpine
+    container_name: erp.hbr-nginx
+    ports:
+      - '8060:80'
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/php.ini
+    networks:
+      - traefik_net
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.erphbr.rule=Host(`erp.hbr.test`)
+      - traefik.http.routers.erphbr.tls=true
+      - traefik.http.routers.erphbr.entrypoints=websecure
+      - traefik.http.services.erphbr.loadbalancer.server.port=80
+networks:
+  traefik_net:
+    external: true
