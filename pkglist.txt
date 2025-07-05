@@ -17,6 +17,7 @@ bind
 bitwarden
 bluez
 bluez-utils
+bpytop
 brightnessctl
 btop
 btrfs-progs
@@ -48,6 +49,7 @@ efitools
 endeavouros-branding
 endeavouros-keyring
 endeavouros-mirrorlist
+entr
 eos-apps-info
 eos-dracut
 eos-hooks
@@ -127,6 +129,7 @@ hyprland-qtutils
 hyprlock
 hyprpaper
 hyprpicker
+hyprpolkitagent
 ibus-unikey
 inetutils
 inotify-tools
@@ -273,6 +276,7 @@ upower
 usb_modeswitch
 usbutils
 vi
+vim
 viu
 waybar
 welcome
