@@ -40,11 +40,7 @@ return {
 				},
 			},
 			lightbulb = {
-				enable = true,
-				sign = false,
-				debounce = 300,
-				sign_priority = 40,
-				virtual_text = true,
+				enable = false,
 			},
 		})
 		vim.keymap.set("n", "<leader>ca", "<cmd>Lspsaga code_action<CR>")
