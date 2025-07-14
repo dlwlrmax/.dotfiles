@@ -23,6 +23,7 @@ return {
 				},
 			},
 			outline = {
+                enable = false,
 				auto_close = true,
 				close_after_jump = true,
 				layout = "float",

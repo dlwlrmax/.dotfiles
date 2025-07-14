@@ -109,32 +109,6 @@ return {
 		event = "VeryLazy",
 	},
 	{
-		"tadaa/vimade",
-		-- default opts (you can partially set these or configure them however you like)
-		opts = {
-			recipe = { "default", { animate = false } },
-			ncmode = "buffers", -- use 'windows' to fade inactive windows
-			fadelevel = 0.65, -- any value between 0 and 1. 0 is hidden and 1 is opaque.
-			tint = {
-				bg = { rgb = { 0, 0, 0 }, intensity = 0.3 }, -- adds 30% black to background
-			},
-
-			basebg = "",
-
-			blocklist = {
-				default = {
-					buf_opts = { buftype = { "prompt", "terminal", "Avante", "grug-far", "snacks_win" } },
-					win_config = { relative = true },
-				},
-			},
-			link = {},
-			groupdiff = true, -- links diffs so that they style together
-			groupscrollbind = false, -- link scrollbound windows so that they style together.
-			enablefocusfading = false,
-			nohlcheck = true,
-		},
-	},
-	{
 		"m-demare/hlargs.nvim",
 		config = function()
 			local hlargs = require("hlargs")
