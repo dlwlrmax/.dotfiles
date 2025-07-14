@@ -64,6 +64,7 @@ evince
 exfatprogs
 eza
 f2fs-tools
+fastfetch
 fcitx5-configtool
 fcitx5-gtk
 fcitx5-unikey

@@ -54,12 +54,12 @@ return {
 					hidden = true,
 					ignored = true,
 				},
-                files = {
-                    hidden = true,
-                    ignored = true,
-                    follow = true,
-                    exclude = { "node_modules", ".undo" }
-                }
+				files = {
+					hidden = true,
+					ignored = true,
+					follow = true,
+					exclude = { "node_modules", ".undo" },
+				},
 			},
 		},
 		notification_history = {
@@ -82,9 +82,9 @@ return {
 				{
 					section = "header",
 				},
+				{ icon = " ", title = "Projects", section = "projects", indent = 2, padding = 1 },
 				{ icon = " ", title = "Keymaps", section = "keys", indent = 2, padding = 1 },
 				{ icon = " ", title = "Recent Files", section = "recent_files", indent = 2, padding = 1 },
-				{ icon = " ", title = "Projects", section = "projects", indent = 2, padding = 1 },
 				{
 					icon = " ",
 					title = "Git Status",
@@ -309,13 +309,13 @@ return {
 				Snacks.terminal.toggle()
 			end,
 		},
-        {
-            "<leader>gm",
-            function()
-                Snacks.terminal.toggle("gemini")
-            end,
-            desc = "Gemini",
-        },
+		{
+			"<leader>gm",
+			function()
+				Snacks.terminal.toggle("gemini")
+			end,
+			desc = "Gemini",
+		},
 		{
 			"<leader>q",
 			function()

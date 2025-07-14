@@ -78,8 +78,8 @@ export EDITOR="nvim"
 # Example aliases
 alias zshconfig="mate ~/.zshrc"
 alias szsh="source ~/.zshrc"
-alias hstart="~/scripts/hbr.sh"
 alias rr="yazi"
+alias connect='sesh connect "$(sesh list | fzf --height 40% --border --prompt="Select session: ")"'
 alias waybar-reload="killall -SIGUSR2 waybar"
 alias ls="eza -G --color=auto --icons=auto"
 alias lgit="lazygit"
@@ -170,3 +170,5 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
+
+eval "$(zoxide init zsh)"

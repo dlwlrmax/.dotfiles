@@ -3,9 +3,6 @@
 # Basic Zsh plugins are defined in user/repo format
 jeffreytse/zsh-vi-mode
 
-# Bash plugins may also work
-rupa/z
-
 # empty lines are skipped
 
 # annotations are also allowed:
@@ -36,7 +33,7 @@ belak/zsh-utils path:utility
 #   with prompt plugins, remember to add this to your .zshrc:
 #   `autoload -Uz promptinit && promptinit && prompt pure`
 sindresorhus/pure     kind:fpath
-romkatv/powerlevel10k 
+romkatv/powerlevel10k
 
 # popular fish-like plugins
 mattmc3/zfunctions

@@ -2,7 +2,6 @@ ags-hyprpanel-git
 ani-cli
 aylurs-gtk-shell-git
 bibata-cursor-theme
-bruno
 cloudflare-warp-bin
 colortail-git
 ddev-bin
@@ -23,6 +22,7 @@ nautilus-sendto
 navicat-premium-lite-en
 neofetch
 ngrok
+opencode-ai-bin
 pacman-mirrors-helper-git
 path-of-building-community-git
 phpactor
@@ -33,13 +33,13 @@ python-selenium
 python-webdriver-manager
 reddio
 reiserfsprogs
+sesh-bin
 smem
 snapd
 spotify
 swaylock-effects-git
 vesktop
 visual-studio-code-bin
-walker
 waypaper
 wps-office
 xampp
