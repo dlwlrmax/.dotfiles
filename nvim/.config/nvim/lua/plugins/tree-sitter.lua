@@ -46,6 +46,7 @@ return {
 				"xml",
 				"php",
 				"yaml",
+				"blade",
 			},
 			incremental_selection = {
 				enable = true,

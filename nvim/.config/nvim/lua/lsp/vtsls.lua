@@ -3,8 +3,38 @@ return {
 		vim.lsp.config("vtsls", {
 			filetypes = { "typescript", "javascript", "javascriptreact", "typescriptreact", "vue" },
 			settings = {
-				vtsls = { tsserver = { globalPlugins = {} } },
+				vtsls = {
+					tsserver = {
+						globalPlugins = {},
+					},
+					enableMoveFileCodeAction = true,
+					autoUseWorkspaceTsdk = true,
+					experimental = {
+						completion = {
+							enableServerSideFuzzyMatch = true,
+						},
+					},
+				},
+				typescript = {
+					updateImportsOnFileMove = { enabled = "always" },
+					suggest = { completeFunctionCalls = true },
+					inlayHints = {
+						enumMemberValues = { enabled = true },
+						functionLikeReturnTypes = { enabled = true },
+						parameterNames = { enabled = "literals" },
+						parameterTypes = { enabled = true },
+						propertyDeclarationTypes = { enabled = true },
+						variableTypes = { enabled = false },
+					},
+				},
 			},
+            capabilities = {
+                textDocument = {
+                    documentHighlight = {
+                        dynamicRegistration = true
+                    }
+                }
+            },
 			before_init = function(params, config)
 				local result = vim.system(
 					{ "npm", "query", "#vue" },

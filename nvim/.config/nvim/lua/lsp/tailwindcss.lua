@@ -26,12 +26,11 @@ return {
 							"\\$classes\\([^)]+\\)", -- Laravel PHP $classes() helper
 						},
 					},
-                    includeLanguages = {
-                        vue = "html",
-                        php = "html",
-                    },
-                    validate = false,
-                    emmetCompletions = false,
+					includeLanguages = {
+						vue = "html",
+					},
+					validate = false,
+					emmetCompletions = false,
 				},
 			},
 		})

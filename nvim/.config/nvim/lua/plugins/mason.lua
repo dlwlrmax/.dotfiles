@@ -10,7 +10,7 @@ return {
 				"phpstan",
 				"blade-formatter",
 				"intelephense",
-				-- "tailwindcss",
+				"tailwindcss",
 				"prettierd",
 				"typos_lsp",
 				"prettier",
@@ -41,7 +41,7 @@ return {
 		event = { "BufReadPre", "BufNewFile" },
 		config = function()
 			require("lsp.intelephense").setup()
-			-- require("lsp.tailwindcss").setup()
+			require("lsp.tailwindcss").setup()
 			require("lsp.typos_lsp").setup()
 			require("lsp.volar").setup()
 			require("lsp.vtsls").setup()

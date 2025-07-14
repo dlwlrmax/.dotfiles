@@ -59,25 +59,10 @@ return {
 					sql = { "dadbod", "buffer", "snippets" },
 					mysql = { "dadbod", "buffer", "snippets" },
 					lua = { "lazydev", "lsp", "path", "snippets", "buffer" },
-					-- lua = { "lazydev", "lsp", "path", "snippets", "buffer", "ripgrep" },
 				},
 				providers = {
 					dadbod = { name = "Dadbod", module = "vim_dadbod_completion.blink" },
 					codeium = { name = "Codeium", module = "codeium.blink", async = true },
-					-- ecolog = { name = "ecolog", module = "ecolog.integrations.cmp.blink_cmp" },
-					lsp = {
-						score_offset = 9,
-						timeout_ms = 3000,
-                        max_items = 25,
-					},
-					snippets = {
-						score_offset = 10,
-                        max_items = 5,
-					},
-					buffer = {
-						async = false,
-                        max_items = 10,
-					},
 					lazydev = {
 						name = "LazyDev",
 						module = "lazydev.integrations.blink",
@@ -86,6 +71,8 @@ return {
 					},
 				},
 			},
+
+			fuzzy = { implementation = "prefer_rust_with_warning" },
 
 			completion = {
 				accept = {
@@ -134,23 +121,6 @@ return {
 				},
 				list = {
 					selection = { preselect = false, auto_insert = true },
-				}
-			},
-
-			fuzzy = {
-				implementation = "prefer_rust_with_warning",
-				sorts = {
-					"score",
-					"exact",
-					"sort_text",
-				},
-			},
-			signature = {
-				enabled = false,
-				trigger = {
-					enabled = true,
-					show_on_trigger_character = true,
-					show_on_insert = false,
 				},
 			},
 		},
