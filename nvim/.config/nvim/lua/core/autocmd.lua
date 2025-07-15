@@ -1,16 +1,16 @@
+-- config filetypes
+local api = vim.api
+local opt = vim.opt
 ---- This file is automatically loaded by plugins.init
 local function augroup(name)
 	return vim.api.nvim_create_augroup("lazyvim_" .. name, { clear = true })
 end
 
 -- Check if we need to reload the file when it changed
-vim.api.nvim_create_autocmd({ "FocusGained", "TermClose", "TermLeave", "BufEnter" }, {
-	group = augroup("checktime"),
-	callback = function()
-		if vim.o.buftype ~= "nofile" then
-			vim.cmd("checktime")
-		end
-	end,
+vim.o.autoread = true
+vim.api.nvim_create_autocmd({ "BufEnter", "CursorHold", "CursorHoldI", "FocusGained", "TermClose", "TermLeave" }, {
+	command = "if mode() != 'c' | checktime | endif",
+	pattern = { "*" },
 })
 
 vim.api.nvim_create_autocmd({ "VimResized" }, {
@@ -21,28 +21,6 @@ vim.api.nvim_create_autocmd({ "VimResized" }, {
 		vim.cmd("tabnext " .. current_tab)
 	end,
 })
-
--- config filetypes
-local api = vim.api
-local opt = vim.opt
-vim.api.nvim_create_autocmd("FileType", {
-	pattern = { "php", "lua" },
-	callback = function()
-		opt.shiftwidth = 4
-		opt.tabstop = 4
-		opt.expandtab = true
-	end,
-})
-
-vim.api.nvim_create_autocmd("FileType", {
-	pattern = { "javascript", "typescript", "txt", "css", "scss" },
-	callback = function()
-		opt.shiftwidth = 2
-		opt.tabstop = 2
-		opt.expandtab = true
-	end,
-})
-
 
 -- close some filetypes with <q>
 vim.api.nvim_create_autocmd("FileType", {
@@ -92,6 +70,14 @@ vim.api.nvim_create_autocmd("FileType", {
 	end,
 })
 
+-- Auto save file on focus lost
+vim.api.nvim_create_autocmd("FocusLost", {
+    group = augroup("auto_save"),
+    callback = function()
+        vim.cmd("silent! wa")
+    end,
+})
+
 -- Auto create dir when saving a file, in case some intermediate directory does not exist
 vim.api.nvim_create_autocmd({ "BufWritePre" }, {
 	group = augroup("auto_create_dir"),
@@ -104,18 +90,6 @@ vim.api.nvim_create_autocmd({ "BufWritePre" }, {
 	end,
 })
 
--- -- Show diagnostics on hover
--- vim.api.nvim_create_autocmd({ "CursorHold" }, {
--- 	group = vim.api.nvim_create_augroup("float_diagnostic", { clear = true }),
--- 	callback = function()
--- 		vim.diagnostic.open_float(nil, {
--- 			focus = false,
--- 			border = "rounded",
--- 		})
--- 	end,
--- })
---
--- Laravel-ls
 vim.api.nvim_create_autocmd("FileType", {
 	pattern = { "php", "blade" },
 	callback = function()

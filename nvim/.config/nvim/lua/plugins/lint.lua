@@ -6,7 +6,7 @@ return {
 			javascript = { "eslint_d" },
 			typescript = { "eslint_d" },
 			vue = { "eslint_d" },
-			php = { "phpstan" },
+			php = { "phpcs" },
 		}
 		vim.api.nvim_create_autocmd({ "BufWritePost" }, {
 			callback = function()
