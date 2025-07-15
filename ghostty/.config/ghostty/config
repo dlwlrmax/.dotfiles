@@ -28,4 +28,4 @@ confirm-close-surface = false
 shell-integration = zsh
 
 # Shader
-# custom-shader = /home/kienct/shaders/ghostty-shaders/bloom.glsl
+# custom-shader = ~/.config/ghostty/shaders/cursor_smear.glsl
