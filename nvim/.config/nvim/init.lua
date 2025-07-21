@@ -1,6 +1,2 @@
-require("setup")
-require("core.colorscheme")
-require("core.options")
-require("core.keymaps")
-require("core.autocmd")
-require("core.oldkey")
+-- bootstrap lazy.nvim, LazyVim and your plugins
+require("config.lazy")
