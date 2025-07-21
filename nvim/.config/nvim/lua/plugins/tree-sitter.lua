@@ -4,7 +4,6 @@ return {
 		version = false, -- last release is way too old and doesn't work on Windows
 		build = ":TSUpdate",
 		dependencies = { "nvim-treesitter/nvim-treesitter-textobjects" },
-		event = { "VeryLazy" },
 		cmd = { "TSUpdateSync", "TSUpdate", "TSInstall" },
 		keys = {
 			{ "<c-space>", desc = "Increment Selection" },
@@ -15,7 +14,7 @@ return {
 		---@diagnostic disable-next-line: missing-fields
 		opts = {
 			highlight = { enable = true },
-			indent = { enable = true },
+			indent = { enable = false },
 			ensure_installed = {
 				"bash",
 				"c",
