@@ -2,12 +2,17 @@ return {
   {
     "saghen/blink.cmp",
     opts = {
+      appearance = {
+        use_nvim_cmp_as_default = false,
+      },
       keymap = {
         preset = "enter",
         ["<C-o>"] = { "select_and_accept" },
       },
       completion = {
         menu = {
+          border = "rounded",
+          auto_show = true,
           draw = {
             columns = { { "kind_icon", "label", gap = 1 }, { "source_name", "kind", gap = 1 } },
             components = {
@@ -37,7 +42,21 @@ return {
             },
           },
         },
+        documentation = {
+          window = {
+            border = "rounded",
+          },
+          auto_show = true,
+          auto_show_delay_ms = 200,
+        },
+        list = {
+          selection = {
+            preselect = false,
+            auto_insert = true,
+          },
+        },
       },
+      signature = { window = { border = "single" } },
     },
   },
   {

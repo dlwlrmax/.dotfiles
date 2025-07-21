@@ -1,0 +1,57 @@
+{
+  "echo and print": {
+    "prefix": "ecp",
+    "body": ["echo '<pre>';", "print_r($1);", "echo '</pre>';"],
+    "description": "echo and print"
+  },
+  "echo, print and die": {
+    "prefix": "edp",
+    "body": ["echo '<pre>';", "print_r($1);", "echo '</pre>';", "die();"],
+    "description": "echo, print and die"
+  },
+  "create class and implement interface": {
+    "prefix": "cci",
+    "body": [
+      "class ${1:ClassName} implements ${2:InterfaceName}",
+      "{",
+      "    public function __construct($3)",
+      "    {",
+      "    }",
+      "}"
+    ],
+    "description": "Create class and implement interface"
+  },
+  "create class and extend class": {
+    "prefix": "cce",
+    "body": [
+      "class ${1:ClassName} extends ${2:ParentClassName}",
+      "{",
+      "    public function __construct($3)",
+      "    {",
+      "    }",
+      "}"
+    ],
+    "description": "Create class and extend class"
+  },
+  "ZF2 add field": {
+    "prefix": "zafield",
+    "body": [
+      "\\$this->fields['$1'] = ['label' => '${2:}', 'type' => '${3:text}', 'required' => ${4:false}];"
+    ],
+    "description": "Add a new field definition for Zend Framework 2 in Form"
+  },
+  "ZF2 print sql query": {
+    "prefix": "zsql",
+    "body": [
+      "echo '<pre>';",
+      "print_r(str_replace('\"', '', $$select->getSqlString()));",
+      "echo '</pre>';",
+      "die();"
+    ]
+  },
+  "Debugger": {
+    "prefix": "zdd",
+    "body": ["echo '<pre>';", "print_r($1);", "echo '</pre>';", "die();"],
+    "description": "echo, print and die"
+  }
+}
