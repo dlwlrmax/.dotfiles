@@ -102,9 +102,29 @@ export FTB_TMUX_POPUP_BORDER=true
 
 # Config jeffreytse/zsh-vi-mode to resolve conflict issue with zsh-history-substring-search
 function zvm_after_init() {
-  [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-  [ -f ~/.dotfiles/fzf-git/script.sh ] && source ~/.dotfiles/fzf-git/script.sh
-  enable-fzf-tab
+    # Ensure fzf key-bindings are sourced *after* zsh-vi-mode has initialized its own bindings.
+    # This ensures fzf's bindings take precedence where desired.
+
+    # Source fzf key-bindings
+    if [ -f "/usr/share/fzf/key-bindings.zsh" ]; then
+        # For system-wide fzf installation (e.g., via apt, pacman, brew)
+        source "/usr/share/fzf/key-bindings.zsh"
+    elif [ -f "$HOME/.fzf.zsh" ]; then
+        # For fzf installed via its own install script
+        source "$HOME/.fzf.zsh"
+    fi
+
+    # Source fzf-git script if it exists
+    # This should also come after fzf key-bindings if fzf-git provides its own keybinds
+    if [ -f "$HOME/.dotfiles/fzf-git/script.sh" ]; then
+        source "$HOME/.dotfiles/fzf-git/script.sh"
+    fi
+
+    # Enable fzf-tab. This usually integrates with fzf's existing bindings.
+    # It's good to call it last in the fzf-related section.
+    if command -v enable-fzf-tab &> /dev/null; then
+        enable-fzf-tab
+    fi
 }
 
 ZVM_VI_INSERT_ESCAPE_BINDKEY=jj
