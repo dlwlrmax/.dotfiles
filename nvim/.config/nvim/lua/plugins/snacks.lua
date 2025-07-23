@@ -1,5 +1,8 @@
 return {
   "folke/snacks.nvim",
+  keys= {
+    { "<leader>bb", function() Snacks.picker.buffers() end, desc = "Buffers" },
+  },
   opts = {
     picker = {
       sources = {

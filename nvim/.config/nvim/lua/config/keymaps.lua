@@ -15,3 +15,4 @@ map("n", "<M-l>", "<cmd>bnext<cr>", { desc = "Next Buffer" })
 -- Moverment
 map("n", "<S-h>", "^", { desc = "Prev Buffer" })
 map("n", "<S-l>", "$", { desc = "Next Buffer" })
+map("n", "<leader>l", "<cmd>e #<cr>", { desc = "Switch to Other Buffer" })
