@@ -24,8 +24,8 @@ tls:
       keyFile: "./certs/cafemom.test-key.pem"
     - certFile: "./certs/langmaster.edu.pem"
       keyFile: "./certs/langmaster.edu-key.pem"
-    - certFile: "./certs/erp.hbr.test.pem"
-      keyFile: "./certs/erp.hbr.test-key.pem"
+    - certFile: "./certs/erp.hbr.test+3.pem"
+      keyFile: "./certs/erp.hbr.test+3-key.pem"
 
 api:
   dashboard: true

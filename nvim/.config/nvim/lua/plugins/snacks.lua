@@ -1,7 +1,13 @@
 return {
   "folke/snacks.nvim",
-  keys= {
-    { "<leader>bb", function() Snacks.picker.buffers() end, desc = "Buffers" },
+  keys = {
+    {
+      "<leader>bb",
+      function()
+        Snacks.picker.buffers()
+      end,
+      desc = "Buffers",
+    },
   },
   opts = {
     picker = {
@@ -83,5 +89,6 @@ return {
         { section = "startup" },
       },
     },
+    words = { enabled = true },
   },
 }
