@@ -4,16 +4,29 @@ networks:
 
 services:
   traefik:
-    image: traefik:latest
+    image: traefik:v2.10 # Use a recent Traefik v2 version
     container_name: traefik
     restart: unless-stopped
+    command:
+      # Entrypoints for HTTP and HTTPS
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      # Enable Docker provider
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      # Enable dashboard (optional, good for debugging)
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --providers.file.directory=/etc/traefik/dynamic_conf
+      - --providers.file.watch=true # Watch for changes
+
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080" # dashboard
+      - "8080:8080" # Dashboard port (if enabled)
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./traefik.yml:/traefik.yml
-      - ./traefik.d:/traefik.d
+      - ./traefik-config/certs:/etc/traefik/certs:ro # Mount the certs directory
+      - ./traefik-config/dynamic_conf:/etc/traefik/dynamic_conf:ro # For dynamic config
     networks:
       - traefik_net

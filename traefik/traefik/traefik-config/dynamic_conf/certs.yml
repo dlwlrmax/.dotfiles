@@ -1,0 +1,5 @@
+# certs.yml
+tls:
+  certificates:
+    - certFile: /etc/traefik/certs/erp.hbr.test.pem
+      keyFile: /etc/traefik/certs/erp.hbr.test-key.pem
