@@ -1,6 +1,0 @@
-require("setup")
-require("core.colorscheme")
-require("core.options")
-require("core.keymaps")
-require("core.autocmd")
-require("core.oldkey")

@@ -9,3 +9,5 @@ vim.g.autoformat = false
 
 -- Set to "intelephense" to use intelephense instead of phpactor.
 vim.g.lazyvim_php_lsp = "intelephense"
+
+vim.diagnostic.config({ float = { border = "rounded" } })
