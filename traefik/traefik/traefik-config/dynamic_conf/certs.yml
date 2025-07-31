@@ -3,3 +3,5 @@ tls:
   certificates:
     - certFile: /etc/traefik/certs/erp.hbr.test.pem
       keyFile: /etc/traefik/certs/erp.hbr.test-key.pem
+    - certFile: /etc/traefik/certs/erp.langmaster.test.pem
+      KeyFile: /etc/traefik/certs/erp.langmaster.test-key.pem
