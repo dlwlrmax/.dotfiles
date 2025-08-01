@@ -52,18 +52,6 @@ return {
         return vim.g.snacks_indent ~= false and vim.b[buf].snacks_indent ~= false and vim.bo[buf].buftype == ""
       end,
     },
-    statuscolumn = {
-      left = { "mark", "sign" },
-      right = { "fold", "git" },
-      folds = {
-        open = "false",
-        git_hl = "false",
-      },
-      git = {
-        pattern = { "GitSigns", "MiniDiffSign" },
-      },
-      refresh = 100,
-    },
     dashboard = {
       enabled = true,
       sections = {

@@ -3,10 +3,7 @@
     "position": "top",
     "height": 30,
     "spacing": 0,
-    "modules-left": [
-        "hyprland/workspaces",
-        "hyprland/window",
-    ],
+    "modules-left": ["hyprland/workspaces", "hyprland/window"],
     "modules-center": ["clock"],
     "modules-right": [
         "custom/media",
@@ -20,24 +17,24 @@
     ],
     // Modules configuration
     "hyprland/workspaces": {
-        "disable-scroll": true,
-        "all-outputs": false,
-        "warp-on-scroll": false,
-        "format": "{name}: {icon}",
-        "format-icons": {
-            "1": "",
-            "2": "",
-            "3": "",
-            "4": "",
-            "5": "",
-            "6": "",
-            "7": "",
-            "8": "󰉋",
-            "9": "",
-            "10": "",
-            "urgent": " ",
-            "focused": " ",
-            "default": "",
+        "format": "[{icon}] {windows}",
+        "format-window-separator": " ",
+        "window-rewrite-default": "",
+        "window-rewrite": {
+            "title<.*Youtube*>": "", // Windows whose titles contain "youtube"
+            "title<Picture-in-Picture>": "󰹗",
+            "class<firefox>": "",
+            "class<google-chrome>": "",
+            "class<chromium>": "",
+            "class<zen>": "",
+            "class<Lark>": "",
+            "class<DBeaver>": "",
+            "class<zen-beta>": "",
+            "class<com.mitchellh.ghostty>": "",
+            "class<firefox> title<.*github.*>": "", // Windows whose class is "firefox" and title contains "github". Note that "class" always comes first.
+            "steam": "",
+            "code": "󰨞",
+            "nvim": "",
         },
         "persistent-workspaces": {
             "*": 1,

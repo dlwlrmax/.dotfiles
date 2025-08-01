@@ -21,7 +21,6 @@ return {
                 text = function(ctx)
                   local highlights_info = require("colorful-menu").blink_highlights(ctx)
                   if highlights_info ~= nil then
-                    -- Or you want to add more item to label
                     return highlights_info.label
                   else
                     return ctx.label
@@ -53,6 +52,18 @@ return {
           selection = {
             preselect = false,
             auto_insert = true,
+          },
+        },
+      },
+      sources = {
+        providers = {
+          lsp = {
+            timeout_ms = 3000,
+            score_offset = 10,
+          },
+          buffer = {
+            min_keyword_length = 2,
+            score_offset = -1,
           },
         },
       },
