@@ -16,3 +16,10 @@ map("n", "<M-l>", "<cmd>bnext<cr>", { desc = "Next Buffer" })
 map("n", "<S-h>", "^", { desc = "Prev Buffer" })
 map("n", "<S-l>", "$", { desc = "Next Buffer" })
 map("n", "<leader>l", "<cmd>e #<cr>", { desc = "Switch to Other Buffer" })
+
+-- Bufferline
+map("n", "<leader>1", "<cmd>BufferLineGoToBuffer 1<cr>", { desc = "Go to buffer 1" })
+map("n", "<leader>2", "<cmd>BufferLineGoToBuffer 2<cr>", { desc = "Go to buffer 2" })
+map("n", "<leader>3", "<cmd>BufferLineGoToBuffer 3<cr>", { desc = "Go to buffer 3" })
+map("n", "<leader>4", "<cmd>BufferLineGoToBuffer 4<cr>", { desc = "Go to buffer 4" })
+map("n", "<leader>5", "<cmd>BufferLineGoToBuffer 5<cr>", { desc = "Go to buffer 5" })
