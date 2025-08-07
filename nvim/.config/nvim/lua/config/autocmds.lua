@@ -8,23 +8,29 @@
 -- e.g. vim.api.nvim_del_augroup_by_name("lazyvim_wrap_spell")
 
 -- Enabled Laravel-ls
--- vim.api.nvim_create_autocmd("FileType", {
---   pattern = { "php", "blade" },
---   callback = function()
---     local root_dir = vim.fs.find("composer.json", { upward = true, stop = vim.loop.os_homedir() })[1]
---     if root_dir then
---       root_dir = vim.fn.fnamemodify(root_dir, ":h") -- Get the directory containing composer.json
---       vim.lsp.start({
---         name = "laravel-ls",
---         cmd = { "laravel-ls" },
---         root_dir = root_dir,
---       })
---     end
---   end,
--- })
+vim.api.nvim_create_autocmd("FileType", {
+    pattern = { "php", "blade" },
+    callback = function ()
+        vim.lsp.start({
+            name = "laravel-ls",
 
-vim.lsp.config("laravel_ls", {
-  cmd = { "laravel-ls" },
-  filetypes = { "php", "blade" },
-  root_markers = { "artisan" },
+            -- if laravel ls is in your $PATH
+            cmd = { 'laravel-ls' },
+
+            -- Absolute path
+            -- cmd = { '/path/to/laravel-ls/build/laravel-ls' },
+
+            -- if you want to recompile everytime
+            -- the language server is started.
+            -- cmd = { '/path/to/laravel-ls/start.sh' },
+
+            root_dir = vim.fn.getcwd(),
+        })
+    end
 })
+
+-- vim.lsp.config("laravel_ls", {
+--   cmd = { "laravel-ls" },
+--   filetypes = { "php", "blade" },
+--   root_markers = { "artisan" },
+-- })

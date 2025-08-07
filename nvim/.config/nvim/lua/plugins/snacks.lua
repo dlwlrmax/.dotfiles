@@ -24,7 +24,12 @@ return {
           exclude = { "node_modules", ".undo" },
         },
       },
+      matcher = {
+        frecency = true,
+        cwd_bonus = true,
+      },
     },
+
     indent = {
       enabled = true,
       indent = {
