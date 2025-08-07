@@ -10,6 +10,7 @@
         "pulseaudio",
         "cpu",
         "memory",
+        "temperature",
         "keyboard-state",
         "idle_inhibitor",
         "custom/notification",
@@ -136,9 +137,9 @@
         "format": "{used:0.1f}G|{swapUsed:0.1f}G ",
     },
     "temperature": {
-        "critical-threshold": 80,
+        "critical-threshold": 90,
         "format": "{temperatureC}°C {icon}",
-        "format-icons": ["", "", ""],
+        "format-icons": ["", "", ""],
     },
     "backlight": {
         "format": "{percent}% {icon}",
