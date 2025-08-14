@@ -61,6 +61,9 @@ return {
             timeout_ms = 3000,
             score_offset = 10,
           },
+          codeium = {
+            max_items = 5,
+          },
           buffer = {
             min_keyword_length = 2,
             score_offset = -1,
