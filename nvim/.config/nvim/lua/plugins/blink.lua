@@ -62,7 +62,7 @@ return {
             score_offset = 10,
           },
           codeium = {
-            max_items = 5,
+            max_items = 3,
           },
           buffer = {
             min_keyword_length = 2,

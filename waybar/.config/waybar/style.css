@@ -123,7 +123,7 @@ button:hover {
     padding-right: 0px;
 }
 
-#network, #custom-weather, #pulseaudio {
+#custom-weather, #pulseaudio {
     padding: 0 8px;
     border-radius: 15px 0 0 15px;
 }
@@ -206,9 +206,11 @@ label:focus {
 }
 
 #network {
+    color: @green;
 }
 
 #network.disconnected {
+    color: @red;
 }
 
 #pulseaudio {
