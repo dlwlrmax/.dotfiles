@@ -100,6 +100,7 @@ button:hover {
 #pulseaudio,
 #wireplumber,
 #custom-media,
+#mpris,
 #tray,
 #mode,
 #idle_inhibitor,
@@ -227,11 +228,11 @@ label:focus {
     color: @red;
 }
 
-#custom-media {
+#custom-media, #mpris {
     min-width: 120px;
 }
 
-#custom-media {
+#custom-media, #mpris {
     padding: 0 10px;
     margin: 3px 4px;
     background-color: @red;

@@ -6,7 +6,7 @@
     "modules-left": ["hyprland/workspaces", "hyprland/window"],
     "modules-center": ["clock"],
     "modules-right": [
-        "custom/media",
+        "mpris",
         "pulseaudio",
         "cpu",
         "memory",
@@ -19,23 +19,23 @@
     "hyprland/workspaces": {
         "format": "[{icon}] {windows}",
         "format-window-separator": " ",
-        "window-rewrite-default": "",
+        "window-rewrite-default": " ",
         "window-rewrite": {
-            "title<.*Youtube*>": "", // Windows whose titles contain "youtube"
-            "title<Picture-in-Picture>": "󰹗",
-            "class<firefox>": "",
-            "class<google-chrome>": "",
-            "class<chromium>": "",
-            "class<Postman>": "",
-            "class<zen>": "",
-            "class<Lark>": "",
-            "class<DBeaver>": "",
-            "class<zen-beta>": "",
-            "class<com.mitchellh.ghostty>": "",
-            "class<firefox> title<.*github.*>": "", // Windows whose class is "firefox" and title contains "github". Note that "class" always comes first.
-            "steam": "",
-            "code": "󰨞",
-            "nvim": "",
+            "title<.*Youtube*>": " ", // Windows whose titles contain "youtube"
+            "title<Picture-in-Picture>": "󰹗 ",
+            "class<firefox>": " ",
+            "class<google-chrome>": " ",
+            "class<chromium>": " ",
+            "class<Postman>": " ",
+            "class<zen>": " ",
+            "class<Lark>": " ",
+            "class<DBeaver>": " ",
+            "class<zen-beta>": " ",
+            "class<com.mitchellh.ghostty>": " ",
+            "class<firefox> title<.*github.*>": " ", // Windows whose class is "firefox" and title contains "github". Note that "class" always comes first.
+            "steam": " ",
+            "code": "󰨞 ",
+            "nvim": " ",
         },
         "persistent-workspaces": {
             "*": 1,
@@ -56,7 +56,7 @@
     "hyprland/scratchpad": {
         "format": "{icon} {count}",
         "show-empty": false,
-        "format-icons": ["", ""],
+        "format-icons": ["", " "],
         "tooltip": true,
         "tooltip-format": "{app}: {title}",
     },
@@ -94,8 +94,8 @@
     "idle_inhibitor": {
         "format": "{icon}",
         "format-icons": {
-            "activated": "",
-            "deactivated": "",
+            "activated": " ",
+            "deactivated": " ",
         },
     },
     "tray": {
@@ -192,7 +192,7 @@
         "return-type": "json",
         "max-length": 25,
         "format-icons": {
-            "spotify": "",
+            "spotify": " ",
             "default": "🎜",
         },
         "escape": true,
@@ -206,13 +206,13 @@
         "format": "{} {icon}",
         "format-icons": {
             "notification": "<span foreground='red'><sup></sup></span>",
-            "none": "",
+            "none": " ",
             "dnd-notification": "<span foreground='red'><sup></sup></span>",
-            "dnd-none": "",
+            "dnd-none": " ",
             "inhibited-notification": "<span foreground='red'><sup></sup></span>",
-            "inhibited-none": "",
+            "inhibited-none": " ",
             "dnd-inhibited-notification": "<span foreground='red'><sup></sup></span>",
-            "dnd-inhibited-none": "",
+            "dnd-inhibited-none": " ",
         },
         "return-type": "json",
         "exec-if": "which swaync-client",
@@ -237,5 +237,21 @@
         "on-click-right": "hyprctl dispatch fullscreen",
         "on-click-middle": "hyprctl dispatch layoutmsg toggle",
         "tooltip": true,
+    },
+    "mpris": {
+        "format": "{player_icon} [{artist}] {title}",
+        "format-paused": "{status_icon} [{artist}] {title}",
+        "player-icons": {
+            "default": " ",
+            "mpv": " ",
+            "spotify": " ",
+            "vlc": "󰕼 ",
+            "firefox": " ",
+        },
+        "status-icons": {
+            "paused": " ",
+        },
+        "interval": 2,
+        "max-length": 40,
     },
 }
