@@ -1,79 +1,5 @@
 return {
   {
-    "saghen/blink.cmp",
-    opts = {
-      appearance = {
-        use_nvim_cmp_as_default = false,
-      },
-      keymap = {
-        preset = "enter",
-        ["<C-o>"] = { "select_and_accept" },
-      },
-      completion = {
-        menu = {
-          border = "rounded",
-          auto_show = true,
-          draw = {
-            columns = { { "kind_icon", "label", gap = 1 }, { "source_name", "kind", gap = 1 } },
-            components = {
-              label = {
-                width = { fill = true, max = 60 },
-                text = function(ctx)
-                  local highlights_info = require("colorful-menu").blink_highlights(ctx)
-                  if highlights_info ~= nil then
-                    return highlights_info.label
-                  else
-                    return ctx.label
-                  end
-                end,
-                highlight = function(ctx)
-                  local highlights = {}
-                  local highlights_info = require("colorful-menu").blink_highlights(ctx)
-                  if highlights_info ~= nil then
-                    highlights = highlights_info.highlights
-                  end
-                  for _, idx in ipairs(ctx.label_matched_indices) do
-                    table.insert(highlights, { idx, idx + 1, group = "BlinkCmpLabelMatch" })
-                  end
-                  return highlights
-                end,
-              },
-            },
-          },
-        },
-        documentation = {
-          window = {
-            border = "rounded",
-          },
-          auto_show = true,
-          auto_show_delay_ms = 200,
-        },
-        list = {
-          selection = {
-            preselect = false,
-            auto_insert = true,
-          },
-        },
-      },
-      sources = {
-        providers = {
-          lsp = {
-            timeout_ms = 3000,
-            score_offset = 10,
-          },
-          codeium = {
-            max_items = 3,
-          },
-          buffer = {
-            min_keyword_length = 2,
-            score_offset = -1,
-          },
-        },
-      },
-      signature = { window = { border = "single" } },
-    },
-  },
-  {
     "xzbdmw/colorful-menu.nvim",
     config = function()
       require("colorful-menu").setup({
@@ -123,5 +49,87 @@ return {
         max_width = 60,
       })
     end,
+  },
+  {
+    "saghen/blink.cmp",
+    opts = {
+      appearance = {
+        use_nvim_cmp_as_default = false,
+      },
+      keymap = {
+        preset = "default",
+        ["<C-o>"] = { "select_and_accept" },
+      },
+      completion = {
+        menu = {
+          border = "rounded",
+          auto_show = true,
+          draw = {
+            columns = { { "item_idx" }, { "kind_icon", "label", gap = 1 }, { "source_name", "kind", gap = 1 } },
+            components = {
+              label = {
+                width = { fill = true, max = 60 },
+                text = function(ctx)
+                  local highlights_info = require("colorful-menu").blink_highlights(ctx)
+                  if highlights_info ~= nil then
+                    return highlights_info.label
+                  else
+                    return ctx.label
+                  end
+                end,
+                highlight = function(ctx)
+                  local highlights = {}
+                  local highlights_info = require("colorful-menu").blink_highlights(ctx)
+                  if highlights_info ~= nil then
+                    highlights = highlights_info.highlights
+                  end
+                  for _, idx in ipairs(ctx.label_matched_indices) do
+                    table.insert(highlights, { idx, idx + 1, group = "BlinkCmpLabelMatch" })
+                  end
+                  return highlights
+                end,
+              },
+              item_idx = {
+                text = function(ctx)
+                  return ctx.idx == 10 and "0" or ctx.idx >= 10 and " " or tostring(ctx.idx)
+                end,
+                highlight = "BlinkCmpItemIdx",
+              },
+            },
+          },
+        },
+        documentation = {
+          window = {
+            border = "rounded",
+          },
+          auto_show = true,
+          auto_show_delay_ms = 500,
+        },
+        list = {
+          selection = {
+            preselect = false,
+            auto_insert = true,
+          },
+        },
+      },
+      sources = {
+        providers = {
+          lsp = {
+            score_offset = 10,
+            async = false,
+            timeout_ms = 5000,
+          },
+          codeium = {
+            max_items = 3,
+          },
+          buffer = {
+            min_keyword_length = 3,
+            score_offset = -1,
+            async = true,
+          },
+        },
+      },
+      signature = { window = { border = "single" } },
+    },
   },
 }
