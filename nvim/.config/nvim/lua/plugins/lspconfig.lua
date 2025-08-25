@@ -103,13 +103,13 @@ return {
         -- ["*"] = function(server, opts) end,
       },
     }
-    require("lspconfig").laravel_ls.setup({
-      settings = {
-        filetypes = { "php", "blade" },
-        cmd = { "laravel-ls" },
-        root_markers = { "artisan" },
-      },
-    })
+    -- require("lspconfig").laravel_ls.setup({
+    --   settings = {
+    --     filetypes = { "php", "blade" },
+    --     cmd = { "laravel-ls" },
+    --     root_markers = { "artisan" },
+    --   },
+    -- })
     return ret
   end,
 }
