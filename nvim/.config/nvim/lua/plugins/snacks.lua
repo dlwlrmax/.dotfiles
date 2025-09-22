@@ -28,6 +28,12 @@ return {
         frecency = true,
         cwd_bonus = true,
       },
+      formatters = {
+        file = {
+          filename_first = true,
+          truncate = 120
+        }
+      }
     },
 
     indent = {
