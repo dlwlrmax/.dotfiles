@@ -65,7 +65,7 @@ return {
           border = "rounded",
           auto_show = true,
           draw = {
-            columns = { { "item_idx" }, { "kind_icon", "label", gap = 1 }, { "source_name", "kind", gap = 1 } },
+            columns = {{ "kind_icon", "label", gap = 1 }, { "source_name", "kind", gap = 1 } },
             components = {
               label = {
                 width = { fill = true, max = 60 },
@@ -89,43 +89,13 @@ return {
                   return highlights
                 end,
               },
-              item_idx = {
-                text = function(ctx)
-                  return ctx.idx == 10 and "0" or ctx.idx >= 10 and " " or tostring(ctx.idx)
-                end,
-                highlight = "BlinkCmpItemIdx",
-              },
             },
           },
-        },
-        documentation = {
-          window = {
-            border = "rounded",
-          },
-          auto_show = true,
-          auto_show_delay_ms = 500,
         },
         list = {
           selection = {
             preselect = false,
             auto_insert = true,
-          },
-        },
-      },
-      sources = {
-        providers = {
-          lsp = {
-            score_offset = 10,
-            async = false,
-            timeout_ms = 5000,
-          },
-          codeium = {
-            max_items = 3,
-          },
-          buffer = {
-            min_keyword_length = 3,
-            score_offset = -1,
-            async = true,
           },
         },
       },

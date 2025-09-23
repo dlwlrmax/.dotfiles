@@ -9,6 +9,14 @@ return {
       mode = { "n" },
       desc = "Open mini.files (Directory of Current File)",
     },
+    {
+      '_',
+      function()
+        require("mini.files").open(vim.fn.getcwd(), true)
+      end,
+      mode = { "n" },
+      desc = "Open mini.files (Current Working Directory)",
+    }
   },
   opts = {
     mappings = {
