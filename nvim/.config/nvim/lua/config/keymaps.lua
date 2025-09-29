@@ -16,3 +16,7 @@ map("n", "<M-l>", "<cmd>bnext<cr>", { desc = "Next Buffer" })
 map("n", "<S-h>", "^", { desc = "Prev Buffer" })
 map("n", "<S-l>", "$", { desc = "Next Buffer" })
 map("n", "<leader>l", "<cmd>e #<cr>", { desc = "Switch to Other Buffer" })
+
+-- Default
+vim.keymap.set('n', '<C-q>', 'q', { noremap = true })
+vim.keymap.set('n', 'q', '<Nop>', { noremap = true })
