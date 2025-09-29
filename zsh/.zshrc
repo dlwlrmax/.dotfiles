@@ -193,3 +193,6 @@ export NVM_DIR="$HOME/.nvm"
 
 
 eval "$(zoxide init zsh)"
+
+# opencode
+export PATH=/home/kienct/.opencode/bin:$PATH
