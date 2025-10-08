@@ -1,3 +1,4 @@
+if true then return {} end
 return {
   "folke/sidekick.nvim",
   opts = {
@@ -6,6 +7,14 @@ return {
       ---@field backend? "tmux"|"zellij" Multiplexer backend to persist CLI sessions
       mux = {
         backend = "tmux",
+        enabled = true,
+      },
+    },
+    signs = {
+      enalbled = false,
+    },
+    copilot = {
+      status = {
         enabled = true,
       },
     },
