@@ -1,3 +1,5 @@
+version: '3.8'
+
 networks:
   traefik_net:
     external: true
@@ -29,4 +31,10 @@ services:
       - ./traefik-config/certs:/etc/traefik/certs:ro # Mount the certs directory
       - ./traefik-config/dynamic_conf:/etc/traefik/dynamic_conf:ro # For dynamic config
     networks:
-      - traefik_net
+        traefik_net:
+                aliases:
+                    - fcm.langtech.test
+                    - erp.langmaster.test
+                    - erp.hbr.test
+                    - fcm.langtech.test
+                    - yusic.test
