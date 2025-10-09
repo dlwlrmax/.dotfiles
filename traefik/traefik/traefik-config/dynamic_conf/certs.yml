@@ -9,3 +9,5 @@ tls:
       KeyFile: /etc/traefik/certs/yusic.test-key.pem
     - certFile: /etc/traefik/certs/fcm.langtech.test.pem
       KeyFile: /etc/traefik/certs/fcm.langtech.test-key.pem
+    - certFile: /etc/traefik/certs/template.hbr.test.pem
+      KeyFile: /etc/traefik/certs/template.hbr.test-key.pem

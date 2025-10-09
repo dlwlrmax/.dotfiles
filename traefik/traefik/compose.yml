@@ -38,3 +38,4 @@ services:
                     - erp.hbr.test
                     - fcm.langtech.test
                     - yusic.test
+                    - template.hbr.test
