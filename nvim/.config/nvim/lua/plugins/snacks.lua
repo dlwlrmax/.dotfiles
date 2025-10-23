@@ -18,8 +18,8 @@ return {
           ignored = true,
         },
         files = {
-          hidden = true,
-          ignored = true,
+          hidden = false,
+          ignored = false,
           follow = true,
           exclude = { "node_modules", ".undo" },
         },
