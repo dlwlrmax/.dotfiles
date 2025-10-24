@@ -30,6 +30,9 @@ Where type is one of: feat, fix, docs, style, refactor, test, chore"
 # Run opencode to generate the commit message
 COMMIT_MESSAGE=$(opencode run "$PROMPT")
 
+# Remove all newlines to ensure single-line output
+COMMIT_MESSAGE=$(echo "$COMMIT_MESSAGE" | tr -d '\n')
+
 # Output the generated commit message
 echo "$COMMIT_MESSAGE"
 
