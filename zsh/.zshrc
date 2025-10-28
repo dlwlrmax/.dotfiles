@@ -87,6 +87,7 @@ alias lgit="lazygit"
 alias gopen="~/git.sh"
 alias async="~/.dotfiles/scripts/async.sh"
 alias cmsg="~/.dotfiles/scripts/generate-commit-msg.sh"
+alias aicm="git add . && cmsg"
 alias docker-setup="~/.dotfiles/docker-config/base/setup-docker.sh"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 

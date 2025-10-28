@@ -36,6 +36,9 @@ COMMIT_MESSAGE=$(echo "$COMMIT_MESSAGE" | tr -d '\n')
 # Output the generated commit message
 echo "$COMMIT_MESSAGE"
 
+# Commit with the generated message
+git commit -m "$COMMIT_MESSAGE"
+
 # Copy to clipboard
 if command -v wl-copy >/dev/null 2>&1; then
     echo "$COMMIT_MESSAGE" | wl-copy

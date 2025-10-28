@@ -39,7 +39,6 @@
             "nvim": " ",
         },
         "persistent-workspaces": {
-            "*": 1,
         },
     },
     "keyboard-state": {
