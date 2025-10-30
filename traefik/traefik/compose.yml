@@ -39,3 +39,4 @@ services:
                     - fcm.langtech.test
                     - yusic.test
                     - template.hbr.test
+                    - hbr.edu.test

@@ -11,3 +11,5 @@ tls:
       KeyFile: /etc/traefik/certs/fcm.langtech.test-key.pem
     - certFile: /etc/traefik/certs/template.hbr.test.pem
       KeyFile: /etc/traefik/certs/template.hbr.test-key.pem
+    - certFile: /etc/traefik/certs/hbr.edu.test.pem
+      KeyFile: /etc/traefik/certs/hbr.edu.test-key.pem
