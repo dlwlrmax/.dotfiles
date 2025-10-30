@@ -99,7 +99,6 @@ return {
           },
         },
       },
-      signature = { window = { border = "single" } },
     },
   },
 }
