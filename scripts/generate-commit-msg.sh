@@ -11,6 +11,36 @@ if [ -z "$STAGED_DIFF" ]; then
     exit 1
 fi
 
+# Show staged changes for review
+echo "Staged changes:"
+echo "$STAGED_DIFF"
+echo ""
+
+# Construct the prompt for AI review of changes
+REVIEW_PROMPT="Review the following staged changes and provide feedback on whether they are ready for commit. Point out any potential issues, improvements, or confirm if they look good.
+
+Staged changes:
+$STAGED_DIFF
+
+Provide concise feedback."
+
+# Run opencode to review the changes
+REVIEW=$(opencode run "$REVIEW_PROMPT")
+
+# Output the AI review
+echo "AI Review:"
+echo "$REVIEW"
+echo ""
+
+# Ask for confirmation before generating commit message (default y)
+read -p "Do you want to generate a commit message for these changes? (y/n): " -n 1 -r
+echo
+if [ -z "$REPLY" ]; then REPLY='y'; fi
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Operation cancelled."
+    exit 0
+fi
+
 # Get recent commit messages for style reference
 RECENT_COMMITS=$(git log --oneline -10)
 
@@ -33,8 +63,25 @@ COMMIT_MESSAGE=$(opencode run "$PROMPT")
 # Remove all newlines to ensure single-line output
 COMMIT_MESSAGE=$(echo "$COMMIT_MESSAGE" | tr -d '\n')
 
-# Output the generated commit message
+# Check if commit message was generated successfully
+if [ -z "$COMMIT_MESSAGE" ]; then
+    echo "Failed to generate commit message. Please check the staged changes or try again."
+    exit 1
+fi
+
+# Output the generated commit message for review
+echo "Generated commit message:"
 echo "$COMMIT_MESSAGE"
+echo ""
+
+# Ask for confirmation before committing (default y)
+read -p "Do you want to commit with this message? (y/n): " -n 1 -r
+echo
+if [ -z "$REPLY" ]; then REPLY='y'; fi
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Commit cancelled."
+    exit 0
+fi
 
 # Commit with the generated message
 git commit -m "$COMMIT_MESSAGE"
