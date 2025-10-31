@@ -2,8 +2,8 @@
 
 set -e
 
-# Get the staged diff
-STAGED_DIFF=$(git diff --cached)
+# Get the staged diff with color
+STAGED_DIFF=$(git diff --cached --color=always)
 
 # Check if there are staged changes
 if [ -z "$STAGED_DIFF" ]; then
