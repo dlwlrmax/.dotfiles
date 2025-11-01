@@ -13,3 +13,7 @@ tls:
       KeyFile: /etc/traefik/certs/template.hbr.test-key.pem
     - certFile: /etc/traefik/certs/hbr.edu.test.pem
       KeyFile: /etc/traefik/certs/hbr.edu.test-key.pem
+    - certFile: /etc/traefik/certs/careers.hbr.test.pem
+      keyFile: /etc/traefik/certs/careers.hbr.test-key.pem
+    - certFile: /etc/traefik/certs/careers.hbrholdings.test.pem
+      keyFile: /etc/traefik/certs/careers.hbrholdings.test-key.pem

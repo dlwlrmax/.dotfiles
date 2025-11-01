@@ -56,10 +56,10 @@ sed -i "s/erp_hbr_app:/${NEW_SERVICE_NAME}:/g" "$OUTPUT_PATH/docker-compose.yml"
 sed -i "s/container_name: erp.hbr-app/container_name: ${NEW_SERVICE_NAME}/g" "$OUTPUT_PATH/docker-compose.yml"
 
 # Add hostname to app service
-sed -i "/container_name: ${NEW_SERVICE_NAME}/a\    hostname: ${HOSTNAME}" "$OUTPUT_PATH/docker-compose.yml"
+sed -i "/container_name: ${NEW_SERVICE_NAME}/a\        hostname: ${HOSTNAME}" "$OUTPUT_PATH/docker-compose.yml"
 
 # Update port for nginx service
-sed -i "s/'8060:80'/'${PORT}:80'/g" "$OUTPUT_PATH/docker-compose.yml"
+sed -i "s/\"8060:80\"/\"${PORT}:80\"/g" "$OUTPUT_PATH/docker-compose.yml"
 
 # Update Traefik rule hostname
 sed -i "s/Host(\`erp.hbr.test\`)/Host(\`${HOSTNAME}\`)/g" "$OUTPUT_PATH/docker-compose.yml"
@@ -78,5 +78,30 @@ sed -i "s/server_name erp.hbr.test;/server_name ${HOSTNAME};/g" "$OUTPUT_PATH/do
 
 # Update nginx.conf fastcgi_pass to new app service name
 sed -i "s/fastcgi_pass erp_hbr_app:9000;/fastcgi_pass ${NEW_SERVICE_NAME}:9000;/g" "$OUTPUT_PATH/docker/nginx/nginx.conf"
+
+# Generate self-signed certificate for the hostname
+CERT_DIR="../../traefik/traefik/traefik-config/certs"
+CERT_FILE="$CERT_DIR/${HOSTNAME}.pem"
+KEY_FILE="$CERT_DIR/${HOSTNAME}-key.pem"
+
+if [ ! -f "$CERT_FILE" ] || [ ! -f "$KEY_FILE" ]; then
+    echo "Generating self-signed certificate for $HOSTNAME..."
+    openssl req -x509 -newkey rsa:4096 -keyout "$KEY_FILE" -out "$CERT_FILE" -days 365 -nodes -subj "/CN=$HOSTNAME"
+    echo "Generated $CERT_FILE and $KEY_FILE"
+else
+    echo "Certificate for $HOSTNAME already exists."
+fi
+
+# Add certificate to Traefik certs.yml if not already present
+CERTS_YML="../../traefik/traefik/traefik-config/dynamic_conf/certs.yml"
+if ! grep -q "certFile: /etc/traefik/certs/${HOSTNAME}.pem" "$CERTS_YML"; then
+    echo "Adding certificate entry to $CERTS_YML"
+    cat >> "$CERTS_YML" << EOF
+    - certFile: /etc/traefik/certs/${HOSTNAME}.pem
+      keyFile: /etc/traefik/certs/${HOSTNAME}-key.pem
+EOF
+else
+    echo "Certificate entry for $HOSTNAME already in $CERTS_YML"
+fi
 
 echo "Docker config copied to $OUTPUT_PATH and configured for hostname=$HOSTNAME, port=$PORT"
