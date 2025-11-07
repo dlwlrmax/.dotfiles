@@ -3,20 +3,25 @@
     "position": "top",
     "height": 30,
     "spacing": 0,
-    "modules-left": ["hyprland/workspaces", "hyprland/window"],
-    "modules-center": ["clock"],
+    "modules-left": [
+        "hyprland/workspaces",
+        "hyprland/window"
+    ],
+    "modules-center": [
+        "clock"
+    ],
     "modules-right": [
         "mpris",
         "pulseaudio",
+        "disk",
         "cpu",
         "memory",
         "network",
         "custom/layout",
         "idle_inhibitor",
         "custom/notification",
-        "tray",
+        "tray"
     ],
-    // Modules configuration
     "hyprland/workspaces": {
         "format": "[{icon}] {windows}",
         "format-window-separator": " ",
@@ -36,10 +41,9 @@
             "class<firefox> title<.*github.*>": " ", // Windows whose class is "firefox" and title contains "github". Note that "class" always comes first.
             "steam": " ",
             "code": "󰨞 ",
-            "nvim": " ",
+            "nvim": " "
         },
-        "persistent-workspaces": {
-        },
+        "persistent-workspaces": {}
     },
     "keyboard-state": {
         "numlock": true,
@@ -47,18 +51,21 @@
         "format": "{name} {icon}",
         "format-icons": {
             "locked": "",
-            "unlocked": "",
-        },
+            "unlocked": ""
+        }
     },
     "hyprland/mode": {
-        "format": "<span style=\"italic\">{}</span>",
+        "format": "<span style=\"italic\">{}</span>"
     },
     "hyprland/scratchpad": {
         "format": "{icon} {count}",
         "show-empty": false,
-        "format-icons": ["", " "],
+        "format-icons": [
+            "",
+            " "
+        ],
         "tooltip": true,
-        "tooltip-format": "{app}: {title}",
+        "tooltip-format": "{app}: {title}"
     },
     "hyprland/window": {
         "icon": true,
@@ -73,40 +80,40 @@
         "unknown-tag": "N/A",
         "interval": 2,
         "consume-icons": {
-            "on": " ",
+            "on": " "
         },
         "random-icons": {
             "off": "<span color=\"#f53c3c\"></span> ",
-            "on": " ",
+            "on": " "
         },
         "repeat-icons": {
-            "on": " ",
+            "on": " "
         },
         "single-icons": {
-            "on": "1 ",
+            "on": "1 "
         },
         "state-icons": {
             "paused": "",
-            "playing": "",
+            "playing": ""
         },
         "tooltip-format": "MPD (connected)",
-        "tooltip-format-disconnected": "MPD (disconnected)",
+        "tooltip-format-disconnected": "MPD (disconnected)"
     },
     "idle_inhibitor": {
         "format": "{icon}",
         "format-icons": {
             "activated": " ",
-            "deactivated": " ",
-        },
+            "deactivated": " "
+        }
     },
     "tray": {
         "icon-size": 14,
         "spacing": 10,
-        "show-passive-items": true,
+        "show-passive-items": true
     },
     "clock": {
-        "format": "{:%Y-%m-%d %H : %M}   ",
-        "format-alt": "{:%A, %B %d, %Y (%R)} ",
+        "format": "{:%H:%M  %m-%d}",
+        "format-alt": "{:%A, %B %d, %Y (%R)}",
         "tooltip-format": "<tt><small>{calendar}</small></tt>",
         "interval": 30,
         "calendar": {
@@ -119,16 +126,16 @@
                 "days": "<span color='#ecc6d9'><b>{}</b></span>",
                 "weeks": "<span color='#99ffdd'><b>W{}</b></span>",
                 "weekdays": "<span color='#ffcc66'><b>{}</b></span>",
-                "today": "<span color='#ff6699'><b><u>{}</u></b></span>",
-            },
+                "today": "<span color='#ff6699'><b><u>{}</u></b></span>"
+            }
         },
         "actions": {
             "on-click-right": "mode",
             "on-click-forward": "tz_up",
             "on-click-backward": "tz_down",
             "on-scroll-up": "shift_up",
-            "on-scroll-down": "shift_down",
-        },
+            "on-scroll-down": "shift_down"
+        }
     },
     "cpu": {
         "format": "{usage}% ",
@@ -137,37 +144,65 @@
     },
     "memory": {
         "interval": 5,
-        "format": "{used:0.1f}G|{swapUsed:0.1f}G ",
+        "format": "{used:0.1f}G|{swapUsed:0.1f}G "
     },
     "temperature": {
         "critical-threshold": 90,
         "format": "{temperatureC}°C {icon}",
-        "format-icons": ["", "", ""],
+        "format-icons": [
+            "",
+            "",
+            ""
+        ]
     },
     "backlight": {
         "format": "{percent}% {icon}",
-        "format-icons": ["", "", "", "", "", "", "", "", ""],
+        "format-icons": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+        ]
     },
     "battery": {
         "states": {
             "good": 65,
             "warning": 30,
-            "critical": 15,
+            "critical": 15
         },
         "format": "{capacity}% {icon}",
         "format-charging": "{capacity}% ",
         "format-plugged": "{capacity}% ",
         "format-alt": "{time} {icon}",
-        "format-icons": ["", "", "", "", ""],
+        "format-icons": [
+            "",
+            "",
+            "",
+            "",
+            ""
+        ]
     },
     "battery#bat2": {
-        "bat": "BAT2",
+        "bat": "BAT2"
+    },
+    "disk": {
+        "interval": 30,
+        "format": "󱘲 {percentage_free}%",
+        "path": "/"
     },
     "network": {
-    "format-wifi": " {essid} ({signalStrength}%)",
-    "format-ethernet": "󰛳 {ipaddr}",
-    "format-disconnected": "󰅛 Disconnected",
-    "interval": 5
+        "format": "{ifname}",
+        "format-wifi": " {essid} ({signalStrength}%)",
+        "format-ethernet": "󰛳 Connected",
+        "format-disconnected": "󰅛 Disconnected",
+        "tooltip-format": "{ifname} via {gwaddr} 󰊗",
+        "max-length": 50,
+        "interval": 10
     },
     "pulseaudio": {
         "format": "{volume}% {icon}",
@@ -183,24 +218,16 @@
             "phone": " ",
             "portable": " ",
             "car": " ",
-            "default": ["", " ", " "],
+            "default": [
+                "",
+                " ",
+                " "
+            ]
         },
         "on-click": "pavucontrol",
-        "ignored-sinks": ["Easy Effects Sink"],
-    },
-    "custom/media": {
-        "format": "{} {icon}",
-        "return-type": "json",
-        "max-length": 25,
-        "format-icons": {
-            "spotify": " ",
-            "default": "🎜",
-        },
-        "escape": true,
-        "on-click": "playerctl play-pause",
-        "on-scroll-up": "playerctl previous",
-        "on-scroll-down": "playerctl next",
-        "exec": "/usr/bin/python3 $HOME/.config/waybar/mediaplayer.py", // Filter player based on name
+        "ignored-sinks": [
+            "Easy Effects Sink"
+        ]
     },
     "custom/notification": {
         "tooltip": false,
@@ -213,21 +240,21 @@
             "inhibited-notification": "<span foreground='red'><sup></sup></span>",
             "inhibited-none": " ",
             "dnd-inhibited-notification": "<span foreground='red'><sup></sup></span>",
-            "dnd-inhibited-none": " ",
+            "dnd-inhibited-none": " "
         },
         "return-type": "json",
         "exec-if": "which swaync-client",
         "exec": "swaync-client -swb",
         "on-click": "swaync-client -t -sw",
         "on-click-right": "swaync-client -d -sw",
-        "escape": true,
+        "escape": true
     },
     "custom/weather": {
         "format": "{}",
         "tooltip": true,
         "interval": 1800,
         "exec": "$HOME/.config/waybar/waybar-wttr.py",
-        "return-type": "json",
+        "return-type": "json"
     },
     "custom/layout": {
         "format": "{}",
@@ -237,7 +264,7 @@
         "on-click": "hyprctl dispatch togglefloating",
         "on-click-right": "hyprctl dispatch fullscreen",
         "on-click-middle": "hyprctl dispatch layoutmsg toggle",
-        "tooltip": true,
+        "tooltip": true
     },
     "mpris": {
         "format": "{player_icon} [{artist}] {title}",
@@ -247,12 +274,12 @@
             "mpv": " ",
             "spotify": " ",
             "vlc": "󰕼 ",
-            "firefox": " ",
+            "firefox": " "
         },
         "status-icons": {
-            "paused": " ",
+            "paused": " "
         },
-        "interval": 2,
-        "max-length": 40,
-    },
+        "interval": 3,
+        "max-length": 40
+    }
 }

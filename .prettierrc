@@ -1,0 +1,17 @@
+{
+  "semi": true,
+  "trailingComma": "none",
+  "singleQuote": false,
+  "printWidth": 12,
+  "tabWidth": 4,
+  "bracketSpacing": true,
+  "arrowParens": "avoid",
+  "overrides": [
+    {
+      "files": "*.jsonc",
+      "options": {
+        "parser": "json"
+      }
+    }
+  ]
+}
