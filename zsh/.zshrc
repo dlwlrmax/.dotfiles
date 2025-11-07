@@ -79,8 +79,8 @@ export EDITOR="nvim"
 alias zshconfig="mate ~/.zshrc"
 alias szsh="source ~/.zshrc"
 alias rr="yazi"
-alias connect='sesh connect "$(sesh list | fzf --height 40% --border --prompt="Select session: ")"'
-alias cn='sesh connect "$(sesh list | fzf --height 40% --border --prompt="Select session: ")"'
+alias connect='sesh connect "$(sesh list | grep -v -E "(opencode|qwen)" | fzf --height 40% --border --prompt="Select session: ")"'
+alias cn='sesh connect "$(sesh list | grep -v -E "(opencode|qwen)" | fzf --height 40% --border --prompt="Select session: ")"'
 alias waybar-reload="killall -SIGUSR2 waybar"
 alias ls="eza -G --color=auto --icons=auto"
 alias lgit="lazygit"
