@@ -17,3 +17,5 @@ tls:
       keyFile: /etc/traefik/certs/careers.hbr.test-key.pem
     - certFile: /etc/traefik/certs/careers.hbrholdings.test.pem
       keyFile: /etc/traefik/certs/careers.hbrholdings.test-key.pem
+    - certFile: /etc/traefik/certs/langmaster.edu.test.pem
+      keyFile: /etc/traefik/certs/langmaster.edu.test-key.pem

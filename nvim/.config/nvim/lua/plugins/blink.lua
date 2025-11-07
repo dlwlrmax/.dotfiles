@@ -52,11 +52,8 @@ return {
   },
   {
     "saghen/blink.cmp",
-    opts = {
-      appearance = {
-        use_nvim_cmp_as_default = false,
-      },
-      keymap = {
+    opts = function(_, opts)
+      local keymap = {
         preset = "default",
         ["<C-o>"] = { "select_and_accept" },
         ["<A-1>"] = {
@@ -104,8 +101,8 @@ return {
             cmp.accept({ index = 9 })
           end,
         },
-      },
-      completion = {
+      }
+      local completion = {
         menu = {
           border = "rounded",
           auto_show = true,
@@ -143,13 +140,10 @@ return {
             },
           },
         },
-        list = {
-          selection = {
-            preselect = false,
-            auto_insert = true,
-          },
-        },
-      },
-    },
+      }
+      opts.keymap = vim.tbl_deep_extend("force", opts.keymap or {}, keymap)
+      opts.completion.menu = vim.tbl_deep_extend("force", opts.completion.menu or {}, completion.menu)
+      opts.sources.providers.codeium = vim.tbl_deep_extend("force", opts.sources.providers.codeium or {}, { max_items = 3 })
+    end,
   },
 }
