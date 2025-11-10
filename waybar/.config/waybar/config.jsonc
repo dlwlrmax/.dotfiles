@@ -112,7 +112,7 @@
         "show-passive-items": true
     },
     "clock": {
-        "format": "{:%H:%M  %m-%d}",
+        "format": "{:%H:%M  %d-%m}",
         "format-alt": "{:%A, %B %d, %Y (%R)}",
         "tooltip-format": "<tt><small>{calendar}</small></tt>",
         "interval": 30,
