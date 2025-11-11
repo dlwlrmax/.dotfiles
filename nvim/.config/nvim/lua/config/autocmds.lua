@@ -7,6 +7,16 @@
 -- Or remove existing autocmds by their group name (which is prefixed with `lazyvim_` for the defaults)
 -- e.g. vim.api.nvim_del_augroup_by_name("lazyvim_wrap_spell")
 
+-- Close Diffview before Neovim exits
+vim.api.nvim_create_autocmd("VimLeavePre", {
+  callback = function()
+    local success, _ = pcall(vim.cmd, "DiffviewClose")
+    if success then
+      vim.notify("Diffview closed before exit", vim.log.levels.INFO)
+    end
+  end,
+})
+
 -- handle Hlargs Lsp semantic tokens
 vim.api.nvim_create_augroup("LspAttach_hlargs", { clear = true })
 vim.api.nvim_create_autocmd("LspAttach", {
