@@ -49,5 +49,12 @@ return {
       end,
       desc = "Sidekick Toggle CLI",
     },
+    {
+      "<leader>ac",
+      function()
+        require("sidekick.cli").toggle({ name = "qwen", focus = true })
+      end,
+      desc = "Sidekick Toggle CLI - qwen",
+    }
   },
 }
