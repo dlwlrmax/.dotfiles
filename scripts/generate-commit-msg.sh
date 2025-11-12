@@ -8,15 +8,15 @@ show_loading_animation() {
     local signal_file="$2"
     local delay=0.1
     
-    printf '%s' "$message"
+    printf '%s' "$message" >&2
     while [ -f "$signal_file" ]; do
         for i in '|' '/' '-' '-'; do
             sleep $delay
-            printf '\b%s' "$i"
+            printf '\b%s' "$i" >&2
             sleep $delay
         done
     done
-    printf '\b✓\n'
+    printf '\b✓\n' >&2
 }
 
 # Function to sanitize diff content to prevent exposing sensitive data
