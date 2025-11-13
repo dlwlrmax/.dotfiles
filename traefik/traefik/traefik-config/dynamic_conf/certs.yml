@@ -21,3 +21,9 @@ tls:
       keyFile: /etc/traefik/certs/langmaster.edu.test-key.pem
     - certFile: /etc/traefik/certs/hbrbooks.test.pem
       keyFile: /etc/traefik/certs/hbrbooks.test-key.pem
+    - certFile: /etc/traefik/certs/careers.langmaster.test.pem
+      keyFile: /etc/traefik/certs/careers.langmaster.test-key.pem
+    - certFile: /etc/traefik/certs/careers.langgo.test.pem
+      keyFile: /etc/traefik/certs/careers.langgo.test-key.pem
+    - certFile: /etc/traefik/certs/binggo.edu.test.pem
+      keyFile: /etc/traefik/certs/binggo.edu.test-key.pem

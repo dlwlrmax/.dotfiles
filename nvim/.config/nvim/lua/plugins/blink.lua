@@ -52,6 +52,9 @@ return {
   },
   {
     "saghen/blink.cmp",
+    dependencies = {
+      "xieyonn/blink-cmp-dat-word",
+    },
     opts = function(_, opts)
       local keymap = {
         preset = "default",
@@ -148,7 +151,22 @@ return {
       }
       opts.keymap = vim.tbl_deep_extend("force", opts.keymap or {}, keymap)
       opts.completion.menu = vim.tbl_deep_extend("force", opts.completion.menu or {}, completion.menu)
-      opts.sources.providers.codeium = vim.tbl_deep_extend("force", opts.sources.providers.codeium or {}, { max_items = 3 })
+      opts.sources.providers.codeium =
+        vim.tbl_deep_extend("force", opts.sources.providers.codeium or {}, { max_items = 3 })
+      opts.sources.providers.buffer =
+        vim.tbl_deep_extend("force", opts.sources.providers.buffer or {}, { min_keyword_length = 2 })
+      opts.sources = vim.tbl_deep_extend("force", opts.sources or {}, {
+        providers = {
+          datword = {
+            name = "Word",
+            module = "blink-cmp-dat-word",
+            opts = {
+              paths = { "~/.dotfiles/nvim/.config/nvim/words" },
+            },
+          },
+        },
+      })
+      opts.sources.default = vim.list_extend(opts.sources.default or {}, { "datword" })
       opts.cmdline = vim.tbl_deep_extend("force", opts.cmdline or {}, cmdline)
     end,
   },
