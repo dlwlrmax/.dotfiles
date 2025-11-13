@@ -24,6 +24,8 @@ return {
           NeoTreeMessage = { fg = colors.surface2 },
           SnacksPickerListCursorLine = { bg = "#223547" },
           SnacksPickerSelected = { fg = colors.lavender },
+          WinSeparator = { fg = colors.pink, bold = true },
+          VertSplit = { fg = colors.pink, bold = true },
         }
       end,
       auto_integrations = true,
