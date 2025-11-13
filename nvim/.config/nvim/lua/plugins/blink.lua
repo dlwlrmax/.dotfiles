@@ -141,9 +141,15 @@ return {
           },
         },
       }
+      local cmdline = {
+        keymap = {
+          ["<C-o>"] = { "select_and_accept" },
+        },
+      }
       opts.keymap = vim.tbl_deep_extend("force", opts.keymap or {}, keymap)
       opts.completion.menu = vim.tbl_deep_extend("force", opts.completion.menu or {}, completion.menu)
       opts.sources.providers.codeium = vim.tbl_deep_extend("force", opts.sources.providers.codeium or {}, { max_items = 3 })
+      opts.cmdline = vim.tbl_deep_extend("force", opts.cmdline or {}, cmdline)
     end,
   },
 }
