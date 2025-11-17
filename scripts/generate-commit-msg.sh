@@ -51,6 +51,10 @@ check_dependencies() {
         echo "Please install opencode or configure your AI service." >&2
         return 1
     fi
+    if ! command_exists "bat"; then
+        echo "Error: bat is not installed or not in PATH." >&2
+        return 1
+    fi
     return 0
 }
 
@@ -108,15 +112,9 @@ Provide concise feedback."
     temp_file=$(mktemp)
     echo "$review" > "$temp_file"
     
-    # Use the markdown rendering script to format the review
-    local script_dir
-    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    local markdown_script="$script_dir/render-markdown.sh"
-    
-    if [ -f "$markdown_script" ]; then
-        "$markdown_script" "$temp_file"
+    if command_exists "bat"; then
+        bat --language md --style=plain --paging=never "$temp_file"
     else
-        # Fallback to displaying as regular text if markdown script is not available
         echo "$review"
     fi
     
