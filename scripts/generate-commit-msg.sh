@@ -2,21 +2,34 @@
 
 set -e
 
-# Function to display loading animation with proper signaling
+# Function to display loading animation
 show_loading_animation() {
     local message="$1"
-    local signal_file="$2"
-    local delay=0.1
-    
     printf '%s' "$message" >&2
-    while [ -f "$signal_file" ]; do
-        for i in '|' '/' '-' '-'; do
-            sleep $delay
+    while true; do
+        for i in "|" "/" "-" "\\"; do
             printf '\b%s' "$i" >&2
-            sleep $delay
+            sleep 0.1
         done
     done
-    printf '\b✓\n' >&2
+}
+
+# Function to run command with loading animation
+run_with_loading() {
+    local message="$1"
+    shift
+    show_loading_animation "$message" &
+    local spinner_pid=$!
+    local output
+    output=$(timeout 300 "$@" 2>&1)
+    local exit_code=$?
+    kill $spinner_pid 2>/dev/null
+    if [ $exit_code -eq 0 ]; then
+        printf '\b✓\n' >&2
+    else
+        printf '\b✗\n' >&2
+    fi
+    echo "$output"
 }
 
 # Function to sanitize diff content to prevent exposing sensitive data
@@ -82,22 +95,9 @@ $sanitized_diff
 
 Provide concise feedback."
 
-    # Create a temporary file to signal animation completion
-    local signal_file
-    signal_file=$(mktemp)
-    echo "running" > "$signal_file"
-
-    # Start loading animation in background using the common function
-    show_loading_animation "Getting AI review of changes... " "$signal_file" &
-    local loading_pid=$!
-
-    # Run opencode to get the review (this will eventually end the loading animation)
+    # Run opencode to get the review with loading animation
     local review
-    review=$(opencode run "$review_prompt" 2>/dev/null)
-    
-    # Signal the animation to stop and wait for it to finish
-    rm "$signal_file"
-    wait $loading_pid 2>/dev/null || true
+    review=$(run_with_loading "Getting AI review of changes... " opencode run "$review_prompt")
 
     # Display header with green text and AI review as markdown
     echo
@@ -167,22 +167,9 @@ Output only the commit message in the format: <type>(<scope>): <description>
 
 Where type is one of: feat, fix, docs, style, refactor, test, chore"
 
-    # Create a temporary file to signal animation completion
-    local signal_file
-    signal_file=$(mktemp)
-    echo "running" > "$signal_file"
-
-    # Start loading animation in background using the common function
-    show_loading_animation "Generating commit message... " "$signal_file" &
-    local loading_pid=$!
-
-    # Run opencode to get the commit message (this will eventually end the loading animation)
+    # Run opencode to get the commit message with loading animation
     local commit_message
-    commit_message=$(opencode run "$prompt" 2>/dev/null)
-    
-    # Signal the animation to stop and wait for it to finish
-    rm "$signal_file"
-    wait $loading_pid 2>/dev/null || true
+    commit_message=$(run_with_loading "Generating commit message... " opencode run "$prompt")
 
     # Remove all newlines to ensure single-line output
     commit_message=$(echo "$commit_message" | tr -d '\n')
