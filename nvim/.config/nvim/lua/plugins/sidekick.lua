@@ -25,7 +25,7 @@ return {
           opencode = {
             cmd = { "opencode" },
             -- HACK: https://github.com/sst/opencode/issues/445
-            env = { OPENCODE_THEME = "system" },
+            env = { OPENCODE_THEME = "catppuccin" },
           },
           qwen = { cmd = { "qwen" } },
           gemini = { cmd = { "gemini" } },
