@@ -28,7 +28,6 @@ return {
             env = { OPENCODE_THEME = "catppuccin" },
           },
           qwen = { cmd = { "qwen" } },
-          gemini = { cmd = { "gemini" } },
         },
         prompts = {
           refactor = "Please refactor {this} to be more maintainable",
@@ -43,14 +42,14 @@ return {
   end,
   keys = {
     {
-      "<leader>aa",
+      "<leader>at",
       function()
         require("sidekick.cli").toggle({ filter = { installed = true } })
       end,
       desc = "Sidekick Toggle CLI",
     },
     {
-      "<leader>ac",
+      "<leader>aa",
       function()
         require("sidekick.cli").toggle({ name = "opencode", focus = true })
       end,
