@@ -24,11 +24,10 @@ read_single_key_non_blocking() {
     old_settings=$(stty -g)
 
     # Set terminal to raw mode to capture individual keypresses
-    stty -echo -icanon -icanon min 0 time 0
+    stty -echo -icanon min 0 time 0
 
     # Read the first character if available
-    IFS= read -r -n1 -t 0.1 char
-    if [ $? -eq 0 ]; then
+    if IFS= read -r -n1 -t 0.1 char; then
         key="$char"
 
         # If it's an escape key (ASCII 27), read potential escape sequence
