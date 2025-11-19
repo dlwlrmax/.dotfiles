@@ -1,0 +1,53 @@
+{
+    "preset": "laravel",
+    "rules": {
+        "binary_operator_spaces": {
+            "default": "single_space",
+            "operators": {
+                "=": "align_single_space_minimal",
+                "=>": "align_single_space_minimal"
+            }
+        },
+        "single_blank_line_at_eof": false,
+        "not_operator_with_successor_space": false,
+        "concat_space": {
+            "spacing": "one"
+        },
+        "method_chaining_indentation": true,
+        "ordered_class_elements": {
+            "order": [
+                "use_trait",
+                "case",
+                "constant_public",
+                "constant_protected",
+                "constant_private",
+                "property_private",
+                "property_public",
+                "property_protected",
+                "construct",
+                "destruct",
+                "magic",
+                "phpunit",
+                "constant",
+                "method_private",
+                "method_protected",
+                "method_public"
+            ]
+        },
+        "ordered_imports": {
+            "sort_algorithm": "alpha",
+            "imports_order": ["const", "class", "function"]
+        },
+        "ordered_types": {
+            "null_adjustment": "always_last"
+        },
+        "array_indentation": true,
+        "array_syntax": {
+            "syntax": "short"
+        },
+        "trim_array_spaces": true,
+        "combine_consecutive_issets": true,
+        "combine_consecutive_unsets": true
+    },
+    "exclude": ["database", "config"]
+}
