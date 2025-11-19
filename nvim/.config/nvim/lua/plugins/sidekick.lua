@@ -42,13 +42,6 @@ return {
   end,
   keys = {
     {
-      "<leader>at",
-      function()
-        require("sidekick.cli").toggle({ filter = { installed = true } })
-      end,
-      desc = "Sidekick Toggle CLI",
-    },
-    {
       "<leader>aa",
       function()
         require("sidekick.cli").toggle({ name = "opencode", focus = true })

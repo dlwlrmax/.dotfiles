@@ -13,7 +13,7 @@ font-variation = wght=500
 font-variation-bold = wght=700
 app-notifications = no-clipboard-copy
 
-custom-shader-animation = always
+# custom-shader-animation = always
 
 # Cursor
 mouse-hide-while-typing = true
