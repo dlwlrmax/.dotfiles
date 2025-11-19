@@ -15,3 +15,5 @@ vim.diagnostic.config({ float = { border = "rounded" } })
 
 -- Disable swapfile
 vim.opt.swapfile = false
+
+vim.o.winborder = 'rounded'
