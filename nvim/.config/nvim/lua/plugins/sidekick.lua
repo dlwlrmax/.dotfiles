@@ -44,6 +44,7 @@ return {
     {
       "<leader>aa",
       function()
+        -- require("sidekick.cli").toggle({ name = "qwen", focus = true })
         require("sidekick.cli").toggle({ name = "opencode", focus = true })
       end,
       desc = "Sidekick Toggle CLI - Opencode",
