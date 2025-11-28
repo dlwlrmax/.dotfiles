@@ -17,6 +17,7 @@ services:
             - "traefik.http.routers.portainer-secure.entrypoints=websecure"
             - "traefik.http.routers.portainer-secure.rule=Host(`portainer.test`)"
             - "traefik.http.routers.portainer-secure.tls=true"
+            - "traefik.http.routers.portainer-secure.tls.certresolver=default"
             - "traefik.http.routers.portainer-secure.service=portainer-svc"
 
             # HTTP → HTTPS redirect router

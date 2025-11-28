@@ -1,6 +1,59 @@
 tls:
   stores:
-    default: {}
-
+    default:
+      defaultCertificate:
+        certFile: /etc/traefik/certs/hbr.edu.test.pem
+        keyFile: /etc/traefik/certs/hbr.edu.test-key.pem
   certificates:
-    - certificatesDirectory: /etc/traefik/certs/
+    - certFile: /etc/traefik/certs/hbr.edu.test.pem
+      keyFile: /etc/traefik/certs/hbr.edu.test-key.pem
+      stores:
+        - default
+    - certFile: /etc/traefik/certs/erp.langmaster.test.pem
+      keyFile: /etc/traefik/certs/erp.langmaster.test-key.pem
+      stores:
+        - default
+    - certFile: /etc/traefik/certs/cafemom.test.pem
+      keyFile: /etc/traefik/certs/cafemom.test-key.pem
+      stores:
+        - default
+    - certFile: /etc/traefik/certs/careers.hbr.test.pem
+      keyFile: /etc/traefik/certs/careers.hbr.test-key.pem
+      stores:
+        - default
+    - certFile: /etc/traefik/certs/careers.hbrholdings.test.pem
+      keyFile: /etc/traefik/certs/careers.hbrholdings.test-key.pem
+      stores:
+        - default
+    - certFile: /etc/traefik/certs/careers.langgo.test.pem
+      keyFile: /etc/traefik/certs/careers.langgo.test-key.pem
+      stores:
+        - default
+    - certFile: /etc/traefik/certs/careers.langmaster.test.pem
+      keyFile: /etc/traefik/certs/careers.langmaster.test-key.pem
+      stores:
+        - default
+    - certFile: /etc/traefik/certs/fcm.langtech.test.pem
+      keyFile: /etc/traefik/certs/fcm.langtech.test-key.pem
+      stores:
+        - default
+    - certFile: /etc/traefik/certs/hbrbooks.test.pem
+      keyFile: /etc/traefik/certs/hbrbooks.test-key.pem
+      stores:
+        - default
+    - certFile: /etc/traefik/certs/template.hbr.test.pem
+      keyFile: /etc/traefik/certs/template.hbr.test-key.pem
+      stores:
+        - default
+    - certFile: /etc/traefik/certs/binggo.edu.test.pem
+      keyFile: /etc/traefik/certs/binggo.edu.test-key.pem
+      stores:
+        - default
+    - certFile: /etc/traefik/certs/portainer.test.pem
+      keyFile: /etc/traefik/certs/portainer.test-key.pem
+      stores:
+        - default
+    - certFile: /etc/traefik/certs/langmaster.edu.test.pem
+      keyFile: /etc/traefik/certs/langmaster.edu.test-key.pem
+      stores:
+        - default

@@ -43,7 +43,15 @@ if [ "$OUTPUT_PATH" != "$(pwd)" ]; then
   fi
 fi
 
-cp -r docker-compose.yml docker/ "$OUTPUT_PATH/"
+# Copy docker-compose.yml if it exists
+if [ -f "docker-compose.yml" ]; then
+    cp docker-compose.yml "$OUTPUT_PATH/"
+fi
+
+# Copy docker/ directory if it exists
+if [ -d "docker" ]; then
+    cp -r docker/ "$OUTPUT_PATH/"
+fi
 
 # Sanitize hostname for service name (replace dots and hyphens with underscores)
 SANITIZED_HOSTNAME=$(echo "$HOSTNAME" | tr '.' '_' | tr '-' '_')
@@ -79,29 +87,17 @@ sed -i "s/server_name erp.hbr.test;/server_name ${HOSTNAME};/g" "$OUTPUT_PATH/do
 # Update nginx.conf fastcgi_pass to new app service name
 sed -i "s/fastcgi_pass erp_hbr_app:9000;/fastcgi_pass ${NEW_SERVICE_NAME}:9000;/g" "$OUTPUT_PATH/docker/nginx/nginx.conf"
 
-# Generate self-signed certificate for the hostname
+# Generate mkcert certificate for the hostname
 CERT_DIR="../../traefik/traefik/traefik-config/certs"
 CERT_FILE="$CERT_DIR/${HOSTNAME}.pem"
 KEY_FILE="$CERT_DIR/${HOSTNAME}-key.pem"
 
 if [ ! -f "$CERT_FILE" ] || [ ! -f "$KEY_FILE" ]; then
-    echo "Generating self-signed certificate for $HOSTNAME..."
-    openssl req -x509 -newkey rsa:4096 -keyout "$KEY_FILE" -out "$CERT_FILE" -days 365 -nodes -subj "/CN=$HOSTNAME"
+    echo "Generating mkcert certificate for $HOSTNAME..."
+    mkcert -cert-file "$CERT_FILE" -key-file "$KEY_FILE" "$HOSTNAME" "*.$HOSTNAME"
     echo "Generated $CERT_FILE and $KEY_FILE"
 else
     echo "Certificate for $HOSTNAME already exists."
-fi
-
-# Add certificate to Traefik certs.yml if not already present
-CERTS_YML="../../traefik/traefik/traefik-config/dynamic_conf/certs.yml"
-if ! grep -q "certFile: /etc/traefik/certs/${HOSTNAME}.pem" "$CERTS_YML"; then
-    echo "Adding certificate entry to $CERTS_YML"
-    cat >> "$CERTS_YML" << EOF
-    - certFile: /etc/traefik/certs/${HOSTNAME}.pem
-      keyFile: /etc/traefik/certs/${HOSTNAME}-key.pem
-EOF
-else
-    echo "Certificate entry for $HOSTNAME already in $CERTS_YML"
 fi
 
 echo "Docker config copied to $OUTPUT_PATH and configured for hostname=$HOSTNAME, port=$PORT"

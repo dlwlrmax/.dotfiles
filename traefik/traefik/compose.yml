@@ -1,3 +1,5 @@
+version: "3.9"
+
 networks:
     traefik_net:
         external: true
@@ -18,8 +20,8 @@ services:
             - --api.dashboard=true
             - --api.insecure=true
             # File provider for dynamic config
-            - --providers.file.directory=/etc/traefik/dynamic_conf
-            - --providers.file.watch=true # Watch for changes
+            - --providers.file.filename=/etc/traefik/dynamic_conf/tls.yml
+            - --providers.file.watch=true
         ports:
             - "80:80"
             - "443:443"

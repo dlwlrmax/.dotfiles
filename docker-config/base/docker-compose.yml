@@ -25,6 +25,7 @@ services:
             - traefik.enable=true
             - traefik.http.routers.erphbr-secure.rule=Host(`erp.hbr.test`)
             - traefik.http.routers.erphbr-secure.tls=true
+            - traefik.http.routers.erphbr-secure.tls.certresolver=default
             - traefik.http.routers.erphbr-secure.entrypoints=websecure
             - traefik.http.services.erphbr-secure.loadbalancer.server.port=80
             - traefik.http.routers.erphbr-web.entrypoints=web
