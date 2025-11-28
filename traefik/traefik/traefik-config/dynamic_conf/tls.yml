@@ -1,0 +1,6 @@
+tls:
+  stores:
+    default: {}
+
+  certificates:
+    - certificatesDirectory: /etc/traefik/certs/
