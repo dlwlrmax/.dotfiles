@@ -20,3 +20,6 @@ map("n", "<leader>l", "<cmd>e #<cr>", { desc = "Switch to Other Buffer" })
 -- Default
 vim.keymap.set('n', '<C-q>', 'q', { noremap = true })
 vim.keymap.set('n', 'q', '<Nop>', { noremap = true })
+
+-- Replace
+vim.keymap.set('n', '<leader>rp', [[:%s/<C-r><C-w>//gIc<Left><Left><Left><Left>]], { silent = false, desc = "Replace word under cursor"})
