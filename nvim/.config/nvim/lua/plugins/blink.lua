@@ -153,6 +153,7 @@ return {
       opts.completion.menu = vim.tbl_deep_extend("force", opts.completion.menu or {}, completion.menu)
       opts.sources.providers.codeium =
         vim.tbl_deep_extend("force", opts.sources.providers.codeium or {}, { max_items = 3 })
+      opts.sources.providers.lsp = vim.tbl_deep_extend('force', opts.sources.providers.lsp or {}, { max_items = 15 })
       opts.sources.providers.buffer =
         vim.tbl_deep_extend("force", opts.sources.providers.buffer or {}, { min_keyword_length = 2 })
       opts.sources = vim.tbl_deep_extend("force", opts.sources or {}, {
@@ -160,6 +161,7 @@ return {
           datword = {
             name = "Word",
             module = "blink-cmp-dat-word",
+            score_offset = -10,
             opts = {
               paths = { "~/.dotfiles/nvim/.config/nvim/words" },
             },
