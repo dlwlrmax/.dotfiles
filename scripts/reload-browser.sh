@@ -14,7 +14,7 @@ pkill -9 -f "zen-browser" 2>/dev/null || true
 echo "Attempting to close Zen-browser"
 
 # Wait a moment for processes to fully close
-sleep 2
+sleep 5
 
 echo "Reopening browsers..."
 

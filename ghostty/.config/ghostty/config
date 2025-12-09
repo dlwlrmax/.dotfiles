@@ -29,5 +29,5 @@ confirm-close-surface = false
 shell-integration = zsh
 
 # Shader
-custom-shader = ~/.config/ghostty/shaders/cursor_smear.glsl
+# custom-shader = ~/.config/ghostty/shaders/cursor_smear.glsl
 # custom-shader = ~/.config/ghostty/shaders/ripple_cursor.glsl
