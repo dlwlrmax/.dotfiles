@@ -110,7 +110,11 @@ return {
           border = "rounded",
           auto_show = true,
           draw = {
-            columns = { { "item_idx" }, { "kind_icon", "label", "label_description", gap = 1 }, { "source_name", "kind", gap = 1 } },
+            columns = {
+              { "item_idx" },
+              { "kind_icon", "label", "label_description", gap = 1 },
+              { "source_name", "kind", gap = 1 },
+            },
             components = {
               label = {
                 width = { fill = true, max = 60 },
@@ -143,6 +147,11 @@ return {
             },
           },
         },
+        list = {
+          selection = {
+            preselect = false,
+          },
+        }
       }
       local cmdline = {
         keymap = {
@@ -151,9 +160,10 @@ return {
       }
       opts.keymap = vim.tbl_deep_extend("force", opts.keymap or {}, keymap)
       opts.completion.menu = vim.tbl_deep_extend("force", opts.completion.menu or {}, completion.menu)
+      opts.completion.list = vim.tbl_deep_extend("force", opts.completion.list or {}, completion.list)
       opts.sources.providers.codeium =
         vim.tbl_deep_extend("force", opts.sources.providers.codeium or {}, { max_items = 3 })
-      opts.sources.providers.lsp = vim.tbl_deep_extend('force', opts.sources.providers.lsp or {}, { max_items = 15 })
+      opts.sources.providers.lsp = vim.tbl_deep_extend("force", opts.sources.providers.lsp or {}, { max_items = 15 })
       opts.sources.providers.buffer =
         vim.tbl_deep_extend("force", opts.sources.providers.buffer or {}, { min_keyword_length = 2 })
       opts.sources = vim.tbl_deep_extend("force", opts.sources or {}, {
