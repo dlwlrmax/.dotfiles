@@ -54,6 +54,7 @@ return {
     "saghen/blink.cmp",
     dependencies = {
       "xieyonn/blink-cmp-dat-word",
+      { "mikavilpas/blink-ripgrep.nvim", version = "*" },
     },
     opts = function(_, opts)
       local keymap = {
@@ -151,7 +152,7 @@ return {
           selection = {
             preselect = false,
           },
-        }
+        },
       }
       local cmdline = {
         keymap = {
@@ -176,9 +177,14 @@ return {
               paths = { "~/.dotfiles/nvim/.config/nvim/words" },
             },
           },
+          ripgrep = {
+            module = "blink-ripgrep",
+            name = "Ripgrep",
+            opts = {},
+          },
         },
       })
-      opts.sources.default = vim.list_extend(opts.sources.default or {}, { "datword" })
+      opts.sources.default = vim.list_extend(opts.sources.default or {}, { "ripgrep", "datword" })
       opts.cmdline = vim.tbl_deep_extend("force", opts.cmdline or {}, cmdline)
     end,
   },
