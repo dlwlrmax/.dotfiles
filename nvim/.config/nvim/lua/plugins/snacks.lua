@@ -8,6 +8,13 @@ return {
       end,
       desc = "Buffers",
     },
+    {
+      "<C-e>",
+      function ()
+        Snacks.picker.buffers()
+      end,
+      desc = "Buffers"
+    }
   },
   opts = {
     picker = {
