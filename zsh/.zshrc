@@ -206,3 +206,6 @@ export PATH="$PATH:/home/kienct/.local/bin"
 
 # Corepack
 export COREPACK_ENABLE_AUTO_PIN=0
+
+export TUNNELTO_INSTALL="/home/kienct/.tunnelto"
+export PATH="$TUNNELTO_INSTALL/bin:$PATH"
