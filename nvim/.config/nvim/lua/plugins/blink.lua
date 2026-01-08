@@ -164,7 +164,7 @@ return {
       opts.completion.list = vim.tbl_deep_extend("force", opts.completion.list or {}, completion.list)
       opts.sources.providers.codeium =
         vim.tbl_deep_extend("force", opts.sources.providers.codeium or {}, { max_items = 3 })
-      opts.sources.providers.lsp = vim.tbl_deep_extend("force", opts.sources.providers.lsp or {}, { max_items = 15 })
+      opts.sources.providers.lsp = vim.tbl_deep_extend("force", opts.sources.providers.lsp or {}, { max_items = 15, score_offset = 1 })
       opts.sources.providers.buffer =
         vim.tbl_deep_extend("force", opts.sources.providers.buffer or {}, { min_keyword_length = 2 })
       opts.sources = vim.tbl_deep_extend("force", opts.sources or {}, {
@@ -180,6 +180,7 @@ return {
           ripgrep = {
             module = "blink-ripgrep",
             name = "Ripgrep",
+            score_offset = -5,
             opts = {},
           },
         },
