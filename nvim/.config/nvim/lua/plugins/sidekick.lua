@@ -15,12 +15,6 @@ return {
           enabled = true,
           backend = "tmux",
         },
-        win = {
-          split = {
-            width = 90,
-            height = 20,
-          },
-        },
         tools = {
           opencode = {
             cmd = { "opencode" },
