@@ -90,7 +90,16 @@ alias cmsg="~/.dotfiles/scripts/generate-commit-msg.sh"
 alias aicm="git add . && cmsg"
 alias docker-setup="~/.dotfiles/docker-config/base/setup-docker.sh"
 alias reload-browser="~/.dotfiles/scripts/reload-browser.sh"
-alias llog='bat --style=full --paging=auto --pager="less +F" "$( [ -f storage/logs/laravel-$(date +%Y-%m-%d).log ] && echo storage/logs/laravel-$(date +%Y-%m-%d).log || echo storage/logs/laravel.log )"'
+alias llog='bat --style=full --paging=auto --pager="less +F" "$(
+  today=$(date +%Y-%m-%d);
+  if [ -f "storage/logs/$today.log" ]; then
+    echo "storage/logs/$today.log";
+  elif [ -f "storage/logs/laravel-$today.log" ]; then
+    echo "storage/logs/laravel-$today.log";
+  else
+    echo "storage/logs/laravel.log";
+  fi
+)"'
 # In your ~/.zshrc
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
