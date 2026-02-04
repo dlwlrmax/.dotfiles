@@ -1,56 +1,5 @@
 return {
   {
-    "xzbdmw/colorful-menu.nvim",
-    config = function()
-      require("colorful-menu").setup({
-        ls = {
-          lua_ls = {
-            -- Maybe you want to dim arguments a bit.
-            arguments_hl = "@comment",
-          },
-          gopls = {
-            align_type_to_right = true,
-            add_colon_before_type = false,
-            preserve_type_when_truncate = true,
-          },
-          ts_ls = {
-            extra_info_hl = "@comment",
-          },
-          vtsls = {
-            extra_info_hl = "@comment",
-          },
-          ["rust-analyzer"] = {
-            extra_info_hl = "@comment",
-            align_type_to_right = true,
-            preserve_type_when_truncate = true,
-          },
-          clangd = {
-            extra_info_hl = "@comment",
-            align_type_to_right = true,
-            import_dot_hl = "@comment",
-            preserve_type_when_truncate = true,
-          },
-          zls = {
-            align_type_to_right = true,
-          },
-          roslyn = {
-            extra_info_hl = "@comment",
-          },
-          dartls = {
-            extra_info_hl = "@comment",
-          },
-          basedpyright = {
-            extra_info_hl = "@comment",
-          },
-          fallback = true,
-          fallback_extra_info_hl = "@comment",
-        },
-        fallback_highlight = "@variable",
-        max_width = 60,
-      })
-    end,
-  },
-  {
     "saghen/blink.cmp",
     dependencies = {
       "xieyonn/blink-cmp-dat-word",
@@ -60,6 +9,7 @@ return {
       local keymap = {
         preset = "default",
         ["<C-o>"] = { "select_and_accept" },
+        ["<Tab>"] = { "fallback" },
       }
       local completion = {
         menu = {
@@ -112,7 +62,8 @@ return {
       opts.completion.list = vim.tbl_deep_extend("force", opts.completion.list or {}, completion.list)
       opts.sources.providers.codeium =
         vim.tbl_deep_extend("force", opts.sources.providers.codeium or {}, { max_items = 3 })
-      opts.sources.providers.lsp = vim.tbl_deep_extend("force", opts.sources.providers.lsp or {}, { max_items = 15, score_offset = 1 })
+      opts.sources.providers.lsp =
+        vim.tbl_deep_extend("force", opts.sources.providers.lsp or {}, { max_items = 15, score_offset = 1 })
       opts.sources.providers.buffer =
         vim.tbl_deep_extend("force", opts.sources.providers.buffer or {}, { min_keyword_length = 2 })
       opts.sources = vim.tbl_deep_extend("force", opts.sources or {}, {
@@ -135,6 +86,57 @@ return {
       })
       opts.sources.default = vim.list_extend(opts.sources.default or {}, { "ripgrep", "datword" })
       opts.cmdline = vim.tbl_deep_extend("force", opts.cmdline or {}, cmdline)
+    end,
+  },
+  {
+    "xzbdmw/colorful-menu.nvim",
+    config = function()
+      require("colorful-menu").setup({
+        ls = {
+          lua_ls = {
+            -- Maybe you want to dim arguments a bit.
+            arguments_hl = "@comment",
+          },
+          gopls = {
+            align_type_to_right = true,
+            add_colon_before_type = false,
+            preserve_type_when_truncate = true,
+          },
+          ts_ls = {
+            extra_info_hl = "@comment",
+          },
+          vtsls = {
+            extra_info_hl = "@comment",
+          },
+          ["rust-analyzer"] = {
+            extra_info_hl = "@comment",
+            align_type_to_right = true,
+            preserve_type_when_truncate = true,
+          },
+          clangd = {
+            extra_info_hl = "@comment",
+            align_type_to_right = true,
+            import_dot_hl = "@comment",
+            preserve_type_when_truncate = true,
+          },
+          zls = {
+            align_type_to_right = true,
+          },
+          roslyn = {
+            extra_info_hl = "@comment",
+          },
+          dartls = {
+            extra_info_hl = "@comment",
+          },
+          basedpyright = {
+            extra_info_hl = "@comment",
+          },
+          fallback = true,
+          fallback_extra_info_hl = "@comment",
+        },
+        fallback_highlight = "@variable",
+        max_width = 60,
+      })
     end,
   },
 }
