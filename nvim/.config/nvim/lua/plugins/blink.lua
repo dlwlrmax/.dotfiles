@@ -60,8 +60,7 @@ return {
       opts.keymap = vim.tbl_deep_extend("force", opts.keymap or {}, keymap)
       opts.completion.menu = vim.tbl_deep_extend("force", opts.completion.menu or {}, completion.menu)
       opts.completion.list = vim.tbl_deep_extend("force", opts.completion.list or {}, completion.list)
-      opts.sources.providers.codeium =
-        vim.tbl_deep_extend("force", opts.sources.providers.codeium or {}, { max_items = 3 })
+      -- opts.sources.providers.codeium = vim.tbl_deep_extend("force", opts.sources.providers.codeium or {}, { max_items = 3 })
       opts.sources.providers.lsp =
         vim.tbl_deep_extend("force", opts.sources.providers.lsp or {}, { max_items = 15, score_offset = 1 })
       opts.sources.providers.buffer =
