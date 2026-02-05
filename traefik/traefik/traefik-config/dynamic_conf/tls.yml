@@ -57,3 +57,11 @@ tls:
       keyFile: /etc/traefik/certs/langmaster.edu.test-key.pem
       stores:
         - default
+    - certFile: /etc/traefik/certs/daotao.binggo.vn.test.pem
+      keyFile: /etc/traefik/certs/daotao.binggo.vn.test-key.pem
+      stores:
+        - default
+    - certFile: /etc/traefik/certs/api-daotao.binggo.vn.test.pem
+      keyFile: /etc/traefik/certs/api-daotao.binggo.vn.test-key.pem
+      stores:
+        - default
