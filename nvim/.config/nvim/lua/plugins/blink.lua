@@ -80,6 +80,7 @@ return {
             module = "blink-ripgrep",
             name = "Ripgrep",
             score_offset = -5,
+            max_items = 20,
             opts = {},
           },
         },
