@@ -201,10 +201,16 @@ export PHPBREW_RC_ENABLE=1
 [[ -e ~/.phpbrew/bashrc ]] && source ~/.phpbrew/bashrc
 
 
-# NVM
+# NVM lazy loading
 export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+nvm() {
+    unset -f nvm node npm npx
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    nvm "$@"
+}
+node() { nvm; node "$@"; }
+npm() { nvm; npm "$@"; }
+npx() { nvm; npx "$@"; }
 
 
 eval "$(zoxide init zsh)"
@@ -221,4 +227,4 @@ export COREPACK_ENABLE_AUTO_PIN=0
 export TUNNELTO_INSTALL="/home/kienct/.tunnelto"
 export PATH="$TUNNELTO_INSTALL/bin:$PATH"
 
-fpath+=~/.zfunc; autoload -Uz compinit; compinit
+fpath+=~/.zfunc
