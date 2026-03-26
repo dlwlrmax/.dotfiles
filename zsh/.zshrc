@@ -221,6 +221,9 @@ export PATH=/home/kienct/.opencode/bin:$PATH
 # Created by `pipx` on 2025-12-25 02:59:08
 export PATH="$PATH:/home/kienct/.local/bin"
 
+# Cargo (Rust)
+export PATH="$HOME/.cargo/bin:$PATH"
+
 # Corepack
 export COREPACK_ENABLE_AUTO_PIN=0
 
