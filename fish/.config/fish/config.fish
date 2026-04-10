@@ -2,6 +2,9 @@ if status is-interactive
     # Enable vi mode
     fish_vi_key_bindings
 
+    # Generate WM-specific ghostty config (e.g., window-decoration for Hyprland)
+    generate_ghostty_wm_config
+
     # Environment variables
     set -x EDITOR nvim
     set -x LANG en_US.UTF-8
