@@ -2,7 +2,7 @@ return {
   {
     "LazyVim/LazyVim",
     opts = {
-      colorscheme = "catppuccin",
+      colorscheme = "catppuccin-mocha",
     },
   },
   {
@@ -14,6 +14,7 @@ return {
   {
     "catppuccin/nvim",
     lazy = false,
+    name = "catppuccin",
     priority = 1000,
     opts = {
       term_colors = true,

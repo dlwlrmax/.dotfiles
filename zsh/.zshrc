@@ -100,6 +100,7 @@ alias llog='bat --style=full --paging=auto --pager="less +F" "$(
     echo "storage/logs/laravel.log";
   fi
 )"'
+alias laravel-tail='tail -f $( [ -f storage/logs/laravel-$(date +%Y-%m-%d).log ] && echo storage/logs/laravel-$(date +%Y-%m-%d).log || echo storage/logs/laravel.log )'
 # In your ~/.zshrc
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
