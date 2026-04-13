@@ -98,4 +98,9 @@ if status is-interactive
     end
 
     set fish_greeting ""
+
+    # Auto-connect to ~/.dotfiles with sesh if not in tmux
+    if test -z "$TMUX"
+        sesh connect ~/.dotfiles
+    end
 end
