@@ -1,6 +1,6 @@
 if status is-interactive
     # Enable vi mode
-    fish_vi_key_bindings
+    set -g fish_key_bindings fish_vi_key_bindings
 
     # Environment variables
     set -x EDITOR nvim
