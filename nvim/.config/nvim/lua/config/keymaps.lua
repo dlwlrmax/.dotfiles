@@ -23,3 +23,6 @@ map('n', 'q', '<Nop>', { noremap = true })
 
 -- Replace
 map('n', '<leader>rp', [[:%s/<C-r><C-w>//gIc<Left><Left><Left><Left>]], { silent = false, desc = "Replace word under cursor"})
+
+-- Sidekick
+map('n', '<C-p>', '<cmd>Sidekick cli prompt<cr>')
