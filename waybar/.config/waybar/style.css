@@ -91,6 +91,7 @@ button:hover {
 #temperature,
 #backlight,
 #network,
+#custom-netspeed,
 #pulseaudio,
 #wireplumber,
 #custom-media,
@@ -216,6 +217,19 @@ label:focus {
     color: @red;
 }
 
+#custom-netspeed {
+    color: @blue;
+    padding: 0 8px;
+}
+
+#custom-netspeed.netspeed-high {
+    color: @red;
+}
+
+#custom-netspeed.netspeed-med {
+    color: @yellow;
+}
+
 #pulseaudio {
     color: @green;
     padding-right: 0px;
@@ -256,6 +270,7 @@ label:focus {
 #temperature,
 #backlight,
 #network,
+#custom-netspeed,
 #pulseaudio,
 #wireplumber,
 #custom-media,

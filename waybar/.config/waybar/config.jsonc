@@ -15,11 +15,9 @@
         "pulseaudio",
         "custom/weather",
         "custom/system-updates",
-        "disk",
         "cpu",
         "memory",
-        "network",
-        "custom/layout",
+        "custom/netspeed",
         "idle_inhibitor",
         "custom/notification",
         "tray"
@@ -291,5 +289,12 @@
         },
         "interval": 3,
         "max-length": 40
+    },
+    "custom/netspeed": {
+        "format": "{}",
+        "exec": "$HOME/.dotfiles/waybar/.config/waybar/scripts/netspeed.sh",
+        "return-type": "json",
+        "interval": 2,
+        "tooltip": true
     }
 }
