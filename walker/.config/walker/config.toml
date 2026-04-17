@@ -1,0 +1,62 @@
+force_keyboard_focus = true
+close_when_open = true
+click_to_close = true
+selection_wrap = true
+exact_search_prefix = "'"
+debug = false
+
+[shell]
+anchor_top = true
+anchor_bottom = true
+anchor_left = true
+anchor_right = true
+
+[placeholders]
+"default" = { input = ">>", list = "∅" }
+"desktopapplications" = { input = ">> Launch", list = "No apps" }
+"files" = { input = ">> Browse", list = "No files" }
+
+[keybinds]
+close = ["Escape", "ctrl q"]
+next = ["Down", "ctrl j"]
+previous = ["Up", "ctrl k"]
+toggle_exact = ["ctrl e"]
+resume_last_query = ["ctrl r"]
+quick_activate = ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8"]
+
+[providers]
+default = [
+  "desktopapplications",
+  "calc",
+  "runner",
+  "files",
+  "websearch",
+  "clipboard",
+]
+empty = ["desktopapplications", "clipboard"]
+max_results = 100
+
+[providers.max_results_provider]
+desktopapplications = 30
+files = 50
+runner = 50
+
+[[providers.prefixes]]
+prefix = ";"
+provider = "providerlist"
+
+[[providers.prefixes]]
+prefix = ">"
+provider = "runner"
+
+[[providers.prefixes]]
+prefix = "/"
+provider = "files"
+
+[[providers.prefixes]]
+prefix = "="
+provider = "calc"
+
+[[providers.prefixes]]
+prefix = ":"
+provider = "clipboard"

@@ -99,6 +99,7 @@ button:hover {
 #mode,
 #idle_inhibitor,
 #scratchpad,
+#custom-system-updates,
 #custom-weather,
 #custom-notification,
 #custom-layout,
@@ -112,12 +113,20 @@ button:hover {
     color: @blue;
 }
 
-#custom-weather {
-    padding-top: 1px;
-    padding-right: 0px;
+#custom-system-updates {
+    color: @green;
+    padding: 0 8px;
 }
 
-#custom-weather, #pulseaudio {
+#custom-system-updates.updates-available {
+    color: @yellow;
+}
+
+#custom-system-updates.no-updates {
+    color: @green;
+}
+
+#pulseaudio {
     padding: 0 8px;
     border-radius: 15px 0 0 15px;
 }

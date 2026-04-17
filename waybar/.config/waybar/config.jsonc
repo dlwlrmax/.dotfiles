@@ -1,7 +1,7 @@
 {
     "layer": "top",
     "position": "top",
-    "height": 30,
+    "height": 28,
     "spacing": 0,
     "modules-left": [
         "hyprland/workspaces",
@@ -13,6 +13,8 @@
     "modules-right": [
         "mpris",
         "pulseaudio",
+        "custom/weather",
+        "custom/system-updates",
         "disk",
         "cpu",
         "memory",
@@ -253,8 +255,16 @@
         "format": "{}",
         "tooltip": true,
         "interval": 1800,
-        "exec": "$HOME/.config/waybar/waybar-wttr.py",
+        "exec": "$HOME/.dotfiles/scripts/weather-wttrbar.sh",
         "return-type": "json"
+    },
+    "custom/system-updates": {
+        "format": "{}",
+        "tooltip": true,
+        "interval": 300,
+        "exec": "$HOME/.dotfiles/scripts/system-updates.sh",
+        "return-type": "json",
+        "on-click": "$HOME/.dotfiles/scripts/system-updates.sh"
     },
     "custom/layout": {
         "format": "{}",
