@@ -58,6 +58,8 @@ if status is-interactive
     alias aicm="git add . && cmsg"
     alias docker-setup="~/.dotfiles/docker-config/base/setup-docker.sh"
     alias reload-browser="~/.dotfiles/scripts/reload-browser.sh"
+    alias wtm="webtorrent --mpv -d 10000 -u 1000 -o ~/Downloads/webtorrent"
+    alias wt="webtorrent --mpv -o ~/Downloads/webtorrent"
 
     # Complex aliases as functions
     function connect
