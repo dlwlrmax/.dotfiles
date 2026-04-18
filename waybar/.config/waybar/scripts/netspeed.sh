@@ -149,7 +149,7 @@ tx_human=$(human_readable "${tx_speed}")
 echo "${rx_now} ${tx_now} ${time_now}" > "${CACHE_FILE}"
 
 # Output JSON for Waybar
-TEXT="󰁣 ${rx_human} 󰁢 ${tx_human}"
+TEXT=" ${rx_human}  ${tx_human}"
 TOOLTIP="Interface: ${INTERFACE}\nDownload: ${rx_human}\nUpload: ${tx_human}"
 
 # Class for CSS styling based on activity
