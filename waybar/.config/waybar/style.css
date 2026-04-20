@@ -105,7 +105,7 @@ button:hover {
 #custom-notification,
 #custom-layout,
 #mpd {
-    padding: 0 8px;
+    padding: 0 5px;
     margin: 0;
     background-color: @surface;
 }
