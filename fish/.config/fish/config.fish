@@ -106,3 +106,6 @@ if status is-interactive
         sesh connect ~/.dotfiles
     end
 end
+
+# opencode
+fish_add_path /home/kielcao/.opencode/bin
