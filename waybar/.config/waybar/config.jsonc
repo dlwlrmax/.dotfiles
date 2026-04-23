@@ -30,13 +30,15 @@
             "title<.*Youtube*>": " ", // Windows whose titles contain "youtube"
             "title<Picture-in-Picture>": "󰹗 ",
             "class<firefox>": " ",
-            "class<google-chrome>": " ",
-            "class<chromium>": " ",
+            "class<google-chrome>": " ",
+            "class<chromium>": " ",
             "class<Postman>": " ",
             "class<zen>": " ",
             "class<Lark>": " ",
             "class<DBeaver>": " ",
             "class<zen-beta>": " ",
+            "class<ferdium>": " ",
+            "class<mpv>": " ",
             "class<com.mitchellh.ghostty>": " ",
             "class<firefox> title<.*github.*>": " ", // Windows whose class is "firefox" and title contains "github". Note that "class" always comes first.
             "steam": " ",
