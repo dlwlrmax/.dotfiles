@@ -48,7 +48,6 @@ if status is-interactive
     set -x PATH $HOME/.cargo/bin $PATH
 
     # Simple aliases
-    alias rr="yazi"
     alias waybar-reload="killall -SIGUSR2 waybar"
     alias ls="eza -G --color=auto --icons=auto"
     alias lgit="lazygit"

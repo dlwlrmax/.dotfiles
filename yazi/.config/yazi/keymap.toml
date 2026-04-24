@@ -1,0 +1,9 @@
+[[mgr.prepend_keymap]]
+on   = "f"
+run  = "plugin fzf"
+desc = "Fuzzy find with fd + fzf"
+
+[[mgr.prepend_keymap]]
+on   = "/"
+run  = "search --via=fd"
+desc = "Search with fd"
