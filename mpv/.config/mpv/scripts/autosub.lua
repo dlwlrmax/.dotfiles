@@ -77,7 +77,7 @@ local logins = {
 local bools = {
     auto = true,   -- Automatically download subtitles, no hotkeys required
     debug = false, -- Use `--debug` in subliminal command for debug output
-    force = true,  -- Force download; will overwrite existing subtitle files
+    force = false,  -- Force download; will overwrite existing subtitle files
     utf8 = true,   -- Save all subtitle files as UTF-8
 }
 local excludes = {
