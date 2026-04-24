@@ -96,6 +96,48 @@ local includes = {
 --=============================================================================
 local utils = require 'mp.utils'
 
+-- Explicitly select the newly added subtitle track by language
+function select_downloaded_sub(language)
+    local tracks = mp.get_property_native('track-list')
+    for _, track in ipairs(tracks) do
+        if track['type'] == 'sub' and track['external'] then
+            if track['lang'] == language[2] or track['lang'] == language[3] then
+                mp.set_property('sid', track['id'])
+                mp.msg.warn('Activated subtitle track: ' .. track['id'])
+                return true
+            end
+        end
+    end
+    return false
+end
+
+-- Try to add downloaded subtitle to mpv track list explicitly
+function add_sub_to_tracklist(language)
+    local base = filename:gsub('%.%w+$', '')
+    local exts = {'srt', 'ass', 'ssa', 'vtt', 'sub'}
+    local langs = {language[2], language[3]}
+    local candidates = {}
+
+    for _, ext in ipairs(exts) do
+        table.insert(candidates, directory .. filename .. '.' .. ext)
+        for _, lang in ipairs(langs) do
+            table.insert(candidates, directory .. filename .. '.' .. lang .. '.' .. ext)
+            table.insert(candidates, directory .. base .. '.' .. lang .. '.' .. ext)
+        end
+        table.insert(candidates, directory .. base .. '.' .. ext)
+    end
+
+    for _, path in ipairs(candidates) do
+        local f = io.open(path, 'r')
+        if f then
+            f:close()
+            mp.commandv('sub-add', path, 'auto', language[2])
+            mp.msg.warn('Added subtitle to track list: ' .. path)
+            return true
+        end
+    end
+    return false
+end
 
 -- Download function: download the best subtitles in most preferred language
 function download_subs(language)
@@ -144,6 +186,10 @@ function download_subs(language)
         mp.set_property('slang', language[2])
         -- Subtitles are downloaded successfully, so rescan to activate them:
         mp.commandv('rescan_external_files')
+        -- Explicitly add to subtitle track list (needed for HTTP streams)
+        add_sub_to_tracklist(language)
+        -- Force activate the newly downloaded subtitle
+        select_downloaded_sub(language)
         log(language[1] .. ' subtitles ready!')
         return true
     else
@@ -166,6 +212,14 @@ function control_downloads()
     mp.msg.warn('Reactivate external subtitle files:')
     mp.commandv('rescan_external_files')
     directory, filename = utils.split_path(mp.get_property('path'))
+
+    -- Fix webtorrent localhost streams: extract real filename
+    local path = mp.get_property('path')
+    if path:find('^http://localhost:8000/') then
+        filename = path:match('.+/(.-)$') or filename
+        local home = os.getenv('HOME') or ''
+        directory = home .. '/Downloads/webtorrent/'
+    end
 
     if not autosub_allowed() then
         return
@@ -208,7 +262,7 @@ function autosub_allowed()
         mp.msg.warn('Video is less than 15 minutes\n' ..
                       '=> NOT auto-downloading subtitles')
         return false
-    elseif directory:find('^http') then
+    elseif directory:find('^http') and not directory:find('^http://localhost:8000') then
         mp.msg.warn('Automatic subtitle downloading is disabled for web streaming')
         return false
     elseif active_format:find('^cue') then
