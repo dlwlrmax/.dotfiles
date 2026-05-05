@@ -1,0 +1,6 @@
+[Desktop Entry]
+Exec=mpv
+MimeType=video/x-matroska;
+Name=mpv
+NoDisplay=true
+Type=Application
