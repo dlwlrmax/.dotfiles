@@ -55,6 +55,7 @@ if status is-interactive
     alias async="~/.dotfiles/scripts/async.sh"
     alias cmsg="~/.dotfiles/scripts/generate-commit-msg.sh"
     alias aicm="git add . && cmsg"
+alias check-packages="~/.local/bin/check-packages"
     alias docker-setup="~/.dotfiles/docker-config/base/setup-docker.sh"
     alias reload-browser="~/.dotfiles/scripts/reload-browser.sh"
     alias wtm="webtorrent --mpv -d 10000 -u 1000 -o ~/Downloads/webtorrent"

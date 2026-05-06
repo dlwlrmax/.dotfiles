@@ -1,0 +1,16 @@
+#!/bin/bash
+# check-packages wrapper: auto-builds if binary missing
+BIN_DIR="$HOME/.local/bin"
+BIN="$BIN_DIR/check-packages_bin"
+SRC="$HOME/.dotfiles/scripts/check-packages"
+
+if [[ ! -x "$BIN" ]]; then
+    if ! command -v go &>/dev/null; then
+        echo "Go not installed. Run: bash $SRC/bootstrap.sh"
+        exit 1
+    fi
+    echo "Building check-packages..."
+    cd "$SRC" && go build -o "$BIN" .
+fi
+
+exec "$BIN" "$@"
