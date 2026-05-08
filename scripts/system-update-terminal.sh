@@ -4,9 +4,10 @@
 
 set -e
 
-# Get the terminal emulator (prefer kitty or alacritty)
 get_terminal() {
-    if command -v kitty &>/dev/null; then
+    if command -v ghostty &>/dev/null; then
+        echo "ghostty"
+    elif command -v kitty &>/dev/null; then
         echo "kitty"
     elif command -v alacritty &>/dev/null; then
         echo "alacritty"
@@ -59,6 +60,9 @@ fi
 # Open terminal with update command
 if [ -n "$TERMINAL" ]; then
     case "$TERMINAL" in
+        ghostty)
+            ghostty -- bash -c "$UPDATE_CMD" &
+            ;;
         kitty)
             kitty --hold -e bash -c "$UPDATE_CMD" &
             ;;
