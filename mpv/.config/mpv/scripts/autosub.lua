@@ -86,6 +86,7 @@ local excludes = {
     -- Full paths are also allowed, e.g.:
     -- '/home/david/Videos',
     'no-subs-dl',
+    '/home/kienct/Downloads/webtorrent/'
 }
 local includes = {
     -- If anything is defined here, only the movies with a path
