@@ -6,7 +6,7 @@ config-file = config.d/wm.conf
 # Font
 font-family = JetBrainsMono Nerd Font
 font-family-bold = JetBrainsMono NF ExtraBold
-font-size= 10
+font-size = 10
 window-padding-x = 5
 window-padding-y = 5
 bold-is-bright = true
