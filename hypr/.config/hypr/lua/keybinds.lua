@@ -1,5 +1,5 @@
 local mainMod = "SUPER"
-local mainModS = "SUPER_SHIFT"
+local mainModS = mainMod .. " + SHIFT"
 local terminal = "ghostty"
 local fileManager = "Thunar"
 
