@@ -42,71 +42,71 @@ hl.env("OZONE_PLATFORM", "wayland")
 hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
 
 hl.config({
-    general = {
-        border_size = 3,
-        col = {
-            active_border = { colors = { "rgba(33ccffee)", "rgba(00ff99ee)" }, angle = 45 },
-            inactive_border = "rgba(595959aa)",
-        },
-        layout = "dwindle",
-        modal_parent_blocking = true,
+  general = {
+    border_size = 3,
+    col = {
+      active_border = { colors = { "rgba(33ccffee)", "rgba(00ff99ee)" }, angle = 45 },
+      inactive_border = "rgba(595959aa)",
+    },
+    layout = "dwindle",
+    modal_parent_blocking = true,
+  },
+
+  decoration = {
+    rounding = 10,
+    active_opacity = 1,
+    inactive_opacity = 1,
+    fullscreen_opacity = 1,
+
+    blur = {
+      enabled = true,
+      size = 3,
+      passes = 2,
+      xray = false,
+      ignore_opacity = true,
+      new_optimizations = true,
+      noise = 0.02,
+      contrast = 1,
+      vibrancy = 0.2,
+      vibrancy_darkness = 0.3,
     },
 
-    decoration = {
-        rounding = 10,
-        active_opacity = 1.0,
-        inactive_opacity = 1.0,
-        fullscreen_opacity = 1.0,
+    dim_modal = true,
+    dim_around = 0.35,
 
-        blur = {
-            enabled = true,
-            size = 6,
-            passes = 2,
-            xray = false,
-            ignore_opacity = true,
-            new_optimizations = true,
-            noise = 0.02,
-            contrast = 1.1,
-            vibrancy = 0.2,
-            vibrancy_darkness = 0.3,
-        },
-
-        dim_modal = true,
-        dim_around = 0.35,
-
-        shadow = {
-            enabled = true,
-            range = 10,
-            render_power = 2,
-            color = "0x33000000",
-        },
+    shadow = {
+      enabled = true,
+      range = 10,
+      render_power = 2,
+      color = "0x33000000",
     },
+  },
 
-    animations = {
-        enabled = true,
-    },
+  animations = {
+    enabled = true,
+  },
 
-    input = {
-        kb_layout = "us",
-        kb_variant = "",
-        kb_model = "",
-        kb_options = "",
-        kb_rules = "",
-        follow_mouse = 1,
-        touchpad = {
-            natural_scroll = false,
-        },
+  input = {
+    kb_layout = "us",
+    kb_variant = "",
+    kb_model = "",
+    kb_options = "",
+    kb_rules = "",
+    follow_mouse = 1,
+    touchpad = {
+      natural_scroll = false,
     },
+  },
 
-    xwayland = {
-        force_zero_scaling = true,
-    },
+  xwayland = {
+    force_zero_scaling = true,
+  },
 
-    cursor = {
-        no_hardware_cursors = false,
-    },
+  cursor = {
+    no_hardware_cursors = false,
+  },
 
-    misc = {
-        disable_splash_rendering = true,
-    },
+  misc = {
+    disable_splash_rendering = true,
+  },
 })
