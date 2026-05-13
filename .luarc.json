@@ -3,7 +3,8 @@
         "os_name",
         "getOS",
         "jit",
-        "vim"
+        "vim",
+        "hl"
     ],
     "diagnostics.disable": [
         "unused-local"

@@ -1,6 +1,8 @@
 local terminal = "ghostty"
 
 hl.on("hyprland.start", function()
+    hl.exec_cmd("dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
+    hl.exec_cmd("gnome-keyring-daemon --start --components=secrets")
     hl.exec_cmd("waybar")
     hl.exec_cmd("hyprpaper")
     hl.exec_cmd("waypaper --restore")
@@ -16,9 +18,8 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("systemctl --user restart xdg-desktop-portal.service")
     hl.exec_cmd("sleep 10 && /usr/libexec/xdg-desktop-portal-hyprland -r")
     hl.exec_cmd("sleep 60 && ferdium")
-    hl.exec_cmd("sleep 30 && bitwarden-desktop")
     hl.exec_cmd("sleep 10 && google-chrome-stable --disable-features=WaylandWpColorManagerV1")
-    hl.exec_cmd("sleep 120 && nextcloud")
+    hl.exec_cmd("sleep 120 && nextcloud --background")
 
     -- Clipboard
     hl.exec_cmd("wl-paste --watch cliphist store")
@@ -31,4 +32,5 @@ hl.on("hyprland.start", function()
     -- Color scheme - dark mode
     hl.exec_cmd("gsettings set org.gnome.desktop.interface color-scheme prefer-dark")
     hl.exec_cmd("gsettings set org.gnome.desktop.interface gtk-theme Fluent-Dark")
+    hl.exec_cmd("hyprctl reload")
 end)

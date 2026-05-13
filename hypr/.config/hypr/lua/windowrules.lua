@@ -12,7 +12,7 @@ hl.window_rule({ match = { class = "^(zen-beta|zen|com.mitchellh.ghostty)$" }, w
 -- Size & Floating Rules
 hl.window_rule({ match = { class = "^(Chromium|Google-chrome|Navicat)$" }, min_size = "800 600" })
 hl.window_rule({
-    match = { class = "^(nemo|Ferdium|vesktop|steam|org.kde.dolphin|org.kde.audiotube|thunar|Thunar|org.gnome.Nautilus)$" },
+    match = { class = "^(nemo|vesktop|steam|org.kde.dolphin|org.kde.audiotube|thunar|Thunar|org.gnome.Nautilus)$" },
     float = true,
 })
 hl.window_rule({ match = { title = "^(Library)$" }, float = true })
@@ -93,7 +93,7 @@ hl.window_rule({
     no_initial_focus = true,
     size    = "500 280",
     content = "video",
-    monitor = 0,
+    monitor = 1,
     move    = "monitor_w-2450 monitor_h-450",
 })
 hl.window_rule({ match = { title = "^(Picture[- ]?in[- ]?[Pp]icture)$" }, dim_around = false })
@@ -105,7 +105,7 @@ hl.window_rule({ match = { title = "^(Clipman)$" }, size = "100 20" })
 
 -- Terminal opacity
 hl.window_rule({ match = { class = "^(org.wezfurlong.wezterm)$" }, opacity = 0.95 })
-hl.window_rule({ match = { class = "^(com.mitchellh.ghostty|kitty)$" }, opacity = 0.90 })
+hl.window_rule({ match = { class = "^(com.mitchellh.ghostty|kitty)$" }, opacity = 0.85 })
 
 -- ChatGPT
 hl.window_rule({
@@ -119,18 +119,6 @@ hl.window_rule({
 -- Fcitx
 hl.window_rule({ match = { class = "^(fcitx)$" }, pseudo = true })
 hl.window_rule({ match = { class = "^()$", title = "^()$" }, no_blur = true })
-
--- Float Picture-in-Picture
-hl.window_rule({
-    name  = "float",
-    match = { float = true, title = "^(Picture in picture|Picture-in-Picture)$" },
-    float    = true,
-    center   = true,
-    size     = "(monitor_w*0.62) (monitor_h*0.72)",
-    rounding = 14,
-    dim_around = true,
-})
-
 -- File manager portal
 hl.window_rule({
     name  = "file-manager",
