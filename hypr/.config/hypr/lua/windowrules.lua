@@ -12,7 +12,7 @@ hl.window_rule({ match = { class = "^(zen-beta|zen|com.mitchellh.ghostty)$" }, w
 -- Size & Floating Rules
 hl.window_rule({ match = { class = "^(Chromium|Google-chrome|Navicat)$" }, min_size = "800 600" })
 hl.window_rule({
-    match = { class = "^(nemo|vesktop|steam|org.kde.dolphin|org.kde.audiotube|thunar|Thunar|org.gnome.Nautilus)$" },
+    match = { class = "^(nemo|git-cola|vesktop|steam|org.kde.dolphin|org.kde.audiotube|thunar|Thunar|org.gnome.Nautilus)$" },
     float = true,
 })
 hl.window_rule({ match = { title = "^(Library)$" }, float = true })

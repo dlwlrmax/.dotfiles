@@ -32,7 +32,7 @@ hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("rofi -show power-menu -modi power-me
 hl.bind(mainModS .. " + S", hl.dsp.exec_cmd('grim -g "$(slurp -d)" - | satty -f - --copy-command wl-copy'))
 
 -- Fullscreen
-hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen(1))
+hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" }))
 
 -- Focus movement
 hl.bind(mainMod .. " + h", hl.dsp.focus({ direction = "left" }))
