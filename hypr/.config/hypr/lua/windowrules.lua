@@ -161,7 +161,14 @@ hl.window_rule({
 ---- LAYER RULES ----
 ------------------------
 
--- SwayNC notifications
+-- Quickshell panel bar
+hl.layer_rule({ match = { namespace = "^quickshell-bar$" }, ignore_alpha = 0.4 })
+
+-- Mako notifications
+hl.layer_rule({ match = { namespace = "^(notifications)$" }, blur = true })
+hl.layer_rule({ match = { namespace = "^(notifications)$" }, ignore_alpha = 0.5 })
+
+-- SwayNC notifications (legacy)
 hl.layer_rule({ match = { namespace = "^(swaync-.*)$" }, blur = true })
 hl.layer_rule({ match = { namespace = "^(swaync-.*)$" }, ignore_alpha = 0.5 })
 
