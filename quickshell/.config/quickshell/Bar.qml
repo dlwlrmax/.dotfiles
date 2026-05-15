@@ -7,6 +7,7 @@ Rectangle {
     id: bar
     property Theme theme: Theme {}
     required property var monitor
+    signal toggleNotifPanel()
 
     color: Qt.rgba(30 / 255, 30 / 255, 46 / 255, 0.85)
     radius: 12
@@ -55,17 +56,7 @@ Rectangle {
             Layout.alignment: Qt.AlignVCenter
         }
 
-        Separator {
-            theme: bar.theme
-            Layout.alignment: Qt.AlignVCenter
-        }
-
         NetSpeed {
-            theme: bar.theme
-            Layout.alignment: Qt.AlignVCenter
-        }
-
-        Separator {
             theme: bar.theme
             Layout.alignment: Qt.AlignVCenter
         }
@@ -80,7 +71,18 @@ Rectangle {
             Layout.alignment: Qt.AlignVCenter
         }
 
+        IdleInhibitor {
+            theme: bar.theme
+            Layout.alignment: Qt.AlignVCenter
+        }
+
         Notification {
+            theme: bar.theme
+            Layout.alignment: Qt.AlignVCenter
+            onTogglePanel: bar.toggleNotifPanel()
+        }
+
+        Separator {
             theme: bar.theme
             Layout.alignment: Qt.AlignVCenter
         }

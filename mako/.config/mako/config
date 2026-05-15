@@ -1,0 +1,38 @@
+# Mako notification daemon config
+# Styled to match Quickshell bar theme (Catppuccin Mocha)
+
+# Appearance
+background-color=#1e1e2ed9
+text-color=#cdd6f4
+border-color=#313244
+progress-color=#313244 #89b4fa
+
+font=JetBrainsMono Nerd Font Mono 10
+width=320
+height=120
+margin=10
+padding=12
+border-size=1
+border-radius=16
+
+# Behavior
+default-timeout=5000
+ignore-timeout=1
+max-visible=5
+layer=overlay
+anchor=top-right
+
+# Icons
+icon-path=/usr/share/icons/hicolor:/usr/share/icons/Adwaita:/usr/share/icons/Papirus
+max-icon-size=48
+
+# Urgency-based styling
+[urgency=low]
+border-color=#89b4fa
+
+[urgency=normal]
+border-color=#313244
+
+[urgency=critical]
+border-color=#f38ba8
+default-timeout=0

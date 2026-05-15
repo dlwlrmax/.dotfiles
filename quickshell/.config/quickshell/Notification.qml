@@ -8,6 +8,7 @@ Text {
     property Theme theme: Theme {}
     property int notifCount: 0
     property bool dnd: false
+    signal togglePanel()
 
     text: root.dnd ? (root.notifCount > 0 ? "<span style='color:" + theme.red + "'></span>" : " ") : (root.notifCount > 0 ? "<span style='color:" + theme.red + "'></span>" : " ")
     color: theme.text
@@ -44,7 +45,7 @@ Text {
         cursorShape: Qt.PointingHandCursor
         onClicked: {
             if (mouse.button === Qt.LeftButton) {
-                togglePanelProc.running = true;
+                root.togglePanel();
             } else if (mouse.button === Qt.RightButton) {
                 toggleDndProc.running = true;
             }
@@ -52,12 +53,7 @@ Text {
     }
 
     Process {
-        id: togglePanelProc
-        command: ["swaync-client", "--skip-wait", "--toggle-panel"]
-    }
-
-    Process {
         id: toggleDndProc
-        command: ["swaync-client", "--skip-wait", "--toggle-dnd"]
+        command: ["makoctl", "mode", "-t", "dnd"]
     }
 }
