@@ -3,64 +3,90 @@ import Quickshell.Hyprland._Ipc
 import QtQuick
 import QtQuick.Layouts
 
-    Rectangle {
+Rectangle {
     id: bar
     property Theme theme: Theme {}
     required property var monitor
 
-    color: theme.base
+    color: Qt.rgba(30 / 255, 30 / 255, 46 / 255, 0.85)
+    radius: 12
 
     RowLayout {
-        anchors.fill: parent
+        id: leftSection
+        anchors.left: parent.left
         anchors.leftMargin: 12
-        anchors.rightMargin: 12
-        anchors.topMargin: 4
+        anchors.verticalCenter: parent.verticalCenter
         spacing: 12
 
         Workspaces {
             monitor: bar.monitor
-            Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
+            Layout.alignment: Qt.AlignVCenter
         }
 
         WindowTitle {
-            Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
+            Layout.alignment: Qt.AlignVCenter
         }
+    }
 
-        Item { Layout.fillWidth: true }
+    Clock {
+        id: centerClock
+        anchors.centerIn: parent
+    }
 
-        Clock {
-            Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
-        }
-
-        Item { Layout.fillWidth: true }
+    RowLayout {
+        id: rightSection
+        anchors.right: parent.right
+        anchors.rightMargin: 12
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: 12
 
         Weather {
             theme: bar.theme
-            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+            Layout.alignment: Qt.AlignVCenter
+        }
+
+        Separator {
+            theme: bar.theme
+            Layout.alignment: Qt.AlignVCenter
         }
 
         Cpu {
             theme: bar.theme
-            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+            Layout.alignment: Qt.AlignVCenter
+        }
+
+        Separator {
+            theme: bar.theme
+            Layout.alignment: Qt.AlignVCenter
         }
 
         NetSpeed {
             theme: bar.theme
-            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+            Layout.alignment: Qt.AlignVCenter
+        }
+
+        Separator {
+            theme: bar.theme
+            Layout.alignment: Qt.AlignVCenter
         }
 
         Volume {
             theme: bar.theme
-            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+            Layout.alignment: Qt.AlignVCenter
+        }
+
+        Separator {
+            theme: bar.theme
+            Layout.alignment: Qt.AlignVCenter
         }
 
         Notification {
             theme: bar.theme
-            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+            Layout.alignment: Qt.AlignVCenter
         }
 
         SystemTray {
-            Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+            Layout.alignment: Qt.AlignVCenter
         }
     }
 }
