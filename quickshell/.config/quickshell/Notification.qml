@@ -3,17 +3,48 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 
-Text {
+Item {
     id: root
     property Theme theme: Theme {}
     property int notifCount: 0
     property bool dnd: false
     signal togglePanel()
 
-    text: root.dnd ? (root.notifCount > 0 ? "<span style='color:" + theme.red + "'></span>" : " ") : (root.notifCount > 0 ? "<span style='color:" + theme.red + "'></span>" : " ")
-    color: theme.text
-    font.pixelSize: theme.fontSize
-    font.weight: Font.Medium
+    implicitWidth: iconText.implicitWidth
+    implicitHeight: iconText.implicitHeight
+
+    Text {
+        id: iconText
+        anchors.centerIn: parent
+        text: root.dnd ? "󰂛" : ""
+        color: theme.text
+        font.pixelSize: theme.fontSize
+        font.weight: Font.Medium
+        font.family: theme.font + 5
+    }
+
+    Rectangle {
+        id: badge
+        visible: root.notifCount > 0
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.topMargin: -4
+        anchors.rightMargin: -8
+        width: Math.max(14, badgeText.implicitWidth + 6)
+        height: 14
+        radius: 7
+        color: theme.red
+
+        Text {
+            id: badgeText
+            anchors.centerIn: parent
+            text: root.notifCount > 9 ? "9+" : root.notifCount
+            color: "#ffffff"
+            font.pixelSize: 9
+            font.bold: true
+            font.family: theme.font
+        }
+    }
 
     Process {
         id: notifProc

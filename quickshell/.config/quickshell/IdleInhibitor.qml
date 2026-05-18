@@ -17,9 +17,9 @@ MouseArea {
 
         Text {
             id: icon
-            text: idleInhibitor.enabled ? "󰈈 " : " "
+            text: idleInhibitor.enabled ? "󰈈" : ""
             font.family: "JetBrainsMono Nerd Font Mono"
-            font.pointSize: root.theme.fontSize + 3
+            font.pointSize: root.theme.fontSize + 5
             color: idleInhibitor.enabled ? root.theme.green : root.theme.red
             Layout.alignment: Qt.AlignVCenter
         }

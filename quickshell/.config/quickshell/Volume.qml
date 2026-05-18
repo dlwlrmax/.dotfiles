@@ -3,7 +3,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 
-Text {
+Item {
     id: root
     property Theme theme: Theme {}
     property int volumeLevel: 0
@@ -13,11 +13,48 @@ Text {
     property string iconText: root.muted ? "" : (root.volumeLevel > 70 ? "" : root.volumeLevel > 30 ? "" : "")
     property string textColor: root.muted ? theme.surface1 : theme.text
 
-    text: "<span style='color:" + iconColor + "'>" + iconText + "</span> <span style='color:" + textColor + "'>" + root.volumeLevel + "%</span>"
-    textFormat: Text.RichText
-    font.pixelSize: theme.fontSize - 1
-    font.weight: Font.Medium
+    implicitWidth: row.implicitWidth
+    implicitHeight: row.implicitHeight
     Layout.alignment: Qt.AlignVCenter
+
+    RowLayout {
+        id: row
+        anchors.fill: parent
+        spacing: 4
+
+        Text {
+            text: root.iconText
+            color: root.iconColor
+            font.pixelSize: root.theme.fontSize + 5
+            font.weight: Font.Medium
+        }
+
+        Text {
+            text: root.volumeLevel + "%"
+            color: root.textColor
+            font.pixelSize: root.theme.fontSize - 1
+            font.weight: Font.Medium
+        }
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        cursorShape: Qt.PointingHandCursor
+        onClicked: {
+            if (mouse.button === Qt.LeftButton) {
+                toggleMuteProc.running = true;
+            } else if (mouse.button === Qt.RightButton) {
+                openMixerProc.running = true;
+            }
+        }
+        onWheel: wheel => {
+            if (wheel.angleDelta.y > 0) {
+                volUpProc.running = true;
+            } else if (wheel.angleDelta.y < 0) {
+                volDownProc.running = true;
+            }
+        }
+    }
 
     Process {
         id: volProc
@@ -42,25 +79,6 @@ Text {
         repeat: true
         triggeredOnStart: true
         onTriggered: volProc.running = true
-    }
-
-    MouseArea {
-        anchors.fill: parent
-        cursorShape: Qt.PointingHandCursor
-        onClicked: {
-            if (mouse.button === Qt.LeftButton) {
-                toggleMuteProc.running = true;
-            } else if (mouse.button === Qt.RightButton) {
-                openMixerProc.running = true;
-            }
-        }
-        onWheel: wheel => {
-            if (wheel.angleDelta.y > 0) {
-                volUpProc.running = true;
-            } else if (wheel.angleDelta.y < 0) {
-                volDownProc.running = true;
-            }
-        }
     }
 
     Process {

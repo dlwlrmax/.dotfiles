@@ -3,24 +3,31 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 
-Rectangle {
+Item {
     id: root
     property Theme theme: Theme {}
     property bool active: false
     signal close()
 
-    color: Qt.rgba(30 / 255, 30 / 255, 46 / 255, 0.92)
-    radius: 16
-    border.color: theme.surface0
-    border.width: 1
+    clip: true
     implicitWidth: 360
     implicitHeight: 480
+
+    Rectangle {
+        anchors.fill: parent
+        anchors.topMargin: -16
+        radius: 16
+        color: theme.color
+        border.color: theme.surface0
+        border.width: 2
+    }
 
     property var persistentNotifs: []
 
     function mergeNotifs(active, history) {
         var seenIds = {};
         var merged = [];
+        var changed = false;
 
         for (var i = 0; i < root.persistentNotifs.length; i++) {
             var pn = root.persistentNotifs[i];
@@ -33,6 +40,7 @@ Rectangle {
             if (!seenIds[an.id]) {
                 seenIds[an.id] = true;
                 merged.push(an);
+                changed = true;
             }
         }
 
@@ -41,10 +49,13 @@ Rectangle {
             if (!seenIds[hn.id]) {
                 seenIds[hn.id] = true;
                 merged.push(hn);
+                changed = true;
             }
         }
 
-        root.persistentNotifs = merged;
+        if (changed || merged.length !== root.persistentNotifs.length) {
+            root.persistentNotifs = merged;
+        }
     }
 
     ColumnLayout {
@@ -77,7 +88,6 @@ Rectangle {
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
                         root.persistentNotifs = [];
-                        notifList.model = [];
                         clearAllProc.running = true;
                     }
                 }
@@ -150,7 +160,7 @@ Rectangle {
 
     Process {
         id: clearAllProc
-        command: ["makoctl", "dismiss", "-a"]
+        command: ["/bin/bash", "-c", "makoctl dismiss -a; mkdir -p ~/.cache/quickshell; makoctl history -j | jq 'map(.id) | max // 0' > ~/.cache/quickshell/max-cleared-id"]
     }
 
     Timer {

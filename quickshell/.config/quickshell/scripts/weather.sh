@@ -4,7 +4,7 @@
 
 LOCATION="${WEATHER_LOCATION:-}"
 
-weather=$(curl -s "https://wttr.in/${LOCATION}?format=%c+%t" 2>/dev/null || echo "")
+weather=$(curl -s "https://wttr.in/${LOCATION}?format=%c+%t" 2>/dev/null | sed 's/+//' || echo "")
 
 if [[ -z "$weather" ]]; then
     echo "󰅛 --"

@@ -9,7 +9,7 @@ Rectangle {
     required property var monitor
     signal toggleNotifPanel()
 
-    color: Qt.rgba(30 / 255, 30 / 255, 46 / 255, 0.85)
+    color: theme.color
     radius: 12
 
     RowLayout {
@@ -26,6 +26,7 @@ Rectangle {
 
         WindowTitle {
             Layout.alignment: Qt.AlignVCenter
+            Layout.maximumWidth: (bar.width / 3) - 50
         }
     }
 
@@ -61,15 +62,16 @@ Rectangle {
             Layout.alignment: Qt.AlignVCenter
         }
 
+        Separator {
+            theme: bar.theme
+            Layout.alignment: Qt.AlignVCenter
+        }
+
         Volume {
             theme: bar.theme
             Layout.alignment: Qt.AlignVCenter
         }
 
-        Separator {
-            theme: bar.theme
-            Layout.alignment: Qt.AlignVCenter
-        }
 
         IdleInhibitor {
             theme: bar.theme
