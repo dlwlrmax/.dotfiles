@@ -17,7 +17,7 @@ Item {
         id: iconText
         anchors.centerIn: parent
         text: root.dnd ? "󰂛" : ""
-        color: theme.text
+        color: root.notifCount > 0 ? theme.white : theme.surface1
         font.pixelSize: theme.fontSize
         font.weight: Font.Medium
         font.family: theme.font + 5
@@ -39,7 +39,7 @@ Item {
             id: badgeText
             anchors.centerIn: parent
             text: root.notifCount > 9 ? "9+" : root.notifCount
-            color: "#ffffff"
+            color: theme.white
             font.pixelSize: 9
             font.bold: true
             font.family: theme.font

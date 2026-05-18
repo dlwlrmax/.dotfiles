@@ -3,15 +3,29 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 
-Text {
+RowLayout {
     id: root
     property Theme theme: Theme {}
-    property string weatherText: "󰅛 --"
+    property string weatherText: "--"
+    property string weatherIcon: ""
 
-    text: weatherText
-    color: theme.subtext0
-    font.pixelSize: theme.fontSize - 1
-    font.weight: Font.Medium
+    Text {
+        id: iconText
+        text: root.weatherIcon
+        color: theme.subtext0
+        font.pixelSize: theme.fontSize + 5
+        font.weight: Font.Medium
+        Layout.alignment: Qt.AlignVCenter
+    }
+
+    Text {
+        id: textText
+        text: root.weatherText
+        color: theme.subtext0
+        font.pixelSize: theme.fontSize - 1
+        font.weight: Font.Medium
+        Layout.alignment: Qt.AlignVCenter
+    }
 
     Process {
         id: weatherProc
@@ -21,7 +35,9 @@ Text {
             onStreamFinished: {
                 var output = this.text.trim();
                 if (output) {
-                    root.weatherText = output;
+                    const outputs = output.split(/\s+/);
+                    root.weatherIcon = outputs[0];
+                    root.weatherText = outputs[1]
                 }
             }
         }

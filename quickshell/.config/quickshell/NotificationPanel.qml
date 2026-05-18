@@ -15,8 +15,10 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        anchors.topMargin: -16
-        radius: 16
+        topLeftRadius: 0
+        topRightRadius: 0
+        bottomLeftRadius: 16
+        bottomRightRadius: 16
         color: theme.color
         border.color: theme.surface0
         border.width: 2

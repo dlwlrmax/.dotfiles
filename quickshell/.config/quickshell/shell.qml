@@ -60,7 +60,6 @@ ShellRoot {
                     id: panelWrapper
                     anchors.top: parent.top
                     anchors.right: parent.right
-                    anchors.topMargin: 0
                     anchors.rightMargin: 30
                     width: notifPanel.implicitWidth
                     height: notifPanel.implicitHeight
