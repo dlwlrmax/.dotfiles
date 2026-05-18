@@ -18,23 +18,17 @@ RowLayout {
             "zen": "zen-browser",
             "Ferdium": "ferdium",
             "google-chrome": "google-chrome",
-            "com.mitchellh.ghostty": "com.mitchellh.ghostty"
+            "com.mitchellh.ghostty": "com.mitchellh.ghostty",
+            "Thunar": "org.xfce.thunar"
         };
 
         var iconName = iconMap[appId] || appId;
-        var path = Quickshell.iconPath(iconName);
-        if (path) return path;
-
-        path = Quickshell.iconPath(iconName.toLowerCase());
-        if (path) return path;
 
         var entry = DesktopEntries.heuristicLookup(appId);
-        if (entry && entry.icon) {
-            path = Quickshell.iconPath(entry.icon);
-            if (path) return path;
-        }
+        var entryIcon = entry && entry.icon ? entry.icon : "";
 
-        return "";
+        var fallback = entryIcon || "application-x-executable";
+        return Quickshell.iconPath(iconName, fallback);
     }
 
     Image {

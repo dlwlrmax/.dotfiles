@@ -9,6 +9,7 @@ Item {
     property Theme theme: Theme {}
     required property var monitor
     signal toggleNotifPanel()
+    signal toggleMprisPanel()
 
     DropShadow {
         anchors.fill: barRect
@@ -55,6 +56,17 @@ Item {
             anchors.rightMargin: 12
             anchors.verticalCenter: parent.verticalCenter
             spacing: 12
+
+            Mpris {
+                theme: bar.theme
+                Layout.alignment: Qt.AlignVCenter
+                onTogglePanel: bar.toggleMprisPanel()
+            }
+
+            Separator {
+                theme: bar.theme
+                Layout.alignment: Qt.AlignVCenter
+            }
 
             Cpu {
                 theme: bar.theme

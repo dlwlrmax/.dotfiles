@@ -77,7 +77,7 @@ human_readable() {
 INTERFACE=$(get_interface)
 
 if [[ -z "${INTERFACE}" ]]; then
-    echo "󰤫 No network"
+    echo ""
     exit 0
 fi
 
@@ -110,4 +110,4 @@ tx_human=$(human_readable "${tx_speed}")
 
 echo "${rx_now} ${tx_now} ${time_now}" > "${CACHE_FILE}"
 
-echo " ${rx_human}  ${tx_human}"
+echo "${rx_human}|${tx_human}"

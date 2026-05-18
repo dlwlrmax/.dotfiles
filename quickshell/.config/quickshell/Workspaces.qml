@@ -15,31 +15,22 @@ Row {
     function iconForApp(appId) {
         if (!appId) return "";
 
-        // Hardcoded icon name mappings
         var iconMap = {
             "DBeaver": "dbeaver",
             "zen": "zen-browser",
             "Ferdium": "ferdium",
             "google-chrome": "google-chrome",
-            "com.mitchellh.ghostty": "com.mitchellh.ghostty"
+            "com.mitchellh.ghostty": "com.mitchellh.ghostty",
+            "Thunar": "org.xfce.thunar"
         };
 
         var iconName = iconMap[appId] || appId;
-        var path = Quickshell.iconPath(iconName);
-        if (path) return path;
 
-        // Try lowercase
-        path = Quickshell.iconPath(iconName.toLowerCase());
-        if (path) return path;
-
-        // Try desktop entry as last resort
         var entry = DesktopEntries.heuristicLookup(appId);
-        if (entry && entry.icon) {
-            path = Quickshell.iconPath(entry.icon);
-            if (path) return path;
-        }
+        var entryIcon = entry && entry.icon ? entry.icon : "";
 
-        return "";
+        var fallback = entryIcon || "application-x-executable";
+        return Quickshell.iconPath(iconName, fallback);
     }
 
     Repeater {
@@ -76,8 +67,8 @@ Row {
                         smooth: true
                         mipmap: true
                         fillMode: Image.PreserveAspectFit
-                        sourceSize.width: 64
-                        sourceSize.height: 64
+                        sourceSize.width: 48
+                        sourceSize.height: 48
                         source: iconForApp(modelData.wayland?.appId)
                     }
                 }

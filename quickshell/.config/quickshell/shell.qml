@@ -11,6 +11,7 @@ ShellRoot {
             id: screenScope
             property var screenData: modelData
             property bool notifPanelOpen: false
+            property bool mprisPanelOpen: false
 
             PanelWindow {
                 screen: screenScope.screenData
@@ -29,7 +30,14 @@ ShellRoot {
                     anchors.rightMargin: 8
                     anchors.topMargin: 6
                     monitor: Hyprland.monitorFor(screenScope.screenData)
-                    onToggleNotifPanel: screenScope.notifPanelOpen = !screenScope.notifPanelOpen
+                    onToggleNotifPanel: {
+                        screenScope.notifPanelOpen = !screenScope.notifPanelOpen
+                        if (screenScope.notifPanelOpen) screenScope.mprisPanelOpen = false
+                    }
+                    onToggleMprisPanel: {
+                        screenScope.mprisPanelOpen = !screenScope.mprisPanelOpen
+                        if (screenScope.mprisPanelOpen) screenScope.notifPanelOpen = false
+                    }
                 }
             }
 
@@ -87,6 +95,65 @@ ShellRoot {
                         ParallelAnimation {
                             NumberAnimation { property: "opacity"; duration: 200; easing.type: Easing.OutCubic }
                             NumberAnimation { target: panelTranslate; property: "y"; duration: 200; easing.type: Easing.OutCubic }
+                        }
+                    }
+                }
+            }
+
+            PanelWindow {
+                id: mprisWindow
+                screen: screenScope.screenData
+                anchors.top: true
+                anchors.left: true
+                anchors.right: true
+                anchors.bottom: true
+                color: "transparent"
+                visible: screenScope.mprisPanelOpen || mprisWrapper.opacity > 0
+                WlrLayershell.layer: WlrLayer.Overlay
+                WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        var pos = mapToItem(mprisWrapper, mouse.x, mouse.y);
+                        if (pos.x < 0 || pos.x > mprisWrapper.width ||
+                            pos.y < 0 || pos.y > mprisWrapper.height) {
+                            screenScope.mprisPanelOpen = false;
+                        }
+                    }
+                }
+
+                Item {
+                    id: mprisWrapper
+                    anchors.top: parent.top
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.horizontalCenterOffset: parent.width / 4 - 200
+                    width: mprisPanel.implicitWidth
+                    height: mprisPanel.implicitHeight
+                    opacity: 0
+
+                    MprisPanel {
+                        id: mprisPanel
+                        anchors.fill: parent
+                        active: screenScope.mprisPanelOpen
+                        onClose: screenScope.mprisPanelOpen = false
+                    }
+
+                    transform: Translate { id: mprisTranslate; y: -20 }
+
+                    states: State {
+                        name: "open"
+                        when: screenScope.mprisPanelOpen
+                        PropertyChanges { target: mprisWrapper; opacity: 1 }
+                        PropertyChanges { target: mprisTranslate; y: 0 }
+                    }
+
+                    transitions: Transition {
+                        from: ""; to: "open"
+                        reversible: true
+                        ParallelAnimation {
+                            NumberAnimation { property: "opacity"; duration: 200; easing.type: Easing.OutCubic }
+                            NumberAnimation { target: mprisTranslate; property: "y"; duration: 200; easing.type: Easing.OutCubic }
                         }
                     }
                 }
