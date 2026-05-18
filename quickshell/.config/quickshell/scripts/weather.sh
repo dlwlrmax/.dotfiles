@@ -2,7 +2,7 @@
 # Simple weather for Quickshell
 # Uses wttr.in with minimal output
 
-LOCATION="${WEATHER_LOCATION:-}"
+LOCATION="${WEATHER_LOCATION:-Hanoi}"
 
 weather=$(curl -s "https://wttr.in/${LOCATION}?format=%c+%t" 2>/dev/null | sed 's/+//' || echo "")
 

@@ -10,6 +10,8 @@ Item {
     required property var monitor
     signal toggleNotifPanel()
     signal toggleMprisPanel()
+    signal toggleVolumePanel()
+    signal toggleWeatherPanel()
 
     DropShadow {
         anchors.fill: barRect
@@ -86,12 +88,14 @@ Item {
             Weather {
                 theme: bar.theme
                 Layout.alignment: Qt.AlignVCenter
+                onTogglePanel: bar.toggleWeatherPanel()
             }
 
 
             Volume {
                 theme: bar.theme
                 Layout.alignment: Qt.AlignVCenter
+                onTogglePanel: bar.toggleVolumePanel()
             }
 
 

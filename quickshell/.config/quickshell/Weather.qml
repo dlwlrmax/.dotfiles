@@ -3,28 +3,47 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 
-RowLayout {
+Item {
     id: root
     property Theme theme: Theme {}
     property string weatherText: "--"
     property string weatherIcon: ""
+    signal togglePanel()
 
-    Text {
-        id: iconText
-        text: root.weatherIcon
-        color: theme.subtext0
-        font.pixelSize: theme.fontSize + 5
-        font.weight: Font.Medium
-        Layout.alignment: Qt.AlignVCenter
+    implicitWidth: row.implicitWidth
+    implicitHeight: row.implicitHeight
+
+    RowLayout {
+        id: row
+        spacing: 2
+
+        Text {
+            id: iconText
+            text: root.weatherIcon
+            color: theme.subtext0
+            font.pixelSize: theme.fontSize + 5
+            font.weight: Font.Medium
+            Layout.alignment: Qt.AlignVCenter
+        }
+
+        Text {
+            id: textText
+            text: root.weatherText
+            color: theme.subtext0
+            font.pixelSize: theme.fontSize - 1
+            font.weight: Font.Medium
+            Layout.alignment: Qt.AlignVCenter
+        }
     }
 
-    Text {
-        id: textText
-        text: root.weatherText
-        color: theme.subtext0
-        font.pixelSize: theme.fontSize - 1
-        font.weight: Font.Medium
-        Layout.alignment: Qt.AlignVCenter
+    MouseArea {
+        anchors.fill: parent
+        cursorShape: Qt.PointingHandCursor
+        onClicked: {
+            if (mouse.button === Qt.LeftButton) {
+                root.togglePanel()
+            }
+        }
     }
 
     Process {
@@ -44,7 +63,7 @@ RowLayout {
     }
 
     Timer {
-        interval: 1800000  // 30 minutes
+        interval: 1800000
         running: true
         repeat: true
         triggeredOnStart: true

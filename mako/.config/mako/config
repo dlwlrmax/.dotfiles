@@ -15,6 +15,8 @@ padding=12
 border-size=1
 border-radius=16
 
+output=DP-1|HDMI-A-1
+
 # Behavior
 default-timeout=5000
 ignore-timeout=1
