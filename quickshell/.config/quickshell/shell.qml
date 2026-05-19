@@ -17,6 +17,10 @@ ShellRoot {
         property var activeVolumeScreen: null
         property bool weatherPanelOpen: false
         property var activeWeatherScreen: null
+        property bool calendarPanelOpen: false
+        property var activeCalendarScreen: null
+        property bool sysUsagePanelOpen: false
+        property var activeSysUsageScreen: null
     }
 
     Instantiator {
@@ -48,6 +52,8 @@ ShellRoot {
                             g.activeNotifScreen = screenScope.screenData
                             g.mprisPanelOpen = false
                             g.weatherPanelOpen = false
+                            g.calendarPanelOpen = false
+                            g.sysUsagePanelOpen = false
                         }
                     }
                     onToggleMprisPanel: {
@@ -56,6 +62,8 @@ ShellRoot {
                             g.activeMprisScreen = screenScope.screenData
                             g.notifPanelOpen = false
                             g.weatherPanelOpen = false
+                            g.calendarPanelOpen = false
+                            g.sysUsagePanelOpen = false
                         }
                     }
                     onToggleVolumePanel: {
@@ -65,6 +73,8 @@ ShellRoot {
                             g.notifPanelOpen = false
                             g.mprisPanelOpen = false
                             g.weatherPanelOpen = false
+                            g.calendarPanelOpen = false
+                            g.sysUsagePanelOpen = false
                         }
                     }
                     onToggleWeatherPanel: {
@@ -74,6 +84,30 @@ ShellRoot {
                             g.notifPanelOpen = false
                             g.mprisPanelOpen = false
                             g.volumePanelOpen = false
+                            g.calendarPanelOpen = false
+                            g.sysUsagePanelOpen = false
+                        }
+                    }
+                    onToggleCalendarPanel: {
+                        g.calendarPanelOpen = !g.calendarPanelOpen
+                        if (g.calendarPanelOpen) {
+                            g.activeCalendarScreen = screenScope.screenData
+                            g.notifPanelOpen = false
+                            g.mprisPanelOpen = false
+                            g.volumePanelOpen = false
+                            g.weatherPanelOpen = false
+                            g.sysUsagePanelOpen = false
+                        }
+                    }
+                    onToggleSysUsagePanel: {
+                        g.sysUsagePanelOpen = !g.sysUsagePanelOpen
+                        if (g.sysUsagePanelOpen) {
+                            g.activeSysUsageScreen = screenScope.screenData
+                            g.notifPanelOpen = false
+                            g.mprisPanelOpen = false
+                            g.volumePanelOpen = false
+                            g.weatherPanelOpen = false
+                            g.calendarPanelOpen = false
                         }
                     }
                 }
@@ -310,6 +344,123 @@ ShellRoot {
                         ParallelAnimation {
                             NumberAnimation { property: "opacity"; duration: 200; easing.type: Easing.OutCubic }
                             NumberAnimation { target: weatherTranslate; property: "y"; duration: 200; easing.type: Easing.OutCubic }
+                        }
+                    }
+                }
+            }
+
+            PanelWindow {
+                id: calendarWindow
+                screen: screenScope.screenData
+                anchors.top: true
+                anchors.left: true
+                anchors.right: true
+                anchors.bottom: true
+                color: "transparent"
+                visible: (g.calendarPanelOpen && g.activeCalendarScreen === screenScope.screenData) || calWrapper.opacity > 0
+                WlrLayershell.layer: WlrLayer.Overlay
+                WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        var pos = mapToItem(calWrapper, mouse.x, mouse.y);
+                        if (pos.x < 0 || pos.x > calWrapper.width ||
+                            pos.y < 0 || pos.y > calWrapper.height) {
+                            g.calendarPanelOpen = false;
+                        }
+                    }
+                }
+
+                Item {
+                    id: calWrapper
+                    anchors.top: parent.top
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: calendarPanel.implicitWidth
+                    height: calendarPanel.implicitHeight
+                    opacity: 0
+
+                    CalendarPanel {
+                        id: calendarPanel
+                        anchors.fill: parent
+                        active: g.calendarPanelOpen && g.activeCalendarScreen === screenScope.screenData
+                        onClose: g.calendarPanelOpen = false
+                    }
+
+                    transform: Translate { id: calTranslate; y: -20 }
+
+                    states: State {
+                        name: "open"
+                        when: g.calendarPanelOpen && g.activeCalendarScreen === screenScope.screenData
+                        PropertyChanges { target: calWrapper; opacity: 1 }
+                        PropertyChanges { target: calTranslate; y: 0 }
+                    }
+
+                    transitions: Transition {
+                        from: ""; to: "open"
+                        reversible: true
+                        ParallelAnimation {
+                            NumberAnimation { property: "opacity"; duration: 200; easing.type: Easing.OutCubic }
+                            NumberAnimation { target: calTranslate; property: "y"; duration: 200; easing.type: Easing.OutCubic }
+                        }
+                    }
+                }
+            }
+
+            PanelWindow {
+                id: sysUsageWindow
+                screen: screenScope.screenData
+                anchors.top: true
+                anchors.left: true
+                anchors.right: true
+                anchors.bottom: true
+                color: "transparent"
+                visible: (g.sysUsagePanelOpen && g.activeSysUsageScreen === screenScope.screenData) || sysWrapper.opacity > 0
+                WlrLayershell.layer: WlrLayer.Overlay
+                WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        var pos = mapToItem(sysWrapper, mouse.x, mouse.y);
+                        if (pos.x < 0 || pos.x > sysWrapper.width ||
+                            pos.y < 0 || pos.y > sysWrapper.height) {
+                            g.sysUsagePanelOpen = false;
+                        }
+                    }
+                }
+
+                Item {
+                    id: sysWrapper
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    anchors.rightMargin: 250
+                    width: sysUsagePanel.implicitWidth
+                    height: sysUsagePanel.implicitHeight
+                    opacity: 0
+
+                    SysUsagePanel {
+                        id: sysUsagePanel
+                        anchors.fill: parent
+                        active: g.sysUsagePanelOpen && g.activeSysUsageScreen === screenScope.screenData
+                        onClose: g.sysUsagePanelOpen = false
+                    }
+
+                    transform: Translate { id: sysTranslate; y: -20 }
+
+                    states: State {
+                        name: "open"
+                        when: g.sysUsagePanelOpen && g.activeSysUsageScreen === screenScope.screenData
+                        PropertyChanges { target: sysWrapper; opacity: 1 }
+                        PropertyChanges { target: sysTranslate; y: 0 }
+                    }
+
+                    transitions: Transition {
+                        from: ""; to: "open"
+                        reversible: true
+                        ParallelAnimation {
+                            NumberAnimation { property: "opacity"; duration: 200; easing.type: Easing.OutCubic }
+                            NumberAnimation { target: sysTranslate; property: "y"; duration: 200; easing.type: Easing.OutCubic }
                         }
                     }
                 }

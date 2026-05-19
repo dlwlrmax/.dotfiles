@@ -12,6 +12,8 @@ Item {
     signal toggleMprisPanel()
     signal toggleVolumePanel()
     signal toggleWeatherPanel()
+    signal toggleCalendarPanel()
+    signal toggleSysUsagePanel()
 
     DropShadow {
         anchors.fill: barRect
@@ -50,6 +52,7 @@ Item {
         Clock {
             id: centerClock
             anchors.centerIn: parent
+            onTogglePanel: bar.toggleCalendarPanel()
         }
 
         RowLayout {
@@ -73,6 +76,7 @@ Item {
             Cpu {
                 theme: bar.theme
                 Layout.alignment: Qt.AlignVCenter
+                onTogglePanel: bar.toggleSysUsagePanel()
             }
 
             NetSpeed {

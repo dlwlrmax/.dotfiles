@@ -28,6 +28,15 @@ Item {
         color: theme.color
         border.color: theme.surface0
         border.width: 2
+
+        // mask top border
+        Rectangle {
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 2
+            color: theme.color
+        }
     }
 
     ColumnLayout {
