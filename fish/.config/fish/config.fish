@@ -112,3 +112,4 @@ fish_add_path /home/kielcao/.opencode/bin
 
 # Created by `pipx` on 2026-04-24 11:41:22
 set PATH $PATH /home/kielcao/.local/bin
+set -gx OPENCODE_ENABLE_EXA 1
