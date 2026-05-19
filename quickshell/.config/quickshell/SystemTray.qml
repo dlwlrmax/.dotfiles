@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
 import Quickshell
 import Quickshell.Services.SystemTray
 
@@ -36,6 +37,7 @@ RowLayout {
             MouseArea {
                 anchors.fill: parent
                 acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                hoverEnabled: true
                 onClicked: mouse => {
                     if (mouse.button === Qt.LeftButton) {
                         trayDelegate.modelData.activate()
@@ -54,6 +56,18 @@ RowLayout {
                 }
                 onWheel: wheel => {
                     trayDelegate.modelData.scroll(wheel.angleDelta.y, false)
+                }
+
+                ToolTip {
+                    visible: parent.containsMouse && (trayDelegate.modelData.tooltipTitle !== "" || trayDelegate.modelData.title !== "")
+                    text: {
+                        let title = trayDelegate.modelData.tooltipTitle !== "" ? trayDelegate.modelData.tooltipTitle : trayDelegate.modelData.title
+                        if (trayDelegate.modelData.tooltipDescription !== "")
+                            return title + "\n" + trayDelegate.modelData.tooltipDescription
+                        return title
+                    }
+                    delay: 800
+                    font.pixelSize: 10
                 }
             }
         }

@@ -15,35 +15,60 @@ Item {
     implicitHeight: row.implicitHeight
     Layout.alignment: Qt.AlignVCenter
 
-    RowLayout {
-        id: row
-        spacing: 12
+        RowLayout {
+            id: row
+            spacing: 6
 
-        Text {
-            text: root.cpuUsage + "%  "
-            color: root.cpuUsage > 70 ? theme.red : root.cpuUsage > 30 ? theme.yellow : theme.green
-            font.pixelSize: theme.fontSize - 1
-            font.weight: Font.Medium
-            font.family: theme.font
-        }
+            Text {
+                text: root.cpuUsage + "%"
+                color: root.cpuUsage > 70 ? theme.red : root.cpuUsage > 30 ? theme.yellow : theme.green
+                font.pixelSize: theme.fontSize - 1
+                font.weight: Font.Medium
+                font.family: theme.font
+            }
 
-        Text {
-            text: root.ramUsage + "%  "
-            color: root.ramUsage > 80 ? theme.red : root.ramUsage > 50 ? theme.yellow : theme.green
-            font.pixelSize: theme.fontSize - 1
-            font.weight: Font.Medium
-            font.family: theme.font
-        }
+            Text {
+                text: ""
+                color: root.cpuUsage > 70 ? theme.red : root.cpuUsage > 30 ? theme.yellow : theme.green
+                font.pixelSize: theme.fontSize + 5
+                font.weight: Font.Medium
+                font.family: theme.font
+            }
 
-        Text {
-            text: root.swapUsage + "% 󰾵 "
-            color: root.swapUsage > 50 ? theme.red : root.swapUsage > 20 ? theme.yellow : theme.green
-            font.pixelSize: theme.fontSize - 1
-            font.weight: Font.Medium
-            font.family: theme.font
-            visible: root.swapUsage > 0
+            Text {
+                text: root.ramUsage + "%"
+                color: root.ramUsage > 80 ? theme.red : root.ramUsage > 50 ? theme.yellow : theme.green
+                font.pixelSize: theme.fontSize - 1
+                font.weight: Font.Medium
+                font.family: theme.font
+            }
+
+            Text {
+                text: ""
+                color: root.ramUsage > 80 ? theme.red : root.ramUsage > 50 ? theme.yellow : theme.green
+                font.pixelSize: theme.fontSize + 5
+                font.weight: Font.Medium
+                font.family: theme.font
+            }
+
+            Text {
+                text: root.swapUsage + "%"
+                color: root.swapUsage > 50 ? theme.red : root.swapUsage > 20 ? theme.yellow : theme.green
+                font.pixelSize: theme.fontSize - 1
+                font.weight: Font.Medium
+                font.family: theme.font
+                visible: root.swapUsage > 0
+            }
+
+            Text {
+                text: "󰾵"
+                color: root.swapUsage > 50 ? theme.red : root.swapUsage > 20 ? theme.yellow : theme.green
+                font.pixelSize: theme.fontSize + 1
+                font.weight: Font.Medium
+                font.family: theme.font
+                visible: root.swapUsage > 0
+            }
         }
-    }
 
     MouseArea {
         anchors.fill: parent
