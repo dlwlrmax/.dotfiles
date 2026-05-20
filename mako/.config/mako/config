@@ -7,13 +7,14 @@ text-color=#cdd6f4
 border-color=#313244
 progress-color=#313244 #89b4fa
 
-font=JetBrainsMono Nerd Font Mono 10
-width=320
-height=120
+font=JetBrainsMono Nerd Font Mono 9
+width=400
+height=200
 margin=10
 padding=12
 border-size=1
 border-radius=16
+actions=1
 
 output=DP-1|HDMI-A-1
 
@@ -22,7 +23,8 @@ default-timeout=5000
 ignore-timeout=1
 max-visible=5
 layer=overlay
-anchor=top-right
+anchor=top-center
+
 
 # Icons
 icon-path=/usr/share/icons/hicolor:/usr/share/icons/Adwaita:/usr/share/icons/Papirus
