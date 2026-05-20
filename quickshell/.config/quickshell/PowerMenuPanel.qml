@@ -84,7 +84,7 @@ Item {
 
     clip: true
     implicitWidth: 260
-    implicitHeight: 380
+    implicitHeight: 320
 
     Rectangle {
         anchors.fill: parent
