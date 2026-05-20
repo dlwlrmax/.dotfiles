@@ -2,6 +2,7 @@
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland._Ipc
+import Quickshell.Io
 import QtQuick
 
 ShellRoot {
@@ -21,6 +22,43 @@ ShellRoot {
         property var activeCalendarScreen: null
         property bool sysUsagePanelOpen: false
         property var activeSysUsageScreen: null
+        property bool powerPanelOpen: false
+        property var activePowerScreen: null
+    }
+
+    Item {
+        id: powerTrigger
+
+        Timer {
+            id: powerPollTimer
+            interval: 300
+            running: true
+            repeat: true
+            onTriggered: {
+                if (!powerFlagProc.running) powerFlagProc.running = true
+            }
+        }
+
+        Process {
+            id: powerFlagProc
+            command: ["/bin/sh", "-c", "if [ -f /tmp/quickshell-power-toggle ]; then rm /tmp/quickshell-power-toggle; echo 1; else echo 0; fi"]
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    if (this.text.trim() === "1") {
+                        g.powerPanelOpen = !g.powerPanelOpen
+                        if (g.powerPanelOpen) {
+                            g.activePowerScreen = Quickshell.screens[0]
+                            g.notifPanelOpen = false
+                            g.mprisPanelOpen = false
+                            g.volumePanelOpen = false
+                            g.weatherPanelOpen = false
+                            g.calendarPanelOpen = false
+                            g.sysUsagePanelOpen = false
+                        }
+                    }
+                }
+            }
+        }
     }
 
     Instantiator {
@@ -144,6 +182,9 @@ ShellRoot {
                     width: notifPanel.implicitWidth
                     height: notifPanel.implicitHeight
                     opacity: 0
+                    focus: true
+                    Keys.onEscapePressed: g.notifPanelOpen = false
+                    onOpacityChanged: if (opacity > 0) forceActiveFocus()
 
                     NotificationPanel {
                         id: notifPanel
@@ -203,6 +244,9 @@ ShellRoot {
                     width: mprisPanel.implicitWidth
                     height: mprisPanel.implicitHeight
                     opacity: 0
+                    focus: true
+                    Keys.onEscapePressed: g.mprisPanelOpen = false
+                    onOpacityChanged: if (opacity > 0) forceActiveFocus()
 
                     MprisPanel {
                         id: mprisPanel
@@ -262,6 +306,9 @@ ShellRoot {
                     width: volumePanel.implicitWidth
                     height: volumePanel.implicitHeight
                     opacity: 0
+                    focus: true
+                    Keys.onEscapePressed: g.volumePanelOpen = false
+                    onOpacityChanged: if (opacity > 0) forceActiveFocus()
 
                     VolumePanel {
                         id: volumePanel
@@ -321,6 +368,9 @@ ShellRoot {
                     width: weatherPanel.implicitWidth
                     height: weatherPanel.implicitHeight
                     opacity: 0
+                    focus: true
+                    Keys.onEscapePressed: g.weatherPanelOpen = false
+                    onOpacityChanged: if (opacity > 0) forceActiveFocus()
 
                     WeatherPanel {
                         id: weatherPanel
@@ -379,6 +429,9 @@ ShellRoot {
                     width: calendarPanel.implicitWidth
                     height: calendarPanel.implicitHeight
                     opacity: 0
+                    focus: true
+                    Keys.onEscapePressed: g.calendarPanelOpen = false
+                    onOpacityChanged: if (opacity > 0) forceActiveFocus()
 
                     CalendarPanel {
                         id: calendarPanel
@@ -438,6 +491,9 @@ ShellRoot {
                     width: sysUsagePanel.implicitWidth
                     height: sysUsagePanel.implicitHeight
                     opacity: 0
+                    focus: true
+                    Keys.onEscapePressed: g.sysUsagePanelOpen = false
+                    onOpacityChanged: if (opacity > 0) forceActiveFocus()
 
                     SysUsagePanel {
                         id: sysUsagePanel
@@ -461,6 +517,63 @@ ShellRoot {
                         ParallelAnimation {
                             NumberAnimation { property: "opacity"; duration: 200; easing.type: Easing.OutCubic }
                             NumberAnimation { target: sysTranslate; property: "y"; duration: 200; easing.type: Easing.OutCubic }
+                        }
+                    }
+                }
+            }
+
+            PanelWindow {
+                id: powerWindow
+                screen: screenScope.screenData
+                anchors.top: true
+                anchors.left: true
+                anchors.right: true
+                anchors.bottom: true
+                color: "transparent"
+                visible: (g.powerPanelOpen && g.activePowerScreen === screenScope.screenData) || powerWrapper.opacity > 0
+                WlrLayershell.layer: WlrLayer.Overlay
+                WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        var pos = mapToItem(powerWrapper, mouse.x, mouse.y);
+                        if (pos.x < 0 || pos.x > powerWrapper.width ||
+                            pos.y < 0 || pos.y > powerWrapper.height) {
+                            g.powerPanelOpen = false;
+                        }
+                    }
+                }
+
+                Item {
+                    id: powerWrapper
+                    anchors.centerIn: parent
+                    width: powerMenuPanel.implicitWidth
+                    height: powerMenuPanel.implicitHeight
+                    opacity: 0
+
+                    PowerMenuPanel {
+                        id: powerMenuPanel
+                        anchors.fill: parent
+                        active: g.powerPanelOpen && g.activePowerScreen === screenScope.screenData
+                        onClose: g.powerPanelOpen = false
+                    }
+
+                    transform: Translate { id: powerTranslate; y: -20 }
+
+                    states: State {
+                        name: "open"
+                        when: g.powerPanelOpen && g.activePowerScreen === screenScope.screenData
+                        PropertyChanges { target: powerWrapper; opacity: 1 }
+                        PropertyChanges { target: powerTranslate; y: 0 }
+                    }
+
+                    transitions: Transition {
+                        from: ""; to: "open"
+                        reversible: true
+                        ParallelAnimation {
+                            NumberAnimation { property: "opacity"; duration: 200; easing.type: Easing.OutCubic }
+                            NumberAnimation { target: powerTranslate; property: "y"; duration: 200; easing.type: Easing.OutCubic }
                         }
                     }
                 }

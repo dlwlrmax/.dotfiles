@@ -45,7 +45,7 @@ Item {
 
             WindowTitle {
                 Layout.alignment: Qt.AlignVCenter
-                Layout.maximumWidth: (bar.width / 3) - 50
+                Layout.maximumWidth: (bar.width / 3) - 150
             }
         }
 

@@ -25,8 +25,8 @@ hl.bind(mainMod .. " + V", hl.dsp.window.center())
 -- Rofi app launcher
 hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("rofi -show"))
 
--- Power menu
-hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("rofi -show power-menu -modi power-menu:~/.config/hypr/rofi-power-menu"))
+-- Power menu (quickshell)
+hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("touch /tmp/quickshell-power-toggle"))
 
 -- Screenshot
 hl.bind(mainModS .. " + S", hl.dsp.exec_cmd('grim -g "$(slurp -d)" - | satty -f - --copy-command wl-copy'))

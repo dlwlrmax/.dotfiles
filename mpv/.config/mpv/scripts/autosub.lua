@@ -75,7 +75,7 @@ local logins = {
 -->>    ADDITIONAL OPTIONS:
 --=============================================================================
 local bools = {
-    auto = true,   -- Automatically download subtitles, no hotkeys required
+    auto = false,   -- Automatically download subtitles, no hotkeys required
     debug = false, -- Use `--debug` in subliminal command for debug output
     force = false,  -- Force download; will overwrite existing subtitle files
     utf8 = true,   -- Save all subtitle files as UTF-8
@@ -86,7 +86,6 @@ local excludes = {
     -- Full paths are also allowed, e.g.:
     -- '/home/david/Videos',
     'no-subs-dl',
-    '~/Downloads/webtorrent/'
 }
 local includes = {
     -- If anything is defined here, only the movies with a path

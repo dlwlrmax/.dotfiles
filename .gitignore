@@ -5,3 +5,4 @@ package.json
 pnpm-lock.yaml
 ~/
 *.pem
+.tmp
