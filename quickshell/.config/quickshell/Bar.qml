@@ -63,6 +63,7 @@ Item {
             spacing: 12
 
             Mpris {
+                id: mpris
                 theme: bar.theme
                 Layout.alignment: Qt.AlignVCenter
                 onTogglePanel: bar.toggleMprisPanel()
@@ -71,6 +72,7 @@ Item {
             Separator {
                 theme: bar.theme
                 Layout.alignment: Qt.AlignVCenter
+                visible: mpris.visible
             }
 
             Cpu {
