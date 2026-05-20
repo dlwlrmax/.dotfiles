@@ -297,18 +297,26 @@ Item {
         }
     }
 
-    function formatTime(us) {
-        if (!us || us <= 0) return "--:--"
-        var totalSec = Math.floor(us / 1000000)
+    function formatTime(seconds) {
+        if (!seconds || seconds <= 0) return "--:--"
+        var totalSec = Math.floor(seconds)
         var min = Math.floor(totalSec / 60)
         var sec = totalSec % 60
         return min + ":" + (sec < 10 ? "0" : "") + sec
     }
 
     Timer {
-        interval: 2000
+        interval: 1000
         running: root.active
         repeat: true
         triggeredOnStart: true
+        onTriggered: {
+            for (var i = 0; i < Mpris.players.rowCount(); i++) {
+                var player = Mpris.players.rowAt(i)
+                if (player && player.isPlaying) {
+                    player.positionChanged()
+                }
+            }
+        }
     }
 }
