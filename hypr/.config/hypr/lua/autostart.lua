@@ -44,8 +44,8 @@ hl.on("hyprland.start", function()
     -- ═══════════════════════════════════════════════════════════
     -- LOW: user apps — deferred to keep desktop responsive
     -- ═══════════════════════════════════════════════════════════
-    hl.exec_cmd("sleep 5 && zen-browser")
-    hl.exec_cmd("sleep 10 && " .. terminal)
+    hl.exec_cmd("sleep 6 && zen-browser")
+    hl.exec_cmd("sleep 5 && " .. terminal)
     hl.exec_cmd("sleep 15 && google-chrome-stable --disable-features=WaylandWpColorManagerV1")
     hl.exec_cmd("sleep 60 && ferdium")
     hl.exec_cmd("sleep 120 && nextcloud --background")
