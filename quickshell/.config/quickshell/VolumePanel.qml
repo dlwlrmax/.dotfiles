@@ -264,6 +264,21 @@ Item {
                         Layout.fillWidth: true
                         spacing: 8
 
+                        Image {
+                            source: {
+                                var iconName = modelData.icon || modelData.application || "";
+                                return Quickshell.iconPath(iconName, "image://icon/audio-x-generic");
+                            }
+                            width: 22
+                            height: 22
+                            Layout.preferredWidth: 22
+                            Layout.preferredHeight: 22
+                            fillMode: Image.PreserveAspectFit
+                            sourceSize.width: 22
+                            sourceSize.height: 22
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+
                         Text {
                             text: modelData.name || modelData.application || "Unknown"
                             color: theme.text

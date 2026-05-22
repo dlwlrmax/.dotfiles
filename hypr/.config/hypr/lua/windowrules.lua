@@ -17,7 +17,7 @@ hl.window_rule({ match = { class = "^(zen-beta|zen|com.mitchellh.ghostty)$" }, w
 hl.window_rule({ match = { class = "^(Chromium|Google-chrome|Navicat)$" }, min_size = "800 600" })
 hl.window_rule({
   match = {
-    class = "^(nemo|org.qbittorrent.qBittorrent|git-cola|vesktop|steam|org.kde.dolphin|org.kde.audiotube|thunar|Thunar|org.gnome.Nautilus)$",
+    class = "^(nemo|com.stremio.stremio|stremio-enhanced|org.qbittorrent.qBittorrent|git-cola|vesktop|steam|org.kde.dolphin|org.kde.audiotube|thunar|Thunar|org.gnome.Nautilus)$",
   },
   float = true,
 })

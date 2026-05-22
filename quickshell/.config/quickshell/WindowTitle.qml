@@ -19,16 +19,12 @@ RowLayout {
             "Ferdium": "ferdium",
             "google-chrome": "google-chrome",
             "com.mitchellh.ghostty": "com.mitchellh.ghostty",
-            "Thunar": "org.xfce.thunar"
+            "Thunar": "org.xfce.thunar",
+            "com.stremio.stremio": "com.stremio.Stremio"
         };
 
         var iconName = iconMap[appId] || appId;
-
-        var entry = DesktopEntries.heuristicLookup(appId);
-        var entryIcon = entry && entry.icon ? entry.icon : "";
-
-        var fallback = entryIcon || "application-x-executable";
-        return Quickshell.iconPath(iconName, fallback);
+        return Quickshell.iconPath(iconName, "image://icon/application-x-executable");
     }
 
     Image {
