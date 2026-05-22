@@ -9,7 +9,7 @@ Item {
     property Theme theme: Theme {}
     required property var monitor
     signal toggleNotifPanel()
-    signal toggleMprisPanel()
+    signal toggleMprisPanel(int centerX)
     signal toggleVolumePanel()
     signal toggleWeatherPanel()
     signal toggleCalendarPanel()
@@ -66,7 +66,7 @@ Item {
                 id: mpris
                 theme: bar.theme
                 Layout.alignment: Qt.AlignVCenter
-                onTogglePanel: bar.toggleMprisPanel()
+                onTogglePanel: centerX => bar.toggleMprisPanel(centerX)
             }
 
             Separator {

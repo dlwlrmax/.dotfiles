@@ -7,7 +7,7 @@ Item {
     id: root
     property Theme theme: Theme {}
     property var currentPlayer: null
-    signal togglePanel()
+    signal togglePanel(int centerX)
 
     visible: currentPlayer !== null
     implicitWidth: row.implicitWidth
@@ -50,7 +50,8 @@ Item {
             if (mouse.button === Qt.LeftButton) {
                 var labelPos = trackLabel.mapFromItem(root, mouse.x, mouse.y)
                 if (labelPos.x >= 0 && labelPos.x <= trackLabel.width) {
-                    root.togglePanel()
+                    var globalPos = root.mapToItem(null, 0, 0)
+                    root.togglePanel(globalPos.x + root.width / 2)
                 } else if (root.currentPlayer.canTogglePlaying) {
                     root.currentPlayer.togglePlaying()
                 }

@@ -312,7 +312,7 @@ Item {
         triggeredOnStart: true
         onTriggered: {
             for (var i = 0; i < Mpris.players.rowCount(); i++) {
-                var player = Mpris.players.rowAt(i)
+                var player = Mpris.players.values[i]
                 if (player && player.isPlaying) {
                     player.positionChanged()
                 }

@@ -13,9 +13,10 @@ PanelWindow {
     property int position: PanelOverlay.Position.TopRight
     property int rightMargin: 30
     property int centerOffset: 0
+    property int topMargin: 0
     property bool keyboardFocus: true
 
-    default property alias content: wrapper.contentData
+    default property alias content: wrapper.data
 
     screen: root.screen
     anchors.top: true
@@ -49,15 +50,33 @@ PanelWindow {
         width: children.length > 0 ? children[0].implicitWidth : 0
         height: children.length > 0 ? children[0].implicitHeight : 0
 
+        Binding {
+            target: wrapper.anchors
+            property: "topMargin"
+            value: root.topMargin
+        }
+
+        Binding {
+            target: wrapper.anchors
+            property: "rightMargin"
+            value: root.rightMargin
+            when: root.position === PanelOverlay.Position.TopRight
+        }
+
+        Binding {
+            target: wrapper.anchors
+            property: "horizontalCenterOffset"
+            value: root.centerOffset
+            when: root.position === PanelOverlay.Position.TopCenter
+        }
+
         Component.onCompleted: {
             switch (root.position) {
                 case PanelOverlay.Position.TopRight:
                     wrapper.anchors.right = parent.right
-                    wrapper.anchors.rightMargin = root.rightMargin
                     break
                 case PanelOverlay.Position.TopCenter:
                     wrapper.anchors.horizontalCenter = parent.horizontalCenter
-                    wrapper.anchors.horizontalCenterOffset = root.centerOffset
                     break
                 case PanelOverlay.Position.Center:
                     wrapper.anchors.centerIn = parent

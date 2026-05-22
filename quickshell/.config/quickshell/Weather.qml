@@ -39,7 +39,7 @@ Item {
     MouseArea {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
-        onClicked: {
+        onClicked: mouse => {
             if (mouse.button === Qt.LeftButton) {
                 root.togglePanel()
             }

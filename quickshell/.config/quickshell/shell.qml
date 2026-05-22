@@ -14,6 +14,7 @@ ShellRoot {
         property var activeNotifScreen: null
         property bool mprisPanelOpen: false
         property var activeMprisScreen: null
+        property int mprisWidgetCenterX: 0
         property bool volumePanelOpen: false
         property var activeVolumeScreen: null
         property bool weatherPanelOpen: false
@@ -96,10 +97,13 @@ ShellRoot {
                         g.notifPanelOpen = !g.notifPanelOpen
                         if (g.notifPanelOpen) g.activeNotifScreen = screenScope.screenData
                     }
-                    onToggleMprisPanel: {
+                    onToggleMprisPanel: centerX => {
                         g.closeOtherPanels("mpris")
                         g.mprisPanelOpen = !g.mprisPanelOpen
-                        if (g.mprisPanelOpen) g.activeMprisScreen = screenScope.screenData
+                        if (g.mprisPanelOpen) {
+                            g.activeMprisScreen = screenScope.screenData
+                            g.mprisWidgetCenterX = centerX
+                        }
                     }
                     onToggleVolumePanel: {
                         g.closeOtherPanels("volume")
@@ -128,6 +132,7 @@ ShellRoot {
                 screen: screenScope.screenData
                 active: g.notifPanelOpen && g.activeNotifScreen === screenScope.screenData
                 onCloseRequested: g.notifPanelOpen = false
+                topMargin: 44
 
                 NotificationPanel {
                     anchors.fill: parent
@@ -140,8 +145,9 @@ ShellRoot {
                 screen: screenScope.screenData
                 active: g.mprisPanelOpen && g.activeMprisScreen === screenScope.screenData
                 onCloseRequested: g.mprisPanelOpen = false
+                topMargin: 44
                 position: PanelOverlay.Position.TopCenter
-                centerOffset: parent.width / 4 - 250
+                centerOffset: g.mprisWidgetCenterX - screenScope.screenData.width / 2
 
                 MprisPanel {
                     anchors.fill: parent
@@ -154,6 +160,7 @@ ShellRoot {
                 screen: screenScope.screenData
                 active: g.volumePanelOpen && g.activeVolumeScreen === screenScope.screenData
                 onCloseRequested: g.volumePanelOpen = false
+                topMargin: 44
 
                 VolumePanel {
                     anchors.fill: parent
@@ -166,6 +173,7 @@ ShellRoot {
                 screen: screenScope.screenData
                 active: g.weatherPanelOpen && g.activeWeatherScreen === screenScope.screenData
                 onCloseRequested: g.weatherPanelOpen = false
+                topMargin: 44
 
                 WeatherPanel {
                     anchors.fill: parent
@@ -178,6 +186,7 @@ ShellRoot {
                 screen: screenScope.screenData
                 active: g.calendarPanelOpen && g.activeCalendarScreen === screenScope.screenData
                 onCloseRequested: g.calendarPanelOpen = false
+                topMargin: 44
                 position: PanelOverlay.Position.TopCenter
 
                 CalendarPanel {
@@ -191,6 +200,7 @@ ShellRoot {
                 screen: screenScope.screenData
                 active: g.sysUsagePanelOpen && g.activeSysUsageScreen === screenScope.screenData
                 onCloseRequested: g.sysUsagePanelOpen = false
+                topMargin: 44
                 rightMargin: 250
 
                 SysUsagePanel {

@@ -192,12 +192,12 @@ Item {
                                 onPressed: dragging = true
                                 onReleased: dragging = false
 
-                                onPositionChanged: {
+                                onPositionChanged: mouse => {
                                     if (dragging) {
                                         sinkSlider._dragVal = clampVol(mouse.x / parent.width);
                                     }
                                 }
-                                onClicked: {
+                                onClicked: mouse => {
                                     var v = clampVol(mouse.x / parent.width);
                                     sinkSlider._dragVal = v;
                                     var vol = Math.round(v * 100);
@@ -265,8 +265,10 @@ Item {
                         spacing: 8
 
                         Image {
+                            IconMap { id: iconMap }
                             source: {
-                                var iconName = modelData.icon || modelData.application || "";
+                                var raw = modelData.icon || modelData.application || "";
+                                var iconName = iconMap.resolve(raw);
                                 return Quickshell.iconPath(iconName, "image://icon/audio-x-generic");
                             }
                             width: 22
@@ -274,8 +276,11 @@ Item {
                             Layout.preferredWidth: 22
                             Layout.preferredHeight: 22
                             fillMode: Image.PreserveAspectFit
-                            sourceSize.width: 22
-                            sourceSize.height: 22
+                            antialiasing: true
+                            smooth: true
+                            mipmap: true
+                            sourceSize.width: 48
+                            sourceSize.height: 48
                             Layout.alignment: Qt.AlignVCenter
                         }
 
@@ -346,12 +351,12 @@ Item {
                                 onPressed: dragging = true
                                 onReleased: dragging = false
 
-                                onPositionChanged: {
+                                onPositionChanged: mouse => {
                                     if (dragging) {
                                         streamSliderDelegate._val = Math.max(0, Math.min(1.5, mouse.x / parent.width));
                                     }
                                 }
-                                onClicked: {
+                                onClicked: mouse => {
                                     streamSliderDelegate._val = Math.max(0, Math.min(1.5, mouse.x / parent.width));
                                     var vol = Math.round(streamSliderDelegate._val * 100);
                                     root.pendingCmd = ["pactl", "set-sink-input-volume", String(modelData.id), vol + "%"];
