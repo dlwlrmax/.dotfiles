@@ -14,6 +14,7 @@ Item {
     signal toggleWeatherPanel()
     signal toggleCalendarPanel()
     signal toggleSysUsagePanel()
+    signal toggleBatteryPanel(int centerX)
 
     DropShadow {
         anchors.fill: barRect
@@ -102,6 +103,12 @@ Item {
                 theme: bar.theme
                 Layout.alignment: Qt.AlignVCenter
                 onTogglePanel: bar.toggleVolumePanel()
+            }
+
+            Battery {
+                theme: bar.theme
+                Layout.alignment: Qt.AlignVCenter
+                onTogglePanel: centerX => bar.toggleBatteryPanel(centerX)
             }
 
 

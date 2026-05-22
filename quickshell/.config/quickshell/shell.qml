@@ -25,6 +25,9 @@ ShellRoot {
         property var activeSysUsageScreen: null
         property bool powerPanelOpen: false
         property var activePowerScreen: null
+        property bool batteryPanelOpen: false
+        property var activeBatteryScreen: null
+        property int batteryWidgetCenterX: 0
 
         function closeOtherPanels(name) {
             if (name !== "notif") notifPanelOpen = false
@@ -34,6 +37,7 @@ ShellRoot {
             if (name !== "calendar") calendarPanelOpen = false
             if (name !== "sysUsage") sysUsagePanelOpen = false
             if (name !== "power") powerPanelOpen = false
+            if (name !== "battery") batteryPanelOpen = false
         }
     }
 
@@ -125,6 +129,14 @@ ShellRoot {
                         g.sysUsagePanelOpen = !g.sysUsagePanelOpen
                         if (g.sysUsagePanelOpen) g.activeSysUsageScreen = screenScope.screenData
                     }
+                    onToggleBatteryPanel: centerX => {
+                        g.closeOtherPanels("battery")
+                        g.batteryPanelOpen = !g.batteryPanelOpen
+                        if (g.batteryPanelOpen) {
+                            g.activeBatteryScreen = screenScope.screenData
+                            g.batteryWidgetCenterX = centerX
+                        }
+                    }
                 }
             }
 
@@ -215,12 +227,26 @@ ShellRoot {
                 active: g.powerPanelOpen && g.activePowerScreen === screenScope.screenData
                 onCloseRequested: g.powerPanelOpen = false
                 position: PanelOverlay.Position.Center
-                keyboardFocus: false
 
                 PowerMenuPanel {
                     anchors.fill: parent
                     active: g.powerPanelOpen && g.activePowerScreen === screenScope.screenData
                     onClose: g.powerPanelOpen = false
+                }
+            }
+
+            PanelOverlay {
+                screen: screenScope.screenData
+                active: g.batteryPanelOpen && g.activeBatteryScreen === screenScope.screenData
+                onCloseRequested: g.batteryPanelOpen = false
+                topMargin: 44
+                position: PanelOverlay.Position.TopCenter
+                centerOffset: g.batteryWidgetCenterX - screenScope.screenData.width / 2
+
+                BatteryPanel {
+                    anchors.fill: parent
+                    active: g.batteryPanelOpen && g.activeBatteryScreen === screenScope.screenData
+                    onClose: g.batteryPanelOpen = false
                 }
             }
         }
