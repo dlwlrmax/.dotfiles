@@ -1,22 +1,4 @@
 -- ──────────────────────────────────────────────
--- Constants
--- ──────────────────────────────────────────────
-local PIP_POS  = { x = 1949, y = 769 }
-local PIP_SIZE = "500 280"
-
--- ──────────────────────────────────────────────
--- Helpers
--- ──────────────────────────────────────────────
-local function pip_rule(name, match, content, monitor)
-  hl.window_rule({
-    name = name, match = match,
-    float = true, pin = true, no_follow_mouse = true, no_initial_focus = true,
-    size = PIP_SIZE, content = content or "video", monitor = monitor or 1,
-    move = string.format("%d %d", PIP_POS.x, PIP_POS.y),
-  })
-end
-
--- ──────────────────────────────────────────────
 -- Workspace assignments
 -- ──────────────────────────────────────────────
 local ws = {
@@ -87,15 +69,17 @@ hl.window_rule({
 -- ──────────────────────────────────────────────
 -- Picture-in-Picture
 -- ──────────────────────────────────────────────
+local pip_position = "40 760"
 hl.window_rule({
-  name = "mpv",
   match = { class = "mpv" },
-  monitor = "HDMI-A-1",
-  float = true,
-  move = "968 67",
-  size = "480 270",
+  monitor = "HDMI-A-1", float = true,
+  move = pip_position, size = "500 280",
 })
-pip_rule("zen-pip",  { title = "^(Picture in picture|Picture-in-Picture|Picture in Picture)$" })
+hl.window_rule({
+  match = { title = "^(Picture in picture|Picture-in-Picture|Picture in Picture)$" },
+  monitor = "HDMI-A-1", float = true,
+  move = pip_position, size = "500 280",
+})
 hl.window_rule({ match = { title = "^(Picture[- ]?in[- ]?[Pp]icture)$" }, dim_around = false })
 
 -- ──────────────────────────────────────────────
