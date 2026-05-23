@@ -7,6 +7,7 @@ Item {
     id: root
     property Theme theme: Theme {}
     property bool active: false
+    property bool clearing: false
     signal close()
 
     clip: true
@@ -36,6 +37,8 @@ Item {
     property var persistentNotifs: []
 
     function mergeNotifs(active, history) {
+        if (root.clearing) return;
+
         var seenIds = {};
         var merged = [];
         var changed = false;
@@ -69,6 +72,14 @@ Item {
         }
     }
 
+    function dismissNotif(id) {
+        console.log("dismissNotif:", id);
+        root.persistentNotifs = root.persistentNotifs.filter(function(n) { return n.id !== id; });
+        var cmd = 'mkdir -p ~/.cache/quickshell; makoctl dismiss -n ' + id + ' 2>/dev/null; makoctl history -j 2>/dev/null | jq "map(.id) | max // 0" > ~/.cache/quickshell/max-cleared-id';
+        dismissSingleProc.command = ["/bin/bash", "-c", cmd];
+        dismissSingleProc.running = true;
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 14
@@ -98,6 +109,8 @@ Item {
                     anchors.margins: -4
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
+                        if (root.clearing) return;
+                        root.clearing = true;
                         root.persistentNotifs = [];
                         clearAllProc.running = true;
                     }
@@ -139,6 +152,7 @@ Item {
                     theme: root.theme
                     notifData: modelData
                     width: notifList.width
+                    onDismiss: function() { root.dismissNotif(modelData.id) }
                 }
             }
 
@@ -172,11 +186,23 @@ Item {
     Process {
         id: clearAllProc
         command: ["/bin/bash", "-c", "makoctl dismiss -a; mkdir -p ~/.cache/quickshell; makoctl history -j | jq 'map(.id) | max // 0' > ~/.cache/quickshell/max-cleared-id"]
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.clearing = false;
+            }
+        }
+    }
+
+    Process {
+        id: dismissSingleProc
+        command: ["makoctl", "dismiss", "-n", ""]
     }
 
     Timer {
+        id: fetchTimer
         interval: 1000
-        running: root.active && !fetchProc.running
+        running: root.active && !fetchProc.running && !root.clearing
         repeat: true
         triggeredOnStart: true
         onTriggered: fetchProc.running = true

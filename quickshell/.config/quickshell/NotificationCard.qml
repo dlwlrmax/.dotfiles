@@ -7,6 +7,7 @@ Rectangle {
     id: root
     property Theme theme: Theme {}
     property var notifData: ({})
+    property var onDismiss: null
 
     color: theme.surface0
     radius: 12
@@ -74,6 +75,27 @@ Rectangle {
                 Layout.fillWidth: true
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                 visible: !!notifData.body && notifData.body.length > 0
+            }
+        }
+    }
+
+    Text {
+        id: dismissBtn
+        text: "×"
+        color: theme.subtext0
+        font.pixelSize: theme.fontSize + 2
+        font.family: theme.font
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.topMargin: 4
+        anchors.rightMargin: 10
+
+        MouseArea {
+            anchors.fill: parent
+            anchors.margins: -6
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                if (root.onDismiss) root.onDismiss();
             }
         }
     }
