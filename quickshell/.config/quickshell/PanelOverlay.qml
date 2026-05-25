@@ -45,7 +45,6 @@ PanelWindow {
         opacity: 0
         focus: true
         Keys.onEscapePressed: root.closeRequested()
-        onOpacityChanged: if (opacity > 0) forceActiveFocus()
 
         width: children.length > 0 ? children[0].implicitWidth : 0
         height: children.length > 0 ? children[0].implicitHeight : 0
