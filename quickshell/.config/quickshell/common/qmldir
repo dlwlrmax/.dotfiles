@@ -1,0 +1,5 @@
+module qs.common
+Theme 1.0 Theme.qml
+IconMap 1.0 IconMap.qml
+AppIcon 1.0 AppIcon.qml
+Separator 1.0 Separator.qml

@@ -1,0 +1,3 @@
+module qs.battery
+Battery 1.0 Battery.qml
+BatteryPanel 1.0 BatteryPanel.qml

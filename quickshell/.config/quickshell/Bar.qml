@@ -3,6 +3,19 @@ import Quickshell.Hyprland._Ipc
 import QtQuick
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
+import qs.common
+import qs.workspaces
+import qs.windowtitle
+import qs.clock
+import qs.mpris
+import qs.cpu
+import qs.netspeed
+import qs.weather
+import qs.volume
+import qs.battery
+import qs.idleinhibitor
+import qs.notification
+import qs.systemtray
 
 Item {
     id: bar

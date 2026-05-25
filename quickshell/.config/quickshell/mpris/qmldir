@@ -1,0 +1,3 @@
+module qs.mpris
+Mpris 1.0 Mpris.qml
+MprisPanel 1.0 MprisPanel.qml

@@ -4,6 +4,14 @@ import Quickshell.Wayland
 import Quickshell.Hyprland._Ipc
 import Quickshell.Io
 import QtQuick
+import qs.notification
+import qs.mpris
+import qs.volume
+import qs.weather
+import qs.calendar
+import qs.sysusage
+import qs.power
+import qs.battery
 
 ShellRoot {
     id: shell

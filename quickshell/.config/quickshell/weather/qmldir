@@ -1,0 +1,3 @@
+module qs.weather
+Weather 1.0 Weather.qml
+WeatherPanel 1.0 WeatherPanel.qml

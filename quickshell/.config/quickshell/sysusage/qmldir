@@ -1,0 +1,3 @@
+module qs.sysusage
+SysUsage 1.0 SysUsage.qml
+SysUsagePanel 1.0 SysUsagePanel.qml
