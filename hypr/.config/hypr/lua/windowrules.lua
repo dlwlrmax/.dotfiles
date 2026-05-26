@@ -76,11 +76,11 @@ hl.window_rule({
   move = pip_position, size = "500 280",
 })
 hl.window_rule({
-  match = { title = "^(Picture in picture|Picture-in-Picture|Picture in Picture)$" },
+  match = { title = "^(Picture[- ]?in[- ]?[Pp]icture)$" },
   monitor = "HDMI-A-1", float = true,
   move = pip_position, size = "500 280",
+  dim_around = false
 })
-hl.window_rule({ match = { title = "^(Picture[- ]?in[- ]?[Pp]icture)$" }, dim_around = false })
 
 -- ──────────────────────────────────────────────
 -- Chrome popups
