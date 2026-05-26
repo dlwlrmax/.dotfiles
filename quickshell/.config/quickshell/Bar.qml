@@ -53,13 +53,14 @@ Item {
             spacing: 12
 
             Workspaces {
+                id: workspaces
                 monitor: bar.monitor
                 Layout.alignment: Qt.AlignVCenter
             }
 
             WindowTitle {
                 Layout.alignment: Qt.AlignVCenter
-                Layout.maximumWidth: (bar.width / 3) - 150
+                Layout.maximumWidth: (bar.width / 2) - 100 - workspaces.width
             }
         }
 
