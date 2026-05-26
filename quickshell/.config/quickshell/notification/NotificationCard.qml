@@ -27,12 +27,12 @@ Rectangle {
             color: theme.surface1
             Layout.alignment: Qt.AlignTop
 
-            Image {
-                anchors.fill: parent
-                anchors.margins: 6
-                source: notifData.app_icon ? Quickshell.iconPath(notifData.app_icon) : ""
-                visible: !!notifData.app_icon && source.toString().length > 0
-                fillMode: Image.PreserveAspectFit
+            AppIcon {
+                id: notifIcon
+                anchors.centerIn: parent
+                appId: notifData.app_icon || ""
+                size: 24
+                hideOnMissing: true
             }
 
             Text {
@@ -40,7 +40,7 @@ Rectangle {
                 text: ""
                 color: theme.subtext0
                 font.pixelSize: 16
-                visible: !notifData.app_icon || parent.children[0].visible === false
+                visible: !notifIcon.iconFound
             }
         }
 

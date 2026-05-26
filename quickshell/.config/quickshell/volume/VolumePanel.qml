@@ -265,23 +265,12 @@ Item {
                         Layout.fillWidth: true
                         spacing: 8
 
-                        Image {
-                            IconMap { id: iconMap }
-                            source: {
-                                var raw = modelData.icon || modelData.application || "";
-                                var iconName = iconMap.resolve(raw);
-                                return Quickshell.iconPath(iconName, "image://icon/audio-x-generic");
-                            }
-                            width: 22
-                            height: 22
+                        AppIcon {
+                            appId: modelData.icon || modelData.application || ""
+                            fallbackIcon: "audio-x-generic"
+                            size: 22
                             Layout.preferredWidth: 22
                             Layout.preferredHeight: 22
-                            fillMode: Image.PreserveAspectFit
-                            antialiasing: true
-                            smooth: true
-                            mipmap: true
-                            sourceSize.width: 48
-                            sourceSize.height: 48
                             Layout.alignment: Qt.AlignVCenter
                         }
 
