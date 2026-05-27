@@ -24,7 +24,6 @@ end
 local float_apps = {
   "nemo",
   "com.stremio.stremio",
-  "stremio-enhanced",
   "org.qbittorrent.qBittorrent",
   "git-cola",
   "vesktop",
@@ -46,6 +45,14 @@ hl.window_rule({
   float = true,
 })
 hl.window_rule({ match = { title = "^(Library)$" }, float = true })
+
+hl.window_rule({
+  match = { class = "^(stremio-enhanced)$" },
+  float = true,
+  size = "510 854",
+  move = "1347 84",
+  workspace = 2,
+})
 
 -- Float + sizing
 hl.window_rule({ match = { class = "^(Chromium|Google-chrome|Navicat)$" }, min_size = "800 600" })
@@ -96,7 +103,6 @@ hl.window_rule({
   pin = true,
   move = pip_position,
   size = "500 280",
-  keep_aspect_ratio = true,
 })
 hl.window_rule({
   match = { title = "(?i)picture.*picture" },
@@ -108,7 +114,6 @@ hl.window_rule({
   min_size = "500 280",
   max_size = "500 280",
   dim_around = false,
-  keep_aspect_ratio = true,
 })
 
 hl.window_rule({
