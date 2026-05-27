@@ -1,14 +1,16 @@
 #!/bin/bash
 LOCATION="${WEATHER_LOCATION:-Hanoi}"
 
-data=$(curl -s "https://wttr.in/${LOCATION}?format=j1" 2>/dev/null || echo "")
+LOCATION_ENCODED="${LOCATION// /%20}"
+
+data=$(curl -s --max-time 10 -H "User-Agent: curl" "https://wttr.in/${LOCATION_ENCODED}?format=j1" 2>/dev/null || echo "")
 
 if [[ -z "$data" ]]; then
     echo '{"icon":"","temp":"--","feelsLike":"--","humidity":"--","wind":"--","windDir":"","condition":"Unavailable","location":"","country":"","sunrise":"","sunset":"","hourly":[],"daily":[]}'
     exit 0
 fi
 
-echo "$data" | jq -c '
+echo "$data" | jq -c --arg loc "$LOCATION" '
 def wticon:
     if . == 113 then "☀"
     elif . <= 116 then "⛅"
@@ -36,7 +38,7 @@ def fmthour: (. | tonumber? / 100 | floor | tostring | if length == 1 then "0" +
     wind: .current_condition[0].windspeedKmph,
     windDir: .current_condition[0].winddir16Point,
     condition: .current_condition[0].weatherDesc[0].value,
-    location: (.nearest_area[0].areaName[0].value // ""),
+    location: ($loc),
     country: (.nearest_area[0].country[0].value // ""),
     sunrise: .weather[0].astronomy[0].sunrise,
     sunset: .weather[0].astronomy[0].sunset,
