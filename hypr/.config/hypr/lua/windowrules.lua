@@ -15,6 +15,7 @@ local ws = {
 for _, v in ipairs(ws) do
   hl.window_rule({ match = { class = v.pat }, workspace = v.id })
 end
+local pip_position = "40 760"
 
 -- ──────────────────────────────────────────────
 -- Float rules
@@ -48,10 +49,14 @@ hl.window_rule({ match = { title = "^(Library)$" }, float = true })
 
 hl.window_rule({
   match = { class = "^(stremio-enhanced)$" },
+  monitor = "HDMI-A-1",
   float = true,
-  size = "510 854",
-  move = "1347 84",
-  workspace = 2,
+  pin = true,
+  move = pip_position,
+  size = "500 280",
+  min_size = "500 280",
+  max_size = "500 280",
+  dim_around = false,
 })
 
 -- Float + sizing
@@ -95,7 +100,6 @@ hl.window_rule({
 -- ──────────────────────────────────────────────
 -- Picture-in-Picture
 -- ──────────────────────────────────────────────
-local pip_position = "40 760"
 hl.window_rule({
   match = { class = "mpv" },
   monitor = "HDMI-A-1",
