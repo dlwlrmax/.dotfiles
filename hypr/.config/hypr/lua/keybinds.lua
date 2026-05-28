@@ -67,6 +67,20 @@ for i = 1, 10 do
     hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }))
 end
 
+-- Mouse cursor movement with keyboard via wlrctl
+hl.bind(mainMod .. " + ALT + h", hl.dsp.exec_cmd("wlrctl pointer move -10 0"), { repeating = true })
+hl.bind(mainMod .. " + ALT + l", hl.dsp.exec_cmd("wlrctl pointer move 10 0"), { repeating = true })
+hl.bind(mainMod .. " + ALT + k", hl.dsp.exec_cmd("wlrctl pointer move 0 -10"), { repeating = true })
+hl.bind(mainMod .. " + ALT + j", hl.dsp.exec_cmd("wlrctl pointer move 0 10"), { repeating = true })
+
+-- Mouse clicks
+hl.bind(mainMod .. " + ALT + Return", hl.dsp.exec_cmd("wlrctl pointer click left"))
+hl.bind(mainMod .. " + ALT + BackSpace", hl.dsp.exec_cmd("wlrctl pointer click right"))
+
+-- Mouse scroll (wheel axis, not button events)
+hl.bind(mainMod .. " + ALT + p", hl.dsp.exec_cmd("ydotool mousemove --wheel -x 0 -y 1"), { repeating = true })
+hl.bind(mainMod .. " + ALT + n", hl.dsp.exec_cmd("ydotool mousemove --wheel -x 0 -y -1"), { repeating = true })
+
 -- Alt+Tab cycle
 hl.bind("ALT + Tab", hl.dsp.window.cycle_next())
 hl.bind("ALT + Tab", hl.dsp.window.bring_to_top())

@@ -13,6 +13,9 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("hyprctl setcursor Bibata-Modern-Ice 20")
     hl.exec_cmd("gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Ice'")
 
+    -- ydotool daemon for mouse scroll
+    hl.exec_cmd("systemctl --user start ydotoold")
+
     -- Color scheme - dark mode
     hl.exec_cmd("gsettings set org.gnome.desktop.interface color-scheme prefer-dark")
     hl.exec_cmd("gsettings set org.gnome.desktop.interface gtk-theme Fluent-Dark")
