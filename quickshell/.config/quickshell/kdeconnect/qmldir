@@ -1,0 +1,3 @@
+module qs.kdeconnect
+KDEConnect 1.0 KDEConnect.qml
+KDEConnectPanel 1.0 KDEConnectPanel.qml

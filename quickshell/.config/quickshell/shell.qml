@@ -12,6 +12,7 @@ import qs.calendar
 import qs.sysusage
 import qs.power
 import qs.battery
+import qs.kdeconnect
 
 ShellRoot {
     id: shell
@@ -36,6 +37,9 @@ ShellRoot {
         property bool batteryPanelOpen: false
         property var activeBatteryScreen: null
         property int batteryWidgetCenterX: 0
+        property bool kdePanelOpen: false
+        property var activeKdeScreen: null
+        property int kdeWidgetCenterX: 0
 
         function closeOtherPanels(name) {
             if (name !== "notif") notifPanelOpen = false
@@ -46,6 +50,7 @@ ShellRoot {
             if (name !== "sysUsage") sysUsagePanelOpen = false
             if (name !== "power") powerPanelOpen = false
             if (name !== "battery") batteryPanelOpen = false
+            if (name !== "kde") kdePanelOpen = false
         }
     }
 
@@ -136,6 +141,14 @@ ShellRoot {
                         g.closeOtherPanels("sysUsage")
                         g.sysUsagePanelOpen = !g.sysUsagePanelOpen
                         if (g.sysUsagePanelOpen) g.activeSysUsageScreen = screenScope.screenData
+                    }
+                    onToggleKdePanel: centerX => {
+                        g.closeOtherPanels("kde")
+                        g.kdePanelOpen = !g.kdePanelOpen
+                        if (g.kdePanelOpen) {
+                            g.activeKdeScreen = screenScope.screenData
+                            g.kdeWidgetCenterX = centerX
+                        }
                     }
                     onToggleBatteryPanel: centerX => {
                         g.closeOtherPanels("battery")
@@ -240,6 +253,21 @@ ShellRoot {
                     anchors.fill: parent
                     active: g.powerPanelOpen && g.activePowerScreen === screenScope.screenData
                     onClose: g.powerPanelOpen = false
+                }
+            }
+
+            PanelOverlay {
+                screen: screenScope.screenData
+                active: g.kdePanelOpen && g.activeKdeScreen === screenScope.screenData
+                onCloseRequested: g.kdePanelOpen = false
+                topMargin: 44
+                position: PanelOverlay.Position.TopCenter
+                centerOffset: g.kdeWidgetCenterX - screenScope.screenData.width / 2
+
+                KDEConnectPanel {
+                    anchors.fill: parent
+                    active: g.kdePanelOpen && g.activeKdeScreen === screenScope.screenData
+                    onClose: g.kdePanelOpen = false
                 }
             }
 

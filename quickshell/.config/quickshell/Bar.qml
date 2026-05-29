@@ -14,6 +14,7 @@ import qs.weather
 import qs.volume
 import qs.battery
 import qs.idleinhibitor
+import qs.kdeconnect
 import qs.notification
 import qs.systemtray
 
@@ -27,6 +28,7 @@ Item {
     signal toggleWeatherPanel()
     signal toggleCalendarPanel()
     signal toggleSysUsagePanel()
+    signal toggleKdePanel(int centerX)
     signal toggleBatteryPanel(int centerX)
 
     DropShadow {
@@ -75,7 +77,9 @@ Item {
             anchors.right: parent.right
             anchors.rightMargin: 12
             anchors.verticalCenter: parent.verticalCenter
+            Layout.maximumWidth: parent.width / 2 - 60
             spacing: 12
+            clip: true
 
             Mpris {
                 id: mpris
@@ -117,6 +121,13 @@ Item {
                 theme: bar.theme
                 Layout.alignment: Qt.AlignVCenter
                 onTogglePanel: bar.toggleVolumePanel()
+            }
+
+            KDEConnect {
+                id: kdeWidget
+                theme: bar.theme
+                Layout.alignment: Qt.AlignVCenter
+                onTogglePanel: centerX => bar.toggleKdePanel(centerX)
             }
 
             Battery {
