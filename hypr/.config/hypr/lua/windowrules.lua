@@ -6,8 +6,7 @@ local ws = {
   { pat = "^(Chromium)$", id = 2 },
   { pat = "^(Lark|Ferdium||ferdium)$", id = 3 },
   { pat = "^(Code)$", id = 4 },
-  { pat = "DBeaver", id = 5 },
-  { pat = "Dbeaver", id = 5 },
+  { pat = "[Dd][Bb]eaver", id = 5 },
   { pat = "^(Postman|yaak-app|bruno)$", id = 6 },
   { pat = "^(Spotify)$", id = 7 },
   { pat = "^(zen-beta|zen|com.mitchellh.ghostty)$", id = 10 },
@@ -27,12 +26,8 @@ local float_apps = {
   "com.stremio.stremio",
   "org.qbittorrent.qBittorrent",
   "git-cola",
-  "vesktop",
   "steam",
-  "org.kde.dolphin",
   "org.kde.audiotube",
-  "thunar",
-  "Thunar",
   "org.gnome.Nautilus",
   "blueman-manager",
   "org.kde.kdeconnect.app",
@@ -46,17 +41,19 @@ hl.window_rule({
   float = true,
 })
 hl.window_rule({ match = { title = "^(Library)$" }, float = true })
-
+hl.window_rule({ match = { title = ".*(Tài khoản Google|Google Account|accounts\\.google\\.com).*" }, float = true })
+hl.window_rule({ match = { title = ".*Tailscale.*" }, float = true })
 hl.window_rule({
-  match = { class = "^(stremio-enhanced)$" },
-  monitor = "HDMI-A-1",
+  match = { class = "^(vesktop)$" },
   float = true,
-  pin = true,
-  move = pip_position,
-  size = "500 280",
-  min_size = "500 280",
-  max_size = "500 280",
-  dim_around = false,
+  workspace = 2,
+})
+hl.window_rule({
+  match = { class = "^([Tt]hunar|[Oo]rg.gnome.Nautilus|[Oo]rg.kde.dolphin)$" },
+  float = true,
+  size = "(monitor_w*0.65) (monitor_h*0.75)",
+  center = true,
+  workspace = 2,
 })
 
 -- Float + sizing
@@ -98,7 +95,7 @@ hl.window_rule({
 })
 
 -- ──────────────────────────────────────────────
--- Picture-in-Picture
+-- Picture-in-Picture (pinned float on HDMI-A-1)
 -- ──────────────────────────────────────────────
 hl.window_rule({
   match = { class = "mpv" },
@@ -119,10 +116,21 @@ hl.window_rule({
   max_size = "500 280",
   dim_around = false,
 })
+hl.window_rule({
+  match = { class = "^(stremio-enhanced)$" },
+  monitor = "HDMI-A-1",
+  float = true,
+  pin = true,
+  move = pip_position,
+  size = "500 280",
+  min_size = "500 280",
+  dim_around = false,
+})
 
+-- Fullscreen border highlight
 hl.window_rule({
   match = { fullscreen = true },
-  border_color = "#fff",
+  border_color = "rgba(255, 108, 184, 0.8)",
 })
 
 -- ──────────────────────────────────────────────

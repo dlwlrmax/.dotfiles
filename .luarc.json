@@ -8,5 +8,8 @@
     ],
     "diagnostics.disable": [
         "unused-local"
+    ],
+    "workspace.library": [
+        "hypr/.config/hypr"
     ]
 }

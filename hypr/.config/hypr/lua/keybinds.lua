@@ -1,7 +1,8 @@
-local mainMod = "SUPER"
-local mainModS = mainMod .. " + SHIFT"
-local terminal = "ghostty"
-local fileManager = "Thunar"
+local vars = require("lua/variables")
+local mainMod = vars.mainMod
+local mainModS = vars.mainModS
+local terminal = vars.terminal
+local fileManager = vars.fileManager
 
 -- Terminal
 hl.bind(mainMod .. " + Return", hl.dsp.exec_cmd(terminal))
@@ -34,13 +35,12 @@ hl.bind(mainModS .. " + S", hl.dsp.exec_cmd('grim -g "$(slurp -d)" - | satty -f 
 -- Fullscreen
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" }))
 
--- Focus movement
-hl.bind(mainMod .. " + h", hl.dsp.focus({ direction = "left" }))
-hl.bind(mainMod .. " + h", hl.dsp.window.bring_to_top())
-hl.bind(mainMod .. " + l", hl.dsp.focus({ direction = "right" }))
-hl.bind(mainMod .. " + l", hl.dsp.window.bring_to_top())
-hl.bind(mainMod .. " + j", hl.dsp.focus({ direction = "down" }))
-hl.bind(mainMod .. " + j", hl.dsp.window.bring_to_top())
+-- Focus movement: mainMod + h/j/l (k intentionally omitted)
+local focus_dirs = { h = "left", l = "right", j = "down" }
+for key, dir in pairs(focus_dirs) do
+  hl.bind(mainMod .. " + " .. key, hl.dsp.focus({ direction = dir }))
+  hl.bind(mainMod .. " + " .. key, hl.dsp.window.bring_to_top())
+end
 
 -- Previous workspace
 hl.bind(mainMod .. " + q", hl.dsp.focus({ workspace = "previous" }))
@@ -49,37 +49,39 @@ hl.bind(mainMod .. " + q", hl.dsp.focus({ workspace = "previous" }))
 hl.bind(mainModS .. " + n", hl.dsp.focus({ workspace = "m+1" }))
 hl.bind(mainModS .. " + p", hl.dsp.focus({ workspace = "m-1" }))
 
--- Window movement
-hl.bind(mainModS .. " + l", hl.dsp.window.move({ direction = "right" }))
-hl.bind(mainModS .. " + h", hl.dsp.window.move({ direction = "left" }))
-hl.bind(mainModS .. " + k", hl.dsp.window.move({ direction = "up" }))
-hl.bind(mainModS .. " + j", hl.dsp.window.move({ direction = "down" }))
+-- Window movement: mainModS + h/j/k/l
+local move_dirs = { h = "left", l = "right", k = "up", j = "down" }
+for key, dir in pairs(move_dirs) do
+  hl.bind(mainModS .. " + " .. key, hl.dsp.window.move({ direction = dir }))
+end
 
 -- Switch workspaces with mainMod + [0-9]
 for i = 1, 10 do
-    local key = i % 10
-    hl.bind(mainMod .. " + " .. key, hl.dsp.focus({ workspace = i }))
+  local key = i % 10
+  hl.bind(mainMod .. " + " .. key, hl.dsp.focus({ workspace = i }))
 end
 
 -- Move active window to a workspace with mainMod + SHIFT + [0-9]
 for i = 1, 10 do
-    local key = i % 10
-    hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }))
+  local key = i % 10
+  hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }))
 end
 
 -- Mouse cursor movement with keyboard via wlrctl
-hl.bind(mainMod .. " + ALT + h", hl.dsp.exec_cmd("wlrctl pointer move -10 0"), { repeating = true })
-hl.bind(mainMod .. " + ALT + l", hl.dsp.exec_cmd("wlrctl pointer move 10 0"), { repeating = true })
-hl.bind(mainMod .. " + ALT + k", hl.dsp.exec_cmd("wlrctl pointer move 0 -10"), { repeating = true })
-hl.bind(mainMod .. " + ALT + j", hl.dsp.exec_cmd("wlrctl pointer move 0 10"), { repeating = true })
+local pointer_move = { h = "-10 0", l = "10 0", k = "0 -10", j = "0 10" }
+for key, delta in pairs(pointer_move) do
+  hl.bind(mainMod .. " + ALT + " .. key, hl.dsp.exec_cmd("wlrctl pointer move " .. delta), { repeating = true })
+end
 
 -- Mouse clicks
-hl.bind(mainMod .. " + ALT + Return", hl.dsp.exec_cmd("wlrctl pointer click left"))
+hl.bind(mainMod .. " + ALT + Return",   hl.dsp.exec_cmd("wlrctl pointer click left"))
 hl.bind(mainMod .. " + ALT + BackSpace", hl.dsp.exec_cmd("wlrctl pointer click right"))
 
--- Mouse scroll (wheel axis, not button events)
-hl.bind(mainMod .. " + ALT + p", hl.dsp.exec_cmd("ydotool mousemove --wheel -x 0 -y 1"), { repeating = true })
-hl.bind(mainMod .. " + ALT + n", hl.dsp.exec_cmd("ydotool mousemove --wheel -x 0 -y -1"), { repeating = true })
+-- Mouse scroll (wheel axis)
+local pointer_scroll = { p = "1", n = "-1" }
+for key, dir in pairs(pointer_scroll) do
+  hl.bind(mainMod .. " + ALT + " .. key, hl.dsp.exec_cmd("ydotool mousemove --wheel -x 0 -y " .. dir), { repeating = true })
+end
 
 -- Alt+Tab cycle
 hl.bind("ALT + Tab", hl.dsp.window.cycle_next())

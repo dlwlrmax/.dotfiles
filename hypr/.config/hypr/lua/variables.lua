@@ -1,3 +1,12 @@
+-- Shared constants — single source of truth for all modules.
+-- Consume via: local vars = require("lua/variables")
+local M = {}
+
+M.terminal    = "ghostty"
+M.mainMod     = "SUPER"
+M.mainModS    = M.mainMod .. " + SHIFT"
+M.fileManager = "Thunar"
+
 -- Env vars, general, decoration, input, misc, xwayland, cursor
 
 -- XDG Desktop Portal
@@ -112,3 +121,5 @@ hl.config({
     disable_splash_rendering = true,
   },
 })
+
+return M
