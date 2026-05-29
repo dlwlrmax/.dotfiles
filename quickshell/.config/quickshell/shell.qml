@@ -12,7 +12,7 @@ import qs.calendar
 import qs.sysusage
 import qs.power
 import qs.battery
-import qs.kdeconnect
+import qs.kdeconnect  // KDEConnect.qml, KDEConnectPanel.qml
 
 ShellRoot {
     id: shell
@@ -51,6 +51,51 @@ ShellRoot {
             if (name !== "power") powerPanelOpen = false
             if (name !== "battery") batteryPanelOpen = false
             if (name !== "kde") kdePanelOpen = false
+        }
+    }
+
+    // Shared KDE Connect data model (inline, not separate type — avoids hot-reload module registry bug)
+    Item {
+        id: kdeData
+        property var devices: []
+        property var device: devices.length > 0 ? devices[0] : null
+        property bool anyConnected: false
+
+        Process {
+            id: fetchProc
+            command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh"]
+
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    console.log("KDEConnectData: stream complete")
+                    try {
+                        var data = JSON.parse(this.text.trim())
+                        console.log("KDEConnectData: got", data.devices ? data.devices.length : 0, "devices")
+                        kdeData.devices = data.devices || []
+                        kdeData.anyConnected = data.anyConnected || false
+                    } catch (e) {
+                        console.log("KDEConnectData parse error:", e)
+                    }
+                }
+            }
+        }
+
+        Timer {
+            interval: 5000
+            running: true
+            repeat: true
+            triggeredOnStart: true
+            onTriggered: {
+                if (!fetchProc.running) fetchProc.running = true
+            }
+        }
+
+        onDevicesChanged: console.log("kdeData devices changed: count=", devices.length, "device=", device ? device.name + " bat=" + device.battery : "null")
+        onAnyConnectedChanged: console.log("kdeData anyConnected=", anyConnected)
+
+        Component.onCompleted: {
+            console.log("KDEConnectData: completed, starting fetchProc")
+            fetchProc.running = true
         }
     }
 
@@ -108,6 +153,7 @@ ShellRoot {
                     anchors.rightMargin: 8
                     anchors.topMargin: 6
                     monitor: Hyprland.monitorFor(screenScope.screenData)
+                    kdeData: kdeData
 
                     onToggleNotifPanel: {
                         g.closeOtherPanels("notif")
@@ -267,6 +313,7 @@ ShellRoot {
                 KDEConnectPanel {
                     anchors.fill: parent
                     active: g.kdePanelOpen && g.activeKdeScreen === screenScope.screenData
+                    dataSource: kdeData
                     onClose: g.kdePanelOpen = false
                 }
             }

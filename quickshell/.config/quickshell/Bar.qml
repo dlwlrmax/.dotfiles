@@ -22,6 +22,7 @@ Item {
     id: bar
     property Theme theme: Theme {}
     required property var monitor
+    property var kdeData: null  // shared KDEConnectData
     signal toggleNotifPanel()
     signal toggleMprisPanel(int centerX)
     signal toggleVolumePanel()
@@ -126,6 +127,7 @@ Item {
             KDEConnect {
                 id: kdeWidget
                 theme: bar.theme
+                dataSource: bar.kdeData
                 Layout.alignment: Qt.AlignVCenter
                 onTogglePanel: centerX => bar.toggleKdePanel(centerX)
             }

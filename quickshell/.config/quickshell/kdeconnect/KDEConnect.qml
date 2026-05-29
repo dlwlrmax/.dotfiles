@@ -7,8 +7,11 @@ import qs.common
 Item {
     id: root
     property Theme theme: Theme {}
-    property var device: null  // current main device
-    property bool anyConnected: false
+    property var dataSource: null  // shared KDEConnectData instance
+    property var device: dataSource ? dataSource.device : null
+    property bool anyConnected: dataSource ? dataSource.anyConnected : false
+    onDeviceChanged: console.log("KDEConnect bar: device=", device ? device.name : "null", "battery=", device ? device.battery : "n/a")
+    onAnyConnectedChanged: console.log("KDEConnect bar: anyConnected=", anyConnected)
     signal togglePanel(int centerX)
 
     implicitWidth: anyConnected ? row.implicitWidth : 0
@@ -87,12 +90,14 @@ Item {
         }
     }
 
+    // Fallback: own fetch when no shared dataSource
     Process {
         id: kdProc
         command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh"]
 
         stdout: StdioCollector {
             onStreamFinished: {
+                if (root.dataSource) return  // shared data handles it
                 try {
                     var data = JSON.parse(this.text.trim())
                     root.anyConnected = data.anyConnected || false
@@ -109,10 +114,13 @@ Item {
     }
 
     Timer {
+        id: pollTimer
         interval: 10000
         running: true
         repeat: true
         triggeredOnStart: true
-        onTriggered: kdProc.running = true
+        onTriggered: {
+            if (!root.dataSource && !kdProc.running) kdProc.running = true
+        }
     }
 }

@@ -9,9 +9,10 @@ Item {
     id: root
     property Theme theme: Theme {}
     property bool active: false
+    property var dataSource: null  // shared KDEConnectData instance
     signal close()
 
-    property var devices: []
+    property var devices: dataSource ? dataSource.devices : []
 
     clip: true
     implicitWidth: 340
@@ -42,7 +43,6 @@ Item {
         anchors.margins: 14
         contentHeight: contentColumn.implicitHeight
         clip: true
-        boundsBehavior: Flickable.BoundsAtEndBoundary
 
         ColumnLayout {
             id: contentColumn
@@ -225,10 +225,8 @@ Item {
                                         anchors.fill: parent
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: {
-                                            if (modelData && modelData.id) {
-                                                findProc.deviceId = modelData.id
-                                                findProc.running = true
-                                            }
+                                            if (modelData && modelData.id)
+                                                findProc.find(modelData.id)
                                         }
                                     }
                                 }
@@ -251,10 +249,8 @@ Item {
                                         anchors.fill: parent
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: {
-                                            if (modelData && modelData.id) {
-                                                shareProc.deviceId = modelData.id
-                                                shareProc.running = true
-                                            }
+                                            if (modelData && modelData.id)
+                                                shareProc.share(modelData.id)
                                         }
                                     }
                                 }
@@ -345,6 +341,34 @@ Item {
                                         Layout.fillWidth: true
                                     }
                                 }
+
+                                // Dismiss button
+                                Rectangle {
+                                    implicitWidth: 20
+                                    implicitHeight: 20
+                                    radius: 6
+                                    color: "transparent"
+                                    visible: modelData && modelData.dismissable
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "✕"
+                                        color: theme.subtext0
+                                        font.pixelSize: theme.fontSize
+                                        font.family: theme.font
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            var devId = modelData.deviceId || ""
+                                            var notifId = modelData.id || ""
+                                            if (devId && notifId)
+                                                dismissProc.dismiss(devId, notifId)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -356,28 +380,49 @@ Item {
     // Process: find phone
     Process {
         id: findProc
-        property string deviceId: ""
-        command: function() {
-            return ["kdeconnect-cli", "-d", findProc.deviceId, "--ring"]
+        command: []
+
+        function find(devId) {
+            command = ["kdeconnect-cli", "-d", devId, "--ring"]
+            running = true
         }
     }
 
     // Process: send file
     Process {
         id: shareProc
-        property string deviceId: ""
-        command: function() {
-            return ["kdeconnect-cli", "-d", shareProc.deviceId, "--share"]
+        command: []
+
+        function share(devId) {
+            command = ["kdeconnect-cli", "-d", devId, "--share"]
+            running = true
         }
     }
 
-    // Fetch devices
+    // Process: dismiss notification
+    Process {
+        id: dismissProc
+        property string deviceId: ""
+        property string notifId: ""
+        command: []
+
+        function dismiss(devId, nid) {
+            deviceId = devId
+            notifId = nid
+            command = ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh",
+                "dismiss", devId, nid]
+            running = true
+        }
+    }
+
+    // Fetch devices (fallback when no shared dataSource)
     Process {
         id: fetchProc
         command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh"]
 
         stdout: StdioCollector {
             onStreamFinished: {
+                if (root.dataSource) return
                 try {
                     var data = JSON.parse(this.text.trim())
                     root.devices = data.devices || []
@@ -390,7 +435,7 @@ Item {
 
     Timer {
         interval: 5000
-        running: root.active && !fetchProc.running
+        running: root.active && !root.dataSource && !fetchProc.running
         repeat: true
         triggeredOnStart: true
         onTriggered: fetchProc.running = true

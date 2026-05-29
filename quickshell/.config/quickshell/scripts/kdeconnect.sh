@@ -3,9 +3,34 @@
 # Output: JSON with device list + battery + signal + notifications
 # {"devices":[{"id":"...","name":"...","battery":51,"charging":false,"reachable":true,"signal":4,"networkType":"LTE","notifCount":3,"notifications":[{"appName":"...","title":"...","text":"...","dismissable":true}]}],"anyConnected":true}
 
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/quickshell/kdeconnect"
+CACHE_FILE="$CACHE_DIR/devices.json"
+CACHE_TTL=3
+
 if ! command -v kdeconnect-cli &>/dev/null; then
   echo '{"devices":[],"anyConnected":false}'
   exit 0
+fi
+
+# Dismiss notification mode: ./kdeconnect.sh dismiss <deviceId> <notifId>
+if [ "${1:-}" = "dismiss" ]; then
+  dbus-send --print-reply --dest=org.kde.kdeconnect \
+    "/modules/kdeconnect/devices/${2}/notifications/${3}" \
+    org.kde.kdeconnect.device.notifications.notification.dismiss
+  # Invalidate cache so next poll picks up changes
+  rm -f "$CACHE_FILE"
+  exit 0
+fi
+
+# Cache hit? Return cached data if fresh enough
+if [ -f "$CACHE_FILE" ]; then
+  now=$(date +%s)
+  mtime=$(stat -c %Y "$CACHE_FILE" 2>/dev/null)
+  age=$((now - mtime))
+  if [ "$age" -lt "$CACHE_TTL" ]; then
+    cat "$CACHE_FILE"
+    exit 0
+  fi
 fi
 
 devices=$(kdeconnect-cli -a --id-name-only 2>/dev/null)
@@ -14,7 +39,7 @@ if [ -z "$devices" ]; then
   exit 0
 fi
 
-echo -n '{"devices":['
+output='{"devices":['
 first=true
 
 while IFS= read -r line; do
@@ -27,38 +52,27 @@ while IFS= read -r line; do
   signal=null
   networkType=""
   notifCount=0
-  notifications=""
   notifJson=""
 
   if [ -n "$id" ]; then
-    # Battery
-    raw=$(dbus-send --print-reply --dest=org.kde.kdeconnect \
+    # Battery — GetAll gets charge + isCharging in one call
+    bat_raw=$(dbus-send --print-reply --dest=org.kde.kdeconnect \
       "/modules/kdeconnect/devices/${id}/battery" \
-      org.freedesktop.DBus.Properties.Get \
-      string:"org.kde.kdeconnect.device.battery" string:"charge" 2>/dev/null)
-    charge=$(echo "$raw" | grep -oP 'int32 \K\d+' 2>/dev/null)
-    [ -n "$charge" ] && battery=$charge
-
-    raw_c=$(dbus-send --print-reply --dest=org.kde.kdeconnect \
-      "/modules/kdeconnect/devices/${id}/battery" \
-      org.freedesktop.DBus.Properties.Get \
-      string:"org.kde.kdeconnect.device.battery" string:"isCharging" 2>/dev/null)
-    isch=$(echo "$raw_c" | grep -oP 'boolean \K\w+' 2>/dev/null)
+      org.freedesktop.DBus.Properties.GetAll \
+      string:"org.kde.kdeconnect.device.battery" 2>/dev/null)
+    charge=$(echo "$bat_raw" | grep -A1 'string "charge"' | tail -1 | grep -oP 'int32 \K-?\d+')
+    if [ -n "$charge" ] && [ "$charge" -ge 0 ] 2>/dev/null; then battery=$charge; fi
+    isch=$(echo "$bat_raw" | grep -A1 'string "isCharging"' | tail -1 | grep -oP 'boolean \K\w+')
     [ "$isch" = "true" ] && charging="true"
 
-    # Signal
-    raw_s=$(dbus-send --print-reply --dest=org.kde.kdeconnect \
+    # Connectivity — GetAll gets strength + type in one call
+    conn_raw=$(dbus-send --print-reply --dest=org.kde.kdeconnect \
       "/modules/kdeconnect/devices/${id}/connectivity_report" \
-      org.freedesktop.DBus.Properties.Get \
-      string:"org.kde.kdeconnect.device.connectivity_report" string:"cellularNetworkStrength" 2>/dev/null)
-    sig=$(echo "$raw_s" | grep -oP 'int32 \K\d+' 2>/dev/null)
-    [ -n "$sig" ] && signal=$sig
-
-    raw_n=$(dbus-send --print-reply --dest=org.kde.kdeconnect \
-      "/modules/kdeconnect/devices/${id}/connectivity_report" \
-      org.freedesktop.DBus.Properties.Get \
-      string:"org.kde.kdeconnect.device.connectivity_report" string:"cellularNetworkType" 2>/dev/null)
-    net=$(echo "$raw_n" | grep -oP 'string "\K[^"]+' 2>/dev/null)
+      org.freedesktop.DBus.Properties.GetAll \
+      string:"org.kde.kdeconnect.device.connectivity_report" 2>/dev/null)
+    sig=$(echo "$conn_raw" | grep -A1 'string "cellularNetworkStrength"' | tail -1 | grep -oP 'int32 \K-?\d+')
+    if [ -n "$sig" ] && [ "$sig" -ge 0 ] 2>/dev/null; then signal=$sig; fi
+    net=$(echo "$conn_raw" | grep -A1 'string "cellularNetworkType"' | tail -1 | grep -oP 'string "\K[^"]+')
     [ -n "$net" ] && networkType="$net"
 
     # Notifications
@@ -97,15 +111,21 @@ while IFS= read -r line; do
         body=$(echo "$body" | sed 's/"/\\"/g')
 
         [ "$count" -gt 0 ] && notifJson="$notifJson,"
-        notifJson="$notifJson{\"appName\":\"$app\",\"body\":\"$body\",\"dismissable\":$dismiss}"
+        notifJson="$notifJson{\"id\":\"${nid}\",\"deviceId\":\"${id}\",\"appName\":\"$app\",\"body\":\"$body\",\"dismissable\":$dismiss}"
         count=$((count + 1))
       done
       notifCount=$count
     fi
   fi
 
-  [ "$first" = true ] && first=false || echo -n ','
-  echo -n "{\"id\":\"${id}\",\"name\":\"${name}\",\"battery\":${battery},\"charging\":${charging},\"reachable\":true,\"signal\":${signal},\"networkType\":\"${networkType}\",\"notifCount\":${notifCount},\"notifications\":[${notifJson}]}"
+  [ "$first" = true ] && first=false || output="$output,"
+  output="$output{\"id\":\"${id}\",\"name\":\"${name}\",\"battery\":${battery},\"charging\":${charging},\"reachable\":true,\"signal\":${signal},\"networkType\":\"${networkType}\",\"notifCount\":${notifCount},\"notifications\":[${notifJson}]}"
 done <<< "$devices"
 
-echo '],"anyConnected":true}'
+output="$output],\"anyConnected\":true}"
+
+# Write cache
+mkdir -p "$CACHE_DIR"
+echo "$output" > "$CACHE_FILE"
+
+echo "$output"
