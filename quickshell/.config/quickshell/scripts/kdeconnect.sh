@@ -87,6 +87,11 @@ while IFS= read -r line; do
         [ -z "$body" ] && body="$ticker"
         [ -z "$body" ] && body="$title"
 
+        # Filter unwanted apps
+        case "$app" in
+          "System UI"|"Báo Mới"|"Bao Moi") continue ;;
+        esac
+
         # Escape JSON strings
         app=$(echo "$app" | sed 's/"/\\"/g')
         body=$(echo "$body" | sed 's/"/\\"/g')
