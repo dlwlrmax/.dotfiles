@@ -49,6 +49,13 @@ hl.window_rule({
   workspace = 2,
 })
 hl.window_rule({
+  match = { class = "^(Zotero)$" },
+  float = true,
+  size = "(monitor_w*0.65) (monitor_h*0.75)",
+  center = true,
+  workspace = 2,
+})
+hl.window_rule({
   match = { class = "^([Tt]hunar|[Oo]rg.gnome.Nautilus|[Oo]rg.kde.dolphin)$" },
   float = true,
   size = "(monitor_w*0.65) (monitor_h*0.75)",
