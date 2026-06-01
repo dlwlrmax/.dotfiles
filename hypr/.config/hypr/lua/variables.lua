@@ -5,7 +5,7 @@ local M = {}
 M.terminal    = "ghostty"
 M.mainMod     = "SUPER"
 M.mainModS    = M.mainMod .. " + SHIFT"
-M.fileManager = "Thunar"
+M.fileManager = "dolphin"
 
 -- Env vars, general, decoration, input, misc, xwayland, cursor
 

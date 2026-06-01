@@ -31,24 +31,31 @@ hl.on("hyprland.start", function()
   )
 
   -- ═══════════════════════════════════════════════════════════
-  -- TIER 2: core desktop — bar, wallpaper, notifications, portals
+  -- TIER 2a: portal backend — register on D-Bus before Qt apps
   -- ═══════════════════════════════════════════════════════════
   launch(0,
+    "/usr/libexec/xdg-desktop-portal-hyprland -r",
+    "systemctl --user restart xdg-desktop-portal.service"
+  )
+
+  -- ═══════════════════════════════════════════════════════════
+  -- TIER 2b: core desktop — bar, wallpaper, notifications, etc.
+  -- (delayed for portal to settle)
+  -- ═══════════════════════════════════════════════════════════
+  launch(1,
     "quickshell",
     "mako",
     "hyprpaper",
     "waypaper --restore",
     "walker --gapplication-service",
     "hypridle",
-    "systemctl --user restart xdg-desktop-portal.service",
     "wl-paste --watch cliphist store"
   )
 
   -- ═══════════════════════════════════════════════════════════
-  -- TIER 3: utilities, portal backend, cleanup (slight delay)
+  -- TIER 3: utilities, cleanup (slight delay)
   -- ═══════════════════════════════════════════════════════════
   launch(2,
-    "/usr/libexec/xdg-desktop-portal-hyprland -r",
     "blueman-applet",
     "nohup easyeffects --gapplication-service"
   )
