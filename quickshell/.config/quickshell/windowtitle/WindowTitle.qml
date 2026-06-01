@@ -22,7 +22,7 @@ RowLayout {
     Text {
         text: Hyprland.activeToplevel?.title ?? "Quickshell"
         color: theme.text
-        font.pixelSize: theme.fontSize
+        font.pixelSize: theme.fontSize - 1
         font.bold: true
         font.family: theme.font
         Layout.alignment: Qt.AlignVCenter
