@@ -13,6 +13,7 @@ import qs.sysusage
 import qs.power
 import qs.battery
 import qs.kdeconnect  // KDEConnect.qml, KDEConnectPanel.qml
+import qs.launcher
 
 ShellRoot {
     id: shell
@@ -40,6 +41,8 @@ ShellRoot {
         property bool kdePanelOpen: false
         property var activeKdeScreen: null
         property int kdeWidgetCenterX: 0
+        property bool launcherPanelOpen: false
+        property var activeLauncherScreen: null
 
         function closeOtherPanels(name) {
             if (name !== "notif") notifPanelOpen = false
@@ -51,6 +54,7 @@ ShellRoot {
             if (name !== "power") powerPanelOpen = false
             if (name !== "battery") batteryPanelOpen = false
             if (name !== "kde") kdePanelOpen = false
+            if (name !== "launcher") launcherPanelOpen = false
         }
     }
 
@@ -165,6 +169,22 @@ ShellRoot {
                     }
                 }
             }
+        }
+    }
+
+    IpcHandler {
+        target: "launcher"
+        function toggle(): void {
+            if (g.launcherPanelOpen) {
+                g.launcherPanelOpen = false
+                return
+            }
+            g.closeOtherPanels("launcher")
+            g.launcherPanelOpen = true
+            g.activeLauncherScreen = Quickshell.screens[0]
+        }
+        function close(): void {
+            g.launcherPanelOpen = false
         }
     }
 
@@ -375,6 +395,20 @@ ShellRoot {
                     anchors.fill: parent
                     active: g.batteryPanelOpen && g.activeBatteryScreen === screenScope.screenData
                     onClose: g.batteryPanelOpen = false
+                }
+            }
+
+            PanelOverlay {
+                screen: screenScope.screenData
+                active: g.launcherPanelOpen && g.activeLauncherScreen === screenScope.screenData
+                onCloseRequested: g.launcherPanelOpen = false
+                position: PanelOverlay.Position.Center
+                keyboardFocus: true
+
+                LauncherPanel {
+                    anchors.fill: parent
+                    active: g.launcherPanelOpen && g.activeLauncherScreen === screenScope.screenData
+                    onClose: g.launcherPanelOpen = false
                 }
             }
         }

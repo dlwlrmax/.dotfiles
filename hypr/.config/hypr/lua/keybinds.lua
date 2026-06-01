@@ -23,8 +23,10 @@ hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + V", hl.dsp.window.center())
 
--- Rofi app launcher
-hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("rofi -show"))
+-- App launcher (quickshell)
+hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("qs ipc call launcher toggle"))
+-- Rofi fallback (temporary, drop later)
+hl.bind(mainModS .. " + D", hl.dsp.exec_cmd("rofi -show"))
 
 -- Power menu (quickshell)
 hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("touch /tmp/quickshell-power-toggle"))

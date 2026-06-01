@@ -1,45 +1,58 @@
 import Quickshell
 import QtQuick
 
-Image {
+Item {
     id: root
 
     required property string appId
     property string fallbackIcon: "application-x-executable"
+    property string fallbackGlyph: ""
     property real size: 16
     property bool hideOnMissing: false
 
-    readonly property string resolvedName: iconMap.resolve(appId)
-    readonly property bool isFilePath: resolvedName.includes("/")
-    readonly property string effectiveName: {
-        if (!resolvedName || isFilePath) return resolvedName
-        if (Quickshell.hasThemeIcon(resolvedName)) return resolvedName
-        var lower = resolvedName.toLowerCase()
-        return Quickshell.hasThemeIcon(lower) ? lower : resolvedName
+    readonly property string _resolvedName: iconMap.resolve(appId)
+    readonly property bool _isFilePath: _resolvedName.includes("/")
+    readonly property string _effectiveName: {
+        if (!_resolvedName || _isFilePath) return _resolvedName
+        if (Quickshell.hasThemeIcon(_resolvedName)) return _resolvedName
+        var lower = _resolvedName.toLowerCase()
+        return Quickshell.hasThemeIcon(lower) ? lower : _resolvedName
     }
-    readonly property bool iconFound: {
-        if (!resolvedName) return false
-        if (isFilePath) return true
-        return Quickshell.hasThemeIcon(effectiveName)
+    readonly property string _iconSource: {
+        if (!_resolvedName) return ""
+        if (_isFilePath) return "file://" + _resolvedName
+        return Quickshell.iconPath(_effectiveName, fallbackIcon)
     }
-    readonly property bool hasError: status === Image.Error
+    readonly property bool _canTryIcon: _iconSource.length > 0
+    readonly property bool iconFound: _canTryIcon && img.status !== Image.Error && img.status !== Image.Null
 
     width: size
     height: size
-    fillMode: Image.PreserveAspectFit
-    antialiasing: true
-    smooth: true
-    mipmap: true
-    sourceSize.width: 48
-    sourceSize.height: 48
 
-    visible: !hideOnMissing || iconFound
+    // Nerd Font glyph fallback
+    Text {
+        anchors.centerIn: parent
+        visible: (!_canTryIcon || img.status === Image.Error) && fallbackGlyph.length > 0
+        text: fallbackGlyph
+        color: "#cdd6f4"
+        font.family: "JetBrainsMono Nerd Font Mono"
+        font.pixelSize: Math.round(size * 0.9)
+    }
 
-    IconMap { id: iconMap }
+    Image {
+        id: img
+        anchors.fill: parent
+        fillMode: Image.PreserveAspectFit
+        antialiasing: true
+        smooth: true
+        mipmap: true
+        sourceSize.width: 48
+        sourceSize.height: 48
 
-    source: {
-        if (!resolvedName) return ""
-        if (isFilePath) return "file://" + resolvedName
-        return Quickshell.iconPath(effectiveName, fallbackIcon)
+        visible: _canTryIcon && status !== Image.Error
+
+        IconMap { id: iconMap }
+
+        source: _iconSource
     }
 }
