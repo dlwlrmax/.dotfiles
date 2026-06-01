@@ -7,8 +7,9 @@ import qs.common
 Item {
     id: root
     property Theme theme: Theme {}
-    property var device: null
-    property bool anyConnected: false
+    property var device: dataSource ? dataSource.device : null
+    property bool anyConnected: dataSource ? dataSource.anyConnected : false
+    property var dataSource: null
     onDeviceChanged: console.log("KDEConnect bar: device=", device ? device.name : "null", "battery=", device ? device.battery : "n/a")
     onAnyConnectedChanged: console.log("KDEConnect bar: anyConnected=", anyConnected)
     signal togglePanel(int centerX)
@@ -90,12 +91,15 @@ Item {
         }
     }
 
+    // Fallback poll when no shared dataSource
     Process {
         id: kdProc
         command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh"]
+        running: !root.dataSource
 
         stdout: StdioCollector {
             onStreamFinished: {
+                if (root.dataSource) return
                 try {
                     var data = JSON.parse(this.text.trim())
                     root.anyConnected = data.anyConnected || false
@@ -109,16 +113,21 @@ Item {
                 }
             }
         }
+
+        onRunningChanged: {
+            if (!running && !root.dataSource)
+                pollTimer.restart()
+        }
     }
 
     Timer {
         id: pollTimer
         interval: 10000
-        running: true
+        running: !root.dataSource
         repeat: true
-        triggeredOnStart: true
+        triggeredOnStart: !root.dataSource
         onTriggered: {
-            if (!kdProc.running) kdProc.running = true
+            if (!root.dataSource && !kdProc.running) kdProc.running = true
         }
     }
 }

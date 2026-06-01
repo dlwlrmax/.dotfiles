@@ -2,7 +2,6 @@
 -- Workspace assignments
 -- ──────────────────────────────────────────────
 local ws = {
-  { pat = "^(google-chrome)$", id = 1 },
   { pat = "^(Chromium)$", id = 2 },
   { pat = "^(Lark|Ferdium||ferdium)$", id = 3 },
   { pat = "^(Code)$", id = 4 },
@@ -73,6 +72,8 @@ hl.window_rule({
 })
 hl.window_rule({
   name = "google-chrome",
+  workspace = 1,
+  float = true,
   match = { class = "google-chrome" },
   max_size = "1874 990",
 })

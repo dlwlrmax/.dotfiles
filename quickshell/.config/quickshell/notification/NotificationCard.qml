@@ -9,10 +9,28 @@ Rectangle {
     property Theme theme: Theme {}
     property var notifData: ({})
     property var onDismiss: null
+    property var onAction: null
 
     color: theme.surface0
     radius: 12
     height: content.implicitHeight + 16
+        + (actionFlow.visible ? actionFlow.implicitHeight + 6 : 0)
+
+    property var actionList: []
+
+    function updateActionList() {
+        var arr = [];
+        if (notifData && notifData.actions) {
+            var keys = Object.keys(notifData.actions);
+            for (var i = 0; i < keys.length; i++) {
+                arr.push({key: keys[i], label: notifData.actions[keys[i]]});
+            }
+        }
+        actionList = arr;
+    }
+
+    onNotifDataChanged: updateActionList()
+    Component.onCompleted: updateActionList()
 
     RowLayout {
         id: content
@@ -37,7 +55,7 @@ Rectangle {
 
             Text {
                 anchors.centerIn: parent
-                text: ""
+                text: "\uF0E0"
                 color: theme.subtext0
                 font.pixelSize: 16
                 visible: !notifIcon.iconFound
@@ -77,12 +95,51 @@ Rectangle {
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                 visible: !!notifData.body && notifData.body.length > 0
             }
+
+            // Action buttons
+            Flow {
+                id: actionFlow
+                Layout.fillWidth: true
+                Layout.topMargin: 4
+                spacing: 4
+                visible: root.actionList.length > 0
+
+                Repeater {
+                    model: root.actionList
+
+                    delegate: Rectangle {
+                        required property var modelData
+                        implicitWidth: actLabel.implicitWidth + 14
+                        implicitHeight: 24
+                        radius: 6
+                        color: theme.surface1
+
+                        Text {
+                            id: actLabel
+                            anchors.centerIn: parent
+                            text: modelData.label
+                            color: theme.blue
+                            font.pixelSize: theme.fontSize - 2
+                            font.family: theme.font
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (root.onAction)
+                                    root.onAction(notifData.id, modelData.key)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
     Text {
         id: dismissBtn
-        text: "×"
+        text: "\u00D7"
         color: theme.subtext0
         font.pixelSize: theme.fontSize + 2
         font.family: theme.font

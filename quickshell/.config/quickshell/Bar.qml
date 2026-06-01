@@ -30,6 +30,9 @@ Item {
     signal toggleSysUsagePanel()
     signal toggleKdePanel(int centerX)
     signal toggleBatteryPanel(int centerX)
+    property alias weatherWidget: barWeather
+    property var kdeDataSource: null
+    property var notifDataSource: null
 
     DropShadow {
         anchors.fill: barRect
@@ -111,6 +114,7 @@ Item {
             }
 
             Weather {
+                id: barWeather
                 theme: bar.theme
                 Layout.alignment: Qt.AlignVCenter
                 onTogglePanel: bar.toggleWeatherPanel()
@@ -126,6 +130,7 @@ Item {
             KDEConnect {
                 id: kdeWidget
                 theme: bar.theme
+                dataSource: bar.kdeDataSource
                 Layout.alignment: Qt.AlignVCenter
                 onTogglePanel: centerX => bar.toggleKdePanel(centerX)
             }
@@ -143,7 +148,9 @@ Item {
             }
 
             Notification {
+                id: barNotif
                 theme: bar.theme
+                dataSource: bar.notifDataSource
                 Layout.alignment: Qt.AlignVCenter
                 onTogglePanel: bar.toggleNotifPanel()
             }

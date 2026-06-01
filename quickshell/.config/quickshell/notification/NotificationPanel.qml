@@ -9,11 +9,27 @@ Item {
     property Theme theme: Theme {}
     property bool active: false
     property bool clearing: false
+    property var dataSource: null
     signal close()
 
     clip: true
     implicitWidth: 360
     implicitHeight: 480
+
+    // Sync from shared dataSource when available
+    onDataSourceChanged: {
+        if (dataSource) {
+            dataSource.activeNotifsChanged.connect(syncFromDataSource)
+            dataSource.historyNotifsChanged.connect(syncFromDataSource)
+            syncFromDataSource()
+        }
+    }
+
+    function syncFromDataSource() {
+        if (root.dataSource && !root.clearing) {
+            root.mergeNotifs(dataSource.activeNotifs, dataSource.historyNotifs)
+        }
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -154,6 +170,7 @@ Item {
                     notifData: modelData
                     width: notifList.width
                     onDismiss: function() { root.dismissNotif(modelData.id) }
+                    onAction: function(id, action) { root.invokeAction(id, action) }
                 }
             }
 
@@ -171,9 +188,11 @@ Item {
     Process {
         id: fetchProc
         command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/mako-notifs.sh"]
+        running: !root.dataSource
 
         stdout: StdioCollector {
             onStreamFinished: {
+                if (root.dataSource) return
                 try {
                     var data = JSON.parse(this.text);
                     root.mergeNotifs(data.active, data.history);
@@ -181,6 +200,11 @@ Item {
                     console.log("Failed to parse notifications:", e);
                 }
             }
+        }
+
+        onRunningChanged: {
+            if (!running && !root.dataSource)
+                fetchTimer.restart()
         }
     }
 
@@ -200,12 +224,24 @@ Item {
         command: ["makoctl", "dismiss", "-n", ""]
     }
 
+    function invokeAction(id, action) {
+        actionProc.command = ["makoctl", "invoke", "-n", String(id), action];
+        actionProc.running = true;
+    }
+
+    Process {
+        id: actionProc
+        command: ["makoctl", "invoke"]
+    }
+
     Timer {
         id: fetchTimer
         interval: 1000
-        running: root.active && !fetchProc.running && !root.clearing
+        running: root.active && !root.dataSource && !fetchProc.running && !root.clearing
         repeat: true
         triggeredOnStart: true
-        onTriggered: fetchProc.running = true
+        onTriggered: {
+            if (!root.dataSource) fetchProc.running = true
+        }
     }
 }

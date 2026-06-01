@@ -1,6 +1,6 @@
 #!/bin/bash
 # Fetch mako notifications as JSON for Quickshell
-# Outputs: {"active": [...], "history": [...]}
+# Outputs: {"count": N, "dnd": true/false, "active": [...], "history": [...]}
 
 CACHE_DIR="$HOME/.cache/quickshell"
 MAX_CLEARED_FILE="$CACHE_DIR/max-cleared-id"
@@ -23,5 +23,13 @@ if [ "$active_count" -gt 0 ]; then
 fi
 
 history=$(makoctl history -j 2>/dev/null | jq --argjson max "$max_cleared" '[.[] | select(.id > $max)]' || echo '[]')
+history_count=$(echo "$history" | jq 'length' 2>/dev/null || echo "0")
+count=$((active_count + history_count))
 
-echo "{\"active\": $active, \"history\": $history}"
+dnd="false"
+dnd_modes=$(makoctl mode 2>/dev/null || echo "")
+if echo "$dnd_modes" | grep -qw "dnd"; then
+    dnd="true"
+fi
+
+echo "{\"count\": $count, \"dnd\": $dnd, \"active\": $active, \"history\": $history}"

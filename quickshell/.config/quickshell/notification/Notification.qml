@@ -7,8 +7,9 @@ import qs.common
 Item {
     id: root
     property Theme theme: Theme {}
-    property int notifCount: 0
-    property bool dnd: false
+    property int notifCount: dataSource ? dataSource.count : 0
+    property bool dnd: dataSource ? dataSource.dnd : false
+    property var dataSource: null
     signal togglePanel()
 
     implicitWidth: iconText.implicitWidth
@@ -17,7 +18,7 @@ Item {
     Text {
         id: iconText
         anchors.centerIn: parent
-        text: root.dnd ? "󰂛" : ""
+        text: root.dnd ? "\uF09B" : "\uF0F3"
         color: root.notifCount > 0 ? theme.white : theme.surface1
         font.pixelSize: theme.fontSize
         font.weight: Font.Medium
@@ -47,29 +48,39 @@ Item {
         }
     }
 
+    // Fallback poll when no shared dataSource
     Process {
         id: notifProc
-        command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/notification-status.sh"]
+        command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/mako-notifs.sh"]
+        running: !root.dataSource
 
         stdout: StdioCollector {
             onStreamFinished: {
+                if (root.dataSource) return
                 var output = this.text.trim();
-                var parts = output.split(" ");
-                if (parts.length >= 2) {
-                    var count = parseInt(parts[0]);
-                    if (!isNaN(count)) root.notifCount = count;
-                    root.dnd = parts[1] === "true";
-                }
+                try {
+                    var data = JSON.parse(output)
+                    root.notifCount = data.count || 0
+                    root.dnd = data.dnd === true
+                } catch (e) {}
             }
+        }
+
+        onRunningChanged: {
+            if (!running && !root.dataSource)
+                pollTimer.restart()
         }
     }
 
     Timer {
+        id: pollTimer
         interval: 2000
-        running: true
+        running: !root.dataSource
         repeat: true
-        triggeredOnStart: true
-        onTriggered: notifProc.running = true
+        triggeredOnStart: !root.dataSource
+        onTriggered: {
+            if (!root.dataSource && !notifProc.running) notifProc.running = true
+        }
     }
 
     MouseArea {

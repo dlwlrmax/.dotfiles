@@ -1,7 +1,7 @@
 #!/bin/bash
 # Fetch KDE Connect device status
 # Output: JSON with device list + battery + signal + notifications
-# {"devices":[{"id":"...","name":"...","battery":51,"charging":false,"reachable":true,"signal":4,"networkType":"LTE","notifCount":3,"notifications":[{"appName":"...","title":"...","text":"...","dismissable":true}]}],"anyConnected":true}
+# {"devices":[{"id":"...","name":"...","battery":51,"charging":false,"reachable":true,"signal":4,"networkType":"LTE","notifCount":3,"notifications":[{"appName":"...","title":"...","text":"...","dismissable":true,"replyId":"...","isConversation":false}]}],"anyConnected":true}
 
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/quickshell/kdeconnect"
 CACHE_FILE="$CACHE_DIR/devices.json"
@@ -137,6 +137,10 @@ while IFS= read -r line; do
         dismiss=$(echo "$raw_notif" | grep -A1 'string "dismissable"' | tail -1 | grep -oP '(true|false)')
         [ -z "$dismiss" ] && dismiss="false"
 
+        reply_id=$(echo "$raw_notif" | grep -A1 'string "replyId"' | tail -1 | grep -oP 'string "\K[^"]+')
+        is_conv=$(echo "$raw_notif" | grep -A1 'string "isConversation"' | tail -1 | grep -oP 'boolean \K\w+')
+        [ -z "$is_conv" ] && is_conv="false"
+
         # Best body: text > ticker > title
         body="$text"
         [ -z "$body" ] && body="$ticker"
@@ -152,7 +156,7 @@ while IFS= read -r line; do
         body=$(echo "$body" | sed 's/"/\\"/g')
 
         [ "$count" -gt 0 ] && notifJson="$notifJson,"
-        notifJson="$notifJson{\"id\":\"${nid}\",\"deviceId\":\"${id}\",\"appName\":\"$app\",\"body\":\"$body\",\"dismissable\":$dismiss}"
+        notifJson="$notifJson{\"id\":\"${nid}\",\"deviceId\":\"${id}\",\"appName\":\"$app\",\"body\":\"$body\",\"dismissable\":$dismiss,\"replyId\":\"${reply_id}\",\"isConversation\":$is_conv}"
         count=$((count + 1))
       done
       notifCount=$count

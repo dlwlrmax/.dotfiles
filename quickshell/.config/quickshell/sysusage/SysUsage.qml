@@ -23,7 +23,7 @@ Item {
         spacing: 8
 
         Text {
-            text: root.ramPct + "%  "
+            text: root.ramPct + "% \uE7C5 "
             color: root.ramColor
             font.pixelSize: theme.fontSize - 1
             font.weight: Font.Medium
@@ -31,7 +31,7 @@ Item {
         }
 
         Text {
-            text: root.swapPct + "% 󰾵 "
+            text: root.swapPct + "% \uF0BD "
             color: root.swapColor
             font.pixelSize: theme.fontSize - 1
             font.weight: Font.Medium

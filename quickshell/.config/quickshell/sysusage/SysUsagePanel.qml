@@ -8,11 +8,12 @@ Item {
     id: root
     property Theme theme: Theme {}
     property bool active: false
+    property var dataSource: null
     signal close()
 
-    property var ram: ({ total: 0, used: 0, pct: 0 })
-    property var swap: ({ total: 0, used: 0, pct: 0 })
-    property var processes: []
+    property var ram: dataSource ? dataSource.ram : ({ total: 0, used: 0, pct: 0 })
+    property var swap: dataSource ? dataSource.swap : ({ total: 0, used: 0, pct: 0 })
+    property var processes: dataSource ? dataSource.processes : []
 
     clip: true
     implicitWidth: 420
@@ -246,9 +247,11 @@ Item {
     Process {
         id: fetchProc
         command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/mem-apps.sh"]
+        running: !root.dataSource
 
         stdout: StdioCollector {
             onStreamFinished: {
+                if (root.dataSource) return
                 try {
                     var data = JSON.parse(this.text);
                     root.ram = data.ram || { total: 0, used: 0, pct: 0 };
@@ -259,13 +262,21 @@ Item {
                 }
             }
         }
+
+        onRunningChanged: {
+            if (!running && !root.dataSource)
+                pollTimer.restart()
+        }
     }
 
     Timer {
+        id: pollTimer
         interval: 2000
-        running: root.active && !fetchProc.running
+        running: root.active && !root.dataSource && !fetchProc.running
         repeat: true
         triggeredOnStart: true
-        onTriggered: fetchProc.running = true
+        onTriggered: {
+            if (!root.dataSource) fetchProc.running = true
+        }
     }
 }

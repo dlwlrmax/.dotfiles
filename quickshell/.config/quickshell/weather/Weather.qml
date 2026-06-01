@@ -11,6 +11,10 @@ Item {
     property string weatherIcon: ""
     signal togglePanel()
 
+    function refresh() {
+        weatherProc.running = true
+    }
+
     implicitWidth: row.implicitWidth
     implicitHeight: row.implicitHeight
 

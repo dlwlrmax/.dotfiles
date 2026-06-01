@@ -295,79 +295,194 @@ Item {
                         delegate: Rectangle {
                             required property var modelData
                             Layout.fillWidth: true
-                            implicitHeight: 48
+                            implicitHeight: topRow.implicitHeight + 16
+                                + (replyArea.visible ? replyArea.implicitHeight + 8 : 0)
                             radius: 8
                             color: theme.mantle
 
-                            RowLayout {
+                            property bool replying: false
+                            property string replyText: ""
+
+                            ColumnLayout {
                                 anchors.fill: parent
                                 anchors.margins: 8
-                                spacing: 8
+                                spacing: 6
 
-                                // App icon placeholder
-                                Rectangle {
-                                    implicitWidth: 28
-                                    implicitHeight: 28
-                                    radius: 6
-                                    color: theme.surface1
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: ""
-                                        color: "#ffffff"
-                                        font.pixelSize: theme.fontSize + 2
-                                        font.family: theme.font
-                                    }
-                                }
-
-                                ColumnLayout {
+                                RowLayout {
+                                    id: topRow
                                     Layout.fillWidth: true
-                                    spacing: 1
+                                    spacing: 8
 
-                                    Text {
-                                        text: modelData ? modelData.appName || "App" : "App"
-                                        color: theme.subtext1
-                                        font.pixelSize: theme.fontSize - 2
-                                        font.family: theme.font
-                                    }
+                                    // App icon placeholder
+                                    Rectangle {
+                                        implicitWidth: 28
+                                        implicitHeight: 28
+                                        radius: 6
+                                        color: theme.surface1
 
-                                    Text {
-                                        text: modelData ? modelData.body || "" : ""
-                                        color: theme.text
-                                        font.pixelSize: theme.fontSize - 1
-                                        font.family: theme.font
-                                        elide: Text.ElideRight
-                                        maximumLineCount: 1
-                                        Layout.fillWidth: true
-                                    }
-                                }
-
-                                // Dismiss button
-                                Rectangle {
-                                    implicitWidth: 20
-                                    implicitHeight: 20
-                                    radius: 6
-                                    color: "transparent"
-                                    visible: modelData && modelData.dismissable
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "✕"
-                                        color: theme.subtext0
-                                        font.pixelSize: theme.fontSize
-                                        font.family: theme.font
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            var devId = modelData.deviceId || ""
-                                            var notifId = modelData.id || ""
-                                            if (devId && notifId)
-                                                dismissProc.dismiss(devId, notifId)
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: ""
+                                            color: "#ffffff"
+                                            font.pixelSize: theme.fontSize + 2
+                                            font.family: theme.font
                                         }
                                     }
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 1
+
+                                        Text {
+                                            text: modelData ? modelData.appName || "App" : "App"
+                                            color: theme.subtext1
+                                            font.pixelSize: theme.fontSize - 2
+                                            font.family: theme.font
+                                        }
+
+                                        Text {
+                                            text: modelData ? modelData.body || "" : ""
+                                            color: theme.text
+                                            font.pixelSize: theme.fontSize - 1
+                                            font.family: theme.font
+                                            elide: Text.ElideRight
+                                            maximumLineCount: 1
+                                            Layout.fillWidth: true
+                                        }
+                                    }
+
+                                    // Reply button
+                                    Rectangle {
+                                        implicitWidth: replyBtnText.implicitWidth + 12
+                                        implicitHeight: 22
+                                        radius: 6
+                                        color: theme.surface1
+                                        visible: modelData && modelData.replyId
+
+                                        Text {
+                                            id: replyBtnText
+                                            anchors.centerIn: parent
+                                            text: "↩ Reply"
+                                            color: theme.blue
+                                            font.pixelSize: theme.fontSize - 2
+                                            font.family: theme.font
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                parent.parent.parent.parent.replying =
+                                                    !parent.parent.parent.parent.replying
+                                            }
+                                        }
+                                    }
+
+                                    // Dismiss button
+                                    Rectangle {
+                                        implicitWidth: 20
+                                        implicitHeight: 20
+                                        radius: 6
+                                        color: "transparent"
+                                        visible: modelData && modelData.dismissable
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "✕"
+                                            color: theme.subtext0
+                                            font.pixelSize: theme.fontSize
+                                            font.family: theme.font
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                var devId = modelData.deviceId || ""
+                                                var notifId = modelData.id || ""
+                                                if (devId && notifId)
+                                                    dismissProc.dismiss(devId, notifId)
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Reply input row
+                                RowLayout {
+                                    id: replyArea
+                                    Layout.fillWidth: true
+                                    Layout.leftMargin: 36
+                                    spacing: 6
+                                    visible: parent.parent.replying
+
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        implicitHeight: 28
+                                        radius: 6
+                                        color: theme.surface1
+
+                                        TextInput {
+                                            id: replyInput
+                                            anchors.fill: parent
+                                            anchors.margins: 6
+                                            color: theme.text
+                                            font.pixelSize: theme.fontSize - 1
+                                            font.family: theme.font
+                                            clip: true
+                                            verticalAlignment: TextInput.AlignVCenter
+
+                                            Text {
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                text: "Type a reply..."
+                                                color: theme.subtext0
+                                                font.pixelSize: theme.fontSize - 1
+                                                font.family: theme.font
+                                                visible: !parent.text.length
+                                            }
+
+                                            Keys.onReturnPressed: {
+                                                if (parent.text.length > 0)
+                                                    sendReply()
+                                            }
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        implicitWidth: sendText.implicitWidth + 14
+                                        implicitHeight: 28
+                                        radius: 6
+                                        color: theme.blue
+
+                                        Text {
+                                            id: sendText
+                                            anchors.centerIn: parent
+                                            text: "Send"
+                                            color: theme.white
+                                            font.pixelSize: theme.fontSize - 1
+                                            font.bold: true
+                                            font.family: theme.font
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                if (replyInput.text.length > 0)
+                                                    sendReply()
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            function sendReply() {
+                                var devId = modelData.deviceId || ""
+                                var nid = modelData.id || ""
+                                var msg = replyInput.text
+                                if (devId && nid && msg) {
+                                    replyProc.sendReply(devId, nid, msg)
+                                    replying = false
+                                    replyInput.text = ""
                                 }
                             }
                         }
@@ -411,6 +526,26 @@ Item {
             notifId = nid
             command = ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh",
                 "dismiss", devId, nid]
+            running = true
+        }
+    }
+
+    // Process: send reply
+    Process {
+        id: replyProc
+        property string deviceId: ""
+        property string notifId: ""
+        property string message: ""
+        command: []
+
+        function sendReply(devId, nid, msg) {
+            deviceId = devId
+            notifId = nid
+            message = msg
+            command = ["dbus-send", "--print-reply", "--dest=org.kde.kdeconnect",
+                "/modules/kdeconnect/devices/" + devId + "/notifications/" + nid,
+                "org.kde.kdeconnect.device.notifications.notification.sendReply",
+                "string:" + msg]
             running = true
         }
     }

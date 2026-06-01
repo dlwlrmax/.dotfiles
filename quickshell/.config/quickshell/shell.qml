@@ -99,6 +99,44 @@ ShellRoot {
         }
     }
 
+    // Shared notification data (single poll for bar + panel)
+    Item {
+        id: notifData
+        property int count: 0
+        property bool dnd: false
+        property var activeNotifs: []
+        property var historyNotifs: []
+
+        Process {
+            id: notifFetchProc
+            command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/mako-notifs.sh"]
+
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    try {
+                        var data = JSON.parse(this.text.trim())
+                        notifData.count = data.count || 0
+                        notifData.dnd = data.dnd === true
+                        notifData.activeNotifs = data.active || []
+                        notifData.historyNotifs = data.history || []
+                    } catch (e) {
+                        console.log("notifData parse error:", e)
+                    }
+                }
+            }
+        }
+
+        Timer {
+            interval: 1000
+            running: true
+            repeat: true
+            triggeredOnStart: true
+            onTriggered: {
+                if (!notifFetchProc.running) notifFetchProc.running = true
+            }
+        }
+    }
+
     Item {
         id: powerTrigger
 
@@ -148,11 +186,14 @@ ShellRoot {
                 WlrLayershell.namespace: "quickshell-bar"
 
                 Bar {
+                    id: barItem
                     anchors.fill: parent
                     anchors.leftMargin: 8
                     anchors.rightMargin: 8
                     anchors.topMargin: 6
                     monitor: Hyprland.monitorFor(screenScope.screenData)
+                    kdeDataSource: kdeData
+                    notifDataSource: notifData
 
                     onToggleNotifPanel: {
                         g.closeOtherPanels("notif")
@@ -215,6 +256,7 @@ ShellRoot {
                 NotificationPanel {
                     anchors.fill: parent
                     active: g.notifPanelOpen && g.activeNotifScreen === screenScope.screenData
+                    dataSource: notifData
                     onClose: g.notifPanelOpen = false
                 }
             }
@@ -257,6 +299,10 @@ ShellRoot {
                     anchors.fill: parent
                     active: g.weatherPanelOpen && g.activeWeatherScreen === screenScope.screenData
                     onClose: g.weatherPanelOpen = false
+                    onBarRefreshRequested: {
+                        if (barItem && barItem.weatherWidget)
+                            barItem.weatherWidget.refresh()
+                    }
                 }
             }
 

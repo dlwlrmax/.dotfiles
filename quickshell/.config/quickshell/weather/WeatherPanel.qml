@@ -9,6 +9,7 @@ Item {
     property Theme theme: Theme {}
     property bool active: false
     signal close()
+    signal barRefreshRequested()
 
     property var weatherData: ({
         icon: "",
@@ -69,19 +70,22 @@ Item {
                 Layout.fillWidth: true
             }
 
-            Text {
-                text: "Refresh"
-                color: theme.blue
-                font.pixelSize: theme.fontSize - 1
-                font.family: theme.font
+                Text {
+                    text: "Refresh"
+                    color: theme.blue
+                    font.pixelSize: theme.fontSize - 1
+                    font.family: theme.font
 
-                MouseArea {
-                    anchors.fill: parent
-                    anchors.margins: -4
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: fetchProc.running = true
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.margins: -4
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            fetchProc.running = true
+                            root.barRefreshRequested()
+                        }
+                    }
                 }
-            }
 
             Text {
                 text: "×"
