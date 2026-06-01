@@ -9,8 +9,29 @@ Item {
     property Theme theme: Theme {}
     property int notifCount: dataSource ? dataSource.count : 0
     property bool dnd: dataSource ? dataSource.dnd : false
+    property int prevCount: 0
+    property bool firstPoll: true
     property var dataSource: null
+    property var countConnection: null
     signal togglePanel()
+
+    onDataSourceChanged: {
+        if (root.countConnection) {
+            root.countConnection.disconnect()
+            root.countConnection = null
+        }
+        if (dataSource) {
+            root.countConnection = dataSource.countChanged.connect(function() {
+                var currentCount = dataSource ? dataSource.count : 0
+                var isDnd = dataSource ? dataSource.dnd : false
+                if (!root.firstPoll && !isDnd && currentCount > root.prevCount) {
+                    playSound.running = true
+                }
+                root.prevCount = currentCount
+                root.firstPoll = false
+            })
+        }
+    }
 
     implicitWidth: iconText.implicitWidth
     implicitHeight: iconText.implicitHeight
@@ -60,8 +81,17 @@ Item {
                 var output = this.text.trim();
                 try {
                     var data = JSON.parse(output)
-                    root.notifCount = data.count || 0
-                    root.dnd = data.dnd === true
+                    var newCount = data.count || 0
+                    var isDnd = data.dnd === true
+
+                    if (!root.firstPoll && !isDnd && newCount > root.prevCount) {
+                        playSound.running = true
+                    }
+
+                    root.notifCount = newCount
+                    root.dnd = isDnd
+                    root.prevCount = newCount
+                    root.firstPoll = false
                 } catch (e) {}
             }
         }
@@ -98,5 +128,10 @@ Item {
     Process {
         id: toggleDndProc
         command: ["makoctl", "mode", "-t", "dnd"]
+    }
+
+    Process {
+        id: playSound
+        command: ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", Quickshell.env("HOME") + "/Nextcloud/Sounds/notification-pop.oga"]
     }
 }
