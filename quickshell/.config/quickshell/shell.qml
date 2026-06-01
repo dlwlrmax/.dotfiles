@@ -153,7 +153,6 @@ ShellRoot {
                     anchors.rightMargin: 8
                     anchors.topMargin: 6
                     monitor: Hyprland.monitorFor(screenScope.screenData)
-                    kdeData: kdeData
 
                     onToggleNotifPanel: {
                         g.closeOtherPanels("notif")

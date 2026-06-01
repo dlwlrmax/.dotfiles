@@ -5,6 +5,7 @@
 
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/quickshell/kdeconnect"
 CACHE_FILE="$CACHE_DIR/devices.json"
+LAST_BATTERY_FILE="$CACHE_DIR/last_battery.txt"
 CACHE_TTL=3
 
 if ! command -v kdeconnect-cli &>/dev/null; then
@@ -61,7 +62,47 @@ while IFS= read -r line; do
       org.freedesktop.DBus.Properties.GetAll \
       string:"org.kde.kdeconnect.device.battery" 2>/dev/null)
     charge=$(echo "$bat_raw" | grep -A1 'string "charge"' | tail -1 | grep -oP 'int32 \K-?\d+')
-    if [ -n "$charge" ] && [ "$charge" -ge 0 ] 2>/dev/null; then battery=$charge; fi
+
+    # Auto-heal: if battery unknown, try refreshing connection
+    if [ -z "$charge" ] || [ "$charge" -lt 0 ] 2>/dev/null; then
+      consecutive_file="$CACHE_DIR/consecutive_null_${id}"
+      consecutive=0
+      [ -f "$consecutive_file" ] && consecutive=$(cat "$consecutive_file")
+      consecutive=$((consecutive + 1))
+      echo "$consecutive" > "$consecutive_file"
+
+      # After 3 consecutive nulls (~15s), force network refresh
+      if [ "$consecutive" -ge 3 ]; then
+        kdeconnect-cli --refresh 2>/dev/null
+        sleep 1
+        bat_raw=$(dbus-send --print-reply --dest=org.kde.kdeconnect \
+          "/modules/kdeconnect/devices/${id}/battery" \
+          org.freedesktop.DBus.Properties.GetAll \
+          string:"org.kde.kdeconnect.device.battery" 2>/dev/null)
+        charge=$(echo "$bat_raw" | grep -A1 'string "charge"' | tail -1 | grep -oP 'int32 \K-?\d+')
+      fi
+
+      # After 6 consecutive nulls (~30s), kill & restart kdeconnectd
+      if [ "$consecutive" -ge 6 ]; then
+        pkill kdeconnectd 2>/dev/null
+        sleep 2
+        rm -f "$consecutive_file"
+      fi
+    else
+      # Valid battery — reset consecutive counter
+      rm -f "$CACHE_DIR/consecutive_null_${id}" 2>/dev/null
+    fi
+
+    if [ -n "$charge" ] && [ "$charge" -ge 0 ] 2>/dev/null; then
+      battery=$charge
+      echo "$id $battery" > "$LAST_BATTERY_FILE"
+    else
+      # Fallback: use last known battery from cache
+      if [ -f "$LAST_BATTERY_FILE" ]; then
+        cached=$(grep "^${id} " "$LAST_BATTERY_FILE" | awk '{print $2}')
+        [ -n "$cached" ] && [ "$cached" -ge 0 ] 2>/dev/null && battery=$cached
+      fi
+    fi
     isch=$(echo "$bat_raw" | grep -A1 'string "isCharging"' | tail -1 | grep -oP 'boolean \K\w+')
     [ "$isch" = "true" ] && charging="true"
 

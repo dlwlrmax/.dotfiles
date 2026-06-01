@@ -7,9 +7,8 @@ import qs.common
 Item {
     id: root
     property Theme theme: Theme {}
-    property var dataSource: null  // shared KDEConnectData instance
-    property var device: dataSource ? dataSource.device : null
-    property bool anyConnected: dataSource ? dataSource.anyConnected : false
+    property var device: null
+    property bool anyConnected: false
     onDeviceChanged: console.log("KDEConnect bar: device=", device ? device.name : "null", "battery=", device ? device.battery : "n/a")
     onAnyConnectedChanged: console.log("KDEConnect bar: anyConnected=", anyConnected)
     signal togglePanel(int centerX)
@@ -40,7 +39,7 @@ Item {
             Text {
                 id: iconText
                 anchors.centerIn: parent
-                text: ""  // phone icon
+                text: "\uF10B"  // phone icon
                 color: theme.text
                 font.pixelSize: theme.fontSize + 4
                 font.weight: Font.Medium
@@ -75,8 +74,9 @@ Item {
         // Battery %
         Text {
             id: batteryText
-            visible: root.device && root.device.battery !== null && root.device.battery >= 0
-            text: root.device ? root.device.battery + "%" : ""
+            visible: root.device && root.anyConnected
+            text: root.device && root.device.battery !== null && root.device.battery >= 0
+                  ? root.device.battery + "%" : "--"
             color: {
                 if (!root.device || root.device.battery === null) return theme.text
                 var b = root.device.battery
@@ -90,14 +90,12 @@ Item {
         }
     }
 
-    // Fallback: own fetch when no shared dataSource
     Process {
         id: kdProc
         command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh"]
 
         stdout: StdioCollector {
             onStreamFinished: {
-                if (root.dataSource) return  // shared data handles it
                 try {
                     var data = JSON.parse(this.text.trim())
                     root.anyConnected = data.anyConnected || false
@@ -120,7 +118,7 @@ Item {
         repeat: true
         triggeredOnStart: true
         onTriggered: {
-            if (!root.dataSource && !kdProc.running) kdProc.running = true
+            if (!kdProc.running) kdProc.running = true
         }
     }
 }
