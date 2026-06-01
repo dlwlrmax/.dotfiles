@@ -28,8 +28,8 @@ window-decoration = false
 desktop-notifications = true
 confirm-close-surface = false
 
-# Shell Integration
-shell-integration = zsh
+# Shell Integration (disabled — using fish, no ghostty fish integration)
+# shell-integration = zsh
 
 # Shader
 # custom-shader = ~/.config/ghostty/shaders/cursor_smear.glsl
