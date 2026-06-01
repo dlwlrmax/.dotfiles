@@ -74,7 +74,6 @@ hl.window_rule({
 hl.window_rule({
   name = "google-chrome",
   match = { class = "google-chrome" },
-  float = true,
   max_size = "1874 990",
 })
 
@@ -124,7 +123,7 @@ hl.window_rule({
   dim_around = false,
 })
 hl.window_rule({
-  match = { class = "^(stremio-enhanced)$" },
+  match = { class = "^(stremio-enhanced|com.stremio.Stremio)$" },
   monitor = "HDMI-A-1",
   float = true,
   pin = true,
