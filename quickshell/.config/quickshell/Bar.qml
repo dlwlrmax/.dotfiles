@@ -81,7 +81,7 @@ Item {
             anchors.rightMargin: 12
             anchors.verticalCenter: parent.verticalCenter
             Layout.maximumWidth: parent.width / 2 - 60
-            spacing: 12
+            spacing: 10
             clip: true
 
             Mpris {

@@ -55,7 +55,7 @@ Item {
         anchors.top: parent.top
         anchors.right: parent.right
         anchors.topMargin: -4
-        anchors.rightMargin: -8
+        anchors.rightMargin: -3
         width: Math.max(14, badgeText.implicitWidth + 6)
         height: 14
         radius: 7
