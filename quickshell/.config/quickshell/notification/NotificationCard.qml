@@ -18,6 +18,22 @@ Rectangle {
 
     property var actionList: []
 
+    function formatTime(unixEpoch) {
+        if (!unixEpoch) return "";
+        var d = new Date(unixEpoch * 1000);
+        var now = new Date();
+        var pad = function(n) { return n < 10 ? "0" + n : n; };
+        var hhmm = pad(d.getHours()) + ":" + pad(d.getMinutes());
+        if (d.getFullYear() === now.getFullYear()
+            && d.getMonth() === now.getMonth()
+            && d.getDate() === now.getDate()) {
+            return hhmm;
+        }
+        var months = ["Jan","Feb","Mar","Apr","May","Jun",
+                      "Jul","Aug","Sep","Oct","Nov","Dec"];
+        return months[d.getMonth()] + " " + d.getDate() + " " + hhmm;
+    }
+
     function updateActionList() {
         var arr = [];
         if (notifData && notifData.actions) {
@@ -66,14 +82,29 @@ Rectangle {
             Layout.fillWidth: true
             spacing: 2
 
-            Text {
-                text: notifData.app_name || "Unknown"
-                color: theme.text
-                font.pixelSize: theme.fontSize
-                font.bold: true
-                font.family: theme.font
+            RowLayout {
                 Layout.fillWidth: true
-                elide: Text.ElideRight
+                Layout.rightMargin: 24
+                spacing: 6
+
+                Text {
+                    text: notifData.app_name || "Unknown"
+                    color: theme.text
+                    font.pixelSize: theme.fontSize
+                    font.bold: true
+                    font.family: theme.font
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
+                }
+
+                Text {
+                    text: root.formatTime(notifData.time)
+                    color: theme.white
+                    font.pixelSize: theme.fontSize - 3
+                    font.family: theme.font
+                    Layout.alignment: Qt.AlignVCenter
+                    visible: !!notifData.time
+                }
             }
 
             Text {
