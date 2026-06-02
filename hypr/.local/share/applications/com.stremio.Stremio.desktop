@@ -4,7 +4,7 @@ Comment=Freedom To Stream
 Icon=com.stremio.Stremio
 Terminal=false
 StartupNotify=true
-Exec=sh -c "WAYLAND_DISPLAY= stremio -o '%u'"
+Exec=sh -c "WAYLAND_DISPLAY= flatpak run com.stremio.Stremio"
 MimeType=x-scheme-handler/stremio;
 Type=Application
 Categories=Utility;AudioVideo;Video;Player;

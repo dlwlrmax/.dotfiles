@@ -241,8 +241,9 @@ Item {
     function launch(entry) {
         if (!entry) return
         root.markRecent(entry.id)
+        var exec = entry.exec.replace(/%[UfFuUdDnNickvm]/g, '').trim()
         Quickshell.execDetached({
-            command: ["gtk-launch", entry.id],
+            command: ["bash", "-c", exec],
             workingDirectory: Quickshell.env("HOME")
         })
         appLaunched()
