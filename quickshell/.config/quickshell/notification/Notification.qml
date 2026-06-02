@@ -13,7 +13,6 @@ Item {
     property bool firstPoll: true
     property var dataSource: null
     property var countConnection: null
-    property bool soundCooldown: false
     signal togglePanel()
 
     onDataSourceChanged: {
@@ -23,14 +22,7 @@ Item {
         }
         if (dataSource) {
             root.countConnection = dataSource.countChanged.connect(function() {
-                var currentCount = dataSource ? dataSource.count : 0
-                var isDnd = dataSource ? dataSource.dnd : false
-                if (!root.firstPoll && !isDnd && currentCount > root.prevCount && !root.soundCooldown) {
-                    root.soundCooldown = true
-                    playSound.running = true
-                    cooldownTimer.start()
-                }
-                root.prevCount = currentCount
+                root.prevCount = dataSource ? dataSource.count : 0
                 root.firstPoll = false
             })
         }
@@ -87,12 +79,6 @@ Item {
                     var newCount = data.count || 0
                     var isDnd = data.dnd === true
 
-                    if (!root.firstPoll && !isDnd && newCount > root.prevCount && !root.soundCooldown) {
-                        root.soundCooldown = true
-                        playSound.running = true
-                        cooldownTimer.start()
-                    }
-
                     root.notifCount = newCount
                     root.dnd = isDnd
                     root.prevCount = newCount
@@ -135,15 +121,5 @@ Item {
         command: ["makoctl", "mode", "-t", "dnd"]
     }
 
-    Process {
-        id: playSound
-        command: ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", Quickshell.env("HOME") + "/Nextcloud/Sounds/notification-pop.oga"]
-    }
 
-    // Prevent sound spam: 2s cooldown between sounds
-    Timer {
-        id: cooldownTimer
-        interval: 2000
-        onTriggered: root.soundCooldown = false
-    }
 }

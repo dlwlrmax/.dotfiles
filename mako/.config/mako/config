@@ -21,6 +21,7 @@ actions=1
 # Behavior
 default-timeout=5000
 ignore-timeout=1
+on-notify=exec pw-play ~/Nextcloud/Sounds/notification.opus
 max-visible=5
 layer=overlay
 anchor=top-center
