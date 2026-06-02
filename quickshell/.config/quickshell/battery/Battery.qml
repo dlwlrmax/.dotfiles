@@ -7,8 +7,9 @@ import qs.common
 Item {
     id: root
     property Theme theme: Theme {}
-    property string batteryIcon: ""
-    property string batteryStatus: ""
+    property var dataSource: null
+    property string batteryIcon: dataSource ? dataSource.batteryIcon : ""
+    property string batteryStatus: dataSource ? dataSource.batteryStatus : ""
     signal togglePanel(int centerX)
 
     property string iconColor: {
@@ -45,9 +46,11 @@ Item {
     Process {
         id: battProc
         command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/battery.sh"]
+        running: !root.dataSource
 
         stdout: StdioCollector {
             onStreamFinished: {
+                if (root.dataSource) return
                 var output = this.text.trim()
                 if (!output) {
                     root.batteryIcon = ""
@@ -65,7 +68,7 @@ Item {
 
     Timer {
         interval: 30000
-        running: true
+        running: !root.dataSource
         repeat: true
         triggeredOnStart: true
         onTriggered: battProc.running = true

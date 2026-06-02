@@ -7,9 +7,10 @@ import qs.common
 Item {
     id: root
     property Theme theme: Theme {}
-    property int cpuUsage: 0
-    property int ramUsage: 0
-    property int swapUsage: 0
+    property var dataSource: null
+    property int cpuUsage: dataSource ? dataSource.cpuUsage : 0
+    property int ramUsage: dataSource ? dataSource.ramUsage : 0
+    property int swapUsage: dataSource ? dataSource.swapUsage : 0
     signal togglePanel()
 
     implicitWidth: row.implicitWidth
@@ -84,9 +85,11 @@ Item {
     Process {
         id: cpuProc
         command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/cpu-usage.sh"]
+        running: !root.dataSource
 
         stdout: StdioCollector {
             onStreamFinished: {
+                if (root.dataSource) return
                 var output = this.text.trim();
                 var usage = parseInt(output);
                 if (!isNaN(usage)) {
@@ -99,9 +102,11 @@ Item {
     Process {
         id: memProc
         command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/mem-usage.sh"]
+        running: !root.dataSource
 
         stdout: StdioCollector {
             onStreamFinished: {
+                if (root.dataSource) return
                 var lines = this.text.trim().split("\n");
                 if (lines.length >= 1) {
                     var ram = parseInt(lines[0]);
@@ -117,7 +122,7 @@ Item {
 
     Timer {
         interval: 2000
-        running: true
+        running: !root.dataSource
         repeat: true
         triggeredOnStart: true
         onTriggered: {

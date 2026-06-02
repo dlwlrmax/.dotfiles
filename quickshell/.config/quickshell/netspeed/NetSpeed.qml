@@ -7,8 +7,9 @@ import qs.common
 Column {
     id: root
     property Theme theme: Theme {}
-    property string dlText: "--"
-    property string ulText: "--"
+    property var dataSource: null
+    property string dlText: dataSource ? dataSource.dlText : "--"
+    property string ulText: dataSource ? dataSource.ulText : "--"
     spacing: 0
     width: 45
 
@@ -61,9 +62,11 @@ Column {
     Process {
         id: netProc
         command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/netspeed.sh"]
+        running: !root.dataSource
 
         stdout: StdioCollector {
             onStreamFinished: {
+                if (root.dataSource) return
                 var output = this.text.trim();
                 if (!output) {
                     root.dlText = "--"
@@ -81,7 +84,7 @@ Column {
 
     Timer {
         interval: 2000
-        running: true
+        running: !root.dataSource
         repeat: true
         triggeredOnStart: true
         onTriggered: netProc.running = true

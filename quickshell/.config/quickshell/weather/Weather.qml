@@ -7,12 +7,17 @@ import qs.common
 Item {
     id: root
     property Theme theme: Theme {}
-    property string weatherText: "--"
-    property string weatherIcon: ""
+    property var dataSource: null
+    property string weatherText: dataSource ? dataSource.weatherText : "--"
+    property string weatherIcon: dataSource ? dataSource.weatherIcon : ""
     signal togglePanel()
 
     function refresh() {
-        weatherProc.running = true
+        if (dataSource) {
+            dataSource.refresh()
+        } else {
+            weatherProc.running = true
+        }
     }
 
     implicitWidth: row.implicitWidth
@@ -54,9 +59,11 @@ Item {
     Process {
         id: weatherProc
         command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/weather.sh"]
+        running: !root.dataSource
 
         stdout: StdioCollector {
             onStreamFinished: {
+                if (root.dataSource) return
                 var output = this.text.trim();
                 if (output) {
                     const outputs = output.split(/\s+/);
@@ -69,7 +76,7 @@ Item {
 
     Timer {
         interval: 1800000
-        running: true
+        running: !root.dataSource
         repeat: true
         triggeredOnStart: true
         onTriggered: weatherProc.running = true

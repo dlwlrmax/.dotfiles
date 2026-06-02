@@ -33,6 +33,11 @@ Item {
     property alias weatherWidget: barWeather
     property var kdeDataSource: null
     property var notifDataSource: null
+    property var cpuDataSource: null
+    property var netDataSource: null
+    property var weatherDataSource: null
+    property var volumeDataSource: null
+    property var batteryDataSource: null
 
     DropShadow {
         anchors.fill: barRect
@@ -100,12 +105,14 @@ Item {
             Cpu {
                 theme: bar.theme
                 Layout.alignment: Qt.AlignVCenter
+                dataSource: bar.cpuDataSource
                 onTogglePanel: bar.toggleSysUsagePanel()
             }
 
             NetSpeed {
                 theme: bar.theme
                 Layout.alignment: Qt.AlignVCenter
+                dataSource: bar.netDataSource
             }
 
             Separator {
@@ -117,6 +124,7 @@ Item {
                 id: barWeather
                 theme: bar.theme
                 Layout.alignment: Qt.AlignVCenter
+                dataSource: bar.weatherDataSource
                 onTogglePanel: bar.toggleWeatherPanel()
             }
 
@@ -124,6 +132,7 @@ Item {
             Volume {
                 theme: bar.theme
                 Layout.alignment: Qt.AlignVCenter
+                dataSource: bar.volumeDataSource
                 onTogglePanel: bar.toggleVolumePanel()
             }
 
@@ -138,6 +147,7 @@ Item {
             Battery {
                 theme: bar.theme
                 Layout.alignment: Qt.AlignVCenter
+                dataSource: bar.batteryDataSource
                 onTogglePanel: centerX => bar.toggleBatteryPanel(centerX)
             }
 

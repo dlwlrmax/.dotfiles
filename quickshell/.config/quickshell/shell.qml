@@ -141,6 +141,208 @@ ShellRoot {
         }
     }
 
+    // Shared CPU/mem data (single poll for both bars)
+    Item {
+        id: cpuData
+        property int cpuUsage: 0
+        property int ramUsage: 0
+        property int swapUsage: 0
+
+        Process {
+            id: cpuFetchProc
+            command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/cpu-usage.sh"]
+
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    var output = this.text.trim();
+                    var usage = parseInt(output);
+                    if (!isNaN(usage)) cpuData.cpuUsage = usage;
+                }
+            }
+        }
+
+        Process {
+            id: memFetchProc
+            command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/mem-usage.sh"]
+
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    var lines = this.text.trim().split("\n");
+                    if (lines.length >= 1) {
+                        var ram = parseInt(lines[0]);
+                        if (!isNaN(ram)) cpuData.ramUsage = ram;
+                    }
+                    if (lines.length >= 2) {
+                        var swap = parseInt(lines[1]);
+                        if (!isNaN(swap)) cpuData.swapUsage = swap;
+                    }
+                }
+            }
+        }
+
+        Timer {
+            interval: 2000
+            running: true
+            repeat: true
+            triggeredOnStart: true
+            onTriggered: {
+                if (!cpuFetchProc.running) cpuFetchProc.running = true;
+                if (!memFetchProc.running) memFetchProc.running = true;
+            }
+        }
+    }
+
+    // Shared net speed data (single poll for both bars)
+    Item {
+        id: netData
+        property string dlText: "--"
+        property string ulText: "--"
+
+        Process {
+            id: netFetchProc
+            command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/netspeed.sh"]
+
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    var output = this.text.trim();
+                    if (!output) {
+                        netData.dlText = "--";
+                        netData.ulText = "--";
+                    } else {
+                        var parts = output.split("|")
+                        if (parts.length >= 2) {
+                            netData.dlText = parts[0] || "--";
+                            netData.ulText = parts[1] || "--";
+                        }
+                    }
+                }
+            }
+        }
+
+        Timer {
+            interval: 2000
+            running: true
+            repeat: true
+            triggeredOnStart: true
+            onTriggered: {
+                if (!netFetchProc.running) netFetchProc.running = true;
+            }
+        }
+    }
+
+    // Shared weather data (single poll for both bars)
+    Item {
+        id: weatherData
+        property string weatherIcon: ""
+        property string weatherText: "--"
+
+        function refresh() {
+            if (!weatherFetchProc.running) weatherFetchProc.running = true;
+        }
+
+        Process {
+            id: weatherFetchProc
+            command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/weather.sh"]
+
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    var output = this.text.trim();
+                    if (output) {
+                        var outputs = output.split(/\s+/);
+                        weatherData.weatherIcon = outputs[0];
+                        weatherData.weatherText = outputs[1];
+                    }
+                }
+            }
+        }
+
+        Timer {
+            interval: 1800000
+            running: true
+            repeat: true
+            triggeredOnStart: true
+            onTriggered: {
+                if (!weatherFetchProc.running) weatherFetchProc.running = true;
+            }
+        }
+    }
+
+    // Shared volume data (single poll for both bars)
+    Item {
+        id: volumeData
+        property int volumeLevel: 0
+        property bool muted: false
+
+        function refresh() {
+            if (!volumeFetchProc.running) volumeFetchProc.running = true;
+        }
+
+        Process {
+            id: volumeFetchProc
+            command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/volume-status.sh"]
+
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    var output = this.text.trim();
+                    var parts = output.split(" ");
+                    if (parts.length >= 2) {
+                        var vol = parseInt(parts[0]);
+                        if (!isNaN(vol)) volumeData.volumeLevel = vol;
+                        volumeData.muted = parts[1] === "true";
+                    }
+                }
+            }
+        }
+
+        Timer {
+            interval: 2000
+            running: true
+            repeat: true
+            triggeredOnStart: true
+            onTriggered: {
+                if (!volumeFetchProc.running) volumeFetchProc.running = true;
+            }
+        }
+    }
+
+    // Shared battery data (single poll for both bars)
+    Item {
+        id: batteryData
+        property string batteryIcon: ""
+        property string batteryStatus: ""
+
+        Process {
+            id: batteryFetchProc
+            command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/battery.sh"]
+
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    var output = this.text.trim()
+                    if (!output) {
+                        batteryData.batteryIcon = ""
+                        batteryData.batteryStatus = ""
+                    } else {
+                        var parts = output.split("|")
+                        if (parts.length >= 3) {
+                            batteryData.batteryIcon = parts[0] || ""
+                            batteryData.batteryStatus = parts[2] || ""
+                        }
+                    }
+                }
+            }
+        }
+
+        Timer {
+            interval: 30000
+            running: true
+            repeat: true
+            triggeredOnStart: true
+            onTriggered: {
+                if (!batteryFetchProc.running) batteryFetchProc.running = true;
+            }
+        }
+    }
+
     Item {
         id: powerTrigger
 
@@ -214,6 +416,11 @@ ShellRoot {
                     monitor: Hyprland.monitorFor(screenScope.screenData)
                     kdeDataSource: kdeData
                     notifDataSource: notifData
+                    cpuDataSource: cpuData
+                    netDataSource: netData
+                    weatherDataSource: weatherData
+                    volumeDataSource: volumeData
+                    batteryDataSource: batteryData
 
                     onToggleNotifPanel: {
                         g.closeOtherPanels("notif")

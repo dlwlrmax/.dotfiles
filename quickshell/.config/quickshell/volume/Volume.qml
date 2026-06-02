@@ -7,8 +7,9 @@ import qs.common
 Item {
     id: root
     property Theme theme: Theme {}
-    property int volumeLevel: 0
-    property bool muted: false
+    property var dataSource: null
+    property int volumeLevel: dataSource ? dataSource.volumeLevel : 0
+    property bool muted: dataSource ? dataSource.muted : false
     signal togglePanel()
 
     property string iconColor: root.muted ? theme.surface1 : (root.volumeLevel > 80 ? theme.red : root.volumeLevel > 50 ? theme.yellow : root.volumeLevel > 30 ? theme.peach : theme.green)
@@ -84,9 +85,11 @@ Item {
     Process {
         id: volProc
         command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/volume-status.sh"]
+        running: !root.dataSource
 
         stdout: StdioCollector {
             onStreamFinished: {
+                if (root.dataSource) return
                 var output = this.text.trim();
                 var parts = output.split(" ");
                 if (parts.length >= 2) {
@@ -100,7 +103,7 @@ Item {
 
     Timer {
         interval: 2000
-        running: true
+        running: !root.dataSource
         repeat: true
         triggeredOnStart: true
         onTriggered: volProc.running = true
@@ -135,6 +138,12 @@ Item {
         interval: 100
         running: false
         repeat: false
-        onTriggered: volProc.running = true
+        onTriggered: {
+            if (root.dataSource) {
+                root.dataSource.refresh()
+            } else {
+                volProc.running = true
+            }
+        }
     }
 }
