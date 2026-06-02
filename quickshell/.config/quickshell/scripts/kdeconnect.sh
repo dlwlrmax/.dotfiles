@@ -6,7 +6,7 @@
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/quickshell/kdeconnect"
 CACHE_FILE="$CACHE_DIR/devices.json"
 LAST_BATTERY_FILE="$CACHE_DIR/last_battery.txt"
-CACHE_TTL=3
+CACHE_TTL=8
 
 if ! command -v kdeconnect-cli &>/dev/null; then
   echo '{"devices":[],"anyConnected":false}'
@@ -82,10 +82,9 @@ while IFS= read -r line; do
         charge=$(echo "$bat_raw" | grep -A1 'string "charge"' | tail -1 | grep -oP 'int32 \K-?\d+')
       fi
 
-      # After 6 consecutive nulls (~30s), kill & restart kdeconnectd
+      # After 6 consecutive nulls (~30s), force device refresh
       if [ "$consecutive" -ge 6 ]; then
-        pkill kdeconnectd 2>/dev/null
-        sleep 2
+        kdeconnect-cli --refresh 2>/dev/null
         rm -f "$consecutive_file"
       fi
     else

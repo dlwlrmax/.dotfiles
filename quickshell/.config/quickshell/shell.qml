@@ -85,7 +85,7 @@ ShellRoot {
         }
 
         Timer {
-            interval: 5000
+            interval: 10000
             running: true
             repeat: true
             triggeredOnStart: true
@@ -131,7 +131,7 @@ ShellRoot {
         }
 
         Timer {
-            interval: 1000
+            interval: 2000
             running: true
             repeat: true
             triggeredOnStart: true
@@ -146,7 +146,7 @@ ShellRoot {
 
         Timer {
             id: powerPollTimer
-            interval: 300
+            interval: 1000
             running: true
             repeat: true
             onTriggered: {

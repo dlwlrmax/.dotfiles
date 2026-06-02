@@ -1,20 +1,12 @@
 #!/bin/bash
 # Volume status for Quickshell
 # Outputs: VOLUME% MUTE(true/false)
+# Uses targeted pactl calls instead of listing all sinks
 
-sink_info=$(pactl list sinks | grep -A 10 "Name: $(pactl info | grep 'Default Sink' | cut -d: -f2 | xargs)" 2>/dev/null)
+volume=$(pactl get-sink-volume @DEFAULT_SINK@ | head -1 | grep -oP '\d+%' | head -1 | tr -d '%')
+mute=$(pactl get-sink-mute @DEFAULT_SINK@ | awk '{print $2}')
 
-if [ -z "$sink_info" ]; then
-    echo "0 false"
-    exit 0
-fi
-
-volume=$(echo "$sink_info" | grep "Volume:" | head -1 | grep -oP '\d+%' | head -1 | tr -d '%')
-mute=$(echo "$sink_info" | grep "Mute:" | head -1 | awk '{print $2}')
-
-if [ -z "$volume" ]; then
-    volume=0
-fi
+[ -z "$volume" ] && volume=0
 
 if [ "$mute" = "yes" ]; then
     echo "$volume true"

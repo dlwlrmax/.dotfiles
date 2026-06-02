@@ -7,54 +7,45 @@ MAX_CLEARED_FILE="$CACHE_DIR/max-cleared-id"
 TIMES_CACHE="$CACHE_DIR/notif-times.json"
 
 max_cleared=0
-if [ -f "$MAX_CLEARED_FILE" ]; then
-    max_cleared=$(cat "$MAX_CLEARED_FILE")
-fi
+[ -f "$MAX_CLEARED_FILE" ] && read -r max_cleared < "$MAX_CLEARED_FILE"
 
-# ---- Timestamp tracking ----
 NOW=$(date +%s)
 [ -f "$TIMES_CACHE" ] || echo '{}' > "$TIMES_CACHE"
 TIMES_DATA=$(cat "$TIMES_CACHE")
 
-# Inject .time field (unix epoch) into each notification.
-# Use cached time if known, else current time.
-annotate_times() {
-    echo "$1" | jq --argjson times "$TIMES_DATA" --argjson now "$NOW" '
-        [.[] | .time = (if $times[.id | tostring] then $times[.id | tostring] else $now end)]
-    '
-}
-
 active=$(makoctl list -j 2>/dev/null || echo '[]')
 
-# Detect mako ID reset (e.g., after mako restart/reboot)
-active_count=$(echo "$active" | jq 'length')
-if [ "$active_count" -gt 0 ]; then
-    max_active_id=$(echo "$active" | jq 'map(.id) | max // 0')
-    if [ "$max_active_id" -le "$max_cleared" ]; then
-        max_cleared=0
-        echo 0 > "$MAX_CLEARED_FILE"
-    fi
+# Single jq: get active count + max id in one pass
+read -r active_count max_active_id <<< "$(echo "$active" | jq -r '[length, (map(.id) | max // 0)] | @tsv')"
+
+# Detect mako ID reset (e.g., after restart/reboot)
+if [ "$max_active_id" -le "$max_cleared" ] 2>/dev/null; then
+    max_cleared=0
+    echo 0 > "$MAX_CLEARED_FILE"
 fi
 
 history=$(makoctl history -j 2>/dev/null | jq --argjson max "$max_cleared" '[.[] | select(.id > $max)]' || echo '[]')
 
-# Annotate with timestamps
-active=$(annotate_times "$active")
-history=$(annotate_times "$history")
+# DND check
+dnd=false
+makoctl mode 2>/dev/null | grep -qw "dnd" && dnd=true
 
-# Persist any newly discovered IDs to cache
-# Merge existing + new times, keep earliest timestamp per ID
-NEW_TIMES=$(echo "$active" "$history" | jq -s 'add | map({(.id|tostring): .time}) | add')
-MERGED=$(echo "$TIMES_DATA" "$NEW_TIMES" | jq -s 'add')
-echo "$MERGED" > "$TIMES_CACHE"
+# Single jq: annotate times + build output + persist cache
+echo "$active" "$history" | jq -c -s --argjson times "$TIMES_DATA" --argjson now "$NOW" --argjson dnd $dnd '
+  def annotate: map(.time = (if $times[.id | tostring] then $times[.id | tostring] else $now end));
+  {
+    count: (.[0] | length) + (.[1] | length),
+    dnd: $dnd,
+    active: (.[0] | annotate),
+    history: (.[1] | annotate)
+  }
+'
 
-history_count=$(echo "$history" | jq 'length' 2>/dev/null || echo "0")
-count=$((active_count + history_count))
-
-dnd="false"
-dnd_modes=$(makoctl mode 2>/dev/null || echo "")
-if echo "$dnd_modes" | grep -qw "dnd"; then
-    dnd="true"
-fi
-
-echo "{\"count\": $count, \"dnd\": $dnd, \"active\": $active, \"history\": $history}"
+# Persist timestamps — use cached time for known IDs, $now for new ones
+echo "$TIMES_DATA" "$active" "$history" | jq -s --argjson now "$NOW" '
+  .[0] as $cached |
+  [.[1][], .[2][]] |
+  map({(.id | tostring): ($cached[.id | tostring] // $now)}) |
+  add as $new |
+  $cached + $new
+' > "$TIMES_CACHE"
