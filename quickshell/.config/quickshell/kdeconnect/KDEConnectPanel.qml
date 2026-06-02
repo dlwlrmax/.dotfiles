@@ -293,6 +293,7 @@ Item {
                         model: modelData && modelData.notifications ? modelData.notifications : []
 
                         delegate: Rectangle {
+                            id: notifDelegate
                             required property var modelData
                             Layout.fillWidth: true
                             implicitHeight: topRow.implicitHeight + 16
@@ -302,6 +303,7 @@ Item {
 
                             property bool replying: false
                             property string replyText: ""
+                            property bool expanded: false
 
                             ColumnLayout {
                                 anchors.fill: parent
@@ -346,8 +348,16 @@ Item {
                                             font.pixelSize: theme.fontSize - 1
                                             font.family: theme.font
                                             elide: Text.ElideRight
-                                            maximumLineCount: 1
+                                            maximumLineCount: expanded ? Infinity : 1
                                             Layout.fillWidth: true
+                                            wrapMode: expanded ? Text.Wrap : Text.NoWrap
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: notifDelegate.expanded =
+                                                    !notifDelegate.expanded
+                                            }
                                         }
                                     }
 

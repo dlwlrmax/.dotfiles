@@ -115,6 +115,7 @@ Rectangle {
                 Layout.fillWidth: true
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                 visible: !!notifData.summary && notifData.summary.length > 0
+                textFormat: Text.StyledText
             }
 
             Text {
@@ -125,6 +126,7 @@ Rectangle {
                 Layout.fillWidth: true
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                 visible: !!notifData.body && notifData.body.length > 0
+                textFormat: Text.StyledText
             }
 
             // Action buttons

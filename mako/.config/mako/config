@@ -19,6 +19,7 @@ actions=1
 #output=HDMI-A-1
 
 # Behavior
+markup=1
 default-timeout=5000
 ignore-timeout=1
 on-notify=exec pw-play ~/Nextcloud/Sounds/notification.opus
