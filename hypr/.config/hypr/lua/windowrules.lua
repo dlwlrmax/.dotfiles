@@ -22,7 +22,6 @@ local pip_position = "-520 600"
 -- Simple float-only apps
 local float_apps = {
   "nemo",
-  "com.stremio.stremio",
   "org.qbittorrent.qBittorrent",
   "git-cola",
   "steam",
@@ -104,7 +103,7 @@ hl.window_rule({
   float = true,
   pin = true,
   move = pip_position,
-  size = "500 280",
+  size = "543 306",
 })
 hl.window_rule({
   match = { title = "(?i)picture.*picture" },
@@ -123,8 +122,8 @@ hl.window_rule({
   float = true,
   pin = true,
   move = pip_position,
-  size = "500 280",
-  min_size = "500 280",
+  size = "543 306",
+  min_size = "543 306",
   dim_around = false,
 })
 

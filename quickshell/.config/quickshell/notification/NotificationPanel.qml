@@ -27,7 +27,18 @@ Item {
 
     function syncFromDataSource() {
         if (root.dataSource && !root.clearing) {
-            root.mergeNotifs(dataSource.activeNotifs, dataSource.historyNotifs)
+            var merged = [];
+            var seenIds = {};
+            // Replace with dataSource content (deduped: active > history)
+            for (var i = 0; i < dataSource.activeNotifs.length; i++) {
+                var an = dataSource.activeNotifs[i];
+                if (!seenIds[an.id]) { seenIds[an.id] = true; merged.push(an); }
+            }
+            for (var j = 0; j < dataSource.historyNotifs.length; j++) {
+                var hn = dataSource.historyNotifs[j];
+                if (!seenIds[hn.id]) { seenIds[hn.id] = true; merged.push(hn); }
+            }
+            root.persistentNotifs = merged;
         }
     }
 
