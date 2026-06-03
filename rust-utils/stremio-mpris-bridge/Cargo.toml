@@ -1,0 +1,8 @@
+[package]
+name = "stremio-mpris-bridge"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+zbus = "5"
+zvariant = "5"

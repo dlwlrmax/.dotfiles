@@ -1,4 +1,5 @@
 .opencode
+**/target/
 AGENTS.md
 node_modules/
 package.json
