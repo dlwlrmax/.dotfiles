@@ -70,13 +70,7 @@ hl.window_rule({
   float = true,
   min_size = "800 70%",
 })
-hl.window_rule({
-  name = "google-chrome",
-  workspace = 1,
-  float = true,
-  match = { class = "google-chrome" },
-  max_size = "1874 990",
-})
+
 
 -- Float + position/size
 hl.window_rule({
