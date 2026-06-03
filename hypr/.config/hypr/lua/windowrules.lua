@@ -13,7 +13,7 @@ local ws = {
 for _, v in ipairs(ws) do
   hl.window_rule({ match = { class = v.pat }, workspace = v.id })
 end
-local pip_position = "40 760"
+local pip_position = "-520 600"
 
 -- ──────────────────────────────────────────────
 -- Float rules
