@@ -13,7 +13,8 @@ local ws = {
 for _, v in ipairs(ws) do
   hl.window_rule({ match = { class = v.pat }, workspace = v.id })
 end
-local pip_position = "-520 600"
+local pip_position = "-570 600"
+local pip_size = "543 306"
 
 -- ──────────────────────────────────────────────
 -- Float rules
@@ -103,7 +104,7 @@ hl.window_rule({
   float = true,
   pin = true,
   move = pip_position,
-  size = "543 306",
+  size = pip_size,
 })
 hl.window_rule({
   match = { title = "(?i)picture.*picture" },
@@ -111,9 +112,7 @@ hl.window_rule({
   float = true,
   pin = true,
   move = pip_position,
-  size = "500 280",
-  min_size = "500 280",
-  max_size = "500 280",
+  size = pip_size,
   dim_around = false,
 })
 hl.window_rule({
@@ -122,8 +121,7 @@ hl.window_rule({
   float = true,
   pin = true,
   move = pip_position,
-  size = "543 306",
-  min_size = "543 306",
+  size = pip_size,
   dim_around = false,
 })
 
