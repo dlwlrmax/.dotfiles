@@ -85,14 +85,29 @@ Item {
             anchors.right: parent.right
             anchors.rightMargin: 12
             anchors.verticalCenter: parent.verticalCenter
-            Layout.maximumWidth: parent.width / 2 - 60
+            width: Math.min(implicitWidth, parent.width / 2 - 80)
             spacing: 10
             clip: true
+            property real mprisMaxWidth: {
+                let used = 0
+                let visible = 0
+                for (let i = 0; i < children.length; i++) {
+                    let c = children[i]
+                    if (c !== mpris && c.visible) {
+                        used += c.implicitWidth || 0
+                        visible++
+                    }
+                }
+                used += spacing * Math.max(0, visible - 1)
+                let available = parent.width / 2 - anchors.rightMargin - 68
+                return Math.max(100, available - used)
+            }
 
             Mpris {
                 id: mpris
                 theme: bar.theme
                 Layout.alignment: Qt.AlignVCenter
+                maxWidth: rightSection.mprisMaxWidth
                 onTogglePanel: centerX => bar.toggleMprisPanel(centerX)
             }
 

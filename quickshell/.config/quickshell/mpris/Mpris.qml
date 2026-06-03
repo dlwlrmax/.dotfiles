@@ -8,6 +8,7 @@ Item {
     id: root
     property Theme theme: Theme {}
     property var currentPlayer: null
+    property real maxWidth: 200
     signal togglePanel(int centerX)
 
     visible: currentPlayer !== null
@@ -39,7 +40,7 @@ Item {
             font.pixelSize: root.theme.fontSize - 1
             font.weight: Font.Medium
             elide: Text.ElideRight
-            Layout.maximumWidth: 250
+            Layout.maximumWidth: root.maxWidth
             Layout.fillWidth: false
         }
     }
