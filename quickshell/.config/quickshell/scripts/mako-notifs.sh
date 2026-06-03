@@ -19,7 +19,9 @@ active=$(makoctl list -j 2>/dev/null || echo '[]')
 read -r active_count max_active_id <<< "$(echo "$active" | jq -r '[length, (map(.id) | max // 0)] | @tsv')"
 
 # Detect mako ID reset (e.g., after restart/reboot)
-if [ "$max_active_id" -le "$max_cleared" ] 2>/dev/null; then
+# Only reset when active notifs exist with IDs <= max_cleared.
+# After "Clear All" dismisses everything, active_count=0 → no reset.
+if [ "$active_count" -gt 0 ] && [ "$max_active_id" -le "$max_cleared" ] 2>/dev/null; then
     max_cleared=0
     echo 0 > "$MAX_CLEARED_FILE"
 fi
