@@ -34,6 +34,8 @@ local float_apps = {
   "org.pulseaudio.pavucontrol",
   "org.quickshell",
   "waypaper",
+  "org.kde.ark",
+  "font-manager"
 }
 hl.window_rule({
   match = { class = string.format("^(%s)$", table.concat(float_apps, "|")) },
