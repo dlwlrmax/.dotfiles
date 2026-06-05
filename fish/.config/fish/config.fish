@@ -43,8 +43,6 @@ if status is-interactive
     # Additional tools
     set -x TUNNELTO_INSTALL "/home/kienct/.tunnelto"
     set -x PATH $TUNNELTO_INSTALL/bin $PATH
-    set -x PATH /home/kienct/.opencode/bin $PATH
-    set -x PATH /home/kienct/.local/bin $PATH
     set -x PATH $HOME/.cargo/bin $PATH
 
     # Simple aliases
@@ -108,8 +106,8 @@ alias check-packages="~/.local/bin/check-packages"
 end
 
 # opencode
-fish_add_path /home/kielcao/.opencode/bin
+fish_add_path /home/kienct/.opencode/bin
 
 # Created by `pipx` on 2026-04-24 11:41:22
-set PATH $PATH /home/kielcao/.local/bin
+fish_add_path -a /home/kienct/.local/bin
 set -gx OPENCODE_ENABLE_EXA 1
