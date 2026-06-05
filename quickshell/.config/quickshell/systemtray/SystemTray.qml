@@ -20,7 +20,16 @@ RowLayout {
 
             Image {
                 anchors.fill: parent
-                source: trayDelegate.modelData.icon
+                source: {
+                    var icon = trayDelegate.modelData.icon
+                    if (!icon) return ""
+                    // Direct path/URL — use as-is
+                    if (icon.charAt(0) === '/' || icon.startsWith("file:") || icon.startsWith("http:") || icon.startsWith("https:") || icon.startsWith("qrc:") || icon.startsWith("data:"))
+                        return icon
+                    // Themed icon name — resolve via Quickshell.iconPath
+                    var resolved = Quickshell.iconPath(icon, true)
+                    return resolved !== "" ? resolved : icon
+                }
                 sourceSize.width: 14
                 sourceSize.height: 14
                 fillMode: Image.PreserveAspectFit
