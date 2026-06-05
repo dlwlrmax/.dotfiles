@@ -45,6 +45,10 @@ hl.window_rule({ match = { title = ".*Tailscale.*" }, float = true })
 hl.window_rule({
   match = { class = "^(vesktop)$" },
   float = true,
+  workspace = 6,
+})
+hl.window_rule({
+  match = { class = "^(google-chrome)$" },
   workspace = 2,
 })
 hl.window_rule({
