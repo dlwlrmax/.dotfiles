@@ -26,9 +26,24 @@ RowLayout {
                     // Direct path/URL — use as-is
                     if (icon.charAt(0) === '/' || icon.startsWith("file:") || icon.startsWith("http:") || icon.startsWith("https:") || icon.startsWith("qrc:") || icon.startsWith("data:"))
                         return icon
-                    // Themed icon name — resolve via Quickshell.iconPath
-                    var resolved = Quickshell.iconPath(icon, true)
-                    return resolved !== "" ? resolved : icon
+                    // Quickshell pixmap provider — use as-is
+                    if (icon.startsWith("image://qspixmap/"))
+                        return icon
+                    // image://icon/<name> — extract name, resolve via iconPath
+                    if (icon.startsWith("image://icon/")) {
+                        var iconName = icon.substring("image://icon/".length)
+                        if (!iconName) return ""
+                        // Extracted name might be a direct path (e.g. ///run/user/...)
+                        if (iconName.charAt(0) === '/') return "file://" + iconName
+                        var r = Quickshell.iconPath(iconName, true)
+                        if (r !== "") return r
+                        // Fallback: try direct hicolor path (for icons not in current theme)
+                        return "file:///usr/share/icons/hicolor/scalable/status/" + iconName + ".svg"
+                    }
+                    // Plain themed icon name — resolve via Quickshell.iconPath
+                    var r = Quickshell.iconPath(icon, true)
+                    if (r !== "") return r
+                    return ""
                 }
                 sourceSize.width: 14
                 sourceSize.height: 14
