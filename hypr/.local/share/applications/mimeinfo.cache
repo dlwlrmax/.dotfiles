@@ -1,2 +1,2 @@
 [MIME Cache]
-x-scheme-handler/stremio=com.stremio.Stremio.desktop;stremio-enhanced.desktop;
+x-scheme-handler/stremio=stremio-enhanced.desktop;
