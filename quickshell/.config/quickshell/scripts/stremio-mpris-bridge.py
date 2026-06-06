@@ -229,7 +229,7 @@ def run_poller(player: StremioPlayer):
         # Check if Stremio process is alive
         stremio_running = False
         try:
-            subprocess.check_output(['pgrep', '-x', 'stremio'],
+            subprocess.check_output(['pgrep', 'stremio'],
                                     stderr=subprocess.DEVNULL)
             stremio_running = True
         except Exception:

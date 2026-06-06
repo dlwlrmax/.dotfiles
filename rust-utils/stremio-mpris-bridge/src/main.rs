@@ -79,7 +79,7 @@ fn poll_pulse() -> Option<(String, String)> {
         .unwrap_or_default();
 
     let stremio_running = Command::new("pgrep")
-        .args(["-x", "stremio"])
+        .args(["stremio"])
         .output()
         .map(|o| o.status.success())
         .unwrap_or(false);
