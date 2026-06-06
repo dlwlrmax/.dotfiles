@@ -4,7 +4,7 @@
 local ws = {
   { pat = "^(Chromium)$", id = 2 },
   { pat = "^(Lark|Ferdium||ferdium)$", id = 3 },
-  { pat = "^(Code)$", id = 4 },
+  { pat = "^(Code|code-oss)$", id = 4 },
   { pat = "[Dd][Bb]eaver", id = 5 },
   { pat = "^(Postman|yaak-app|bruno)$", id = 6 },
   { pat = "^(Spotify)$", id = 7 },
@@ -35,7 +35,8 @@ local float_apps = {
   "org.quickshell",
   "waypaper",
   "org.kde.ark",
-  "font-manager"
+  "font-manager",
+  "code-oss"
 }
 hl.window_rule({
   match = { class = string.format("^(%s)$", table.concat(float_apps, "|")) },
