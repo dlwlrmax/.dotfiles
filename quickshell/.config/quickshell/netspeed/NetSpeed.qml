@@ -11,7 +11,7 @@ Column {
     property string dlText: dataSource ? dataSource.dlText : "--"
     property string ulText: dataSource ? dataSource.ulText : "--"
     spacing: 0
-    width: 45
+    width: 50
 
     Layout.alignment: Qt.AlignVCenter
 
