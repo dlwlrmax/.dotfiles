@@ -116,6 +116,7 @@ hl.config({
 
   cursor = {
     no_hardware_cursors = false,
+    inactive_timeout = 5.0,
   },
 
   misc = {
