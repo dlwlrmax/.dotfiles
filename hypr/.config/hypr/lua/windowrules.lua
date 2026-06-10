@@ -135,7 +135,12 @@ hl.window_rule({
 -- Fullscreen border highlight
 hl.window_rule({
   match = { fullscreen = true },
-  border_color = "rgba(255, 108, 184, 0.8)",
+  border_color = "rgba(255, 19, 0, 0.8)",
+})
+
+hl.window_rule({
+  match = { float = true },
+  border_color = "rgba(255, 215, 0, 0.8)",
 })
 
 -- ──────────────────────────────────────────────
