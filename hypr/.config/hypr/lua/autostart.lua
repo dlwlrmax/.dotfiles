@@ -49,8 +49,7 @@ hl.on("hyprland.start", function()
     "waypaper --restore",
     "walker --gapplication-service",
     "hypridle",
-    "wl-paste --watch cliphist store",
-    "stremio-mpris-bridge"
+    "wl-paste --watch cliphist store"
   )
 
   -- ═══════════════════════════════════════════════════════════
