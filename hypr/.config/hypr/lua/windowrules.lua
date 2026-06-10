@@ -140,7 +140,7 @@ hl.window_rule({
 
 hl.window_rule({
   match = { float = true },
-  border_color = "rgba(255, 215, 0, 0.8)",
+  border_color = "rgba(102, 57, 173, 0.8)",
 })
 
 -- ──────────────────────────────────────────────
