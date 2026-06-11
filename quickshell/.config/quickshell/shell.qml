@@ -176,7 +176,7 @@ ShellRoot {
         }
     }
 
-    // Shared CPU/mem data (single poll for both bars)
+    // Shared CPU/mem data (single JSON script replaces 2 separate forks)
     Item {
         id: cpuData
         property int cpuUsage: 0
@@ -184,33 +184,17 @@ ShellRoot {
         property int swapUsage: 0
 
         Process {
-            id: cpuFetchProc
-            command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/cpu-usage.sh"]
+            id: sysFetchProc
+            command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/sys-stats.sh"]
 
             stdout: StdioCollector {
                 onStreamFinished: {
-                    var output = this.text.trim();
-                    var usage = parseInt(output);
-                    if (!isNaN(usage)) cpuData.cpuUsage = usage;
-                }
-            }
-        }
-
-        Process {
-            id: memFetchProc
-            command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/mem-usage.sh"]
-
-            stdout: StdioCollector {
-                onStreamFinished: {
-                    var lines = this.text.trim().split("\n");
-                    if (lines.length >= 1) {
-                        var ram = parseInt(lines[0]);
-                        if (!isNaN(ram)) cpuData.ramUsage = ram;
-                    }
-                    if (lines.length >= 2) {
-                        var swap = parseInt(lines[1]);
-                        if (!isNaN(swap)) cpuData.swapUsage = swap;
-                    }
+                    try {
+                        var data = JSON.parse(this.text.trim());
+                        if (!isNaN(data.cpu)) cpuData.cpuUsage = data.cpu;
+                        if (!isNaN(data.ram)) cpuData.ramUsage = data.ram;
+                        if (!isNaN(data.swap)) cpuData.swapUsage = data.swap;
+                    } catch (e) {}
                 }
             }
         }
@@ -221,8 +205,7 @@ ShellRoot {
             repeat: true
             triggeredOnStart: true
             onTriggered: {
-                if (!cpuFetchProc.running) cpuFetchProc.running = true;
-                if (!memFetchProc.running) memFetchProc.running = true;
+                if (!sysFetchProc.running) sysFetchProc.running = true;
             }
         }
     }

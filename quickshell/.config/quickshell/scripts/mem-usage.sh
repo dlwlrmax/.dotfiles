@@ -1,14 +1,17 @@
 #!/bin/bash
 # Output RAM usage % and Swap usage % on separate lines
 
-read -r _ total used _ avail _ < <(free | awk '/^Mem:/ {print $1, $2, $3, $4, $7}')
-ram_pct=$((100 * used / total))
+read -r ram_total ram_used ram_avail swap_total swap_used <<< "$(free -k | awk '
+  /^Mem:/  {ram_total=$2; ram_used=$3; ram_avail=$7}
+  /^Swap:/ {swap_total=$2; swap_used=$3}
+  END {print ram_total, ram_used, ram_avail, swap_total, swap_used}
+')"
 
+ram_pct=$((100 * ram_used / ram_total))
 echo "$ram_pct"
 
-read -r _ stotal sused _ < <(free | awk '/^Swap:/ {print $1, $2, $3}')
-if [ "$stotal" -gt 0 ]; then
-    swap_pct=$((100 * sused / stotal))
+if [ "$swap_total" -gt 0 ]; then
+    swap_pct=$((100 * swap_used / swap_total))
     echo "$swap_pct"
 else
     echo "0"

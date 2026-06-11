@@ -10,7 +10,7 @@ if [[ -z "$data" ]]; then
     exit 0
 fi
 
-echo "$data" | jq -c --arg loc "$LOCATION" '
+result=$(echo "$data" | jq -c --arg loc "$LOCATION" '
 def wticon:
     if . == 113 then "☀"
     elif . <= 116 then "⛅"
@@ -53,4 +53,5 @@ def fmthour: (. | tonumber? / 100 | floor | tostring | if length == 1 then "0" +
         minTemp: .mintempC,
         condition: .hourly[4].weatherDesc[0].value
     }]
-}' 2>/dev/null || echo '{"icon":"","temp":"--","feelsLike":"--","humidity":"--","wind":"--","windDir":"","condition":"Unavailable","location":"","country":"","sunrise":"","sunset":"","hourly":[],"daily":[]}'
+}') || result='{"icon":"","temp":"--","feelsLike":"--","humidity":"--","wind":"--","windDir":"","condition":"Unavailable","location":"","country":"","sunrise":"","sunset":"","hourly":[],"daily":[]}'
+echo "${result}"

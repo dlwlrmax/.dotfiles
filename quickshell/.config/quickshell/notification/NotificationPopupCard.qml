@@ -62,17 +62,16 @@ Rectangle {
         return months[d.getMonth()] + " " + d.getDate() + " " + hhmm;
     }
 
-    // Tick timer: polls containsMouse for hover, tracks elapsed time
+    // Countdown timer: 1s interval, signal-driven pause/resume on hover
     Timer {
-        id: tickTimer
-        interval: 50
+        id: dismissTimer
+        interval: 1000
         running: true
         repeat: true
         onTriggered: {
-            if (hoverArea.containsMouse) return
-            root._elapsed += 50
+            root._elapsed += 1000
             if (root._elapsed >= root.dismissTimeout) {
-                tickTimer.stop()
+                dismissTimer.stop()
                 root.fadeOut()
             }
         }
@@ -280,5 +279,8 @@ Rectangle {
         hoverEnabled: true
         z: 999
         propagateComposedEvents: true
+        onContainsMouseChanged: {
+            dismissTimer.running = !containsMouse
+        }
     }
 }

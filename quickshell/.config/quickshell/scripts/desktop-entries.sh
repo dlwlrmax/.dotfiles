@@ -4,6 +4,8 @@
 
 set -euo pipefail
 
+CACHE_FILE="/tmp/quickshell-desktop-cache.json"
+
 # Collect all .desktop files from XDG dirs
 # User dirs first so they override system (first occurrence wins)
 DIRS=()
@@ -13,6 +15,27 @@ DIRS+=("/var/lib/flatpak/exports/share/applications")
 XDG_DIRS="${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 IFS=':' read -ra XDG <<< "$XDG_DIRS"
 DIRS+=("${XDG[@]}")
+
+# Use cache if no .desktop file is newer than cache
+if [ -f "$CACHE_FILE" ]; then
+    needs_update=false
+    for base in "${DIRS[@]}"; do
+        if [[ "$base" == */applications ]]; then
+            dir="$base"
+        else
+            dir="$base/applications"
+        fi
+        [[ -d "$dir" ]] || continue
+        if find -L "$dir" -maxdepth 1 -name '*.desktop' -newer "$CACHE_FILE" -print -quit 2>/dev/null | grep -q .; then
+            needs_update=true
+            break
+        fi
+    done
+    if ! $needs_update; then
+        cat "$CACHE_FILE"
+        exit 0
+    fi
+fi
 
 declare -A seen
 entries=()
@@ -74,8 +97,11 @@ for base in "${DIRS[@]}"; do
   done < <(find -L "$dir" -maxdepth 1 -name '*.desktop' -type f -print0 2>/dev/null)
 done
 
+{
 echo '['
 for i in "${!entries[@]}"; do
   echo "${entries[$i]}$([ $i -lt $((${#entries[@]}-1)) ] && echo ',' || echo '')"
 done
 echo ']'
+} > "$CACHE_FILE"
+cat "$CACHE_FILE"
