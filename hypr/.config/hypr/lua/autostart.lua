@@ -44,7 +44,6 @@ hl.on("hyprland.start", function()
   -- ═══════════════════════════════════════════════════════════
   launch(1,
     "quickshell",
-    "mako",
     "hyprpaper",
     "waypaper --restore",
     "walker --gapplication-service",

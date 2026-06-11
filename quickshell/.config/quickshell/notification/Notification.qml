@@ -1,7 +1,5 @@
 import QtQuick
-import QtQuick.Layouts
 import Quickshell
-import Quickshell.Io
 import qs.common
 
 Item {
@@ -9,24 +7,8 @@ Item {
     property Theme theme: Theme {}
     property int notifCount: dataSource ? dataSource.count : 0
     property bool dnd: dataSource ? dataSource.dnd : false
-    property int prevCount: 0
-    property bool firstPoll: true
     property var dataSource: null
-    property var countConnection: null
     signal togglePanel()
-
-    onDataSourceChanged: {
-        if (root.countConnection) {
-            root.countConnection.disconnect()
-            root.countConnection = null
-        }
-        if (dataSource) {
-            root.countConnection = dataSource.countChanged.connect(function() {
-                root.prevCount = dataSource ? dataSource.count : 0
-                root.firstPoll = false
-            })
-        }
-    }
 
     implicitWidth: iconText.implicitWidth
     implicitHeight: iconText.implicitHeight
@@ -64,46 +46,6 @@ Item {
         }
     }
 
-    // Fallback poll when no shared dataSource
-    Process {
-        id: notifProc
-        command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/mako-notifs.sh"]
-        running: !root.dataSource
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (root.dataSource) return
-                var output = this.text.trim();
-                try {
-                    var data = JSON.parse(output)
-                    var newCount = data.count || 0
-                    var isDnd = data.dnd === true
-
-                    root.notifCount = newCount
-                    root.dnd = isDnd
-                    root.prevCount = newCount
-                    root.firstPoll = false
-                } catch (e) {}
-            }
-        }
-
-        onRunningChanged: {
-            if (!running && !root.dataSource)
-                pollTimer.restart()
-        }
-    }
-
-    Timer {
-        id: pollTimer
-        interval: 2000
-        running: !root.dataSource
-        repeat: true
-        triggeredOnStart: !root.dataSource
-        onTriggered: {
-            if (!root.dataSource && !notifProc.running) notifProc.running = true
-        }
-    }
-
     MouseArea {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
@@ -111,15 +53,9 @@ Item {
             if (mouse.button === Qt.LeftButton) {
                 root.togglePanel();
             } else if (mouse.button === Qt.RightButton) {
-                toggleDndProc.running = true;
+                if (root.dataSource && root.dataSource.toggleDnd)
+                    root.dataSource.toggleDnd();
             }
         }
     }
-
-    Process {
-        id: toggleDndProc
-        command: ["makoctl", "mode", "-t", "dnd"]
-    }
-
-
 }

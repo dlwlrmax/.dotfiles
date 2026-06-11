@@ -8,9 +8,29 @@ Rectangle {
     property Theme theme: Theme {}
     property var notifData: ({})
     property var notifTimes: ({})
+    property int dismissTimeout: {
+        if (notifData.expireTimeout > 0) return notifData.expireTimeout * 1000;
+        // urgency: 0=Low, 1=Normal, 2=Critical; base +5s
+        var u = notifData.urgency || 1;
+        if (u === 0) return 8000;
+        if (u === 2) return 15000;
+        return 10000;
+    }
 
+    signal dismissed()
+
+    clip: true
     color: theme.color
     radius: 12
+    border {
+        color: theme.surface1
+        width: 1
+    }
+
+    property real progressValue: 1.0 - (dismissTimeout > 0 ? _elapsed / dismissTimeout : 0)
+    property int _elapsed: 0
+
+    width: 400
     height: content.implicitHeight + 16
         + (actionFlow.visible ? actionFlow.implicitHeight + 6 : 0)
 
@@ -42,6 +62,49 @@ Rectangle {
         return months[d.getMonth()] + " " + d.getDate() + " " + hhmm;
     }
 
+    // Tick timer: polls containsMouse for hover, tracks elapsed time
+    Timer {
+        id: tickTimer
+        interval: 50
+        running: true
+        repeat: true
+        onTriggered: {
+            if (hoverArea.containsMouse) return
+            root._elapsed += 50
+            if (root._elapsed >= root.dismissTimeout) {
+                tickTimer.stop()
+                root.fadeOut()
+            }
+        }
+    }
+
+    // Fade in on appear
+    NumberAnimation {
+        target: root
+        property: "opacity"
+        from: 0
+        to: 1
+        duration: 150
+        running: true
+    }
+
+    function fadeOut() {
+        fadeAnim.to = 0
+        fadeAnim.start()
+    }
+
+    PropertyAnimation {
+        id: fadeAnim
+        target: root
+        property: "opacity"
+        duration: 200
+        onFinished: {
+            root.dismissed()
+            root.destroy()
+        }
+    }
+
+    // --- Card content (same visual as NotificationCard) ---
     Rectangle {
         anchors {
             left: parent.left
@@ -53,7 +116,8 @@ Rectangle {
         }
         width: 4
         radius: 2
-        color: notifData.urgency === 2 ? theme.red
+        color: hoverArea.containsMouse ? theme.yellow
+            : notifData.urgency === 2 ? theme.red
             : notifData.urgency === 0 ? theme.green
             : theme.blue
         visible: true
@@ -127,7 +191,7 @@ Rectangle {
                         anchors.fill: parent
                         anchors.margins: -6
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: notifData.dismiss()
+                        onClicked: root.fadeOut()
                     }
                 }
             }
@@ -189,7 +253,32 @@ Rectangle {
                     }
                 }
             }
+
+            // Countdown progress bar (inside content area)
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.topMargin: 4
+                height: 3
+                radius: 1.5
+                color: Qt.rgba(0, 0, 0, 0.2)
+
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: parent.width * root.progressValue
+                    radius: 1.5
+                    color: theme.blue
+                }
+            }
         }
     }
 
+    MouseArea {
+        id: hoverArea
+        anchors.fill: parent
+        hoverEnabled: true
+        z: 999
+        propagateComposedEvents: true
+    }
 }

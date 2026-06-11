@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland._Ipc
 import Quickshell.Io
+import Quickshell.Services.Notifications
 import QtQuick
 import qs.notification
 import qs.mpris
@@ -14,6 +15,7 @@ import qs.power
 import qs.battery
 import qs.kdeconnect  // KDEConnect.qml, KDEConnectPanel.qml
 import qs.launcher
+import qs.common
 
 ShellRoot {
     id: shell
@@ -103,41 +105,74 @@ ShellRoot {
         }
     }
 
-    // Shared notification data (single poll for bar + panel)
+    // NotificationServer (DBus notification daemon, replaces mako)
+    NotificationServer {
+        id: notifServer
+        actionsSupported: true
+        bodyMarkupSupported: true
+        imageSupported: true
+
+        onNotification: function(notif) {
+            if (notifData.dnd) return
+            notif.tracked = true
+            notifData.addNotifTime(notif.id)
+            notifData.activeNotifs = notifData.activeNotifs.concat([notif])
+            notifData.count = notifData.activeNotifs.length
+            notifData.tryPlaySound()
+            notifData.newNotification(notif)
+
+            // Cleanup when notification closes (dismiss/expire/remote close)
+            notif.closed.connect(function(reason) {
+                var arr = notifData.activeNotifs
+                for (var i = 0; i < arr.length; i++) {
+                    if (arr[i].id === notif.id) {
+                        arr = arr.slice(0, i).concat(arr.slice(i + 1))
+                        notifData.activeNotifs = arr
+                        notifData.count = arr.length
+                        break
+                    }
+                }
+            })
+        }
+    }
+
+    // Shared notification data adapter (event-driven, no polling)
     Item {
         id: notifData
         property int count: 0
         property bool dnd: false
         property var activeNotifs: []
-        property var historyNotifs: []
+        property var notifTimes: ({})
+        property int lastSoundTime: 0
+        signal newNotification(var notif)
 
-        Process {
-            id: notifFetchProc
-            command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/mako-notifs.sh"]
+        function addNotifTime(id) {
+            notifTimes[id] = Date.now() / 1000
+        }
 
-            stdout: StdioCollector {
-                onStreamFinished: {
-                    try {
-                        var data = JSON.parse(this.text.trim())
-                        notifData.count = data.count || 0
-                        notifData.dnd = data.dnd === true
-                        notifData.activeNotifs = data.active || []
-                        notifData.historyNotifs = data.history || []
-                    } catch (e) {
-                        console.log("notifData parse error:", e)
-                    }
-                }
+        function toggleDnd() {
+            dnd = !dnd
+        }
+
+        function clearAll() {
+            var notifs = activeNotifs
+            activeNotifs = []
+            count = 0
+            for (var i = 0; i < notifs.length; i++) {
+                notifs[i].dismiss()
             }
         }
 
-        Timer {
-            interval: 2000
-            running: true
-            repeat: true
-            triggeredOnStart: true
-            onTriggered: {
-                if (!notifFetchProc.running) notifFetchProc.running = true
-            }
+        Process {
+            id: soundProc
+            command: ["paplay", Quickshell.env("HOME") + "/Nextcloud/Sounds/notification.wav"]
+        }
+
+        function tryPlaySound() {
+            var now = Date.now()
+            if (now - lastSoundTime < 1000) return
+            lastSoundTime = now
+            soundProc.running = true
         }
     }
 
@@ -474,6 +509,36 @@ ShellRoot {
                 }
             }
 
+            // Notification popup window (toast-style, appears below bar)
+            PanelWindow {
+                screen: screenScope.screenData
+                anchors.top: true
+                anchors.left: true
+                anchors.right: true
+                color: "transparent"
+                exclusionMode: ExclusionMode.Ignore
+                height: notifPopupItem.implicitHeight > 0 ? notifPopupItem.implicitHeight + 60 : 0
+                WlrLayershell.layer: WlrLayer.Overlay
+                WlrLayershell.namespace: "quickshell-notif-popup"
+
+                NotificationPopup {
+                    id: notifPopupItem
+                    anchors.top: parent.top
+                    anchors.topMargin: 52
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    theme: Theme {}
+                    notifTimes: notifData.notifTimes
+                    dnd: notifData.dnd
+                }
+
+                Connections {
+                    target: notifData
+                    function onNewNotification(notif) {
+                        notifPopupItem.onNotification(notif)
+                    }
+                }
+            }
+
             PanelOverlay {
                 screen: screenScope.screenData
                 active: g.notifPanelOpen && g.activeNotifScreen === screenScope.screenData
@@ -484,6 +549,7 @@ ShellRoot {
                     anchors.fill: parent
                     active: g.notifPanelOpen && g.activeNotifScreen === screenScope.screenData
                     dataSource: notifData
+                    notifTimes: notifData.notifTimes
                     onClose: g.notifPanelOpen = false
                 }
             }
