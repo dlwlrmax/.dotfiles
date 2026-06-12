@@ -21,6 +21,19 @@ Rectangle {
 
     signal dismissed()
 
+    // KDE Connect escapes HTML in body (e.g. &lt;b&gt; → literal <b>).
+    // Unescape first so RichText can render actual tags.
+    function unescapeHtml(text) {
+        if (!text) return ""
+        return text.replace(/&amp;/g, '&')
+                   .replace(/&lt;/g, '<')
+                   .replace(/&gt;/g, '>')
+                   .replace(/&quot;/g, '"')
+                   .replace(/&#39;/g, "'")
+                   .replace(/&#x27;/g, "'")
+                   .replace(/&#x2F;/g, '/')
+    }
+
     clip: true
     color: theme.color
     radius: 12
@@ -209,25 +222,25 @@ Rectangle {
             }
 
             Text {
-                text: notifData.summary || ""
+                text: root.unescapeHtml(notifData.summary || "")
                 color: theme.text
                 font.pixelSize: theme.fontSize
                 font.family: theme.font
                 Layout.fillWidth: true
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                 visible: !!notifData.summary && notifData.summary.length > 0
-                textFormat: Text.StyledText
+                textFormat: Text.RichText
             }
 
             Text {
-                text: notifData.body || ""
+                text: root.unescapeHtml(notifData.body || "")
                 color: theme.subtext0
                 font.pixelSize: theme.fontSize - 2
                 font.family: theme.font
                 Layout.fillWidth: true
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                 visible: !!notifData.body && notifData.body.length > 0
-                textFormat: Text.StyledText
+                textFormat: Text.RichText
             }
 
             // Action buttons
