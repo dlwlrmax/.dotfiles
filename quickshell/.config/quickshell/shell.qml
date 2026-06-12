@@ -609,21 +609,22 @@ ShellRoot {
             }
 
             // Notification popup window (toast-style, appears below bar)
+            // Top anchor + margin pushes it below bar; no left/right → centered.
             PanelWindow {
                 screen: screenScope.screenData
                 anchors.top: true
-                anchors.left: true
-                anchors.right: true
                 color: "transparent"
                 exclusionMode: ExclusionMode.Ignore
-                height: notifPopupItem.implicitHeight > 0 ? notifPopupItem.implicitHeight + 60 : 0
+                implicitWidth: 440
+                implicitHeight: notifPopupItem.implicitHeight > 0 ? notifPopupItem.implicitHeight + 60 : 0
                 WlrLayershell.layer: WlrLayer.Overlay
                 WlrLayershell.namespace: "quickshell-notif-popup"
+                WlrLayershell.margins.top: 44
 
                 NotificationPopup {
                     id: notifPopupItem
                     anchors.top: parent.top
-                    anchors.topMargin: 52
+                    anchors.topMargin: 8
                     anchors.horizontalCenter: parent.horizontalCenter
                     theme: Theme {}
                     notifTimes: notifData.notifTimes

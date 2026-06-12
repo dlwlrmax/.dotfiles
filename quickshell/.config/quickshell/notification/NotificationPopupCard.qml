@@ -8,13 +8,15 @@ Rectangle {
     property Theme theme: Theme {}
     property var notifData: ({})
     property var notifTimes: ({})
-    property int dismissTimeout: {
-        if (notifData.expireTimeout > 0) return notifData.expireTimeout * 1000;
-        // urgency: 0=Low, 1=Normal, 2=Critical; base +5s
+    // Critical (urgency=2) never auto-closes; user must dismiss manually.
+    // expireTimeout: <0 = server default, 0 = never expire, >0 = seconds.
+    property bool autoDismiss: notifData.urgency !== 2
+                              && !(notifData.expireTimeout === 0)
+    property int dismissTimeoutMs: {
+        if (notifData.expireTimeout > 0) return notifData.expireTimeout;
         var u = notifData.urgency || 1;
         if (u === 0) return 8000;
-        if (u === 2) return 15000;
-        return 10000;
+        return 10000; // Normal or fallback
     }
 
     signal dismissed()
@@ -27,7 +29,8 @@ Rectangle {
         width: 1
     }
 
-    property real progressValue: 1.0 - (dismissTimeout > 0 ? _elapsed / dismissTimeout : 0)
+    property real progressValue: autoDismiss && dismissTimeoutMs > 0
+        ? 1.0 - (_elapsed / dismissTimeoutMs) : 0
     property int _elapsed: 0
 
     width: 400
@@ -62,18 +65,28 @@ Rectangle {
         return months[d.getMonth()] + " " + d.getDate() + " " + hhmm;
     }
 
-    // Countdown timer: 1s interval, signal-driven pause/resume on hover
+    // Countdown timer: 1s interval, pauses on hover, safety resume after 30s
     Timer {
         id: dismissTimer
         interval: 1000
-        running: true
+        running: autoDismiss
         repeat: true
         onTriggered: {
             root._elapsed += 1000
-            if (root._elapsed >= root.dismissTimeout) {
+            if (root._elapsed >= root.dismissTimeoutMs) {
                 dismissTimer.stop()
                 root.fadeOut()
             }
+        }
+    }
+
+    // Safety: force resume timer if stuck paused > 30s (hover missed event)
+    Timer {
+        id: hoverSafety
+        interval: 30000
+        onTriggered: {
+            if (!dismissTimer.running && autoDismiss)
+                dismissTimer.running = true
         }
     }
 
@@ -280,7 +293,10 @@ Rectangle {
         z: 999
         propagateComposedEvents: true
         onContainsMouseChanged: {
+            if (!autoDismiss) return
             dismissTimer.running = !containsMouse
+            if (containsMouse) hoverSafety.start()
+            else hoverSafety.stop()
         }
     }
 }
