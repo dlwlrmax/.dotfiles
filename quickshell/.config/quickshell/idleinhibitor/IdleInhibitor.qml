@@ -30,6 +30,13 @@ MouseArea {
         enabled: false
     }
 
+    Binding {
+        target: idleInhibitor
+        property: "window"
+        value: root.window
+        when: root.window !== null
+    }
+
     cursorShape: Qt.PointingHandCursor
     hoverEnabled: true
 
