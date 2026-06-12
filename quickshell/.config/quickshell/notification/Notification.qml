@@ -5,10 +5,23 @@ import qs.common
 Item {
     id: root
     property Theme theme: Theme {}
-    property int notifCount: dataSource ? dataSource.count : 0
-    property bool dnd: dataSource ? dataSource.dnd : false
     property var dataSource: null
+    property int notifCount: 0
+    property bool dnd: dataSource ? dataSource.dnd : false
     signal togglePanel()
+
+    onDataSourceChanged: {
+        if (dataSource)
+            notifCount = dataSource.count
+    }
+
+    Connections {
+        target: dataSource
+        ignoreUnknownSignals: true
+        function onCountChanged() {
+            root.notifCount = dataSource.count
+        }
+    }
 
     implicitWidth: iconText.implicitWidth
     implicitHeight: iconText.implicitHeight
@@ -18,9 +31,9 @@ Item {
         anchors.centerIn: parent
         text: root.dnd ? "\uF09B" : "\uF0F3"
         color: root.notifCount > 0 ? theme.white : theme.surface1
-        font.pixelSize: theme.fontSize
+        font.pixelSize: theme.fontSize + 5
         font.weight: Font.Medium
-        font.family: theme.font + 5
+        font.family: theme.font
     }
 
     Rectangle {

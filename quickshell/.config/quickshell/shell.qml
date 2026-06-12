@@ -129,10 +129,13 @@ ShellRoot {
                         arr = arr.slice(0, i).concat(arr.slice(i + 1))
                         notifData.activeNotifs = arr
                         notifData.count = arr.length
+                        notifData.save()
                         break
                     }
                 }
             })
+
+            notifData.save()
         }
     }
 
@@ -144,7 +147,11 @@ ShellRoot {
         property var activeNotifs: []
         property var notifTimes: ({})
         property int lastSoundTime: 0
+        property int _stubCounter: 0
+        property string storagePath: Quickshell.env("HOME") + "/.local/state/quickshell/notifications.json"
         signal newNotification(var notif)
+
+        Component.onCompleted: load()
 
         function addNotifTime(id) {
             notifTimes[id] = Date.now() / 1000
@@ -161,6 +168,115 @@ ShellRoot {
             for (var i = 0; i < notifs.length; i++) {
                 notifs[i].dismiss()
             }
+            save()
+        }
+
+        // --- Persistence ---
+
+        function createStub(data) {
+            _stubCounter++
+            var stubId = "stub-" + _stubCounter
+            notifTimes[stubId] = data.timestamp || Date.now() / 1000
+            return {
+                id: stubId,
+                appName: data.appName || "Unknown",
+                summary: data.summary || "",
+                body: data.body || "",
+                urgency: data.urgency || 1,
+                appIcon: data.appIcon || "",
+                desktopEntry: data.desktopEntry || "",
+                expireTimeout: data.expireTimeout || 0,
+                restored: true,
+                actions: (data.actions || []).map(function(a) {
+                    return {
+                        text: a.text,
+                        identifier: a.identifier,
+                        invoke: function() {}
+                    }
+                }),
+                dismiss: function() {
+                    var arr = notifData.activeNotifs
+                    for (var i = 0; i < arr.length; i++) {
+                        if (arr[i].id === this.id) {
+                            arr = arr.slice(0, i).concat(arr.slice(i + 1))
+                            notifData.activeNotifs = arr
+                            notifData.count = arr.length
+                            notifData.save()
+                            break
+                        }
+                    }
+                }
+            }
+        }
+
+        function toSavable(notif) {
+            var out = {
+                appName: notif.appName,
+                summary: notif.summary,
+                body: notif.body,
+                urgency: notif.urgency,
+                appIcon: notif.appIcon,
+                desktopEntry: notif.desktopEntry,
+                expireTimeout: notif.expireTimeout,
+                actions: (notif.actions || []).map(function(a) {
+                    return { text: a.text, identifier: a.identifier }
+                }),
+                timestamp: notifData.notifTimes[notif.id] || Date.now() / 1000
+            }
+            return out
+        }
+
+        Timer {
+            id: saveTimer
+            interval: 300
+            onTriggered: notifData._doSave()
+        }
+
+        function save() {
+            saveTimer.restart()
+        }
+
+        Process {
+            id: saveProc
+        }
+
+        Process {
+            id: loadProc
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    var text = this.text.trim()
+                    if (!text) return
+                    try {
+                        var data = JSON.parse(text)
+                        if (!Array.isArray(data) || data.length === 0) return
+                        var stubs = data.map(function(d) { return notifData.createStub(d) })
+                        if (notifData.activeNotifs.length === 0) {
+                            notifData.activeNotifs = stubs
+                            notifData.count = stubs.length
+                        }
+                    } catch (e) {
+                        console.log("Failed to load notifications:", e)
+                    }
+                }
+            }
+        }
+
+        function _doSave() {
+            if (saveProc.running) return
+            var data = activeNotifs.map(toSavable)
+            var json = JSON.stringify(data)
+            var dir = storagePath.substring(0, storagePath.lastIndexOf("/"))
+            saveProc.command = [
+                "python3", "-c",
+                "import json,sys,os; os.makedirs(sys.argv[2], exist_ok=True); json.dump(json.loads(sys.argv[1]), open(sys.argv[3], 'w'))",
+                json, dir, notifData.storagePath
+            ]
+            saveProc.running = true
+        }
+
+        function load() {
+            loadProc.command = ["/bin/cat", notifData.storagePath]
+            loadProc.running = true
         }
 
         Process {

@@ -26,7 +26,6 @@ hl.on("hyprland.start", function()
     "hyprctl setcursor Bibata-Modern-Ice 20",
     "gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Ice'",
     "gsettings set org.gnome.desktop.interface color-scheme prefer-dark",
-    "gsettings set org.gnome.desktop.interface gtk-theme Fluent-Dark",
     "hyprctl reload"
   )
 
