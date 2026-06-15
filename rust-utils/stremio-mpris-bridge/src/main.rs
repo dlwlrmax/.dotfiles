@@ -281,9 +281,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Registered {BUS_NAME}",);
 
     conn.object_server().at(OBJ_PATH, MprisRoot)?;
-    conn.object_server().at(OBJ_PATH, MprisPlayer)?;
+    // Don't register Player interface yet — only when stream detected
 
     let mut prev_id: Option<String> = None;
+    let mut player_registered = false;
 
     loop {
         let result = poll_pulse();
@@ -291,6 +292,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut state = STATE.lock().unwrap();
 
         if let Some((_, title)) = &result {
+            // Ensure Player interface is visible
+            if !player_registered {
+                conn.object_server().at(OBJ_PATH, MprisPlayer)?;
+                player_registered = true;
+                // Emit initial properties so clients see current state
+                let meta = build_metadata(title);
+                emit_props(&conn, vec![
+                    ("PlaybackStatus", Value::from("Playing".to_string()).try_to_owned().unwrap()),
+                    ("Metadata", Value::from(meta).try_to_owned().unwrap()),
+                ]);
+            }
+
             let changed = *title != state.title || prev_id != this_id;
             state.title.clone_from(title);
             state.playing = true;
@@ -309,12 +322,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             state.playing = false;
             drop(state);
 
-            if was_playing {
-                let meta = build_metadata("");
-                emit_props(&conn, vec![
-                    ("PlaybackStatus", Value::from("Stopped".to_string()).try_to_owned().unwrap()),
-                    ("Metadata", Value::from(meta).try_to_owned().unwrap()),
-                ]);
+            if was_playing && player_registered {
+                // Remove Player interface — no active stream
+                conn.object_server().remove::<MprisPlayer, ObjectPath>(OBJ_PATH.try_into().unwrap())?;
+                player_registered = false;
             }
         }
 
