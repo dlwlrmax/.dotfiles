@@ -102,6 +102,11 @@ fn poll_pulse() -> Option<(String, String)> {
         raw.trim().to_string()
     };
 
+    // Filter out empty/placeholder titles (mpv preload, no file loaded)
+    if title.is_empty() || title.eq_ignore_ascii_case("no file") {
+        return None;
+    }
+
     let title = if title.len() > 80 {
         format!("{}...", &title[..77])
     } else {
@@ -281,11 +286,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
 
     println!("Registered {BUS_NAME}");
-    // Don't register Player interface yet — only when stream detected
 
     let mut prev_id: Option<String> = None;
-    let mut player_registered = false;
     let mut prev_title = String::new();
+    let mut player_registered = false;
 
     loop {
         let result = poll_pulse();
@@ -293,17 +297,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut state = STATE.lock().unwrap();
 
         if let Some((_, title)) = &result {
-            // Ensure Player interface is visible
+            // Register Player interface lazily — only when stream active
             if !player_registered {
                 conn.object_server().at(OBJ_PATH, MprisPlayer)?;
                 player_registered = true;
-                eprintln!("[stremio-mpris] player interface registered");
-                // Emit initial properties so clients see current state
-                let meta = build_metadata(title);
-                emit_props(&conn, vec![
-                    ("PlaybackStatus", Value::from("Playing".to_string()).try_to_owned().unwrap()),
-                    ("Metadata", Value::from(meta).try_to_owned().unwrap()),
-                ]);
+                eprintln!("[stremio-mpris] player registered");
             }
 
             let changed = *title != state.title || prev_id != this_id;
@@ -332,7 +330,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // Remove Player interface — no active stream
                 if conn.object_server().remove::<MprisPlayer, ObjectPath>(OBJ_PATH.try_into().unwrap()).is_ok() {
                     player_registered = false;
-                    eprintln!("[stremio-mpris] player interface removed");
+                    eprintln!("[stremio-mpris] player removed");
                 }
             }
         }

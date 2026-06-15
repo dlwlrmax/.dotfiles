@@ -77,19 +77,13 @@ Item {
     }
 
     function _refreshPlayer() {
-        // query Mpris.players model directly — Repeater delegates
-        // are children of the Repeater, not of root, so iterating
-        // root.children would never find them.
+        // only show actively playing players — don't fall back to
+        // stopped players (original code's second loop iterated
+        // root.children which never matched delegates, so it was
+        // effectively playing-only)
         for (var i = 0; i < Mpris.players.rowCount(); i++) {
             var p = Mpris.players.values[i]
             if (p && p.isPlaying) {
-                root.currentPlayer = p
-                return
-            }
-        }
-        for (var i = 0; i < Mpris.players.rowCount(); i++) {
-            var p = Mpris.players.values[i]
-            if (p) {
                 root.currentPlayer = p
                 return
             }
