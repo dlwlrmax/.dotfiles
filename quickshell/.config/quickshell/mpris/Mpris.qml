@@ -77,13 +77,19 @@ Item {
     }
 
     function _refreshPlayer() {
-        // only show actively playing players — don't fall back to
-        // stopped players (original code's second loop iterated
-        // root.children which never matched delegates, so it was
-        // effectively playing-only)
+        // prefer actively playing player
         for (var i = 0; i < Mpris.players.rowCount(); i++) {
             var p = Mpris.players.values[i]
             if (p && p.isPlaying) {
+                root.currentPlayer = p
+                return
+            }
+        }
+        // fallback: show any player with a valid title
+        // (skips stopped players with empty metadata, like our bridge)
+        for (var i = 0; i < Mpris.players.rowCount(); i++) {
+            var p = Mpris.players.values[i]
+            if (p && p.trackTitle) {
                 root.currentPlayer = p
                 return
             }

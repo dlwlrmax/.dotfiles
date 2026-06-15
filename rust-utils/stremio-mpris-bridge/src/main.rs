@@ -33,13 +33,20 @@ fn poll_pulse() -> Option<(String, String)> {
         .ok()?;
     let text = String::from_utf8_lossy(&out.stdout);
 
+    let stremio_running = Command::new("pgrep")
+        .args(["stremio"])
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+
+    let mut streams: Vec<HashMap<String, String>> = Vec::new();
     let mut current: Option<HashMap<String, String>> = None;
     let mut in_props = false;
 
     for line in text.lines() {
         if line.starts_with("Sink Input #") {
-            if current.is_some() {
-                break;
+            if let Some(props) = current.take() {
+                streams.push(props);
             }
             current = Some(HashMap::new());
             in_props = false;
@@ -62,59 +69,59 @@ fn poll_pulse() -> Option<(String, String)> {
             }
         }
     }
-
-    let props = current?;
-
-    let app = props
-        .get("application.name")
-        .map(|s| s.to_lowercase())
-        .unwrap_or_default();
-    let node = props
-        .get("node.name")
-        .map(|s| s.to_lowercase())
-        .unwrap_or_default();
-    let binary = props
-        .get("application.process.binary")
-        .map(|s| s.to_lowercase())
-        .unwrap_or_default();
-
-    let stremio_running = Command::new("pgrep")
-        .args(["stremio"])
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false);
-
-    let is_ours = app.contains("stremio")
-        || binary.contains("stremio")
-        || (stremio_running && (app.contains("mpv") || node.contains("mpv")));
-
-    if !is_ours {
-        return None;
+    if let Some(props) = current {
+        streams.push(props);
     }
 
-    let raw = props.get("media.name").cloned().unwrap_or_default();
+    // Scan ALL streams, pick the first one that matches Stremio/mpv
+    for props in &streams {
+        let app = props
+            .get("application.name")
+            .map(|s| s.to_lowercase())
+            .unwrap_or_default();
+        let node = props
+            .get("node.name")
+            .map(|s| s.to_lowercase())
+            .unwrap_or_default();
+        let binary = props
+            .get("application.process.binary")
+            .map(|s| s.to_lowercase())
+            .unwrap_or_default();
 
-    let title = if let Some(stripped) = raw.strip_prefix("Stremio: ") {
-        stripped.to_string()
-    } else if let Some(stripped) = raw.strip_suffix(" - mpv") {
-        stripped.to_string()
-    } else {
-        raw.trim().to_string()
-    };
+        let is_ours = app.contains("stremio")
+            || binary.contains("stremio")
+            || (stremio_running && (app.contains("mpv") || node.contains("mpv")));
 
-    // Filter out empty/placeholder titles (mpv preload, no file loaded)
-    if title.is_empty() || title.eq_ignore_ascii_case("no file") {
-        return None;
+        if !is_ours {
+            continue;
+        }
+
+        let raw = props.get("media.name").cloned().unwrap_or_default();
+
+        let title = if let Some(stripped) = raw.strip_prefix("Stremio: ") {
+            stripped.to_string()
+        } else if let Some(stripped) = raw.strip_suffix(" - mpv") {
+            stripped.to_string()
+        } else {
+            raw.trim().to_string()
+        };
+
+        // Filter out empty/placeholder titles (mpv preload, no file loaded)
+        if title.is_empty() || title.eq_ignore_ascii_case("no file") {
+            continue;
+        }
+
+        let title = if title.len() > 80 {
+            format!("{}...", &title[..77])
+        } else {
+            title
+        };
+
+        let id = props.get("index").cloned().unwrap_or_default();
+        return Some((id, title));
     }
 
-    let title = if title.len() > 80 {
-        format!("{}...", &title[..77])
-    } else {
-        title
-    };
-
-    let id = props.get("index").cloned().unwrap_or_default();
-    Some((id, title))
+    None
 }
 
 // ── Metadata helpers ──────────────────────────────────────
