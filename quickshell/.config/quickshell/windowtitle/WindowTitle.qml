@@ -13,9 +13,9 @@ RowLayout {
 
     AppIcon {
         appId: _activeAppId
-        size: 12
-        Layout.preferredWidth: 12
-        Layout.preferredHeight: 12
+        size: 14
+        Layout.preferredWidth: 14
+        Layout.preferredHeight: 14
         Layout.alignment: Qt.AlignVCenter
     }
 
