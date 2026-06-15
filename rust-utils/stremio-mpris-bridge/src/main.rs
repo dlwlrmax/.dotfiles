@@ -3,7 +3,7 @@ use std::process::Command;
 use std::sync::Mutex;
 use std::time::Duration;
 
-use zbus::blocking::Connection;
+use zbus::blocking::{connection, Connection};
 use zbus::interface;
 use zbus::zvariant::{ObjectPath, OwnedObjectPath, OwnedValue, Value};
 
@@ -275,16 +275,17 @@ fn emit_props(conn: &Connection, changed: Vec<(&str, OwnedValue)>) {
 // ── Main ──────────────────────────────────────────────────
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let conn = Connection::session()?;
+    let conn = connection::Builder::session()?
+        .name(BUS_NAME)?
+        .serve_at(OBJ_PATH, MprisRoot)?
+        .build()?;
 
-    conn.request_name(BUS_NAME)?;
-    println!("Registered {BUS_NAME}",);
-
-    conn.object_server().at(OBJ_PATH, MprisRoot)?;
+    println!("Registered {BUS_NAME}");
     // Don't register Player interface yet — only when stream detected
 
     let mut prev_id: Option<String> = None;
     let mut player_registered = false;
+    let mut prev_title = String::new();
 
     loop {
         let result = poll_pulse();
@@ -296,6 +297,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if !player_registered {
                 conn.object_server().at(OBJ_PATH, MprisPlayer)?;
                 player_registered = true;
+                eprintln!("[stremio-mpris] player interface registered");
                 // Emit initial properties so clients see current state
                 let meta = build_metadata(title);
                 emit_props(&conn, vec![
@@ -315,6 +317,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     ("PlaybackStatus", Value::from("Playing".to_string()).try_to_owned().unwrap()),
                     ("Metadata", Value::from(meta).try_to_owned().unwrap()),
                 ]);
+                if *title != prev_title {
+                    eprintln!("[stremio-mpris] track: {title}");
+                    prev_title.clone_from(title);
+                }
             }
         } else {
             let was_playing = state.playing || !state.title.is_empty() || prev_id.is_some();
@@ -324,8 +330,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             if was_playing && player_registered {
                 // Remove Player interface — no active stream
-                conn.object_server().remove::<MprisPlayer, ObjectPath>(OBJ_PATH.try_into().unwrap())?;
-                player_registered = false;
+                if conn.object_server().remove::<MprisPlayer, ObjectPath>(OBJ_PATH.try_into().unwrap()).is_ok() {
+                    player_registered = false;
+                    eprintln!("[stremio-mpris] player interface removed");
+                }
             }
         }
 

@@ -75,17 +75,20 @@ Item {
     }
 
     function _refreshPlayer() {
-        for (var i = 0; i < children.length; i++) {
-            var c = children[i]
-            if (c.modelData && c.modelData.isPlaying) {
-                root.currentPlayer = c.modelData
+        // query Mpris.players model directly — Repeater delegates
+        // are children of the Repeater, not of root, so iterating
+        // root.children would never find them.
+        for (var i = 0; i < Mpris.players.rowCount(); i++) {
+            var p = Mpris.players.values[i]
+            if (p && p.isPlaying) {
+                root.currentPlayer = p
                 return
             }
         }
-        for (var i = 0; i < children.length; i++) {
-            var c = children[i]
-            if (c.modelData) {
-                root.currentPlayer = c.modelData
+        for (var i = 0; i < Mpris.players.rowCount(); i++) {
+            var p = Mpris.players.values[i]
+            if (p) {
+                root.currentPlayer = p
                 return
             }
         }
