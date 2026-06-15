@@ -6,7 +6,7 @@ import Quickshell.Services.SystemTray
 
 RowLayout {
     id: trayContainer
-    spacing: 4
+    spacing: 2
 
     Repeater {
         model: SystemTray.items
