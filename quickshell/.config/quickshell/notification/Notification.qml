@@ -31,7 +31,7 @@ Item {
         anchors.centerIn: parent
         text: root.dnd ? "\uF09B" : "\uF0F3"
         color: root.notifCount > 0 ? theme.white : theme.surface1
-        font.pixelSize: theme.fontSize + 5
+        font.pixelSize: theme.fontSize + 7
         font.weight: Font.Medium
         font.family: theme.font
     }

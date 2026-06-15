@@ -11,6 +11,7 @@ Item {
     property int cpuUsage: dataSource ? dataSource.cpuUsage : 0
     property int ramUsage: dataSource ? dataSource.ramUsage : 0
     property int swapUsage: dataSource ? dataSource.swapUsage : 0
+    property int gpuUsage: dataSource ? dataSource.gpuUsage : 0
     signal togglePanel()
 
     implicitWidth: row.implicitWidth
@@ -19,7 +20,7 @@ Item {
 
         RowLayout {
             id: row
-            spacing: 6
+            spacing: 4
 
             Text {
                 text: root.cpuUsage + "%"
@@ -32,6 +33,22 @@ Item {
             Text {
                 text: ""
                 color: root.cpuUsage > 70 ? theme.red : root.cpuUsage > 30 ? theme.yellow : theme.green
+                font.pixelSize: theme.fontSize + 5
+                font.weight: Font.Medium
+                font.family: theme.font
+            }
+
+            Text {
+                text: root.gpuUsage + "%"
+                color: root.gpuUsage > 70 ? theme.red : root.gpuUsage > 30 ? theme.yellow : theme.green
+                font.pixelSize: theme.fontSize - 1
+                font.weight: Font.Medium
+                font.family: theme.font
+            }
+
+            Text {
+                text: "󰢮"
+                color: root.gpuUsage > 70 ? theme.red : root.gpuUsage > 30 ? theme.yellow : theme.green
                 font.pixelSize: theme.fontSize + 5
                 font.weight: Font.Medium
                 font.family: theme.font
@@ -120,6 +137,23 @@ Item {
         }
     }
 
+    Process {
+        id: gpuProc
+        command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/gpu-usage.sh"]
+        running: !root.dataSource
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (root.dataSource) return
+                var parts = this.text.trim().split(/\s+/);
+                if (parts.length >= 1) {
+                    var usage = parseInt(parts[0]);
+                    if (!isNaN(usage)) root.gpuUsage = usage;
+                }
+            }
+        }
+    }
+
     Timer {
         interval: 2000
         running: !root.dataSource
@@ -128,6 +162,7 @@ Item {
         onTriggered: {
             cpuProc.running = true;
             memProc.running = true;
+            gpuProc.running = true;
         }
     }
 }

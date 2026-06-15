@@ -135,49 +135,53 @@ Item {
                 Layout.alignment: Qt.AlignVCenter
             }
 
-            Weather {
-                id: barWeather
-                theme: bar.theme
+            RowLayout {
+                id: rightGroup
+                spacing: 7
                 Layout.alignment: Qt.AlignVCenter
-                dataSource: bar.weatherDataSource
-                onTogglePanel: bar.toggleWeatherPanel()
-            }
 
+                Weather {
+                    id: barWeather
+                    theme: bar.theme
+                    Layout.alignment: Qt.AlignVCenter
+                    dataSource: bar.weatherDataSource
+                    onTogglePanel: bar.toggleWeatherPanel()
+                }
 
-            Volume {
-                theme: bar.theme
-                Layout.alignment: Qt.AlignVCenter
-                dataSource: bar.volumeDataSource
-                onTogglePanel: bar.toggleVolumePanel()
-            }
+                Volume {
+                    theme: bar.theme
+                    Layout.alignment: Qt.AlignVCenter
+                    dataSource: bar.volumeDataSource
+                    onTogglePanel: bar.toggleVolumePanel()
+                }
 
-            KDEConnect {
-                id: kdeWidget
-                theme: bar.theme
-                dataSource: bar.kdeDataSource
-                Layout.alignment: Qt.AlignVCenter
-                onTogglePanel: centerX => bar.toggleKdePanel(centerX)
-            }
+                KDEConnect {
+                    id: kdeWidget
+                    theme: bar.theme
+                    dataSource: bar.kdeDataSource
+                    Layout.alignment: Qt.AlignVCenter
+                    onTogglePanel: centerX => bar.toggleKdePanel(centerX)
+                }
 
-            Battery {
-                theme: bar.theme
-                Layout.alignment: Qt.AlignVCenter
-                dataSource: bar.batteryDataSource
-                onTogglePanel: centerX => bar.toggleBatteryPanel(centerX)
-            }
+                // Battery {
+                //     theme: bar.theme
+                //     Layout.alignment: Qt.AlignVCenter
+                //     dataSource: bar.batteryDataSource
+                //     onTogglePanel: centerX => bar.toggleBatteryPanel(centerX)
+                // }
 
+                IdleInhibitor {
+                    theme: bar.theme
+                    Layout.alignment: Qt.AlignVCenter
+                }
 
-            IdleInhibitor {
-                theme: bar.theme
-                Layout.alignment: Qt.AlignVCenter
-            }
-
-            Notification {
-                id: barNotif
-                theme: bar.theme
-                dataSource: bar.notifDataSource
-                Layout.alignment: Qt.AlignVCenter
-                onTogglePanel: bar.toggleNotifPanel()
+                Notification {
+                    id: barNotif
+                    theme: bar.theme
+                    dataSource: bar.notifDataSource
+                    Layout.alignment: Qt.AlignVCenter
+                    onTogglePanel: bar.toggleNotifPanel()
+                }
             }
 
             Separator {

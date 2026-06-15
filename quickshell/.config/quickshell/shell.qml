@@ -292,16 +292,17 @@ ShellRoot {
         }
     }
 
-    // Shared CPU/mem data (single JSON script replaces 2 separate forks)
+    // Shared CPU/mem/gpu data (single Rust binary, no bash/awk overhead)
     Item {
         id: cpuData
         property int cpuUsage: 0
         property int ramUsage: 0
         property int swapUsage: 0
+        property int gpuUsage: 0
 
         Process {
             id: sysFetchProc
-            command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/sys-stats.sh"]
+            command: [Quickshell.env("HOME") + "/.cargo/bin/sys-stats"]
 
             stdout: StdioCollector {
                 onStreamFinished: {
@@ -310,6 +311,7 @@ ShellRoot {
                         if (!isNaN(data.cpu)) cpuData.cpuUsage = data.cpu;
                         if (!isNaN(data.ram)) cpuData.ramUsage = data.ram;
                         if (!isNaN(data.swap)) cpuData.swapUsage = data.swap;
+                        if (!isNaN(data.gpu)) cpuData.gpuUsage = data.gpu;
                     } catch (e) {}
                 }
             }
@@ -334,7 +336,7 @@ ShellRoot {
 
         Process {
             id: netFetchProc
-            command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/netspeed.sh"]
+            command: [Quickshell.env("HOME") + "/.cargo/bin/net-stats"]
 
             stdout: StdioCollector {
                 onStreamFinished: {

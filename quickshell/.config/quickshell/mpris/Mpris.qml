@@ -25,6 +25,7 @@ Item {
             color: root.theme.mauve
             font.pixelSize: root.theme.fontSize + 5
             font.weight: Font.Medium
+            font.family: theme.font
         }
 
         Text {
@@ -39,6 +40,7 @@ Item {
             color: root.theme.text
             font.pixelSize: root.theme.fontSize - 1
             font.weight: Font.Medium
+            font.family: theme.font
             elide: Text.ElideRight
             Layout.maximumWidth: root.maxWidth
             Layout.fillWidth: false
