@@ -70,7 +70,7 @@ Item {
 
             WindowTitle {
                 Layout.alignment: Qt.AlignVCenter
-                Layout.maximumWidth: (bar.width / 2) - 100 - workspaces.width
+                Layout.maximumWidth: (bar.width / 2) - 150 - workspaces.width
             }
         }
 

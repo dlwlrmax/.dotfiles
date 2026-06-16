@@ -38,7 +38,7 @@ Item {
                 return title || "Unknown"
             }
             color: root.theme.text
-            font.pixelSize: root.theme.fontSize - 1
+            font.pixelSize: root.theme.fontSize - 2
             font.weight: Font.Medium
             font.family: theme.font
             elide: Text.ElideRight
