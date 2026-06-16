@@ -9,6 +9,7 @@ Item {
     property bool active: false
     property var dataSource: null
     property var notifTimes: ({})
+    property var reversedNotifs: dataSource ? dataSource.activeNotifs.slice().reverse() : []
     signal close()
 
     clip: true
@@ -98,7 +99,7 @@ Item {
                 anchors.fill: parent
                 spacing: 8
                 clip: true
-                model: dataSource ? dataSource.activeNotifs : []
+                model: reversedNotifs
 
                 delegate: NotificationCard {
                     theme: root.theme

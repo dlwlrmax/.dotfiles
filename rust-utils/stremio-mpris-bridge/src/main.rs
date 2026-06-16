@@ -292,11 +292,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .serve_at(OBJ_PATH, MprisRoot)?
         .build()?;
 
-    println!("Registered {BUS_NAME}");
+    // Register Player interface at startup — keep alive always
+    conn.object_server().at(OBJ_PATH, MprisPlayer)?;
+    println!("Registered {BUS_NAME} — interfaces: org.mpris.MediaPlayer2, org.mpris.MediaPlayer2.Player");
 
     let mut prev_id: Option<String> = None;
     let mut prev_title = String::new();
-    let mut player_registered = false;
+    let mut prev_playing = false;
+
+    // Emit initial Stopped state so clients see the player immediately
+    {
+        let meta = build_metadata("");
+        emit_props(&conn, vec![
+            ("PlaybackStatus", Value::from("Stopped".to_string()).try_to_owned().unwrap()),
+            ("Metadata", Value::from(meta).try_to_owned().unwrap()),
+        ]);
+    }
 
     loop {
         let result = poll_pulse();
@@ -304,14 +315,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut state = STATE.lock().unwrap();
 
         if let Some((_, title)) = &result {
-            // Register Player interface lazily — only when stream active
-            if !player_registered {
-                conn.object_server().at(OBJ_PATH, MprisPlayer)?;
-                player_registered = true;
-                eprintln!("[stremio-mpris] player registered");
-            }
-
             let changed = *title != state.title || prev_id != this_id;
+            let title_changed = *title != prev_title;
             state.title.clone_from(title);
             state.playing = true;
             drop(state);
@@ -322,23 +327,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     ("PlaybackStatus", Value::from("Playing".to_string()).try_to_owned().unwrap()),
                     ("Metadata", Value::from(meta).try_to_owned().unwrap()),
                 ]);
-                if *title != prev_title {
+                if title_changed {
                     eprintln!("[stremio-mpris] track: {title}");
                     prev_title.clone_from(title);
                 }
             }
+            prev_playing = true;
         } else {
             let was_playing = state.playing || !state.title.is_empty() || prev_id.is_some();
             state.title.clear();
             state.playing = false;
             drop(state);
 
-            if was_playing && player_registered {
-                // Remove Player interface — no active stream
-                if conn.object_server().remove::<MprisPlayer, ObjectPath>(OBJ_PATH.try_into().unwrap()).is_ok() {
-                    player_registered = false;
-                    eprintln!("[stremio-mpris] player removed");
+            if was_playing {
+                // Keep Player interface alive — just signal Stopped
+                let meta = build_metadata("");
+                emit_props(&conn, vec![
+                    ("PlaybackStatus", Value::from("Stopped".to_string()).try_to_owned().unwrap()),
+                    ("Metadata", Value::from(meta).try_to_owned().unwrap()),
+                ]);
+                if prev_playing {
+                    eprintln!("[stremio-mpris] stopped");
+                    prev_playing = false;
                 }
+                prev_title.clear();
             }
         }
 
