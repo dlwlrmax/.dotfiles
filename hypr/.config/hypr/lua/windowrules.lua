@@ -36,7 +36,7 @@ local float_apps = {
   "waypaper",
   "org.kde.ark",
   "font-manager",
-  "code-oss"
+  "code-oss",
 }
 hl.window_rule({
   match = { class = string.format("^(%s)$", table.concat(float_apps, "|")) },
@@ -55,11 +55,12 @@ hl.window_rule({
   workspace = 1,
 })
 hl.window_rule({
-  match = { class = "^(Zotero)$" },
+  match = { class = "^(obsidian)$" },
   float = true,
   size = "(monitor_w*0.65) (monitor_h*0.75)",
   center = true,
   workspace = 2,
+  focus_on_activate = true,
 })
 hl.window_rule({
   match = { class = "^([Tt]hunar|[Oo]rg.gnome.Nautilus|[Oo]rg.kde.dolphin)$" },
@@ -77,7 +78,6 @@ hl.window_rule({
   float = true,
   min_size = "800 70%",
 })
-
 
 -- Float + position/size
 hl.window_rule({

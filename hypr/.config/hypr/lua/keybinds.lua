@@ -99,5 +99,5 @@ hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
 -- Input Method toggle
 hl.bind("ALT + Z", hl.dsp.exec_cmd("fcitx5-remote -t"))
 
--- Clipboard via rofi
-hl.bind("CTRL + semicolon", hl.dsp.exec_cmd("rofi -modi clipboard:$HOME/.dotfiles/hypr/.config/hypr/scripts/cliphist-rofi-img -show clipboard -show-icons"))
+-- Clipboard via quickshell
+hl.bind("CTRL + semicolon", hl.dsp.exec_cmd("quickshell ipc call clipboard toggle"))

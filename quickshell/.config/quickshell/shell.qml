@@ -15,6 +15,7 @@ import qs.power
 import qs.battery
 import qs.kdeconnect  // KDEConnect.qml, KDEConnectPanel.qml
 import qs.launcher
+import qs.clipboard
 import qs.common
 
 ShellRoot {
@@ -45,6 +46,8 @@ ShellRoot {
         property int kdeWidgetCenterX: 0
         property bool launcherPanelOpen: false
         property var activeLauncherScreen: null
+        property bool clipboardPanelOpen: false
+        property var activeClipboardScreen: null
 
         function closeOtherPanels(name) {
             if (name !== "notif") notifPanelOpen = false
@@ -57,6 +60,7 @@ ShellRoot {
             if (name !== "battery") batteryPanelOpen = false
             if (name !== "kde") kdePanelOpen = false
             if (name !== "launcher") launcherPanelOpen = false
+            if (name !== "clipboard") clipboardPanelOpen = false
         }
     }
 
@@ -526,6 +530,22 @@ ShellRoot {
         }
     }
 
+    IpcHandler {
+        target: "clipboard"
+        function toggle(): void {
+            if (g.clipboardPanelOpen) {
+                g.clipboardPanelOpen = false
+                return
+            }
+            g.closeOtherPanels("clipboard")
+            g.clipboardPanelOpen = true
+            g.activeClipboardScreen = Quickshell.screens[0]
+        }
+        function close(): void {
+            g.clipboardPanelOpen = false
+        }
+    }
+
     Instantiator {
         model: Quickshell.screens
         delegate: Item {
@@ -784,6 +804,20 @@ ShellRoot {
                     anchors.fill: parent
                     active: g.launcherPanelOpen && g.activeLauncherScreen === screenScope.screenData
                     onClose: g.launcherPanelOpen = false
+                }
+            }
+
+            PanelOverlay {
+                screen: screenScope.screenData
+                active: g.clipboardPanelOpen && g.activeClipboardScreen === screenScope.screenData
+                onCloseRequested: g.clipboardPanelOpen = false
+                position: PanelOverlay.Position.Center
+                keyboardFocus: true
+
+                ClipboardPanel {
+                    anchors.fill: parent
+                    active: g.clipboardPanelOpen && g.activeClipboardScreen === screenScope.screenData
+                    onClose: g.clipboardPanelOpen = false
                 }
             }
         }

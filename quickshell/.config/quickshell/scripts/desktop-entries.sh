@@ -5,6 +5,7 @@
 set -euo pipefail
 
 CACHE_FILE="/tmp/quickshell-desktop-cache.json"
+CACHE_HASH_FILE="/tmp/quickshell-desktop-cache.sha256"
 
 # Collect all .desktop files from XDG dirs
 # User dirs first so they override system (first occurrence wins)
@@ -16,22 +17,31 @@ XDG_DIRS="${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 IFS=':' read -ra XDG <<< "$XDG_DIRS"
 DIRS+=("${XDG[@]}")
 
-# Use cache if no .desktop file is newer than cache
-if [ -f "$CACHE_FILE" ]; then
-    needs_update=false
-    for base in "${DIRS[@]}"; do
-        if [[ "$base" == */applications ]]; then
-            dir="$base"
-        else
-            dir="$base/applications"
-        fi
-        [[ -d "$dir" ]] || continue
-        if find -L "$dir" -maxdepth 1 -name '*.desktop' -newer "$CACHE_FILE" -print -quit 2>/dev/null | grep -q .; then
-            needs_update=true
-            break
-        fi
-    done
-    if ! $needs_update; then
+# Build list of all .desktop dirs (canonicalize)
+DESKTOP_DIRS=()
+for base in "${DIRS[@]}"; do
+  if [[ "$base" == */applications ]]; then
+    d="$base"
+  else
+    d="$base/applications"
+  fi
+  [[ -d "$d" ]] && DESKTOP_DIRS+=("$d")
+done
+
+# Compute hash of all found .desktop files (path + mtime)
+# Catches: additions, removals, and content changes
+compute_fingerprint() {
+  local dir
+  for dir in "${DESKTOP_DIRS[@]}"; do
+    find -L "$dir" -maxdepth 1 -name '*.desktop' -type f -printf '%T@ %p\n' 2>/dev/null
+  done | sort | sha256sum | cut -d' ' -f1
+}
+
+# Use cache only if fingerprint matches (detects any change)
+if [ -f "$CACHE_FILE" ] && [ -f "$CACHE_HASH_FILE" ]; then
+    old_hash=$(cat "$CACHE_HASH_FILE")
+    new_hash=$(compute_fingerprint)
+    if [ "$old_hash" = "$new_hash" ]; then
         cat "$CACHE_FILE"
         exit 0
     fi
@@ -104,4 +114,5 @@ for i in "${!entries[@]}"; do
 done
 echo ']'
 } > "$CACHE_FILE"
+compute_fingerprint > "$CACHE_HASH_FILE"
 cat "$CACHE_FILE"
