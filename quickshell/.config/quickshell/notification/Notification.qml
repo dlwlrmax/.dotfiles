@@ -41,10 +41,10 @@ Item {
         visible: root.notifCount > 0
         anchors.top: parent.top
         anchors.right: parent.right
-        anchors.topMargin: -4
+        anchors.topMargin: -1
         anchors.rightMargin: -3
-        width: Math.max(14, badgeText.implicitWidth + 6)
-        height: 14
+        width: Math.max(12, badgeText.implicitWidth + 6)
+        height: 12
         radius: 7
         color: theme.red
 
