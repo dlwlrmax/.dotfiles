@@ -118,6 +118,10 @@ ShellRoot {
 
         onNotification: function(notif) {
             if (notifData.dnd) return
+
+            // Mute stale notifications re-delivered on restart
+            if (Date.now() - notifData.startupTime < 3000) return
+
             notif.tracked = true
             notifData.addNotifTime(notif.id)
             notifData.activeNotifs = notifData.activeNotifs.concat([notif])
@@ -152,6 +156,7 @@ ShellRoot {
         property var notifTimes: ({})
         property int lastSoundTime: 0
         property int _stubCounter: 0
+        property int startupTime: Date.now()
         property string storagePath: Quickshell.env("HOME") + "/.local/state/quickshell/notifications.json"
         signal newNotification(var notif)
 
@@ -265,10 +270,8 @@ ShellRoot {
             }
         }
 
-        function _doSave() {
-            if (saveProc.running) return
-            var data = activeNotifs.map(toSavable)
-            var json = JSON.stringify(data)
+        function _doSaveNow(data) {
+            var json = JSON.stringify(data || activeNotifs.map(toSavable))
             var dir = storagePath.substring(0, storagePath.lastIndexOf("/"))
             saveProc.command = [
                 "python3", "-c",
@@ -276,6 +279,11 @@ ShellRoot {
                 json, dir, notifData.storagePath
             ]
             saveProc.running = true
+        }
+
+        function _doSave() {
+            if (saveProc.running) return
+            _doSaveNow()
         }
 
         function load() {

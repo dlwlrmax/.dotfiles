@@ -10,6 +10,19 @@ Item {
     property bool active: false
     signal close()
 
+    // Deduplicate by identity: bridge + native MPRIS both populate same players
+    // Each delegate checks if an earlier entry shares its identity → hides if duplicate
+    readonly property int _uniqueCount: {
+        var seen = []
+        for (var i = 0; i < Mpris.players.rowCount(); i++) {
+            var p = Mpris.players.values[i]
+            if (!p) continue
+            var id = p.identity || ""
+            if (seen.indexOf(id) === -1) seen.push(id)
+        }
+        return seen.length
+    }
+
     clip: true
     implicitWidth: 360
     implicitHeight: playerList.implicitHeight + header.implicitHeight + 40
@@ -45,7 +58,7 @@ Item {
             spacing: 8
 
             Text {
-                text: "Media" + (Mpris.players.rowCount() > 0 ? " (" + Mpris.players.rowCount() + ")" : "")
+                text: "Media" + (root._uniqueCount > 0 ? " (" + root._uniqueCount + ")" : "")
                 color: theme.text
                 font.pixelSize: theme.fontSize + 1
                 font.bold: true
@@ -83,8 +96,22 @@ Item {
 
                 delegate: ColumnLayout {
                     required property var modelData
+                    required property int index
                     spacing: 8
                     Layout.fillWidth: true
+
+                    // Hide duplicate identity (bridge mirror)
+                    readonly property bool _isDuplicate: {
+                        if (!modelData) return true
+                        for (var i = 0; i < index; i++) {
+                            var p = Mpris.players.values[i]
+                            if (p && p.identity === modelData.identity) return true
+                        }
+                        return false
+                    }
+                    visible: !_isDuplicate
+                    // Keep layout stable height even when hidden
+                    height: _isDuplicate ? 0 : implicitHeight
 
                     Rectangle {
                         Layout.fillWidth: true
@@ -287,7 +314,7 @@ Item {
 
             Text {
                 Layout.alignment: Qt.AlignHCenter
-                visible: Mpris.players.rowCount() === 0
+                visible: root._uniqueCount === 0
                 text: "No media players"
                 color: theme.subtext0
                 font.pixelSize: theme.fontSize
