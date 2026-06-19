@@ -73,18 +73,10 @@ Item {
 
     function copyEntry(entry) {
         if (!entry) return
-        var cmd = "cliphist decode <<<'" + entry.id + "' | wl-copy"
-        copyProc.command = ["bash", "-c", cmd]
-        copyProc.running = true
-    }
-
-    Process {
-        id: copyProc
-        onRunningChanged: {
-            if (!running) {
-                root.close()
-            }
-        }
+        Quickshell.execDetached({
+            command: ["bash", "-c", "cliphist decode " + entry.id + " | wl-copy"]
+        })
+        close()
     }
 
     function moveSelection(delta) {
