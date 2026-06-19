@@ -23,6 +23,11 @@ Item {
         country: "",
         sunrise: "",
         sunset: "",
+        pressure: "",
+        uvIndex: "",
+        visibility: "",
+        cloudcover: "",
+        precipMM: "",
         hourly: [],
         daily: []
     })
@@ -173,7 +178,10 @@ Item {
                     model: [
                         { icon: "🌡", label: "Feels like", value: root.weatherData.feelsLike + "°C" },
                         { icon: "💧", label: "Humidity", value: root.weatherData.humidity + "%" },
-                        { icon: "💨", label: "Wind", value: root.weatherData.windDir + " " + root.weatherData.wind + " km/h" },
+                        { icon: "💨", label: "Wind", value: (root.weatherData.windDir ? root.weatherData.windDir + " " : "") + root.weatherData.wind + " km/h" },
+                        { icon: "🌡", label: "Pressure", value: root.weatherData.pressure + " hPa" },
+                        { icon: "☀", label: "UV Index", value: root.weatherData.uvIndex },
+                        { icon: "👁", label: "Visibility", value: root.weatherData.visibility + " km" },
                         { icon: "🌅", label: "Sunrise", value: root.weatherData.sunrise },
                         { icon: "🌇", label: "Sunset", value: root.weatherData.sunset }
                     ]
@@ -230,8 +238,8 @@ Item {
                 Repeater {
                     model: root.weatherData.hourly
                     delegate: ColumnLayout {
-                        Layout.preferredWidth: 48
-                        spacing: 4
+                        Layout.preferredWidth: 56
+                        spacing: 2
 
                         Text {
                             Layout.alignment: Qt.AlignHCenter
@@ -246,6 +254,15 @@ Item {
                             text: modelData.temp + "°"
                             color: theme.text
                             font.pixelSize: theme.fontSize - 1
+                            font.family: theme.font
+                        }
+
+                        Text {
+                            Layout.alignment: Qt.AlignHCenter
+                            visible: modelData.chanceofrain && modelData.chanceofrain > 0
+                            text: "💧" + modelData.chanceofrain + "%"
+                            color: theme.blue
+                            font.pixelSize: theme.fontSize - 3
                             font.family: theme.font
                         }
                     }
@@ -277,7 +294,7 @@ Item {
                     model: root.weatherData.daily
                     delegate: ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: 4
+                        spacing: 2
 
                         Text {
                             Layout.alignment: Qt.AlignHCenter
@@ -294,14 +311,6 @@ Item {
 
                         Text {
                             Layout.alignment: Qt.AlignHCenter
-                            text: modelData.condition.length > 12 ? modelData.condition.substring(0, 12) + "…" : modelData.condition
-                            color: theme.subtext0
-                            font.pixelSize: theme.fontSize - 2
-                            font.family: theme.font
-                        }
-
-                        Text {
-                            Layout.alignment: Qt.AlignHCenter
                             text: modelData.maxTemp + "°"
                             color: theme.text
                             font.pixelSize: theme.fontSize - 1
@@ -313,6 +322,15 @@ Item {
                             text: modelData.minTemp + "°"
                             color: theme.subtext0
                             font.pixelSize: theme.fontSize - 2
+                            font.family: theme.font
+                        }
+
+                        Text {
+                            Layout.alignment: Qt.AlignHCenter
+                            visible: modelData.chanceofrain && modelData.chanceofrain > 0
+                            text: "💧" + modelData.chanceofrain + "%"
+                            color: theme.blue
+                            font.pixelSize: theme.fontSize - 3
                             font.family: theme.font
                         }
                     }
