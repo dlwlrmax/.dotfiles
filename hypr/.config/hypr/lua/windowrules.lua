@@ -5,7 +5,7 @@ local ws = {
   { pat = "^(Chromium)$", id = 2 },
   { pat = "^(Lark|Ferdium||ferdium)$", id = 3 },
   { pat = "^(Code|code-oss)$", id = 4 },
-  { pat = "[Dd][Bb]eaver", id = 5 },
+  { pat = "[Dd][Bb]eaver|tabularis", id = 5 },
   { pat = "^(Postman|yaak-app|bruno)$", id = 6 },
   { pat = "^(Spotify)$", id = 7 },
   { pat = "^(zen-beta|zen|com.mitchellh.ghostty)$", id = 10 },
