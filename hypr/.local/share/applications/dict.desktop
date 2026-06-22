@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Dictionary
+Comment=Multi-language dictionary with OCR
+Exec=dict
+Icon=dict
+Terminal=false
+Categories=Education;Office;Dictionary;
+Keywords=dictionary;translate;ocr;
