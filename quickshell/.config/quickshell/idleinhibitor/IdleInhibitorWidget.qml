@@ -25,16 +25,20 @@ MouseArea {
         }
     }
 
+    // hidden window for idle inhibitor — avoids relying on parent window binding
+    PanelWindow {
+        id: inhibitWindow
+        visible: false
+        implicitWidth: 0
+        implicitHeight: 0
+        color: "transparent"
+        mask: Region {}
+    }
+
     IdleInhibitor {
         id: idleInhibitor
         enabled: false
-    }
-
-    Binding {
-        target: idleInhibitor
-        property: "window"
-        value: root.window
-        when: root.window !== null
+        window: inhibitWindow
     }
 
     cursorShape: Qt.PointingHandCursor

@@ -1,2 +1,2 @@
 module qs.idleinhibitor
-IdleInhibitor 1.0 IdleInhibitor.qml
+IdleInhibitorWidget 1.0 IdleInhibitorWidget.qml

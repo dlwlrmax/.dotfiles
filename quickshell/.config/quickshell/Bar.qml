@@ -170,7 +170,7 @@ Item {
                 //     onTogglePanel: centerX => bar.toggleBatteryPanel(centerX)
                 // }
 
-                IdleInhibitor {
+                IdleInhibitorWidget {
                     theme: bar.theme
                     Layout.alignment: Qt.AlignVCenter
                 }
