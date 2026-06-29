@@ -1,0 +1,14 @@
+// Dev layout — 2-pane vertical split
+// Left: editor (nvim), Right: terminal
+// Activate with: zellij --layout dev
+layout {
+    pane split_direction="vertical" {
+        pane command="nvim" {
+            focus true
+        }
+        pane
+    }
+    pane size=1 borderless=true {
+        plugin location="zellij:compact-bar"
+    }
+}

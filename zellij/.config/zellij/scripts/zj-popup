@@ -1,0 +1,11 @@
+#!/bin/bash
+# Open a floating pane running the specified command
+# Usage: zj-popup <command> [args...]
+# Replaces tmux display-popup
+
+if [ $# -eq 0 ]; then
+    echo "Usage: zj-popup <command> [args...]"
+    exit 1
+fi
+
+exec zellij action new-pane --floating -- "$@"

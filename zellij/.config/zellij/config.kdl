@@ -1,0 +1,394 @@
+// Zellij configuration — managed via dotfiles (stow)
+// Migration from tmux → zellij
+// zellij 0.44.3
+//
+// default_mode "locked" — starts in passthrough (feels like tmux default)
+// Ctrl+g to enter normal mode, then use mode keys
+
+keybinds clear-defaults=true {
+    // ============================================================
+    // LOCKED MODE — passthrough, all keys go to terminal
+    // Default mode (feels like tmux)
+    // ============================================================
+    locked {
+        bind "Ctrl g" { SwitchToMode "normal"; }
+    }
+
+    // ============================================================
+    // NORMAL MODE — command mode (after Ctrl+g from locked)
+    // ============================================================
+    normal {
+        // --- Floating pane popups (replacing tmux display-popup) ---
+        // Also available in locked mode via Alt+g, Alt+m, Alt+t (see shared block)
+        bind "g" { Run "/home/kienct/.config/zellij/scripts/zj-popup" "gitui"; SwitchToMode "locked"; }
+
+        // --- Session switching via sesh (replacing tmux sesh bindings) ---
+        bind "w" { Run "/home/kienct/.config/zellij/scripts/zj-sesh"; SwitchToMode "locked"; }
+        bind "q" { Run "/home/kienct/.config/zellij/scripts/zj-sesh-last"; SwitchToMode "locked"; }
+
+        // --- Mode switching ---
+        bind "Ctrl p" { SwitchToMode "pane"; }
+        bind "Ctrl t" { SwitchToMode "tab"; }
+        bind "Ctrl r" { SwitchToMode "resize"; }
+        bind "Ctrl s" { SwitchToMode "scroll"; }
+        bind "Ctrl b" { SwitchToMode "session"; }
+        bind "Ctrl f" { TogglePaneFrames; SwitchToMode "locked"; }
+        bind "Ctrl c" { SwitchToMode "locked"; }
+    }
+
+    // ============================================================
+    // PANE MODE — pane operations (split, move, close, focus)
+    // ============================================================
+    pane {
+        bind "left" { MoveFocus "left"; }
+        bind "down" { MoveFocus "down"; }
+        bind "up" { MoveFocus "up"; }
+        bind "right" { MoveFocus "right"; }
+        bind "h" { MoveFocus "left"; }
+        bind "j" { MoveFocus "down"; }
+        bind "k" { MoveFocus "up"; }
+        bind "l" { MoveFocus "right"; }
+        bind "H" { MovePane "left"; }
+        bind "J" { MovePane "down"; }
+        bind "K" { MovePane "up"; }
+        bind "L" { MovePane "right"; }
+        bind "v" { NewPane "right"; SwitchToMode "locked"; }          // vsplit like tmux
+        bind "s" { NewPane "down"; SwitchToMode "locked"; }           // hsplit like tmux
+        bind "d" { NewPane "down"; SwitchToMode "locked"; }
+        bind "r" { NewPane "right"; SwitchToMode "locked"; }
+        bind "n" { NewPane; SwitchToMode "locked"; }
+        bind "w" { ToggleFloatingPanes; SwitchToMode "locked"; }
+        bind "e" { TogglePaneEmbedOrFloating; SwitchToMode "locked"; }
+        bind "f" { ToggleFocusFullscreen; SwitchToMode "locked"; }
+        bind "z" { TogglePaneFrames; SwitchToMode "locked"; }
+        bind "x" { CloseFocus; SwitchToMode "locked"; }
+        bind "i" { TogglePanePinned; SwitchToMode "locked"; }
+        bind "c" { SwitchToMode "renamepane"; PaneNameInput 0; }
+        bind "p" { SwitchToMode "normal"; }
+        bind "tab" { SwitchFocus; }
+    }
+
+    // ============================================================
+    // TAB MODE — tab operations (create, switch, close)
+    // ============================================================
+    tab {
+        bind "left" { GoToPreviousTab; }
+        bind "down" { GoToNextTab; }
+        bind "up" { GoToPreviousTab; }
+        bind "right" { GoToNextTab; }
+        bind "h" { GoToPreviousTab; }
+        bind "j" { GoToNextTab; }
+        bind "k" { GoToPreviousTab; }
+        bind "l" { GoToNextTab; }
+        bind "1" { GoToTab 1; SwitchToMode "locked"; }
+        bind "2" { GoToTab 2; SwitchToMode "locked"; }
+        bind "3" { GoToTab 3; SwitchToMode "locked"; }
+        bind "4" { GoToTab 4; SwitchToMode "locked"; }
+        bind "5" { GoToTab 5; SwitchToMode "locked"; }
+        bind "6" { GoToTab 6; SwitchToMode "locked"; }
+        bind "7" { GoToTab 7; SwitchToMode "locked"; }
+        bind "8" { GoToTab 8; SwitchToMode "locked"; }
+        bind "9" { GoToTab 9; SwitchToMode "locked"; }
+        bind "n" { NewTab; SwitchToMode "locked"; }
+        bind "x" { CloseTab; SwitchToMode "locked"; }
+        bind "r" { SwitchToMode "renametab"; TabNameInput 0; }
+        bind "s" { ToggleActiveSyncTab; SwitchToMode "locked"; }
+        bind "[" { BreakPaneLeft; SwitchToMode "locked"; }
+        bind "]" { BreakPaneRight; SwitchToMode "locked"; }
+        bind "b" { BreakPane; SwitchToMode "locked"; }
+        bind "t" { SwitchToMode "normal"; }
+        bind "tab" { ToggleTab; }
+    }
+
+    // ============================================================
+    // RESIZE MODE — resize panes with hjkl
+    // ============================================================
+    resize {
+        bind "left" { Resize "Increase left"; }
+        bind "down" { Resize "Increase down"; }
+        bind "up" { Resize "Increase up"; }
+        bind "right" { Resize "Increase right"; }
+        bind "h" { Resize "Increase left"; }
+        bind "j" { Resize "Increase down"; }
+        bind "k" { Resize "Increase up"; }
+        bind "l" { Resize "Increase right"; }
+        bind "H" { Resize "Decrease left"; }
+        bind "J" { Resize "Decrease down"; }
+        bind "K" { Resize "Decrease up"; }
+        bind "L" { Resize "Decrease right"; }
+        bind "+" { Resize "Increase"; }
+        bind "-" { Resize "Decrease"; }
+        bind "=" { Resize "Increase"; }
+        bind "r" { SwitchToMode "normal"; }
+    }
+
+    // ============================================================
+    // MOVE MODE — move panes around
+    // ============================================================
+    move {
+        bind "left" { MovePane "left"; }
+        bind "down" { MovePane "down"; }
+        bind "up" { MovePane "up"; }
+        bind "right" { MovePane "right"; }
+        bind "h" { MovePane "left"; }
+        bind "j" { MovePane "down"; }
+        bind "k" { MovePane "up"; }
+        bind "l" { MovePane "right"; }
+        bind "n" { MovePane; }
+        bind "p" { MovePaneBackwards; }
+        bind "m" { SwitchToMode "normal"; }
+        bind "tab" { MovePane; }
+    }
+
+    // ============================================================
+    // SCROLL MODE — vim-like scroll + search
+    // ============================================================
+    scroll {
+        bind "j" "down" { ScrollDown; }
+        bind "k" "up" { ScrollUp; }
+        bind "Ctrl d" { PageScrollDown; }
+        bind "Ctrl u" { PageScrollUp; }
+        bind "PageDown" { PageScrollDown; }
+        bind "PageUp" { PageScrollUp; }
+        bind "h" "left" { PageScrollUp; }
+        bind "l" "right" { PageScrollDown; }
+        bind "g" { ScrollToTop; }
+        bind "G" { ScrollToBottom; }
+        bind "d" { HalfPageScrollDown; }
+        bind "u" { HalfPageScrollUp; }
+        bind "Ctrl c" { ScrollToBottom; SwitchToMode "locked"; }
+        bind "Ctrl b" { PageScrollUp; }
+        bind "Ctrl f" { PageScrollDown; }
+        bind "e" { EditScrollback; SwitchToMode "locked"; }
+        bind "y" { Copy; SwitchToMode "locked"; }
+        bind "f" { SwitchToMode "entersearch"; SearchInput 0; }
+        bind "s" { SwitchToMode "normal"; }
+    }
+
+    // ============================================================
+    // SEARCH MODE
+    // ============================================================
+    search {
+        bind "c" { SearchToggleOption "CaseSensitivity"; }
+        bind "n" { Search "down"; }
+        bind "o" { SearchToggleOption "WholeWord"; }
+        bind "p" { Search "up"; }
+        bind "w" { SearchToggleOption "Wrap"; }
+    }
+
+    // ============================================================
+    // SESSION MODE
+    // ============================================================
+    session {
+        bind "a" {
+            LaunchOrFocusPlugin "zellij:about" {
+                floating true
+                move_to_focused_tab true
+            }
+            SwitchToMode "locked"
+        }
+        bind "c" {
+            LaunchOrFocusPlugin "configuration" {
+                floating true
+                move_to_focused_tab true
+            }
+            SwitchToMode "locked"
+        }
+        bind "d" { Detach; }
+        bind "l" {
+            LaunchOrFocusPlugin "zellij:layout-manager" {
+                floating true
+                move_to_focused_tab true
+            }
+            SwitchToMode "locked"
+        }
+        bind "o" { SwitchToMode "normal"; }
+        bind "p" {
+            LaunchOrFocusPlugin "plugin-manager" {
+                floating true
+                move_to_focused_tab true
+            }
+            SwitchToMode "locked"
+        }
+        bind "s" {
+            LaunchOrFocusPlugin "zellij:share" {
+                floating true
+                move_to_focused_tab true
+            }
+            SwitchToMode "locked"
+        }
+        bind "w" {
+            LaunchOrFocusPlugin "session-manager" {
+                floating true
+                move_to_focused_tab true
+            }
+            SwitchToMode "locked"
+        }
+    }
+
+    // ============================================================
+    // ENTER SEARCH
+    // ============================================================
+    entersearch {
+        bind "Ctrl c" { SwitchToMode "scroll"; }
+        bind "esc" { SwitchToMode "scroll"; }
+        bind "enter" { SwitchToMode "search"; }
+    }
+
+    // ============================================================
+    // RENAME TAB / PANE
+    // ============================================================
+    renametab {
+        bind "esc" { UndoRenameTab; SwitchToMode "tab"; }
+    }
+    shared_among "renametab" "renamepane" {
+        bind "Ctrl c" { SwitchToMode "locked"; }
+    }
+    renamepane {
+        bind "esc" { UndoRenamePane; SwitchToMode "pane"; }
+    }
+
+    // ============================================================
+    // SHARED BINDINGS — available across multiple modes
+    // ============================================================
+
+    // Always available in normal + locked
+    // = tmux prefix-optional bindings available directly
+    shared_among "normal" "locked" {
+        bind "Alt left" { MoveFocusOrTab "left"; }
+        bind "Alt down" { MoveFocus "down"; }
+        bind "Alt up" { MoveFocus "up"; }
+        bind "Alt right" { MoveFocusOrTab "right"; }
+        bind "Alt h" { MoveFocusOrTab "left"; }
+        bind "Alt j" { MoveFocus "down"; }
+        bind "Alt k" { MoveFocus "up"; }
+        bind "Alt l" { MoveFocusOrTab "right"; }
+        bind "Alt n" { NewPane; }
+        bind "Alt v" { NewPane "right"; }
+        bind "Alt s" { NewPane "down"; }
+        bind "Alt f" { ToggleFloatingPanes; }
+        bind "Alt +" "Alt =" { Resize "Increase"; }
+        bind "Alt -" { Resize "Decrease"; }
+        bind "Alt i" { MoveTab "left"; }
+        bind "Alt o" { MoveTab "right"; }
+        bind "Alt [" { PreviousSwapLayout; }
+        bind "Alt ]" { NextSwapLayout; }
+        bind "Alt p" { TogglePaneInGroup; }
+        bind "Alt Shift p" { ToggleGroupMarking; }
+
+        // --- Floating pane popups (Alt prefix to avoid mode-switch conflicts) ---
+        bind "Alt g" { Run "/home/kienct/.config/zellij/scripts/zj-popup" "gitui"; }
+        bind "Alt m" { Run "/home/kienct/.config/zellij/scripts/zj-popup" "lazydocker"; }
+        bind "Alt t" { Run "/home/kienct/.config/zellij/scripts/zj-popup" "zsh" "-lic" "llog"; }
+
+        // --- sesh session switchers ---
+        bind "Alt w" { Run "/home/kienct/.config/zellij/scripts/zj-sesh"; }
+        bind "Alt q" { Run "/home/kienct/.config/zellij/scripts/zj-sesh-last"; }
+    }
+
+    // Mode switching — available everywhere except locked + special modes
+    shared_except "locked" "renametab" "renamepane" {
+        bind "Ctrl g" { SwitchToMode "locked"; }
+        bind "Ctrl q" { Quit; }
+    }
+    shared_except "locked" "entersearch" {
+        bind "enter" { SwitchToMode "locked"; }
+    }
+    shared_except "locked" "entersearch" "renametab" "renamepane" {
+        bind "esc" { SwitchToMode "locked"; }
+    }
+    shared_except "locked" "entersearch" "renametab" "renamepane" "move" {
+        bind "m" { SwitchToMode "move"; }
+    }
+    shared_except "locked" "entersearch" "search" "renametab" "renamepane" "session" {
+        bind "o" { SwitchToMode "session"; }
+    }
+    shared_except "locked" "tab" "entersearch" "renametab" "renamepane" {
+        bind "t" { SwitchToMode "tab"; }
+    }
+    shared_among "normal" "resize" "tab" "scroll" "prompt" "tmux" {
+        bind "p" { SwitchToMode "pane"; }
+    }
+    shared_among "normal" "resize" "search" "move" "prompt" "tmux" {
+        bind "s" { SwitchToMode "scroll"; }
+    }
+    shared_except "locked" "resize" "pane" "tab" "entersearch" "renametab" "renamepane" {
+        bind "r" { SwitchToMode "resize"; }
+    }
+}
+
+// ============================================================
+// OPTIONS
+// ============================================================
+
+// Theme — matches previous tmux catppuccin-mocha
+theme "catppuccin-mocha"
+
+// Default mode: locked = passthrough (like tmux default)
+default_mode "locked"
+
+// Default shell
+default_shell "fish"
+
+// Mouse support
+mouse_mode true
+
+// Pane frames with rounded corners
+pane_frames true
+ui {
+    pane_frames {
+        rounded_corners true
+    }
+}
+
+// Simplified UI — uses simpler glyphs (disable if your font supports nerd)
+simplified_ui false
+
+// Auto-copy on selection
+copy_on_select true
+
+// Clipboard destination
+copy_clipboard "system"
+
+// Scrollback buffer size
+scroll_buffer_size 10000
+
+// Session serialization (for resurrection)
+session_serialization true
+serialize_pane_viewport false
+scrollback_lines_to_serialize 5000
+
+// Misc
+show_startup_tips false
+show_release_notes false
+auto_layout true
+
+// ============================================================
+// PLUGINS
+// ============================================================
+plugins {
+    about location="zellij:about"
+    compact-bar location="zellij:compact-bar"
+    configuration location="zellij:configuration"
+    filepicker location="zellij:strider" {
+        cwd "/"
+    }
+    plugin-manager location="zellij:plugin-manager"
+    session-manager location="zellij:session-manager"
+    status-bar location="zellij:status-bar"
+    strider location="zellij:strider"
+    tab-bar location="zellij:tab-bar"
+    welcome-screen location="zellij:session-manager" {
+        welcome_screen true
+    }
+}
+
+// Plugins to load in background
+load_plugins {
+    zellij:link
+}
+
+// Web client settings
+web_client {
+    font "monospace"
+}

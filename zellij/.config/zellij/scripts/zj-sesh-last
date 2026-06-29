@@ -1,0 +1,9 @@
+#!/bin/bash
+# Switch to last sesh session
+# Replaces tmux last-session binding
+
+LAST=$(sesh list -t | grep -v -E "(opencode|qwen)" | head -2 | tail -1)
+
+if [ -n "$LAST" ]; then
+    sesh connect "$LAST"
+fi
