@@ -138,9 +138,25 @@ local function run_ffsubsync(video_ref, sub_path, is_url)
     end)
 end
 
+-- Ensure temp directory exists
+local function ensure_temp_dir()
+    local dir = options.temp_dir
+    if dir and dir ~= "" then
+        mp.command_native({
+            name = "subprocess",
+            args = {"mkdir", "-p", dir},
+            playback_only = false,
+            capture_stdout = true,
+            capture_stderr = true,
+        })
+    end
+end
+
 -- Download subtitle then sync
 local function download_and_sync(video_ref, url)
     show_osd("Downloading subtitle...", 0)
+
+    ensure_temp_dir()
 
     local output_path = make_temp_sub_path()
 
