@@ -119,11 +119,20 @@ ShellRoot {
         onNotification: function(notif) {
             if (notifData.dnd) return
 
-            // Mute stale notifications re-delivered on restart
-            if (Date.now() - notifData.startupTime < 3000) return
+            // Wait for saved timestamps to load before accepting notifs,
+            // so we can tell re-delivered (old) notifs from new ones.
+            if (!notifData.timesLoaded) return
+
+            // Skip re-delivered old notifs: if we've seen this content
+            // before (hash in timesByKey), it's a stale restart redelivery.
+            var key = notifData.notifHash(notif)
+            if (notifData.timesByKey[key] !== undefined) {
+                notif.tracked = false
+                return
+            }
 
             notif.tracked = true
-            notifData.addNotifTime(notif.id)
+            notifData.addNotifTime(notif)
             notifData.activeNotifs = notifData.activeNotifs.concat([notif])
             notifData.count = notifData.activeNotifs.length
             notifData.tryPlaySound()
@@ -137,13 +146,10 @@ ShellRoot {
                         arr = arr.slice(0, i).concat(arr.slice(i + 1))
                         notifData.activeNotifs = arr
                         notifData.count = arr.length
-                        notifData.save()
                         break
                     }
                 }
             })
-
-            notifData.save()
         }
     }
 
@@ -154,16 +160,55 @@ ShellRoot {
         property bool dnd: false
         property var activeNotifs: []
         property var notifTimes: ({})
+        // Persistent map: content-hash -> unix timestamp, built from notifications.json.
+        property var timesByKey: ({})
+        property bool timesLoaded: false
+        // In-memory copy of notifications.json array (append-only, for saving).
+        property var savedNotifs: []
         property int lastSoundTime: 0
-        property int _stubCounter: 0
         property int startupTime: Date.now()
         property string storagePath: Quickshell.env("HOME") + "/.local/state/quickshell/notifications.json"
         signal newNotification(var notif)
+        // Broadcast: a popup card on one screen should close on all screens.
+        signal dismissPopup(var notifId)
 
-        Component.onCompleted: load()
+        Component.onCompleted: loadSaved()
 
-        function addNotifTime(id) {
-            notifTimes[id] = Date.now() / 1000
+        function requestDismissPopup(notifId) {
+            dismissPopup(notifId)
+        }
+
+        function notifHash(notif) {
+            var s = (notif.appName || "") + "|" + (notif.summary || "") + "|" + (notif.body || "")
+            var h = 0
+            for (var i = 0; i < s.length; i++) {
+                h = ((h << 5) - h) + s.charCodeAt(i)
+                h |= 0
+            }
+            return "" + h
+        }
+
+        function addNotifTime(notif) {
+            var key = notifHash(notif)
+            var t = Date.now() / 1000
+            notifTimes[notif.id] = t
+            timesByKey[key] = t
+            // Append savable entry and persist.
+            var entry = {
+                appName: notif.appName || "",
+                summary: notif.summary || "",
+                body: notif.body || "",
+                urgency: notif.urgency || 1,
+                appIcon: notif.appIcon || "",
+                desktopEntry: notif.desktopEntry || "",
+                expireTimeout: notif.expireTimeout || 0,
+                actions: (notif.actions || []).map(function(a) {
+                    return { text: a.text, identifier: a.identifier }
+                }),
+                timestamp: t
+            }
+            savedNotifs.push(entry)
+            _doSave()
         }
 
         function toggleDnd() {
@@ -177,73 +222,9 @@ ShellRoot {
             for (var i = 0; i < notifs.length; i++) {
                 notifs[i].dismiss()
             }
-            save()
         }
 
-        // --- Persistence ---
-
-        function createStub(data) {
-            _stubCounter++
-            var stubId = "stub-" + _stubCounter
-            notifTimes[stubId] = data.timestamp || Date.now() / 1000
-            return {
-                id: stubId,
-                appName: data.appName || "Unknown",
-                summary: data.summary || "",
-                body: data.body || "",
-                urgency: data.urgency || 1,
-                appIcon: data.appIcon || "",
-                desktopEntry: data.desktopEntry || "",
-                expireTimeout: data.expireTimeout || 0,
-                restored: true,
-                actions: (data.actions || []).map(function(a) {
-                    return {
-                        text: a.text,
-                        identifier: a.identifier,
-                        invoke: function() {}
-                    }
-                }),
-                dismiss: function() {
-                    var arr = notifData.activeNotifs
-                    for (var i = 0; i < arr.length; i++) {
-                        if (arr[i].id === this.id) {
-                            arr = arr.slice(0, i).concat(arr.slice(i + 1))
-                            notifData.activeNotifs = arr
-                            notifData.count = arr.length
-                            notifData.save()
-                            break
-                        }
-                    }
-                }
-            }
-        }
-
-        function toSavable(notif) {
-            var out = {
-                appName: notif.appName,
-                summary: notif.summary,
-                body: notif.body,
-                urgency: notif.urgency,
-                appIcon: notif.appIcon,
-                desktopEntry: notif.desktopEntry,
-                expireTimeout: notif.expireTimeout,
-                actions: (notif.actions || []).map(function(a) {
-                    return { text: a.text, identifier: a.identifier }
-                }),
-                timestamp: notifData.notifTimes[notif.id] || Date.now() / 1000
-            }
-            return out
-        }
-
-        Timer {
-            id: saveTimer
-            interval: 300
-            onTriggered: notifData._doSave()
-        }
-
-        function save() {
-            saveTimer.restart()
-        }
+        // --- notifications.json persistence ---
 
         Process {
             id: saveProc
@@ -254,40 +235,52 @@ ShellRoot {
             stdout: StdioCollector {
                 onStreamFinished: {
                     var text = this.text.trim()
-                    if (!text) return
+                    if (!text) {
+                        notifData.timesLoaded = true
+                        return
+                    }
                     try {
                         var data = JSON.parse(text)
-                        if (!Array.isArray(data) || data.length === 0) return
-                        var stubs = data.map(function(d) { return notifData.createStub(d) })
-                        if (notifData.activeNotifs.length === 0) {
-                            notifData.activeNotifs = stubs
-                            notifData.count = stubs.length
+                        if (Array.isArray(data)) {
+                            notifData.savedNotifs = data
+                            // Build hash -> timestamp map from saved entries.
+                            var map = {}
+                            for (var i = 0; i < data.length; i++) {
+                                var d = data[i]
+                                var s = (d.appName || "") + "|" + (d.summary || "") + "|" + (d.body || "")
+                                var h = 0
+                                for (var j = 0; j < s.length; j++) {
+                                    h = ((h << 5) - h) + s.charCodeAt(j)
+                                    h |= 0
+                                }
+                                map["" + h] = d.timestamp || 0
+                            }
+                            notifData.timesByKey = map
+                            console.log("notifData: loaded", data.length, "saved notifs,", Object.keys(map).length, "timestamps")
                         }
+                        notifData.timesLoaded = true
                     } catch (e) {
-                        console.log("Failed to load notifications:", e)
+                        console.log("Failed to load notifications.json:", e)
+                        notifData.timesLoaded = true
                     }
                 }
             }
         }
 
-        function _doSaveNow(data) {
-            var json = JSON.stringify(data || activeNotifs.map(toSavable))
+        function _doSave() {
+            if (saveProc.running) return
+            var json = JSON.stringify(savedNotifs)
             var dir = storagePath.substring(0, storagePath.lastIndexOf("/"))
             saveProc.command = [
                 "python3", "-c",
                 "import json,sys,os; os.makedirs(sys.argv[2], exist_ok=True); json.dump(json.loads(sys.argv[1]), open(sys.argv[3], 'w'))",
-                json, dir, notifData.storagePath
+                json, dir, storagePath
             ]
             saveProc.running = true
         }
 
-        function _doSave() {
-            if (saveProc.running) return
-            _doSaveNow()
-        }
-
-        function load() {
-            loadProc.command = ["/bin/cat", notifData.storagePath]
+        function loadSaved() {
+            loadProc.command = ["/bin/cat", storagePath]
             loadProc.running = true
         }
 
@@ -659,6 +652,7 @@ ShellRoot {
                     theme: Theme {}
                     notifTimes: notifData.notifTimes
                     dnd: notifData.dnd
+                    dataSource: notifData
                 }
 
                 Connections {

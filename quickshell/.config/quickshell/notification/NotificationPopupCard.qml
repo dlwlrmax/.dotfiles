@@ -20,6 +20,10 @@ Rectangle {
     }
 
     signal dismissed()
+    // Emitted when user clicks × or auto-dismiss timer fires (NOT when
+    // fadeOut is triggered by a cross-screen broadcast). Parent popup
+    // uses this to broadcast dismiss to other screens.
+    signal dismissRequested()
 
     // KDE Connect escapes HTML in body (e.g. &lt;b&gt; → literal <b>).
     // Unescape first so RichText can render actual tags.
@@ -88,7 +92,7 @@ Rectangle {
             root._elapsed += 1000
             if (root._elapsed >= root.dismissTimeoutMs) {
                 dismissTimer.stop()
-                root.fadeOut()
+                root.requestDismiss()
             }
         }
     }
@@ -116,6 +120,13 @@ Rectangle {
     function fadeOut() {
         fadeAnim.to = 0
         fadeAnim.start()
+    }
+
+    // User/timer-initiated dismiss: broadcast to other screens, then fade
+    // this card. Other screens' cards fade via the broadcast handler.
+    function requestDismiss() {
+        root.dismissRequested()
+        root.fadeOut()
     }
 
     PropertyAnimation {
@@ -216,7 +227,7 @@ Rectangle {
                         anchors.fill: parent
                         anchors.margins: -6
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: root.fadeOut()
+                        onClicked: root.requestDismiss()
                     }
                 }
             }
