@@ -1,4 +1,5 @@
 //@ pragma UseQApplication
+//@ pragma IconTheme Papirus-Dark
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland._Ipc
