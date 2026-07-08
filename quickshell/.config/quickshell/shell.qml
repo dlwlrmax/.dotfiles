@@ -17,6 +17,7 @@ import qs.kdeconnect  // KDEConnect.qml, KDEConnectPanel.qml
 import qs.launcher
 import qs.clipboard
 import qs.common
+import qs.osd
 
 ShellRoot {
     id: shell
@@ -304,6 +305,7 @@ ShellRoot {
         property int ramUsage: 0
         property int swapUsage: 0
         property int gpuUsage: 0
+        property int cpuTemp: 0
 
         Process {
             id: sysFetchProc
@@ -317,6 +319,7 @@ ShellRoot {
                         if (!isNaN(data.ram)) cpuData.ramUsage = data.ram;
                         if (!isNaN(data.swap)) cpuData.swapUsage = data.swap;
                         if (!isNaN(data.gpu)) cpuData.gpuUsage = data.gpu;
+                        if (!isNaN(data.cpu_temp)) cpuData.cpuTemp = data.cpu_temp;
                     } catch (e) {}
                 }
             }
@@ -660,6 +663,30 @@ ShellRoot {
                     function onNewNotification(notif) {
                         notifPopupItem.onNotification(notif)
                     }
+                }
+            }
+
+            // OSD popup: shows on volume/brightness change, auto-fades below bar
+            PanelWindow {
+                screen: screenScope.screenData
+                anchors.top: true
+                anchors.left: true
+                anchors.right: true
+                color: "transparent"
+                exclusionMode: ExclusionMode.Ignore
+                implicitHeight: 52
+                WlrLayershell.layer: WlrLayer.Overlay
+                WlrLayershell.namespace: "quickshell-osd"
+                WlrLayershell.margins.top: 44
+
+                OsdPopup {
+                    id: volumeOsd
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top
+                    anchors.topMargin: 8
+                    icon: volumeData.muted ? "" : (volumeData.volumeLevel > 70 ? "" : volumeData.volumeLevel > 30 ? "" : "")
+                    level: volumeData.volumeLevel
+                    muted: volumeData.muted
                 }
             }
 

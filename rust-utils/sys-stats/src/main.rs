@@ -12,6 +12,7 @@ struct Stats {
     swap: u64,
     gpu: u64,
     gpu_freq: u64,
+    cpu_temp: u64,
 }
 
 // ── CPU ───────────────────────────────────────────────────
@@ -155,12 +156,61 @@ fn read_gpu() -> (u64, u64) {
     (gpu, freq)
 }
 
+// ── CPU Temperature ──────────────────────────────────────
+
+fn read_cpu_temp() -> u64 {
+    // Scan /sys/class/hwmon/ for temp sensors labeled CPU/Package/Tctl
+    let hwmon_base = "/sys/class/hwmon";
+    if let Ok(entries) = fs::read_dir(hwmon_base) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            // Read temp1_label to find CPU sensor
+            let label_path = path.join("temp1_label");
+            if let Ok(label) = fs::read_to_string(&label_path) {
+                let label_lower = label.trim().to_lowercase();
+                if label_lower.contains("cpu")
+                    || label_lower.contains("package")
+                    || label_lower.contains("tctl")
+                    || label_lower.contains("tdie")
+                    || label_lower.contains("core")
+                {
+                    let temp_path = path.join("temp1_input");
+                    if let Ok(temp_str) = fs::read_to_string(&temp_path) {
+                        if let Ok(millideg) = temp_str.trim().parse::<u64>() {
+                            return millideg / 1000;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Fallback: try thermal_zone (x86_pkg_temp or acpitz)
+    for zone in 0..5 {
+        let type_path = format!("/sys/class/thermal/thermal_zone{zone}/type");
+        let temp_path = format!("/sys/class/thermal/thermal_zone{zone}/temp");
+        if let Ok(ttype) = fs::read_to_string(&type_path) {
+            let t = ttype.trim();
+            if t == "x86_pkg_temp" || t == "acpitz" {
+                if let Ok(temp_str) = fs::read_to_string(&temp_path) {
+                    if let Ok(millideg) = temp_str.trim().parse::<u64>() {
+                        return millideg / 1000;
+                    }
+                }
+            }
+        }
+    }
+
+    0
+}
+
 // ── Main ──────────────────────────────────────────────────
 
 fn main() {
     let cpu = read_cpu();
     let (ram, swap) = read_meminfo();
     let (gpu, gpu_freq) = read_gpu();
+    let cpu_temp = read_cpu_temp();
 
     let stats = Stats {
         cpu,
@@ -168,6 +218,7 @@ fn main() {
         swap,
         gpu,
         gpu_freq,
+        cpu_temp,
     };
 
     if let Ok(json) = serde_json::to_string(&stats) {

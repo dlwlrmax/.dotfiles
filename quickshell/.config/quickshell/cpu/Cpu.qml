@@ -12,6 +12,7 @@ Item {
     property int ramUsage: dataSource ? dataSource.ramUsage : 0
     property int swapUsage: dataSource ? dataSource.swapUsage : 0
     property int gpuUsage: dataSource ? dataSource.gpuUsage : 0
+    property int cpuTemp: dataSource ? (dataSource.cpuTemp || 0) : 0
     signal togglePanel()
 
     implicitWidth: row.implicitWidth
@@ -36,6 +37,15 @@ Item {
                 font.pixelSize: theme.fontSize + 5
                 font.weight: Font.Medium
                 font.family: theme.font
+            }
+
+            Text {
+                text: root.cpuTemp > 0 ? root.cpuTemp + "°" : ""
+                color: root.cpuTemp > 85 ? theme.red : root.cpuTemp > 70 ? theme.yellow : theme.subtext0
+                font.pixelSize: theme.fontSize - 1
+                font.weight: Font.Medium
+                font.family: theme.font
+                visible: false
             }
 
             Text {

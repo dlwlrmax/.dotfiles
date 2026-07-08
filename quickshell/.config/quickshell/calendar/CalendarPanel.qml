@@ -10,7 +10,8 @@ Item {
     signal close()
 
     property int calYear: 0
-    property var today: new Date()
+    property date today: new Date()
+    property var todayDate: ({ year: today.getFullYear(), month: today.getMonth(), day: today.getDate() })
     property var monthNames: ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
                               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     property var dayHeaders: ["M", "T", "W", "T", "F", "S", "S"]
@@ -26,9 +27,9 @@ Item {
         var prevMonthDays = new Date(calYear, month, 0).getDate();
         var startOffset = firstDay === 0 ? 6 : firstDay - 1;
 
-        var tYear = today.getFullYear();
-        var tMonth = today.getMonth();
-        var tDate = today.getDate();
+        var tYear = todayDate.year;
+        var tMonth = todayDate.month;
+        var tDay = todayDate.day;
         var isTodayMonth = (calYear === tYear && month === tMonth);
 
         var cells = [];
@@ -36,7 +37,7 @@ Item {
             cells.push({ day: prevMonthDays - i, other: true, today: false });
         }
         for (var d = 1; d <= daysInMon; d++) {
-            cells.push({ day: d, other: false, today: isTodayMonth && d === tDate });
+            cells.push({ day: d, other: false, today: isTodayMonth && d === tDay });
         }
         var rem = 42 - cells.length;
         for (var d = 1; d <= rem; d++) {
@@ -54,7 +55,7 @@ Item {
     }
 
     function goToToday() {
-        calYear = today.getFullYear();
+        calYear = todayDate.year;
         buildYear();
     }
 
@@ -62,6 +63,25 @@ Item {
     function nextYear() { calYear++; buildYear(); }
 
     Component.onCompleted: goToToday()
+
+    // Refresh today every 1h; rebuild grid only when date actually changes
+    Timer {
+        interval: 3600000
+        running: true
+        repeat: true
+        onTriggered: {
+            var d = new Date()
+            root.today = d
+            var newDate = { year: d.getFullYear(), month: d.getMonth(), day: d.getDate() }
+            if (newDate.day !== root.todayDate.day
+                || newDate.month !== root.todayDate.month
+                || newDate.year !== root.todayDate.year) {
+                root.todayDate = newDate
+                // If viewing current year, rebuild to update today highlight
+                if (calYear === newDate.year) buildYear()
+            }
+        }
+    }
 
     Rectangle {
         anchors.fill: parent
