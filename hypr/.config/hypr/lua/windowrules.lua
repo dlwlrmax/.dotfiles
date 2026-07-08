@@ -10,7 +10,8 @@ local ws = {
   { pat = "[Dd][Bb]eaver|tabularis", id = 5 },
   { pat = "^(Postman|yaak-app|bruno)$", id = 6 },
   { pat = "^(Spotify)$", id = 7 },
-  { pat = "^(zen-beta|zen|com.mitchellh.ghostty)$", id = overrides.zen_ws or 10 },
+  { pat = "^(zen-beta|zen|com.mitchellh.ghostty)$", 10 },
+  { pat = "^com.mitchellh.ghostty)$", id = overrides.zen_ws or 10 },
 }
 for _, v in ipairs(ws) do
   hl.window_rule({ match = { class = v.pat }, workspace = v.id })
