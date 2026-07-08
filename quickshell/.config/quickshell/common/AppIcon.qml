@@ -5,12 +5,13 @@ Item {
     id: root
 
     required property string appId
+    property string iconName: ""
     property string fallbackIcon: "application-x-executable"
     property string fallbackGlyph: ""
     property real size: 16
     property bool hideOnMissing: false
 
-    readonly property string _resolvedName: iconMap.resolve(appId)
+    readonly property string _resolvedName: iconName.length > 0 ? iconName : iconMap.resolve(appId)
     readonly property bool _isFilePath: _resolvedName.includes("/")
     readonly property string _effectiveName: {
         if (!_resolvedName || _isFilePath) return _resolvedName

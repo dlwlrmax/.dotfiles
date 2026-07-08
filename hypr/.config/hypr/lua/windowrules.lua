@@ -1,6 +1,8 @@
 -- ──────────────────────────────────────────────
 -- Workspace assignments
 -- ──────────────────────────────────────────────
+local ok, local_cfg = pcall(require, "lua/local")
+local overrides = ok and local_cfg or {}
 local ws = {
   { pat = "^(Chromium)$", id = 2 },
   { pat = "^(Lark|Ferdium||ferdium)$", id = 3 },
@@ -8,7 +10,7 @@ local ws = {
   { pat = "[Dd][Bb]eaver|tabularis", id = 5 },
   { pat = "^(Postman|yaak-app|bruno)$", id = 6 },
   { pat = "^(Spotify)$", id = 7 },
-  { pat = "^(zen-beta|zen|com.mitchellh.ghostty)$", id = 10 },
+  { pat = "^(zen-beta|zen|com.mitchellh.ghostty)$", id = overrides.zen_ws or 10 },
 }
 for _, v in ipairs(ws) do
   hl.window_rule({ match = { class = v.pat }, workspace = v.id })

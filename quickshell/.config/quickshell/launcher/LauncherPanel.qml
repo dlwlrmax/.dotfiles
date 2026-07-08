@@ -528,6 +528,7 @@ Item {
 
                             AppIcon {
                                 appId: row.modelData.id
+                                iconName: row.modelData.icon || ""
                                 fallbackGlyph: "󰅬"
                                 size: 20
                                 Layout.preferredWidth: 20

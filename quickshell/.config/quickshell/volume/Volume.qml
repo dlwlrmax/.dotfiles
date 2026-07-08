@@ -8,13 +8,17 @@ Item {
     id: root
     property Theme theme: Theme {}
     property var dataSource: null
-    property int volumeLevel: dataSource ? dataSource.volumeLevel : 0
-    property bool muted: dataSource ? dataSource.muted : false
+    property int _vol: 0
+    property bool _muted: false
+    readonly property int volumeLevel: dataSource ? dataSource.volumeLevel : _vol
+    readonly property bool muted: dataSource ? dataSource.muted : _muted
     signal togglePanel()
 
     property string iconColor: root.muted ? theme.surface1 : (root.volumeLevel > 80 ? theme.red : root.volumeLevel > 50 ? theme.yellow : root.volumeLevel > 30 ? theme.peach : theme.green)
     property string iconText: root.muted ? "" : (root.volumeLevel > 70 ? "" : root.volumeLevel > 30 ? "" : "")
     property string textColor: root.muted ? theme.surface1 : theme.text
+
+    property var _pendingCmd: []
 
     implicitWidth: row.implicitWidth
     implicitHeight: row.implicitHeight
@@ -27,12 +31,12 @@ Item {
 
         Item {
             id: iconWrapper
-            implicitWidth: iconText.implicitWidth
-            implicitHeight: iconText.implicitHeight
+            implicitWidth: iconLabel.implicitWidth
+            implicitHeight: iconLabel.implicitHeight
             Layout.alignment: Qt.AlignVCenter
 
             Text {
-                id: iconText
+                id: iconLabel
                 text: root.iconText
                 color: root.iconColor
                 font.pixelSize: root.theme.fontSize + 5
@@ -44,10 +48,14 @@ Item {
                 cursorShape: Qt.PointingHandCursor
                 onClicked: toggleMuteProc.running = true
                 onWheel: wheel => {
+                    if (volCooldown.elapsedMs() < 200) return;
+                    volCooldown.restart();
                     if (wheel.angleDelta.y > 0) {
-                        volUpProc.running = true;
+                        root._pendingCmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "+5%"];
+                        volChangeProc.running = true;
                     } else if (wheel.angleDelta.y < 0) {
-                        volDownProc.running = true;
+                        root._pendingCmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "-5%"];
+                        volChangeProc.running = true;
                     }
                 }
             }
@@ -72,10 +80,14 @@ Item {
                 cursorShape: Qt.PointingHandCursor
                 onClicked: root.togglePanel()
                 onWheel: wheel => {
+                    if (volCooldown.elapsedMs() < 200) return;
+                    volCooldown.restart();
                     if (wheel.angleDelta.y > 0) {
-                        volUpProc.running = true;
+                        root._pendingCmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "+5%"];
+                        volChangeProc.running = true;
                     } else if (wheel.angleDelta.y < 0) {
-                        volDownProc.running = true;
+                        root._pendingCmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "-5%"];
+                        volChangeProc.running = true;
                     }
                 }
             }
@@ -94,8 +106,15 @@ Item {
                 var parts = output.split(" ");
                 if (parts.length >= 2) {
                     var vol = parseInt(parts[0]);
-                    if (!isNaN(vol)) root.volumeLevel = vol;
-                    root.muted = parts[1] === "true";
+                    if (!isNaN(vol)) {
+                        if (vol > 100) {
+                            clampVolProc.running = true;
+                            root._vol = 100;
+                        } else {
+                            root._vol = vol;
+                        }
+                    }
+                    root._muted = parts[1] === "true";
                 }
             }
         }
@@ -118,19 +137,20 @@ Item {
     }
 
     Process {
-        id: volUpProc
-        command: ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "+5%"]
+        id: volChangeProc
+        command: root._pendingCmd
         onRunningChanged: {
             if (!running) refreshTimer.start();
         }
     }
 
     Process {
-        id: volDownProc
-        command: ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "-5%"]
-        onRunningChanged: {
-            if (!running) refreshTimer.start();
-        }
+        id: clampVolProc
+        command: ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "100%"]
+    }
+
+    ElapsedTimer {
+        id: volCooldown
     }
 
     Timer {

@@ -2,5 +2,6 @@ monitors.conf
 workspaces.conf
 lua/monitors.lua
 lua/workspaces.lua
+lua/local.lua
 dms/
 hyprland.conf.backup*

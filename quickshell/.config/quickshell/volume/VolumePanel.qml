@@ -155,12 +155,27 @@ Item {
 
                         Item {
                             id: sinkSlider
-                            property real _dragVal: 0
+                            property real _dragVal: modelData ? modelData.volume / 100 : 0
                             Layout.fillWidth: true
                             implicitHeight: 6
 
+                            Binding on _dragVal {
+                                when: !sinkDragArea.dragging
+                                value: modelData ? modelData.volume / 100 : 0
+                            }
+
                             function modelVol() {
                                 return modelData ? (modelData.volume / 100) : 0;
+                            }
+
+                            function clampVol(x) { return Math.max(0, Math.min(1, x)); }
+
+                            function commitVol() {
+                                var v = sinkSlider._dragVal;
+                                var vol = Math.round(v * 100);
+                                root.pendingCmd = ["pactl", "set-sink-volume", modelData.name, vol + "%"];
+                                root.pendingRefresh = true;
+                                pactlProc.running = true;
                             }
 
                             Rectangle {
@@ -188,23 +203,22 @@ Item {
                                 cursorShape: Qt.PointingHandCursor
                                 property bool dragging: false
 
-                                function clampVol(x) { return Math.max(0, Math.min(1.5, x)); }
-
                                 onPressed: dragging = true
-                                onReleased: dragging = false
 
                                 onPositionChanged: mouse => {
                                     if (dragging) {
                                         sinkSlider._dragVal = clampVol(mouse.x / parent.width);
                                     }
                                 }
+
+                                onReleased: {
+                                    if (dragging) commitVol();
+                                    dragging = false;
+                                }
+
                                 onClicked: mouse => {
-                                    var v = clampVol(mouse.x / parent.width);
-                                    sinkSlider._dragVal = v;
-                                    var vol = Math.round(v * 100);
-                                    root.pendingCmd = ["pactl", "set-sink-volume", modelData.name, vol + "%"];
-                                    root.pendingRefresh = true;
-                                    pactlProc.running = true;
+                                    sinkSlider._dragVal = clampVol(mouse.x / parent.width);
+                                    commitVol();
                                 }
                             }
                         }
@@ -266,7 +280,8 @@ Item {
                         spacing: 8
 
                         AppIcon {
-                            appId: modelData.icon || modelData.application || ""
+                            appId: modelData.application || ""
+                            iconName: modelData.icon || ""
                             fallbackIcon: "audio-x-generic"
                             size: 22
                             Layout.preferredWidth: 22
@@ -316,6 +331,16 @@ Item {
                                 value: modelData ? modelData.volume / 100 : 0
                             }
 
+                            function clampVol(x) { return Math.max(0, Math.min(1, x)); }
+
+                            function commitVol() {
+                                var v = streamSliderDelegate._val;
+                                var vol = Math.round(v * 100);
+                                root.pendingCmd = ["pactl", "set-sink-input-volume", String(modelData.id), vol + "%"];
+                                root.pendingRefresh = true;
+                                pactlProc.running = true;
+                            }
+
                             Rectangle {
                                 anchors.fill: parent
                                 radius: 3
@@ -339,19 +364,21 @@ Item {
                                 property bool dragging: false
 
                                 onPressed: dragging = true
-                                onReleased: dragging = false
 
                                 onPositionChanged: mouse => {
                                     if (dragging) {
-                                        streamSliderDelegate._val = Math.max(0, Math.min(1.5, mouse.x / parent.width));
+                                        streamSliderDelegate._val = clampVol(mouse.x / parent.width);
                                     }
                                 }
+
+                                onReleased: {
+                                    if (dragging) commitVol();
+                                    dragging = false;
+                                }
+
                                 onClicked: mouse => {
-                                    streamSliderDelegate._val = Math.max(0, Math.min(1.5, mouse.x / parent.width));
-                                    var vol = Math.round(streamSliderDelegate._val * 100);
-                                    root.pendingCmd = ["pactl", "set-sink-input-volume", String(modelData.id), vol + "%"];
-                                    root.pendingRefresh = true;
-                                    pactlProc.running = true;
+                                    streamSliderDelegate._val = clampVol(mouse.x / parent.width);
+                                    commitVol();
                                 }
                             }
                         }

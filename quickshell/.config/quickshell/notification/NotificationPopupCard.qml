@@ -176,7 +176,8 @@ Rectangle {
             AppIcon {
                 id: notifIcon
                 anchors.centerIn: parent
-                appId: notifData.appIcon || notifData.desktopEntry || ""
+                appId: notifData.desktopEntry || ""
+                iconName: notifData.appIcon || ""
                 size: 24
                 hideOnMissing: true
             }
