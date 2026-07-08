@@ -167,7 +167,7 @@ hl.window_rule({ match = { class = "^(fcitx)$" }, pseudo = true })
 hl.window_rule({ match = { class = "^()$", title = "^()$" }, no_blur = true })
 
 hl.window_rule({
-  match = { xwayland = true, float = true, title = ".*(drag|Drag).*" },
+  match = { xwayland = true, float = true, title = ".*[Dd]rag([^o].*|$)" },
   no_focus = true,
 })
 
