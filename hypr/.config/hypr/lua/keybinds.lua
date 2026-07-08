@@ -39,6 +39,7 @@ hl.bind(mainMod .. " + S", hl.dsp.exec_cmd("$HOME/.config/hypr/scripts/stremio-f
 
 -- Fullscreen
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" }))
+hl.bind(mainModS .. " + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
 
 -- Focus movement: mainMod + h/j/l (k intentionally omitted)
 local focus_dirs = { h = "left", l = "right", j = "down" }
