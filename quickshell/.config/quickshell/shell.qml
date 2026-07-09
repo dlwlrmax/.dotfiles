@@ -440,7 +440,7 @@ ShellRoot {
         }
 
         Timer {
-            interval: 2000
+            interval: 5000
             running: true
             repeat: true
             triggeredOnStart: true
@@ -488,34 +488,20 @@ ShellRoot {
         }
     }
 
-    Item {
-        id: powerTrigger
-
-        Timer {
-            id: powerPollTimer
-            interval: 1000
-            running: true
-            repeat: true
-            onTriggered: {
-                if (!powerFlagProc.running) powerFlagProc.running = true
+    // Power menu toggle via IPC (replaces 1s file-polling timer)
+    IpcHandler {
+        target: "power"
+        function toggle(): void {
+            if (g.powerPanelOpen) {
+                g.powerPanelOpen = false
+                return
             }
+            g.closeOtherPanels("power")
+            g.powerPanelOpen = true
+            g.activePowerScreen = Quickshell.screens[0]
         }
-
-        Process {
-            id: powerFlagProc
-            command: ["/bin/sh", "-c", "if [ -f /tmp/quickshell-power-toggle ]; then rm /tmp/quickshell-power-toggle; echo 1; else echo 0; fi"]
-            stdout: StdioCollector {
-                id: powerFlagOut
-                onStreamFinished: {
-                    if (powerFlagOut.text.trim() === "1") {
-                        g.powerPanelOpen = !g.powerPanelOpen
-                        if (g.powerPanelOpen) {
-                            g.activePowerScreen = Quickshell.screens[0]
-                            g.closeOtherPanels("power")
-                        }
-                    }
-                }
-            }
+        function close(): void {
+            g.powerPanelOpen = false
         }
     }
 

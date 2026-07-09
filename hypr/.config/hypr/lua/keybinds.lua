@@ -29,7 +29,7 @@ hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("qs ipc call launcher toggle"))
 hl.bind(mainModS .. " + D", hl.dsp.exec_cmd("rofi -show"))
 
 -- Power menu (quickshell)
-hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("touch /tmp/quickshell-power-toggle"))
+hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("qs ipc call power toggle"))
 
 -- Screenshot
 hl.bind(mainModS .. " + S", hl.dsp.exec_cmd('grim -g "$(slurp -d)" - | satty -f - --copy-command wl-copy'))

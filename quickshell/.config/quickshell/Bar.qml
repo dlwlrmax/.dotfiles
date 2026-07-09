@@ -45,7 +45,7 @@ Item {
         horizontalOffset: 0
         verticalOffset: 3
         radius: 5
-        samples: 10
+        samples: 6
         color: "#30000000"
     }
 
