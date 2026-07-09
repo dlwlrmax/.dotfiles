@@ -60,10 +60,11 @@ hl.config({
     },
     layout = "dwindle",
     modal_parent_blocking = true,
+    gaps_out = 10
   },
 
   decoration = {
-    rounding = 10,
+    rounding = 5,
     active_opacity = 1,
     inactive_opacity = 1,
     fullscreen_opacity = 1,

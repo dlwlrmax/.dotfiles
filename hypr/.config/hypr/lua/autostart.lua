@@ -63,8 +63,8 @@ hl.on("hyprland.start", function()
   -- TIER 4: user apps — deferred to keep desktop responsive
   -- ═══════════════════════════════════════════════════════════
   launch(5,  terminal)
-  launch(6,  "zen-browser")
-  launch(15, "google-chrome-stable --disable-features=WaylandWpColorManagerV1")
+  launch(6,  "env MOZ_ENABLE_WAYLAND=1 zen-browser")
+  launch(15, "google-chrome-stable --ozone-platform-hint=auto --enable-features=UseOzonePlatform --disable-features=WaylandWpColorManagerV1")
   launch(60, "ferdium")
   launch(120, "nextcloud --background")
 end)

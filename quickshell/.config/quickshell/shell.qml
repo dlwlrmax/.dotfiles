@@ -676,6 +676,7 @@ ShellRoot {
                 color: "transparent"
                 exclusionMode: ExclusionMode.Ignore
                 implicitHeight: 52
+                visible: volumeOsd.opacity > 0
                 WlrLayershell.layer: WlrLayer.Overlay
                 WlrLayershell.namespace: "quickshell-osd"
                 WlrLayershell.margins.top: 44
