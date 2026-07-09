@@ -46,9 +46,9 @@ Rectangle {
         width: 1
     }
 
-    property real progressValue: autoDismiss && dismissTimeoutMs > 0
-        ? 1.0 - (_elapsed / dismissTimeoutMs) : 0
-    property int _elapsed: 0
+    property bool _dismissing: false
+    property bool _hoverPaused: false
+    property real progressValue: 1.0
 
     width: 400
     height: content.implicitHeight + 16
@@ -82,28 +82,31 @@ Rectangle {
         return months[d.getMonth()] + " " + d.getDate() + " " + hhmm;
     }
 
-    // Countdown timer: 1s interval, pauses on hover, safety resume after 30s
-    Timer {
-        id: dismissTimer
-        interval: 1000
-        running: autoDismiss
-        repeat: true
-        onTriggered: {
-            root._elapsed += 1000
-            if (root._elapsed >= root.dismissTimeoutMs) {
-                dismissTimer.stop()
-                root.requestDismiss()
+    // Smooth countdown progress: NumberAnimation runs at display refresh rate.
+    // Pauses on hover, safety resume after 30s.
+    NumberAnimation on progressValue {
+        id: progressAnim
+        from: 1.0
+        to: 0.0
+        duration: root.dismissTimeoutMs
+        running: autoDismiss && root.dismissTimeoutMs > 0
+        paused: root._hoverPaused
+        onStopped: {
+            if (root.progressValue <= 0.0 && root.autoDismiss && !root._dismissing) {
+                root._dismissing = true
+                root.dismissRequested()
+                root.fadeOut()
             }
         }
     }
 
-    // Safety: force resume timer if stuck paused > 30s (hover missed event)
+    // Safety: force resume animation if stuck paused > 30s (hover missed event)
     Timer {
         id: hoverSafety
         interval: 30000
         onTriggered: {
-            if (!dismissTimer.running && autoDismiss)
-                dismissTimer.running = true
+            if (!progressAnim.running && autoDismiss)
+                root._hoverPaused = false
         }
     }
 
@@ -125,6 +128,9 @@ Rectangle {
     // User/timer-initiated dismiss: broadcast to other screens, then fade
     // this card. Other screens' cards fade via the broadcast handler.
     function requestDismiss() {
+        if (_dismissing) return
+        _dismissing = true
+        progressAnim.stop()
         root.dismissRequested()
         root.fadeOut()
     }
@@ -319,7 +325,7 @@ Rectangle {
         propagateComposedEvents: true
         onContainsMouseChanged: {
             if (!autoDismiss) return
-            dismissTimer.running = !containsMouse
+            root._hoverPaused = containsMouse
             if (containsMouse) hoverSafety.start()
             else hoverSafety.stop()
         }

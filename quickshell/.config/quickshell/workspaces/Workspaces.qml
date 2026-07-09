@@ -16,13 +16,14 @@ Row {
     Repeater {
         model: Hyprland.workspaces
         delegate: Rectangle {
+            id: wsDelegate
             required property var modelData
 
-            visible: modelData.id > 0 && modelData.monitor?.name === monitor?.name
+            visible: wsDelegate.modelData.id > 0 && wsDelegate.modelData.monitor?.name === monitor?.name
             implicitWidth: wsRow.implicitWidth + 20
             implicitHeight: 24
             radius: 15
-            color: modelData.focused || modelData.active ? theme.blue : theme.surface0
+            color: wsDelegate.modelData.focused || wsDelegate.modelData.active ? theme.blue : theme.surface0
 
             Row {
                 id: wsRow
@@ -30,7 +31,7 @@ Row {
                 spacing: 6
 
                 Text {
-                    text:"[ " + modelData.name + " ]"
+                    text: "[ " + wsDelegate.modelData.name + " ]"
                     color: theme.white
                     font.pixelSize: theme.fontSize
                     font.bold: true
@@ -38,10 +39,11 @@ Row {
                 }
 
                 Repeater {
-                    model: modelData.toplevels
+                    model: wsDelegate.modelData.toplevels
                     delegate: AppIcon {
+                        id: topLevelDelegate
                         required property var modelData
-                        appId: modelData.wayland?.appId || ""
+                        appId: topLevelDelegate.modelData.wayland?.appId || ""
                         size: 16
                     }
                 }
@@ -53,7 +55,7 @@ Row {
                 onClicked: {
                     wsSwitch.command = [
                         "/usr/bin/hyprctl", "eval",
-                        "hl.dispatch(hl.dsp.focus({ workspace = " + modelData.id + " }))"
+                        "hl.dispatch(hl.dsp.focus({ workspace = " + wsDelegate.modelData.id + " }))"
                     ];
                     wsSwitch.startDetached();
                 }
