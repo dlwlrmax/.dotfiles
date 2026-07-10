@@ -125,10 +125,12 @@ ShellRoot {
             // so we can tell re-delivered (old) notifs from new ones.
             if (!notifData.timesLoaded) return
 
-            // Skip re-delivered old notifs: if we've seen this content
-            // before (hash in timesByKey), it's a stale restart redelivery.
+            // Skip re-delivered old notifs ONLY during startup grace period.
+            // After 5s, accept all notifications even if content hash was
+            // seen before (e.g. repeated pings, recurring app notifs).
             var key = notifData.notifHash(notif)
-            if (notifData.timesByKey[key] !== undefined) {
+            if (notifData.timesByKey[key] !== undefined
+                && Date.now() - notifData.startupTime < 5000) {
                 notif.tracked = false
                 return
             }
