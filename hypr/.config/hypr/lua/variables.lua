@@ -19,7 +19,7 @@ hl.env("XDG_SESSION_DESKTOP", "Hyprland")
 -- Fcitx 5
 hl.env("GTK_IM_MODULE", "fcitx")
 hl.env("ADW_DISABLE_PORTAL", "1")
-hl.env("GTK_THEME", "adw-gtk3-dark")
+hl.env("GTK_THEME", "Orchis-Dark")
 hl.env("QT_IM_MODULE", "fcitx")
 hl.env("XMODIFIERS", "@im=fcitx")
 hl.env("SDL_IM_MODULE", "fcitx")
