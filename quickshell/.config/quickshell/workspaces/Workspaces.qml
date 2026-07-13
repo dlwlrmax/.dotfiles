@@ -9,8 +9,17 @@ Row {
     required property var monitor
     spacing: 8
 
+    // Guard rapid workspace switching (prevents Process reuse race).
+    property bool _switching: false
+
     Process {
         id: wsSwitch
+    }
+
+    Timer {
+        id: wsGuardTimer
+        interval: 200
+        onTriggered: _switching = false
     }
 
     Repeater {
@@ -53,11 +62,14 @@ Row {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
+                    if (_switching) return
+                    _switching = true
                     wsSwitch.command = [
                         "/usr/bin/hyprctl", "eval",
                         "hl.dispatch(hl.dsp.focus({ workspace = " + wsDelegate.modelData.id + " }))"
                     ];
                     wsSwitch.startDetached();
+                    wsGuardTimer.restart()
                 }
             }
         }

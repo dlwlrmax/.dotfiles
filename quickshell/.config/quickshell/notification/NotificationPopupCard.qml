@@ -130,6 +130,7 @@ Rectangle {
     function requestDismiss() {
         if (_dismissing) return
         _dismissing = true
+        hoverSafety.stop()
         progressAnim.stop()
         root.dismissRequested()
         root.fadeOut()

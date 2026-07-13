@@ -19,7 +19,7 @@ hl.bind(mainMod .. " + M", hl.dsp.exec_cmd("swaync-client -t -sw"))
 -- File manager
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(fileManager))
 
--- Float toggle + center
+-- Float toggle + center (intentional duplicate bind: Hyprland dispatches both in sequence) 
 hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + V", hl.dsp.window.center())
 

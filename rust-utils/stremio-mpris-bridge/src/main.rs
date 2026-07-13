@@ -27,13 +27,13 @@ static STATE: Mutex<State> = Mutex::new(State {
 // ── PulseAudio polling ────────────────────────────────────
 
 fn poll_pulse() -> Option<(String, String)> {
-    let out = Command::new("pactl")
+    let out = Command::new("/usr/bin/pactl")
         .args(["list", "sink-inputs"])
         .output()
         .ok()?;
     let text = String::from_utf8_lossy(&out.stdout);
 
-    let stremio_running = Command::new("pgrep")
+    let stremio_running = Command::new("/usr/bin/pgrep")
         .args(["stremio"])
         .output()
         .map(|o| o.status.success())
@@ -192,17 +192,16 @@ struct MprisPlayer;
 impl MprisPlayer {
     #[zbus(property)]
     fn playback_status(&self) -> String {
-        if STATE.lock().unwrap().playing {
-            "Playing".into()
-        } else {
-            "Stopped".into()
+        match STATE.lock() {
+            Ok(s) if s.playing => "Playing".into(),
+            _ => "Stopped".into(),
         }
     }
 
     #[zbus(property)]
     fn metadata(&self) -> HashMap<String, OwnedValue> {
-        let s = STATE.lock().unwrap();
-        build_metadata(&s.title)
+        let title = STATE.lock().ok().map(|s| s.title.clone()).unwrap_or_default();
+        build_metadata(&title)
     }
 
     #[zbus(property)]
@@ -312,7 +311,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     loop {
         let result = poll_pulse();
         let this_id = result.as_ref().map(|(id, _)| id.clone());
-        let mut state = STATE.lock().unwrap();
+        let mut state = match STATE.lock() {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("[stremio-mpris] Mutex poisoned, skipping cycle: {e}");
+                std::thread::sleep(Duration::from_secs(2));
+                continue;
+            }
+        };
 
         if let Some((_, title)) = &result {
             let changed = *title != state.title || prev_id != this_id;

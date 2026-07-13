@@ -115,10 +115,9 @@ fn main() {
             let tx_prev: u64 = parts[1].parse().unwrap_or(tx_now);
             let time_prev: u128 = parts[2].parse().unwrap_or(now_ns);
 
-            let rx = rx_now.max(rx_prev);
-            let tx = tx_now.max(tx_prev);
-            let rx_diff = rx - rx_prev.min(rx_now);
-            let tx_diff = tx - tx_prev.min(tx_now);
+            // Detect counter reset (e.g. interface re-init): report 0 for this interval.
+            let rx_diff = if rx_now < rx_prev { 0 } else { rx_now - rx_prev };
+            let tx_diff = if tx_now < tx_prev { 0 } else { tx_now - tx_prev };
             let dt = now_ns.saturating_sub(time_prev);
             let secs = if dt > 0 {
                 dt as f64 / 1_000_000_000.0

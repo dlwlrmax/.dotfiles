@@ -11,7 +11,6 @@ struct Stats {
     ram: u64,
     swap: u64,
     gpu: u64,
-    gpu_freq: u64,
     cpu_temp: u64,
 }
 
@@ -97,24 +96,18 @@ fn read_meminfo() -> (u64, u64) {
 
 // ── GPU ───────────────────────────────────────────────────
 
-fn read_gpu() -> (u64, u64) {
+fn read_gpu() -> u64 {
     // Find first Intel GPU with RC6 stats (card0 or card1)
     let gpu_base = |idx: u8| -> Option<String> {
         let p = format!("/sys/class/drm/card{idx}/gt/gt0/rc6_residency_ms");
         fs::metadata(&p).ok().map(|_| format!("/sys/class/drm/card{idx}/gt/gt0"))
     };
     let gt = gpu_base(0).or_else(|| gpu_base(1)).or_else(|| gpu_base(2));
-    let Some(gt) = gt else { return (0, 0) };
+    let Some(gt) = gt else { return 0 };
 
     let rc6_path = format!("{gt}/rc6_residency_ms");
-    let freq_path = format!("{gt}/rps_act_freq_mhz");
 
     let r_cur: u64 = fs::read_to_string(rc6_path)
-        .ok()
-        .and_then(|s| s.trim().parse().ok())
-        .unwrap_or(0);
-
-    let freq: u64 = fs::read_to_string(freq_path)
         .ok()
         .and_then(|s| s.trim().parse().ok())
         .unwrap_or(0);
@@ -144,7 +137,7 @@ fn read_gpu() -> (u64, u64) {
     let delta_rc6 = r_cur.saturating_sub(r_prev);
 
     if elapsed_ms == 0 {
-        return (0, freq);
+        return 0;
     }
 
     let gpu = if delta_rc6 >= elapsed_ms {
@@ -153,7 +146,7 @@ fn read_gpu() -> (u64, u64) {
         100 * (elapsed_ms - delta_rc6) / elapsed_ms
     };
 
-    (gpu, freq)
+    gpu
 }
 
 // ── CPU Temperature ──────────────────────────────────────
@@ -209,7 +202,7 @@ fn read_cpu_temp() -> u64 {
 fn main() {
     let cpu = read_cpu();
     let (ram, swap) = read_meminfo();
-    let (gpu, gpu_freq) = read_gpu();
+    let gpu = read_gpu();
     let cpu_temp = read_cpu_temp();
 
     let stats = Stats {
@@ -217,7 +210,6 @@ fn main() {
         ram,
         swap,
         gpu,
-        gpu_freq,
         cpu_temp,
     };
 

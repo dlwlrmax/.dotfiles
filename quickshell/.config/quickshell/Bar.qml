@@ -163,13 +163,6 @@ Item {
                     onTogglePanel: centerX => bar.toggleKdePanel(centerX)
                 }
 
-                // Battery {
-                //     theme: bar.theme
-                //     Layout.alignment: Qt.AlignVCenter
-                //     dataSource: bar.batteryDataSource
-                //     onTogglePanel: centerX => bar.toggleBatteryPanel(centerX)
-                // }
-
                 IdleInhibitorWidget {
                     theme: bar.theme
                     Layout.alignment: Qt.AlignVCenter
