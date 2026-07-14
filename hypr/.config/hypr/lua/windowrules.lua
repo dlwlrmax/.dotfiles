@@ -189,6 +189,8 @@ hl.window_rule({
   center = true,
 })
 
+hl.window_rule({ match = { content = "game", fullscreen = true }, confine_pointer = true })
+
 -- ──────────────────────────────────────────────
 -- Layer rules
 -- ──────────────────────────────────────────────
