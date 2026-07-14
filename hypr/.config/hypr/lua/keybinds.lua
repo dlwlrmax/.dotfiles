@@ -98,6 +98,9 @@ end
 hl.bind("ALT + Tab", hl.dsp.window.cycle_next())
 hl.bind("ALT + Tab", hl.dsp.window.bring_to_top())
 
+-- Monitor cycle
+hl.bind(mainMod .. " + Tab", hl.dsp.focus({ monitor = "+1" }))
+
 -- Mouse binds for window drag/resize
 hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })

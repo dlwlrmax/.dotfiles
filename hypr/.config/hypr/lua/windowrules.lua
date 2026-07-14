@@ -59,6 +59,10 @@ hl.window_rule({
   workspace = 1,
 })
 hl.window_rule({
+  match = { class = "^(steam)$" },
+  workspace = 1,
+})
+hl.window_rule({
   match = { class = "^(obsidian)$" },
   float = true,
   size = "(monitor_w*0.65) (monitor_h*0.75)",
