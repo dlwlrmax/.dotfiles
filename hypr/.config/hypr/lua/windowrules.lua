@@ -190,7 +190,7 @@ hl.window_rule({
 })
 
 hl.window_rule({ match = { content = "game", fullscreen = true }, confine_pointer = true })
-hl.window_rule({ match = { class = "^(steam_app_.*)$" }, confine_pointer = true })
+hl.window_rule({ match = { class = "^(steam_app_.*)$" }, workspace = 1, confine_pointer = true })
 
 -- ──────────────────────────────────────────────
 -- Layer rules
