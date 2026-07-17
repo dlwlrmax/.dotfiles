@@ -130,15 +130,18 @@ hl.window_rule({
   size = pip_size,
   dim_around = false,
 })
-hl.window_rule({
-  match = { class = "^(stremio-enhanced|com.stremio.Stremio)$" },
-  monitor = "HDMI-A-1",
-  float = true,
-  pin = true,
-  move = pip_position,
-  size = pip_size,
-  dim_around = false,
-})
+
+if not overrides.stremio_normal then
+  hl.window_rule({
+    match = { class = "^(stremio-enhanced|com.stremio.Stremio)$" },
+    monitor = "HDMI-A-1",
+    float = true,
+    pin = true,
+    move = pip_position,
+    size = pip_size,
+    dim_around = false,
+  })
+end
 
 -- Fullscreen border highlight
 hl.window_rule({
