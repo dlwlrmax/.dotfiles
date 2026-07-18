@@ -1,6 +1,9 @@
 local vars = require("lua/variables")
 local terminal = vars.terminal
 
+local ok, local_cfg = pcall(require, "lua/local")
+local overrides = ok and local_cfg or {}
+
 -- Launch one or more commands, optionally with a startup delay.
 -- Each command gets its own delayed subprocess (matches `sleep N && cmd` semantics).
 local function launch(delay, ...)
@@ -67,4 +70,13 @@ hl.on("hyprland.start", function()
   launch(15, "google-chrome-stable --ozone-platform-hint=auto --enable-features=UseOzonePlatform --disable-features=WaylandWpColorManagerV1")
   launch(60, "ferdium")
   launch(120, "nextcloud --background")
+
+  -- ═══════════════════════════════════════════════════════════
+  -- Per-machine extras (defined in gitignored lua/local.lua)
+  -- ═══════════════════════════════════════════════════════════
+  if overrides.extra_autostart then
+    for _, entry in ipairs(overrides.extra_autostart) do
+      launch(entry.delay or 0, entry.cmd)
+    end
+  end
 end)
