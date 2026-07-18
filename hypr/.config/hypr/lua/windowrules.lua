@@ -192,8 +192,14 @@ hl.window_rule({
   center = true,
 })
 
+-- ──────────────────────────────────────────────
+-- Gaming performance rules
+-- ──────────────────────────────────────────────
+local game_classes = "^(steam_app_.*|hl2_linux|cstrike|cs2|witcher3|overwatch|factorio)$"
 hl.window_rule({ match = { content = "game", fullscreen = true }, confine_pointer = true })
-hl.window_rule({ match = { class = "^(steam_app_.*)$" }, workspace = 1, confine_pointer = true })
+hl.window_rule({ match = { class = game_classes }, workspace = 1, confine_pointer = true, immediate = true })
+hl.window_rule({ match = { class = game_classes, fullscreen = true }, immediate = true })
+hl.window_rule({ match = { title = ".*\\.exe" }, immediate = true })
 
 -- ──────────────────────────────────────────────
 -- Layer rules

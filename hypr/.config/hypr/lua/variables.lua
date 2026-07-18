@@ -49,6 +49,9 @@ hl.env("TERMINAL", "ghostty")
 hl.env("OZONE_PLATFORM", "wayland")
 hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
 
+-- Gaming
+hl.env("SDL_VIDEODRIVER", "wayland")
+
 hl.config({
   general = {
     border_size = 3,
@@ -58,7 +61,8 @@ hl.config({
     },
     layout = "dwindle",
     modal_parent_blocking = true,
-    gaps_out = 10
+    gaps_out = 10,
+    allow_tearing = true,
   },
 
   decoration = {
