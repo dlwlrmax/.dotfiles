@@ -7,3 +7,4 @@ pnpm-lock.yaml
 ~/
 *.pem
 .tmp
+__pycache__/

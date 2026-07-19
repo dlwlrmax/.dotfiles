@@ -6,6 +6,9 @@ M.terminal    = "ghostty"
 M.mainMod     = "SUPER"
 M.mainModS    = M.mainMod .. " + SHIFT"
 M.fileManager = "Thunar"
+M.mainMonitor   = "DP-2"       -- primary / center
+M.secondMonitor = "HDMI-A-1"   -- secondary / left or right
+M.thirdMonitor  = "DP-1"       -- tertiary / portrait (set to nil if only 2 monitors)
 
 -- Env vars, general, decoration, input, misc, xwayland, cursor
 

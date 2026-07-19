@@ -1,6 +1,7 @@
 -- ──────────────────────────────────────────────
 -- Workspace assignments
 -- ──────────────────────────────────────────────
+local vars = require("lua/variables")
 local ok, local_cfg = pcall(require, "lua/local")
 local overrides = ok and local_cfg or {}
 local ws = {
@@ -197,9 +198,18 @@ hl.window_rule({
 -- ──────────────────────────────────────────────
 local game_classes = "^(steam_app_.*|hl2_linux|cstrike|cs2|witcher3|overwatch|factorio)$"
 hl.window_rule({ match = { content = "game", fullscreen = true }, confine_pointer = true })
-hl.window_rule({ match = { class = game_classes }, workspace = 1, confine_pointer = true, immediate = true })
+hl.window_rule({ match = { class = game_classes }, workspace = 1, monitor = vars.mainMonitor, confine_pointer = true, immediate = true })
 hl.window_rule({ match = { class = game_classes, fullscreen = true }, immediate = true })
 hl.window_rule({ match = { title = ".*\\.exe" }, immediate = true })
+
+-- Palworld explicit rule to prevent it from spawning on portrait/secondary monitors
+hl.window_rule({
+  match = { class = "steam_app_1623730" },
+  workspace = 1,
+  monitor = vars.mainMonitor,
+  immediate = true,
+  confine_pointer = true,
+})
 
 -- ──────────────────────────────────────────────
 -- Layer rules

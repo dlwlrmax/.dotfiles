@@ -1,0 +1,14 @@
+[Unit]
+Description=Custom fan-curve daemon for CPU and case fans
+After=multi-user.target systemd-modules-load.service
+
+[Service]
+Type=simple
+Environment=PYTHONUNBUFFERED=1
+ExecStartPre=/usr/local/bin/fancontrol-curve --check
+ExecStart=/usr/local/bin/fancontrol-curve
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
