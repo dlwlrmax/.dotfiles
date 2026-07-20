@@ -12,7 +12,7 @@ local ws = {
   { pat = "^(Postman|yaak-app|bruno)$", id = 6 },
   { pat = "^(Spotify)$", id = 7 },
   { pat = "^(zen-beta|zen|com.mitchellh.ghostty)$", id = 10 },
-  { pat = "^(com.mitchellh.ghostty)$", id = overrides.zen_ws or 10 },
+  { pat = "^(com.mitchellh.ghostty)$", id = overrides.terminal_ws or 10 },
 }
 for _, v in ipairs(ws) do
   hl.window_rule({ match = { class = v.pat }, workspace = v.id })
@@ -62,6 +62,7 @@ hl.window_rule({
 hl.window_rule({
   match = { class = "^(steam)$" },
   workspace = 1,
+  center = true,
 })
 hl.window_rule({
   match = { class = "^(obsidian)$" },
@@ -112,11 +113,13 @@ hl.window_rule({
 })
 
 -- ──────────────────────────────────────────────
--- Picture-in-Picture (pinned float on HDMI-A-1)
+-- Picture-in-Picture (pinned float on second monitor)
 -- ──────────────────────────────────────────────
+local pip_monitor = overrides.secondMonitor or "HDMI-A-1"
+
 hl.window_rule({
   match = { class = "mpv" },
-  monitor = "HDMI-A-1",
+  monitor = pip_monitor,
   float = true,
   pin = true,
   move = pip_position,
@@ -124,7 +127,7 @@ hl.window_rule({
 })
 hl.window_rule({
   match = { title = "(?i)picture.*picture" },
-  monitor = "HDMI-A-1",
+  monitor = pip_monitor,
   float = true,
   pin = true,
   move = pip_position,
@@ -135,7 +138,7 @@ hl.window_rule({
 if not overrides.stremio_normal then
   hl.window_rule({
     match = { class = "^(stremio-enhanced|com.stremio.Stremio)$" },
-    monitor = "HDMI-A-1",
+    monitor = pip_monitor,
     float = true,
     pin = true,
     move = pip_position,
