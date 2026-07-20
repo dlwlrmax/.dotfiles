@@ -12,7 +12,7 @@ while IFS= read -r sink_name; do
 
     sink_data=$(pactl list sinks | awk -v sn="$sink_name" '
         BEGIN { found=0; desc=""; vol=0; mute="false" }
-        $0 ~ "Name: " sn { found=1 }
+        index($0, "Name: " sn) { found=1 }
         found && /Description:/ {
             sub(/^[[:space:]]*Description: /, "");
             desc=$0; gsub(/"/, "\\\"", desc)
@@ -25,6 +25,7 @@ while IFS= read -r sink_name; do
             mute=($2=="yes" ? "true" : "false")
         }
         found && /^$/ { print desc"|"vol"|"mute; exit }
+        END { if (found) print desc"|"vol"|"mute }
     ')
 
     [ -z "$sink_data" ] && continue
@@ -35,7 +36,7 @@ while IFS= read -r sink_name; do
     [ "$first" = false ] && echo -n ','
     first=false
     echo -n "{\"name\":\"$sink_name\",\"description\":\"$desc\",\"volume\":${vol:-0},\"muted\":$mute,\"default\":$is_default}"
-done < <(pactl list sinks short | awk '{print $2}')
+done < <(pactl list sinks short | awk '{print $2}' | grep "^alsa_output\.")
 
 echo -n '],"streams":['
 

@@ -24,6 +24,14 @@ Item {
     implicitHeight: row.implicitHeight
     Layout.alignment: Qt.AlignVCenter
 
+    function refreshState() {
+        if (root.dataSource) {
+            root.dataSource.refresh()
+        } else {
+            if (!volProc.running) volProc.running = true
+        }
+    }
+
     RowLayout {
         id: row
         anchors.fill: parent
@@ -46,16 +54,27 @@ Item {
             MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
-                onClicked: toggleMuteProc.running = true
+                onClicked: {
+                    if (!root.dataSource) root._muted = !root._muted
+                    toggleMuteProc.running = true
+                }
                 onWheel: wheel => {
-                    if (volCooldown.elapsedMs() < 200) return;
-                    volCooldown.restart();
+                    if (volCooldown.elapsedMs() < 30) return
+                    volCooldown.restart()
                     if (wheel.angleDelta.y > 0) {
-                        root._pendingCmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "+5%"];
-                        volChangeProc.running = true;
+                        if (!root.dataSource) {
+                            root._vol = Math.min(100, root._vol + 5)
+                            root._muted = false
+                        }
+                        root._pendingCmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "+5%"]
+                        volChangeProc.running = true
                     } else if (wheel.angleDelta.y < 0) {
-                        root._pendingCmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "-5%"];
-                        volChangeProc.running = true;
+                        if (!root.dataSource) {
+                            root._vol = Math.max(0, root._vol - 5)
+                            root._muted = false
+                        }
+                        root._pendingCmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "-5%"]
+                        volChangeProc.running = true
                     }
                 }
             }
@@ -80,14 +99,22 @@ Item {
                 cursorShape: Qt.PointingHandCursor
                 onClicked: root.togglePanel()
                 onWheel: wheel => {
-                    if (volCooldown.elapsedMs() < 200) return;
-                    volCooldown.restart();
+                    if (volCooldown.elapsedMs() < 30) return
+                    volCooldown.restart()
                     if (wheel.angleDelta.y > 0) {
-                        root._pendingCmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "+5%"];
-                        volChangeProc.running = true;
+                        if (!root.dataSource) {
+                            root._vol = Math.min(100, root._vol + 5)
+                            root._muted = false
+                        }
+                        root._pendingCmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "+5%"]
+                        volChangeProc.running = true
                     } else if (wheel.angleDelta.y < 0) {
-                        root._pendingCmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "-5%"];
-                        volChangeProc.running = true;
+                        if (!root.dataSource) {
+                            root._vol = Math.max(0, root._vol - 5)
+                            root._muted = false
+                        }
+                        root._pendingCmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "-5%"]
+                        volChangeProc.running = true
                     }
                 }
             }
@@ -102,37 +129,39 @@ Item {
         stdout: StdioCollector {
             onStreamFinished: {
                 if (root.dataSource) return
-                var output = this.text.trim();
-                var parts = output.split(" ");
+                var output = this.text.trim()
+                var parts = output.split(" ")
                 if (parts.length >= 2) {
-                    var vol = parseInt(parts[0]);
+                    var vol = parseInt(parts[0])
                     if (!isNaN(vol)) {
                         if (vol > 100) {
-                            clampVolProc.running = true;
-                            root._vol = 100;
+                            clampVolProc.running = true
+                            root._vol = 100
                         } else {
-                            root._vol = vol;
+                            root._vol = vol
                         }
                     }
-                    root._muted = parts[1] === "true";
+                    root._muted = parts[1] === "true"
                 }
             }
         }
     }
 
     Timer {
-        interval: 2000
+        interval: 500
         running: !root.dataSource
         repeat: true
         triggeredOnStart: true
-        onTriggered: volProc.running = true
+        onTriggered: {
+            if (!volProc.running) volProc.running = true
+        }
     }
 
     Process {
         id: toggleMuteProc
         command: ["pactl", "set-sink-mute", "@DEFAULT_SINK@", "toggle"]
         onRunningChanged: {
-            if (!running) refreshTimer.start();
+            if (!running) root.refreshState()
         }
     }
 
@@ -140,7 +169,7 @@ Item {
         id: volChangeProc
         command: root._pendingCmd
         onRunningChanged: {
-            if (!running) refreshTimer.start();
+            if (!running) root.refreshState()
         }
     }
 
@@ -151,19 +180,5 @@ Item {
 
     ElapsedTimer {
         id: volCooldown
-    }
-
-    Timer {
-        id: refreshTimer
-        interval: 100
-        running: false
-        repeat: false
-        onTriggered: {
-            if (root.dataSource) {
-                root.dataSource.refresh()
-            } else {
-                volProc.running = true
-            }
-        }
     }
 }

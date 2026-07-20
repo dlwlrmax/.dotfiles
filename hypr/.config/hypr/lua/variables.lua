@@ -66,6 +66,8 @@ hl.config({
     modal_parent_blocking = true,
     gaps_out = 10,
     allow_tearing = true,
+    no_focus_fallback = true,
+    resize_on_border = true,
   },
 
   decoration = {

@@ -30,7 +30,6 @@ Item {
         border.color: theme.surface0
         border.width: 2
 
-        // mask top border
         Rectangle {
             anchors.top: parent.top
             anchors.left: parent.left
@@ -203,28 +202,40 @@ Item {
                                 cursorShape: Qt.PointingHandCursor
                                 property bool dragging: false
 
-                                onPressed: dragging = true
+                                onPressed: mouse => {
+                                    sinkSlider._dragVal = clampVol(mouse.x / parent.width)
+                                    dragging = true
+                                }
 
                                 onPositionChanged: mouse => {
                                     if (dragging) {
-                                        sinkSlider._dragVal = clampVol(mouse.x / parent.width);
+                                        sinkSlider._dragVal = clampVol(mouse.x / parent.width)
+                                        sinkDragTimer.restart()
                                     }
                                 }
 
                                 onReleased: {
-                                    if (dragging) commitVol();
-                                    dragging = false;
+                                    sinkDragTimer.stop()
+                                    if (dragging) sinkSlider.commitVol()
+                                    dragging = false
                                 }
 
                                 onClicked: mouse => {
-                                    sinkSlider._dragVal = clampVol(mouse.x / parent.width);
-                                    commitVol();
+                                    sinkSlider._dragVal = clampVol(mouse.x / parent.width)
+                                    sinkSlider.commitVol()
                                 }
+                            }
+
+                            Timer {
+                                id: sinkDragTimer
+                                interval: 80
+                                repeat: false
+                                onTriggered: sinkSlider.commitVol()
                             }
                         }
 
                         Text {
-                            text: modelData ? modelData.volume + "%" : "0%"
+                            text: (sinkDragArea.dragging ? Math.round(sinkSlider._dragVal * 100) : (modelData ? modelData.volume : 0)) + "%"
                             color: modelData && modelData.muted ? theme.surface1 : theme.subtext0
                             font.pixelSize: theme.fontSize - 1
                             font.family: theme.font
@@ -363,28 +374,40 @@ Item {
                                 cursorShape: Qt.PointingHandCursor
                                 property bool dragging: false
 
-                                onPressed: dragging = true
+                                onPressed: mouse => {
+                                    streamSliderDelegate._val = clampVol(mouse.x / parent.width)
+                                    dragging = true
+                                }
 
                                 onPositionChanged: mouse => {
                                     if (dragging) {
-                                        streamSliderDelegate._val = clampVol(mouse.x / parent.width);
+                                        streamSliderDelegate._val = clampVol(mouse.x / parent.width)
+                                        streamDragTimer.restart()
                                     }
                                 }
 
                                 onReleased: {
-                                    if (dragging) commitVol();
-                                    dragging = false;
+                                    streamDragTimer.stop()
+                                    if (dragging) streamSliderDelegate.commitVol()
+                                    dragging = false
                                 }
 
                                 onClicked: mouse => {
-                                    streamSliderDelegate._val = clampVol(mouse.x / parent.width);
-                                    commitVol();
+                                    streamSliderDelegate._val = clampVol(mouse.x / parent.width)
+                                    streamSliderDelegate.commitVol()
                                 }
+                            }
+
+                            Timer {
+                                id: streamDragTimer
+                                interval: 80
+                                repeat: false
+                                onTriggered: streamSliderDelegate.commitVol()
                             }
                         }
 
                         Text {
-                            text: modelData ? modelData.volume + "%" : "0%"
+                            text: (streamDragArea.dragging ? Math.round(streamSliderDelegate._val * 100) : (modelData ? modelData.volume : 0)) + "%"
                             color: modelData && modelData.muted ? theme.surface1 : theme.subtext0
                             font.pixelSize: theme.fontSize - 1
                             font.family: theme.font
@@ -411,8 +434,8 @@ Item {
         command: root.pendingCmd
         onRunningChanged: {
             if (!running && root.pendingRefresh) {
-                root.pendingRefresh = false;
-                fetchProc.running = true;
+                root.pendingRefresh = false
+                if (!fetchProc.running) fetchProc.running = true
             }
         }
     }
@@ -435,10 +458,12 @@ Item {
     }
 
     Timer {
-        interval: 1000
+        interval: 300
         running: root.active && !fetchProc.running
         repeat: true
         triggeredOnStart: true
-        onTriggered: fetchProc.running = true
+        onTriggered: {
+            if (!fetchProc.running) fetchProc.running = true;
+        }
     }
 }
