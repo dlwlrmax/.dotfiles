@@ -52,7 +52,7 @@ Item {
     Rectangle {
         id: barRect
         anchors.fill: parent
-        color: theme.color
+        color: Qt.rgba(30 / 255, 30 / 255, 46 / 255, 0.6)
         radius: 12
 
         RowLayout {

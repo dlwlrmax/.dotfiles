@@ -28,5 +28,5 @@ QtObject {
     readonly property int fontSize: 12
     readonly property string font: "JetBrainsMono Nerd Font Mono"
 
-    readonly property string color: Qt.rgba(30 / 255, 30 / 255, 46 / 255, 1.0)
+    readonly property color color: Qt.rgba(30 / 255, 30 / 255, 46 / 255, 0.95)
 }
