@@ -61,7 +61,7 @@ hl.window_rule({
 })
 hl.window_rule({
   match = { class = "^(steam)$" },
-  workspace = 1,
+  workspace = 4,
   center = true,
 })
 hl.window_rule({
@@ -204,15 +204,6 @@ hl.window_rule({ match = { content = "game", fullscreen = true }, confine_pointe
 hl.window_rule({ match = { class = game_classes }, workspace = 1, monitor = vars.mainMonitor, confine_pointer = true, immediate = true })
 hl.window_rule({ match = { class = game_classes, fullscreen = true }, immediate = true })
 hl.window_rule({ match = { title = ".*\\.exe" }, immediate = true })
-
--- Palworld explicit rule to prevent it from spawning on portrait/secondary monitors
-hl.window_rule({
-  match = { class = "steam_app_1623730" },
-  workspace = 1,
-  monitor = vars.mainMonitor,
-  immediate = true,
-  confine_pointer = true,
-})
 
 -- ──────────────────────────────────────────────
 -- Layer rules
