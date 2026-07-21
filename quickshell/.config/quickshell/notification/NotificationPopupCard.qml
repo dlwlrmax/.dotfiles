@@ -8,10 +8,10 @@ Rectangle {
     property Theme theme: Theme {}
     property var notifData: ({})
     property var notifTimes: ({})
-    // Critical (urgency=2) never auto-closes; user must dismiss manually.
-    // expireTimeout: <0 = server default, 0 = never expire, >0 = seconds.
+    // Only critical (urgency=2) notifications require manual dismiss.
+    // All others auto-close, even if the server sent expireTimeout=0
+    // (KDE sometimes sends 0 for popups like calls that never arrive a close signal).
     property bool autoDismiss: notifData.urgency !== 2
-                              && !(notifData.expireTimeout === 0)
     property int dismissTimeoutMs: {
         if (notifData.expireTimeout > 0) return notifData.expireTimeout;
         var u = notifData.urgency || 1;
@@ -49,6 +49,7 @@ Rectangle {
     property bool _dismissing: false
     property bool _hoverPaused: false
     property real progressValue: 1.0
+    property real _hoverElapsedBeforePause: 0
 
     width: 400
     height: content.implicitHeight + 16
@@ -82,32 +83,48 @@ Rectangle {
         return months[d.getMonth()] + " " + d.getDate() + " " + hhmm;
     }
 
-    // Smooth countdown progress: NumberAnimation runs at display refresh rate.
-    // Pauses on hover, safety resume after 30s.
+    // Auto-dismiss timer — reliable trigger (Timer > NumberAnimation.onStopped)
+    Timer {
+        id: dismissTimer
+        interval: root.dismissTimeoutMs
+        running: false
+        repeat: false
+        onTriggered: {
+            if (root._dismissing) return
+            root._dismissing = true
+            root.dismissRequested()
+            root.fadeOut()
+        }
+    }
+
+    // Smooth countdown progress (visual only — dismissTimer handles the actual close)
     NumberAnimation on progressValue {
         id: progressAnim
         from: 1.0
         to: 0.0
         duration: root.dismissTimeoutMs
-        running: autoDismiss && root.dismissTimeoutMs > 0
+        running: autoDismiss && root.dismissTimeoutMs > 0 && !root._dismissing
         paused: root._hoverPaused
-        onStopped: {
-            if (root.progressValue <= 0.0 && root.autoDismiss && !root._dismissing) {
-                root._dismissing = true
-                root.dismissRequested()
-                root.fadeOut()
-            }
-        }
     }
 
-    // Safety: force resume animation if stuck paused > 30s (hover missed event)
+    // Safety: force-resume auto-dismiss if stuck > 30s (hover missed leave event)
     Timer {
         id: hoverSafety
         interval: 30000
         onTriggered: {
-            if (!progressAnim.running && autoDismiss)
+            if (!dismissTimer.running && autoDismiss && !root._dismissing) {
                 root._hoverPaused = false
+                var remaining = root.dismissTimeoutMs * root.progressValue
+                dismissTimer.interval = Math.max(100, remaining)
+                dismissTimer.start()
+            }
         }
+    }
+
+    // Start the dismiss timer when card is ready
+    Component.onCompleted: {
+        if (autoDismiss && root.dismissTimeoutMs > 0)
+            dismissTimer.start()
     }
 
     // Fade in on appear
@@ -130,6 +147,7 @@ Rectangle {
     function requestDismiss() {
         if (_dismissing) return
         _dismissing = true
+        dismissTimer.stop()
         hoverSafety.stop()
         progressAnim.stop()
         root.dismissRequested()
@@ -327,8 +345,20 @@ Rectangle {
         onContainsMouseChanged: {
             if (!autoDismiss) return
             root._hoverPaused = containsMouse
-            if (containsMouse) hoverSafety.start()
-            else hoverSafety.stop()
+            if (containsMouse) {
+                // Pause: record elapsed time so we can resume correctly
+                root._hoverElapsedBeforePause = root.dismissTimeoutMs * (1 - root.progressValue)
+                dismissTimer.stop()
+                hoverSafety.start()
+            } else {
+                // Resume with remaining time
+                var remaining = root.dismissTimeoutMs - root._hoverElapsedBeforePause
+                if (remaining > 0) {
+                    dismissTimer.interval = Math.max(100, remaining)
+                    dismissTimer.start()
+                }
+                hoverSafety.stop()
+            }
         }
     }
 }
