@@ -207,9 +207,17 @@ hl.window_rule({
   monitor = vars.mainMonitor,
   confine_pointer = true,
   immediate = true,
+  center = true,
 })
 hl.window_rule({ match = { class = game_classes, fullscreen = true }, immediate = true })
-hl.window_rule({ match = { class = "steam_app_default", fullscreen = false, float = true } })
+hl.window_rule({
+  match = { class = "steam_app_default" },
+  fullscreen = false,
+  float = true,
+  confine_pointer = false,
+  immediate = true,
+  center = true,
+})
 
 -- ──────────────────────────────────────────────
 -- Layer rules
