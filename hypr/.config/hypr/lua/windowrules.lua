@@ -199,11 +199,17 @@ hl.window_rule({
 -- ──────────────────────────────────────────────
 -- Gaming performance rules
 -- ──────────────────────────────────────────────
-local game_classes = "^(steam_app_.*|hl2_linux|cstrike|cs2|witcher3|overwatch|factorio)$"
+local game_classes = "^(steam_app_.*)$"
 hl.window_rule({ match = { content = "game", fullscreen = true }, confine_pointer = true })
-hl.window_rule({ match = { class = game_classes }, workspace = 1, monitor = vars.mainMonitor, confine_pointer = true, immediate = true })
+hl.window_rule({
+  match = { class = game_classes },
+  workspace = 1,
+  monitor = vars.mainMonitor,
+  confine_pointer = true,
+  immediate = true,
+})
 hl.window_rule({ match = { class = game_classes, fullscreen = true }, immediate = true })
-hl.window_rule({ match = { title = ".*\\.exe" }, immediate = true })
+hl.window_rule({ match = { class = "steam_app_default", fullscreen = false, float = true } })
 
 -- ──────────────────────────────────────────────
 -- Layer rules

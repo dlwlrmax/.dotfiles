@@ -59,7 +59,7 @@ Item {
                     toggleMuteProc.running = true
                 }
                 onWheel: wheel => {
-                    if (volCooldown.elapsedMs() < 30) return
+                    if (volCooldown.elapsedMs() < 100) return
                     volCooldown.restart()
                     if (wheel.angleDelta.y > 0) {
                         if (!root.dataSource) {
@@ -99,7 +99,7 @@ Item {
                 cursorShape: Qt.PointingHandCursor
                 onClicked: root.togglePanel()
                 onWheel: wheel => {
-                    if (volCooldown.elapsedMs() < 30) return
+                    if (volCooldown.elapsedMs() < 100) return
                     volCooldown.restart()
                     if (wheel.angleDelta.y > 0) {
                         if (!root.dataSource) {
