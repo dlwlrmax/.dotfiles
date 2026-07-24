@@ -28,6 +28,7 @@ Item {
     signal toggleWeatherPanel()
     signal toggleCalendarPanel()
     signal toggleSysUsagePanel()
+    signal toggleNetPanel()
     signal toggleKdePanel(int centerX)
     signal toggleBatteryPanel(int centerX)
     property alias weatherWidget: barWeather
@@ -128,6 +129,7 @@ Item {
                 theme: bar.theme
                 Layout.alignment: Qt.AlignVCenter
                 dataSource: bar.netDataSource
+                onTogglePanel: bar.toggleNetPanel()
             }
 
             Separator {

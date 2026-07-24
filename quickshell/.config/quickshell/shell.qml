@@ -12,6 +12,7 @@ import qs.volume
 import qs.weather
 import qs.calendar
 import qs.sysusage
+import qs.netspeed
 import qs.power
 import qs.battery
 import qs.kdeconnect  // KDEConnect.qml, KDEConnectPanel.qml
@@ -43,6 +44,8 @@ ShellRoot {
         property bool batteryPanelOpen: false
         property var activeBatteryScreen: null
         property int batteryWidgetCenterX: 0
+        property bool netPanelOpen: false
+        property var activeNetScreen: null
         property bool kdePanelOpen: false
         property var activeKdeScreen: null
         property int kdeWidgetCenterX: 0
@@ -61,6 +64,7 @@ ShellRoot {
             { name: "sysUsage", prop: "sysUsagePanelOpen" },
             { name: "power",    prop: "powerPanelOpen" },
             { name: "battery",  prop: "batteryPanelOpen" },
+            { name: "net",      prop: "netPanelOpen" },
             { name: "kde",      prop: "kdePanelOpen" },
             { name: "launcher", prop: "launcherPanelOpen" },
             { name: "clipboard",prop: "clipboardPanelOpen" }
@@ -189,6 +193,11 @@ ShellRoot {
                         g.closeOtherPanels("sysUsage")
                         g.sysUsagePanelOpen = !g.sysUsagePanelOpen
                         if (g.sysUsagePanelOpen) g.activeSysUsageScreen = screenScope.screenData
+                    }
+                    onToggleNetPanel: {
+                        g.closeOtherPanels("net")
+                        g.netPanelOpen = !g.netPanelOpen
+                        if (g.netPanelOpen) g.activeNetScreen = screenScope.screenData
                     }
                     onToggleKdePanel: centerX => {
                         g.closeOtherPanels("kde")
@@ -351,6 +360,20 @@ ShellRoot {
                     anchors.fill: parent
                     active: g.sysUsagePanelOpen && g.activeSysUsageScreen === screenScope.screenData
                     onClose: g.sysUsagePanelOpen = false
+                }
+            }
+
+            PanelOverlay {
+                screen: screenScope.screenData
+                active: g.netPanelOpen && g.activeNetScreen === screenScope.screenData
+                onCloseRequested: g.netPanelOpen = false
+                topMargin: 44
+
+                NetPanel {
+                    anchors.fill: parent
+                    active: g.netPanelOpen && g.activeNetScreen === screenScope.screenData
+                    dataSource: dp.netData
+                    onClose: g.netPanelOpen = false
                 }
             }
 

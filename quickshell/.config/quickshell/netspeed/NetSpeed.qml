@@ -4,58 +4,75 @@ import Quickshell
 import Quickshell.Io
 import qs.common
 
-Column {
+Item {
     id: root
     property Theme theme: Theme {}
     property var dataSource: null
     property string dlText: dataSource ? dataSource.dlText : "--"
     property string ulText: dataSource ? dataSource.ulText : "--"
-    spacing: 0
-    width: 50
+    signal togglePanel()
 
+    implicitWidth: col.implicitWidth
+    implicitHeight: col.implicitHeight
     Layout.alignment: Qt.AlignVCenter
 
-    RowLayout {
-        spacing: 2
-        width: parent.width
+    Column {
+        id: col
+        spacing: 0
+        width: 50
 
-        Text {
-            text: ""
-            color: root.theme.subtext0
-            font.pixelSize: root.theme.fontSize
-            font.weight: Font.Medium
+        RowLayout {
+            spacing: 2
+            width: parent.width
+
+            Text {
+                text: ""
+                color: root.theme.subtext0
+                font.pixelSize: root.theme.fontSize
+                font.weight: Font.Medium
+            }
+
+            Text {
+                text: root.dlText
+                color: root.theme.subtext0
+                font.pixelSize: root.theme.fontSize - 2
+                font.weight: Font.Medium
+                horizontalAlignment: Text.AlignRight
+                elide: Text.ElideRight
+                Layout.fillWidth: true
+            }
         }
 
-        Text {
-            text: root.dlText
-            color: root.theme.subtext0
-            font.pixelSize: root.theme.fontSize - 2
-            font.weight: Font.Medium
-            horizontalAlignment: Text.AlignRight
-            elide: Text.ElideRight
-            Layout.fillWidth: true
+        RowLayout {
+            spacing: 2
+            width: parent.width
+
+            Text {
+                text: ""
+                color: root.theme.subtext0
+                font.pixelSize: root.theme.fontSize
+                font.weight: Font.Medium
+            }
+
+            Text {
+                text: root.ulText
+                color: root.theme.subtext0
+                font.pixelSize: root.theme.fontSize - 2
+                font.weight: Font.Medium
+                horizontalAlignment: Text.AlignRight
+                elide: Text.ElideRight
+                Layout.fillWidth: true
+            }
         }
     }
 
-    RowLayout {
-        spacing: 2
-        width: parent.width
-
-        Text {
-            text: ""
-            color: root.theme.subtext0
-            font.pixelSize: root.theme.fontSize
-            font.weight: Font.Medium
-        }
-
-        Text {
-            text: root.ulText
-            color: root.theme.subtext0
-            font.pixelSize: root.theme.fontSize - 2
-            font.weight: Font.Medium
-            horizontalAlignment: Text.AlignRight
-            elide: Text.ElideRight
-            Layout.fillWidth: true
+    MouseArea {
+        anchors.fill: parent
+        cursorShape: Qt.PointingHandCursor
+        onClicked: mouse => {
+            if (mouse.button === Qt.LeftButton) {
+                root.togglePanel()
+            }
         }
     }
 
