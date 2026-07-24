@@ -41,16 +41,6 @@ Item {
         { id: "mullvad",    label: "Mullvad",    primary: "194.242.2.2", secondary: "194.242.2.3" }
     ]
 
-    function isProviderActive(provider) {
-        if (!currentDns || currentDns.length === 0) return false
-        for (var i = 0; i < currentDns.length; i++) {
-            var ip = currentDns[i].split(':')[0].split('#')[0]
-            if (ip === provider.primary || ip === provider.secondary)
-                return true
-        }
-        return false
-    }
-
     clip: true
     implicitWidth: 420
     implicitHeight: 640
@@ -183,9 +173,17 @@ Item {
                 model: root.dnsProviders
 
                 delegate: Item {
-                    // capture modelData before Repeater scope changes
                     property var provider: modelData
-                    property bool active: root.isProviderActive(provider)
+                    // Inline check — QML binding engine must see currentDns directly
+                    property bool active: {
+                        var dns = root.currentDns
+                        for (var i = 0; i < dns.length; i++) {
+                            var ip = dns[i].split(':')[0].split('#')[0]
+                            if (ip === provider.primary || ip === provider.secondary)
+                                return true
+                        }
+                        return false
+                    }
 
                     width: labelText.implicitWidth + 16
                     height: labelText.implicitHeight + 8
@@ -219,20 +217,18 @@ Item {
                             dnsSetProc.running = true
                         }
                     }
-
-                    // Feedback indicator
-                    Text {
-                        anchors.bottom: parent.bottom
-                        anchors.right: parent.right
-                        anchors.margins: 3
-                        text: root.dnsAppliedLabel === modelData.label ? root.dnsFeedback : ""
-                        color: root.dnsFeedback === "✓ Applied" ? theme.green : theme.red
-                        font.pixelSize: theme.fontSize - 3
-                        font.family: theme.font
-                        visible: root.dnsAppliedLabel === modelData.label && root.dnsFeedback !== ""
-                    }
                 }
             }
+        }
+
+        // DNS apply feedback (single line, no overlap)
+        Text {
+            text: root.dnsFeedback ? (root.dnsFeedback + " — " + root.dnsAppliedLabel) : ""
+            color: root.dnsFeedback === "✓ Applied" ? theme.green : theme.red
+            font.pixelSize: theme.fontSize - 1
+            font.family: theme.font
+            visible: root.dnsFeedback !== ""
+            Layout.fillWidth: true
         }
 
         Rectangle {
