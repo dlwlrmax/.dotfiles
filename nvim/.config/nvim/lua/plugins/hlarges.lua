@@ -1,5 +1,6 @@
 return {
   "m-demare/hlargs.nvim",
+  event = "LspAttach",
   config = function()
     local hlargs = require("hlargs")
     hlargs.setup({

@@ -13,7 +13,8 @@ vim.g.lazyvim_php_lsp = "intelephense"
 
 vim.diagnostic.config({ float = { border = "rounded" } })
 
--- Disable swapfile
+-- Performance
 vim.opt.swapfile = false
+vim.opt.updatetime = 250
 
 vim.o.winborder = 'rounded'
