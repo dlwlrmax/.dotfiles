@@ -94,7 +94,7 @@ Item {
     // Fallback poll when no shared dataSource
     Process {
         id: kdProc
-        command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh"]
+        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh"]
         running: !root.dataSource
 
         stdout: StdioCollector {

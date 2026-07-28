@@ -78,7 +78,7 @@ Item {
 
     Process {
         id: netProc
-        command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/netspeed.sh"]
+        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/netspeed.sh"]
         running: !root.dataSource
 
         stdout: StdioCollector {

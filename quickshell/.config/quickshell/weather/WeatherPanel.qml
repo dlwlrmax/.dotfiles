@@ -341,12 +341,16 @@ Item {
 
     Process {
         id: fetchProc
-        command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/weather-detail.sh"]
+        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/weather-detail.sh"]
 
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
-                    root.weatherData = JSON.parse(this.text)
+                    var data = JSON.parse(this.text)
+                    // Only update on valid data — keep last good value on failure
+                    if (data.temp && data.temp !== "--") {
+                        root.weatherData = data
+                    }
                 } catch (e) {
                     console.log("Failed to parse weather:", e)
                 }

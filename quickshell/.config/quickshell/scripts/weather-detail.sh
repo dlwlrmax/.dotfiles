@@ -1,5 +1,14 @@
 #!/bin/bash
-LOCATION="${WEATHER_LOCATION:-Hanoi}"
+# Resolve location: env var > config file > error
+LOCATION="${WEATHER_LOCATION:-}"
+if [[ -z "$LOCATION" ]] && [[ -f "$HOME/.config/quickshell/weather-location" ]]; then
+    LOCATION=$(head -1 "$HOME/.config/quickshell/weather-location")
+fi
+if [[ -z "$LOCATION" ]]; then
+    echo "󰅛 Set WEATHER_LOCATION or ~/.config/quickshell/weather-location" >&2
+    echo '{"icon":"","temp":"--","feelsLike":"--","humidity":"--","wind":"--","windDir":"","condition":"Set location","location":"","country":"","sunrise":"","sunset":"","pressure":"","uvIndex":"","visibility":"","cloudcover":"","precipMM":"","hourly":[],"daily":[]}'
+    exit 0
+fi
 LOCATION_ENCODED="${LOCATION// /%20}"
 
 geo=$(curl -s --max-time 5 "https://geocoding-api.open-meteo.com/v1/search?name=${LOCATION_ENCODED}&count=1&language=en&format=json")
@@ -52,8 +61,8 @@ def fmtiso:
 
 {
     icon: (.current.weather_code | wmoicon),
-    temp: (.current.temperature_2m | tostring),
-    feelsLike: (.current.apparent_temperature | tostring),
+    temp: (.current.temperature_2m | round | tostring),
+    feelsLike: (.current.apparent_temperature | round | tostring),
     humidity: (.current.relative_humidity_2m | tostring),
     wind: (.current.wind_speed_10m | tostring),
     windDir: (.current.wind_direction_10m | deg2dir),
@@ -69,14 +78,14 @@ def fmtiso:
     precipMM: (.current.precipitation | tostring),
     hourly: [(.hourly as $h | $h.time | to_entries[] | {
         time: (.value[11:16]),
-        temp: ($h.temperature_2m[.key] | tostring),
+        temp: ($h.temperature_2m[.key] | round | tostring),
         chanceofrain: ($h.precipitation_probability[.key] // 0 | tostring),
         windspeed: ($h.wind_speed_10m[.key] | tostring)
     })],
     daily: [(.daily as $d | $d.time | to_entries[] | {
         date: .value,
-        maxTemp: ($d.temperature_2m_max[.key] | tostring),
-        minTemp: ($d.temperature_2m_min[.key] | tostring),
+        maxTemp: ($d.temperature_2m_max[.key] | round | tostring),
+        minTemp: ($d.temperature_2m_min[.key] | round | tostring),
         condition: ($d.weather_code[.key] | wmoicon),
         chanceofrain: ($d.precipitation_probability_max[.key] // 0 | tostring)
     })]

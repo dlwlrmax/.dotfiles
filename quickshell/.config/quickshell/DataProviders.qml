@@ -26,7 +26,7 @@ Item {
 
         Process {
             id: fetchProc
-            command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh"]
+            command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh"]
 
             stdout: StdioCollector {
                 onStreamFinished: {
@@ -223,7 +223,7 @@ Item {
             var json = JSON.stringify(savedNotifs)
             var dir = storagePath.substring(0, storagePath.lastIndexOf("/"))
             saveProc.command = [
-                "/bin/sh", "-c",
+                "sh", "-c",
                 "mkdir -p \"$1\" && printf '%s' \"$2\" > \"$3\"",
                 "_", dir, json, storagePath
             ]
@@ -231,13 +231,13 @@ Item {
         }
 
         function loadSaved() {
-            loadProc.command = ["/bin/cat", storagePath]
+            loadProc.command = ["cat", storagePath]
             loadProc.running = true
         }
 
         Process {
             id: soundProc
-            command: ["paplay", Quickshell.env("HOME") + "/Nextcloud/Sounds/notification.wav"]
+            command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/notification-sound.sh"]
         }
 
         function tryPlaySound() {
@@ -260,7 +260,7 @@ Item {
 
         Process {
             id: sysFetchProc
-            command: [Quickshell.env("HOME") + "/.cargo/bin/sys-stats"]
+            command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/sys-data.sh"]
 
             stdout: StdioCollector {
                 onStreamFinished: {
@@ -296,7 +296,7 @@ Item {
 
         Process {
             id: netFetchProc
-            command: [Quickshell.env("HOME") + "/.cargo/bin/net-stats"]
+            command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/net-data.sh"]
 
             stdout: StdioCollector {
                 onStreamFinished: {
@@ -331,7 +331,7 @@ Item {
     Item {
         id: weatherData
         property string weatherIcon: ""
-        property string weatherText: "--"
+        property string weatherText: ""
 
         function refresh() {
             if (!weatherFetchProc.running) weatherFetchProc.running = true;
@@ -339,13 +339,15 @@ Item {
 
         Process {
             id: weatherFetchProc
-            command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/weather.sh"]
+            command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/weather.sh"]
 
             stdout: StdioCollector {
                 onStreamFinished: {
                     var output = this.text.trim();
-                    if (output) {
-                        var outputs = output.split(/\s+/);
+                    if (!output) return;
+                    var outputs = output.split(/\s+/);
+                    // Only update on valid data — stale value beats "--" for 30 min
+                    if (outputs.length >= 2 && outputs[1] !== "--") {
                         weatherData.weatherIcon = outputs[0];
                         weatherData.weatherText = outputs[1];
                     }
@@ -377,7 +379,7 @@ Item {
 
         Process {
             id: volumeFetchProc
-            command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/volume-status.sh"]
+            command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/volume-status.sh"]
 
             stdout: StdioCollector {
                 onStreamFinished: {
@@ -412,7 +414,7 @@ Item {
 
         Process {
             id: batteryFetchProc
-            command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/battery.sh"]
+            command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/battery.sh"]
 
             stdout: StdioCollector {
                 onStreamFinished: {

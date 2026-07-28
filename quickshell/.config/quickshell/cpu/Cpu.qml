@@ -111,7 +111,7 @@ Item {
 
     Process {
         id: cpuProc
-        command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/cpu-usage.sh"]
+        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/cpu-usage.sh"]
         running: !root.dataSource
 
         stdout: StdioCollector {
@@ -128,7 +128,7 @@ Item {
 
     Process {
         id: memProc
-        command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/mem-usage.sh"]
+        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/mem-usage.sh"]
         running: !root.dataSource
 
         stdout: StdioCollector {
@@ -149,7 +149,7 @@ Item {
 
     Process {
         id: gpuProc
-        command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/gpu-usage.sh"]
+        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/gpu-usage.sh"]
         running: !root.dataSource
 
         stdout: StdioCollector {

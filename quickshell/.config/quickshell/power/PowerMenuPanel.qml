@@ -299,7 +299,7 @@ Item {
 
     Process {
         id: actionProc
-        command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/power-actions.sh", pendingAction]
+        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/power-actions.sh", pendingAction]
         onRunningChanged: {
             if (!running && pendingAction) {
                 pendingAction = ""

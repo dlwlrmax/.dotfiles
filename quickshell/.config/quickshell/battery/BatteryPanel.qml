@@ -227,7 +227,7 @@ Item {
 
     Process {
         id: fetchProc
-        command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/battery-all.sh"]
+        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/battery-all.sh"]
 
         stdout: StdioCollector {
             onStreamFinished: {

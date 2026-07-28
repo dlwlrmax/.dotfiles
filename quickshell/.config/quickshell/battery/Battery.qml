@@ -45,7 +45,7 @@ Item {
 
     Process {
         id: battProc
-        command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/battery.sh"]
+        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/battery.sh"]
         running: !root.dataSource
 
         stdout: StdioCollector {

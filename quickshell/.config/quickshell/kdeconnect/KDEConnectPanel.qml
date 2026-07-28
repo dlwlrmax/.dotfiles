@@ -534,7 +534,7 @@ Item {
         function dismiss(devId, nid) {
             deviceId = devId
             notifId = nid
-            command = ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh",
+            command = ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh",
                 "dismiss", devId, nid]
             running = true
         }
@@ -563,7 +563,7 @@ Item {
     // Fetch devices (fallback when no shared dataSource)
     Process {
         id: fetchProc
-        command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh"]
+        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh"]
 
         stdout: StdioCollector {
             onStreamFinished: {

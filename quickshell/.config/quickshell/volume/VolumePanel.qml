@@ -442,7 +442,7 @@ Item {
 
     Process {
         id: fetchProc
-        command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/volume-streams.sh"]
+        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/volume-streams.sh"]
 
         stdout: StdioCollector {
             onStreamFinished: {

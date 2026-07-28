@@ -28,7 +28,7 @@ Item {
     // ── DNS apply feedback ──
     property string dnsFeedback: ""
     property string dnsAppliedLabel: ""
-    property string dnsBin: Quickshell.env("HOME") + "/.cargo/bin/net-panel"
+    property string dnsBin: Quickshell.env("HOME") + "/.config/quickshell/scripts/net-panel.sh"
 
     // ── Hardcoded DNS providers ──
     property var dnsProviders: [

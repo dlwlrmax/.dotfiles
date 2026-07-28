@@ -8,8 +8,12 @@ Item {
     id: root
     property Theme theme: Theme {}
     property var dataSource: null
-    property string weatherText: dataSource ? dataSource.weatherText : "--"
-    property string weatherIcon: dataSource ? dataSource.weatherIcon : ""
+    property string _rawText: dataSource ? dataSource.weatherText : ""
+    property string weatherText: _rawText && _rawText !== "--" ? _rawText : ""
+    property string weatherIcon: {
+        var ico = dataSource ? dataSource.weatherIcon : ""
+        return ico || "\uF0C2"  //  cloud fallback
+    }
     signal togglePanel()
 
     function refresh() {
@@ -40,8 +44,9 @@ Item {
             id: textText
             text: root.weatherText
             color: theme.subtext0
-            font.pixelSize: theme.fontSize - 1
+            font.pixelSize: theme.fontSize
             font.weight: Font.Medium
+            font.family: theme.font
             Layout.alignment: Qt.AlignVCenter
         }
     }
@@ -58,17 +63,22 @@ Item {
 
     Process {
         id: weatherProc
-        command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/weather.sh"]
+        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/weather.sh"]
         running: !root.dataSource
 
         stdout: StdioCollector {
             onStreamFinished: {
                 if (root.dataSource) return
                 var output = this.text.trim();
-                if (output) {
-                    const outputs = output.split(/\s+/);
+                if (!output) return;
+                const outputs = output.split(/\s+/);
+                if (outputs.length >= 2 && outputs[1] !== "--") {
                     root.weatherIcon = outputs[0];
                     root.weatherText = outputs[1]
+                } else if (outputs.length >= 1 && outputs[0]) {
+                    // Show fallback icon on load failure
+                    root.weatherIcon = "\uF0C2"
+                    root.weatherText = ""
                 }
             }
         }

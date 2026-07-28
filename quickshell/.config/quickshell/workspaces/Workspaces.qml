@@ -65,7 +65,7 @@ Row {
                     if (_switching) return
                     _switching = true
                     wsSwitch.command = [
-                        "/usr/bin/hyprctl", "eval",
+                        "hyprctl", "eval",
                         "hl.dispatch(hl.dsp.focus({ workspace = " + wsDelegate.modelData.id + " }))"
                     ];
                     wsSwitch.startDetached();

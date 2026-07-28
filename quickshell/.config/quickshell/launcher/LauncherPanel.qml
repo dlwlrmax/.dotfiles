@@ -35,7 +35,7 @@ Item {
 
     Process {
         id: loadProc
-        command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/desktop-entries.sh"]
+        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/desktop-entries.sh"]
 
         stdout: StdioCollector {
             onStreamFinished: {

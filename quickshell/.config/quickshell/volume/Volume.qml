@@ -123,7 +123,7 @@ Item {
 
     Process {
         id: volProc
-        command: ["/bin/bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/volume-status.sh"]
+        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/volume-status.sh"]
         running: !root.dataSource
 
         stdout: StdioCollector {

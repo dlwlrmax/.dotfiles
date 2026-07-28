@@ -1,5 +1,14 @@
 #!/bin/bash
-LOCATION="${WEATHER_LOCATION:-Hanoi}"
+# Resolve location: env var > config file > error
+LOCATION="${WEATHER_LOCATION:-}"
+if [[ -z "$LOCATION" ]] && [[ -f "$HOME/.config/quickshell/weather-location" ]]; then
+    LOCATION=$(head -1 "$HOME/.config/quickshell/weather-location")
+fi
+if [[ -z "$LOCATION" ]]; then
+    echo "󰅛 Set WEATHER_LOCATION or ~/.config/quickshell/weather-location" >&2
+    echo "󰅛 --"
+    exit 0
+fi
 LOCATION_ENCODED="${LOCATION// /%20}"
 
 geo=$(curl -s --max-time 5 "https://geocoding-api.open-meteo.com/v1/search?name=${LOCATION_ENCODED}&count=1&language=en&format=json")
@@ -12,7 +21,7 @@ if [[ -z "$lat" ]]; then
 fi
 
 data=$(curl -s --max-time 5 "https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto")
-temp=$(echo "$data" | jq -r '.current.temperature_2m // empty')
+temp=$(echo "$data" | jq -r '(.current.temperature_2m // empty) | round')
 code=$(echo "$data" | jq -r '.current.weather_code // empty')
 
 if [[ -z "$temp" ]]; then
