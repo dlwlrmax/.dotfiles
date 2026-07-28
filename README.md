@@ -1,91 +1,144 @@
 # .dotfiles
 
-## Hyprland Dependencies
+Personal dotfiles for Arch Linux with Hyprland (Wayland). Managed with GNU Stow.
+
+## Structure
+
+| Directory | Tool |
+|---|---|
+| `fish/` | Shell (fisher, tide prompt, fzf.fish) |
+| `hypr/` | Hyprland compositor, window rules, keybinds |
+| `waybar/` | Status bar (catppuccin theme, media, weather) |
+| `rofi/` | App launcher (catppuccin themes) |
+| `swaync/` | Notification center |
+| `dunst/` | Notification daemon (fallback) |
+| `kitty/` | Terminal emulator (primary) |
+| `ghostty/` | Terminal emulator |
+| `alacritty/` | Terminal emulator |
+| `wezterm/` | Terminal emulator |
+| `tmux/` | Terminal multiplexer |
+| `zellij/` | Terminal multiplexer |
+| `nvim/` | Neovim (LazyVim-based) |
+| `mpv/` | Media player (anime upscaling shaders) |
+| `yazi/` | Terminal file manager |
+| `gitui/` | Git TUI |
+| `fzf-git/` | fzf git integration |
+| `fcitx5/` | Input method (ibus-compat) |
+| `wireplumber/` | Audio session manager |
+| `gtk-3.0/`, `gtk-4.0/` | GTK theming |
+| `qt6ct/` | Qt6 theming |
+| `xdg-desktop-portal/` | Portal config for Hyprland |
+| `docker-config/` | Docker Compose dev stack (nginx, php) |
+| `traefik/` | Reverse proxy |
+| `portainer/` | Docker management UI |
+| `systemd/` | User services (fan control) |
+| `scripts/` | Utility scripts |
+| `fonts/` | Fontconfig |
+| `wallpapers/` | Wallpaper collection |
+| `mako/` | Notification daemon (legacy) |
+| `stremio/` | Stremio mpv config |
+| `laravel-config/` | Laravel dev settings |
+| `rust-utils/` | Rust CLI tools |
+
+## Dependencies
+
 ```bash
-swaybg waypaper-git waybar-hyprland swaync-git qt6-wayland xdg-desktop-portal-hyprland flameshot stow xdg-desktop-portal-gtk grim slurp copyq swaylock-effects
+# Base
+sudo pacman -S stow git base-devel cmake
+
+# AUR helper
+sudo pacman -S --needed git base-devel
+git clone https://aur.archlinux.org/paru.git /tmp/paru
+cd /tmp/paru && makepkg -si
+
+# Hyprland + ecosystem
+paru -S hyprland swaybg waybar-hyprland swaync qt6-wayland \
+  xdg-desktop-portal-hyprland xdg-desktop-portal-gtk \
+  grim slurp wl-clipboard nwg-look nwg-displays
+
+# Terminal
+paru -S kitty ghostty alacritty tmux zellij fish fisher
+
+# Shell tools
+paru -S fzf fd ripgrep bat eza zoxide btop fastfetch
+
+# Neovim
+paru -S neovim python3.10-venv
+
+# Media / files
+paru -S mpv mpv-mpris yazi gitui
+
+# Dev
+paru -S go php nodejs docker docker-compose traefik
+
+# Input / audio
+paru -S fcitx5 fcitx5-gtk fcitx5-qt wireplumber
+
+# Theming
+paru -S gtk3 gtk4 qt6ct
 ```
 
-## Zsh
-
-### Install Oh-my-zsh
+## Installation
 
 ```bash
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+git clone https://github.com/kienct/.dotfiles ~/.dotfiles
+cd ~/.dotfiles
+
+# Stow configs (use only what you need)
+stow -t ~ fish hypr waybar rofi swaync          # core desktop
+stow -t ~ kitty ghostty tmux nvim yazi gitui    # terminal + dev
+stow -t ~ gtk-3.0 gtk-4.0 qt6ct                # theming
+stow -t ~ docker-config traefik portainer       # containers
 ```
 
-### Install Plugin
-1. Clone zsh-autosuggestions
+For configs that target paths outside `~/.config`, use explicit target:
+
 ```bash
-git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
-```
-2. Clone fast-syntax-highlighting
-```bash
-git clone https://github.com/zdharma-continuum/fast-syntax-highlighting.git \ ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/fast-syntax-highlighting
+stow -t /etc/traefik traefik
 ```
 
-3. zsh-history-substring-search
+## Fish Shell
+
 ```bash
-git clone https://github.com/zsh-users/zsh-history-substring-search ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-history-substring-search
+# Install fisher plugin manager
+curl -sL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source && fisher install jorgebucaran/fisher
+
+# Plugins used (auto-installed via fish config)
+fisher install patrickf1/fzf.fish
+fisher install ilancosman/tide@v6
+fisher install jorgebucaran/autopair.fish
+fisher install meaningful-ooo/sponge
+fisher install franciscolourenco/done
+fisher install nickeb96/puffer-fish
 ```
-
-4. MichaelAquilina/zsh-auto-notify
-```bash
-git clone https://github.com/MichaelAquilina/zsh-auto-notify.git $ZSH_CUSTOM/plugins/auto-notify
-```
-
-5. zsh-users/zsh-completions.git
-```bash
-git clone https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions
-```
-
-6. Powers10k
-```bash
-git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
-```
-
-7. fzf-zsh-plugin
-```bash
-git clone --depth 1 https://github.com/unixorn/fzf-zsh-plugin.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-zsh-plugin
-```
-```bash
-git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-~/.fzf/install```
-
-
 
 ## Tmux
+
 ```bash
 git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-    yay libtmu
+# Inside tmux: prefix + I to install plugins
 ```
+
+Plugins: tmux-sensible, tmux-fzf, tmux-fingers, tmux-pain-control, tmux-yank, tmux-prefix-highlight, tmux-nerd-font-window-name, tmux.nvim, tmux-autoreload.
 
 ## Neovim
-Dependencies
+
+Uses [LazyVim](https://www.lazyvim.org/). Custom plugins and keymaps in `nvim/.config/nvim/lua/`.
+
+First launch runs LazyVim bootstrap automatically.
+
+## Docker
 
 ```bash
-cmake ripgrep fzf fd python3.10-venv
-```
-## Rate-mirrors
-```bash
-rate-mirrors --allow-root --protocol https endeavouros | sudo tee /etc/pacman.d/mirrorlist
-```
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER
+# Re-login for group to take effect
 
-## Clipboard
-```bash
-export DISPLAY="$(grep nameserver /etc/resolv.conf | sed 's/nameserver //'):0"
-```
-
-## Config
-
-```bash
-yay -S nwg-look nwg-display
+# Start dev stack
+cd ~/.dotfiles/docker-config/base
+docker compose up -d
 ```
 
+## License
 
-## ueberzug
-```bash
-sudo pacman -S ueberzug openslide
-
-## phpbrew
-```bash
- phpbrew install 8.3.19 +default +mysql +sqlite +mb +iconv +openssl
+MIT
