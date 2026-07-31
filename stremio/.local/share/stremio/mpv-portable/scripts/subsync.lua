@@ -18,6 +18,9 @@ local options = {
     -- Auto-sync on file load (disabled by default)
     auto_sync = false,
 
+    -- Auto-load previously synced subtitles for this video on file open
+    auto_load = true,
+
     -- Temp directory for downloaded subtitles
     temp_dir = "/tmp/stremio-subs",
 }
@@ -75,9 +78,19 @@ local function get_video_ref()
     return mp.get_property("path")
 end
 
--- Generate unique temp filename for subtitle
-local function make_temp_sub_path()
-    return options.temp_dir .. "/subsync_" .. os.time() .. ".srt"
+-- Deterministic hash of a string (djb2) for per-video sub file naming
+local function hash_string(str)
+    local hash = 5381
+    for i = 1, #str do
+        hash = (hash * 33 + str:byte(i)) % 0x7fffffff
+    end
+    return string.format("%08x", hash)
+end
+
+-- Synced sub path is deterministic per video ref, so the same movie
+-- always maps to the same file (overwritten on resync).
+local function make_temp_sub_path(video_ref)
+    return options.temp_dir .. "/subsync_" .. hash_string(video_ref) .. ".srt"
 end
 
 -- Run ffsubsync
@@ -158,7 +171,7 @@ local function download_and_sync(video_ref, url)
 
     ensure_temp_dir()
 
-    local output_path = make_temp_sub_path()
+    local output_path = make_temp_sub_path(video_ref)
 
     mp.msg.info("[DEBUG] Starting download to: " .. output_path)
 
@@ -239,8 +252,34 @@ local function sync_subtitles()
     end
 end
 
+-- Auto-load previously synced subtitles for the current video
+local function auto_load_synced_sub()
+    if not options.auto_load then return end
+
+    local video_ref = get_video_ref()
+    if not video_ref then return end
+
+    local synced_path = make_temp_sub_path(video_ref)
+    local f = io.open(synced_path, "r")
+    if not f then
+        return -- no synced subtitles for this video yet
+    end
+    f:close()
+
+    mp.msg.info("Auto-loading synced subtitles: " .. synced_path)
+    mp.commandv("sub-add", synced_path)
+    show_osd("Loaded synced subtitles", options.osd_duration)
+end
+
 -- Register keybinding
 mp.add_key_binding("n", "subsync", sync_subtitles)
+
+-- Auto-load synced subtitles when a video opens
+if options.auto_load then
+    mp.register_event("file-loaded", function()
+        mp.add_timeout(2, auto_load_synced_sub)
+    end)
+end
 
 -- Optional: auto-sync on file load
 if options.auto_sync then
