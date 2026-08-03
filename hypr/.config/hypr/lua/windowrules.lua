@@ -219,6 +219,11 @@ hl.window_rule({
   center = true,
 })
 
+hl.window_rule({
+  match = { class = "steam", title = "Steam" },
+  float = false,
+})
+
 -- ──────────────────────────────────────────────
 -- Layer rules
 -- ──────────────────────────────────────────────
