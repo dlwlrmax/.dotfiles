@@ -124,6 +124,7 @@ hl.window_rule({
   pin = true,
   move = pip_position,
   size = pip_size,
+  no_blur = true,
 })
 hl.window_rule({
   match = { title = "(?i)picture.*picture" },
@@ -133,6 +134,8 @@ hl.window_rule({
   move = pip_position,
   size = pip_size,
   dim_around = false,
+  no_blur = true,
+  no_shadow = true,
 })
 
 if not overrides.stremio_normal then
@@ -144,6 +147,7 @@ if not overrides.stremio_normal then
     move = pip_position,
     size = pip_size,
     dim_around = false,
+    no_blur = true,
   })
 end
 
@@ -208,8 +212,9 @@ hl.window_rule({
   confine_pointer = true,
   immediate = true,
   center = true,
+  no_blur = true,
+  no_shadow = true,
 })
-hl.window_rule({ match = { class = game_classes, fullscreen = true }, immediate = true })
 hl.window_rule({
   match = { class = "steam_app_default" },
   fullscreen = false,

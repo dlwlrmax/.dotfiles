@@ -1,2 +1,3 @@
 [MIME Cache]
 x-scheme-handler/stremio=stremio-enhanced.desktop;
+x-scheme-handler/tabularis=tabularis-handler.desktop;
