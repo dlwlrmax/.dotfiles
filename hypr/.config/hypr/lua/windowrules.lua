@@ -215,6 +215,16 @@ hl.window_rule({
   no_blur = true,
   no_shadow = true,
 })
+
+hl.window_rule({
+  match = { class = "gamescope" },
+  workspace = 1,
+  monitor = vars.mainMonitor,
+  confine_pointer = true,
+  immediate = true,
+  center = true,
+})
+
 hl.window_rule({
   match = { class = "steam_app_default" },
   fullscreen = false,
