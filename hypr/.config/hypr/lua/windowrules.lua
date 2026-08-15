@@ -60,7 +60,7 @@ hl.window_rule({
   workspace = 1,
 })
 hl.window_rule({
-  match = { class = "^(steam)$" },
+  match = { class = "^(steam|net.lutris.Lutris)$" },
   workspace = 4,
   center = true,
 })
@@ -228,7 +228,7 @@ hl.window_rule({
 })
 
 hl.window_rule({
-  match = { class = "steam_app_default" },
+  match = { class = "steam" },
   fullscreen = false,
   float = true,
   confine_pointer = false,
