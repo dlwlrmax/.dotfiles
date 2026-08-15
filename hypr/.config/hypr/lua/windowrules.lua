@@ -211,6 +211,7 @@ hl.window_rule({
   monitor = vars.mainMonitor,
   confine_pointer = true,
   immediate = true,
+  fullscreen = true,
   center = true,
   no_blur = true,
   no_shadow = true,
@@ -222,6 +223,7 @@ hl.window_rule({
   monitor = vars.mainMonitor,
   confine_pointer = true,
   immediate = true,
+  fullscreen = true,
   center = true,
 })
 
