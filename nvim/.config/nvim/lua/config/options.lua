@@ -16,5 +16,7 @@ vim.diagnostic.config({ float = { border = "rounded" } })
 -- Performance
 vim.opt.swapfile = false
 vim.opt.updatetime = 250
+-- PERF: trim ShaDa (default '100,<50,s10 grew to ~150KB, ~15ms read at startup)
+vim.opt.shada = "!,'50,<30,s5,h"
 
 vim.o.winborder = 'rounded'

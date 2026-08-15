@@ -10,6 +10,11 @@ return {
         preset = "default",
         ["<C-o>"] = { "select_and_accept" },
         ["<Tab>"] = { "fallback" },
+        ["<C-Space>"] = {
+          function()
+            require("blink.cmp").show({ providers = { "ripgrep" } })
+          end,
+        },
       }
       local completion = {
         menu = {
@@ -85,7 +90,9 @@ return {
           },
         },
       })
-      opts.sources.default = vim.list_extend(opts.sources.default or {}, { "ripgrep", "datword" })
+      -- ripgrep not in default sources: avoids spawning `rg` on every
+      -- completion keystroke. Trigger manually with <C-Space> (keymap above).
+      opts.sources.default = vim.list_extend(opts.sources.default or {}, { "datword" })
       opts.cmdline = vim.tbl_deep_extend("force", opts.cmdline or {}, cmdline)
     end,
   },

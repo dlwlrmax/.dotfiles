@@ -45,6 +45,11 @@ return {
           "--no-interactivity",
           "%filepath",
         },
+        -- Only run when project has phpstan config; avoids spawning
+        -- phpstan on every BufReadPost/InsertLeave for plain PHP files
+        condition = function(ctx)
+          return vim.fs.find({ "phpstan.neon", "phpstan.neon.dist" }, { path = ctx.filename, upward = true })[1]
+        end,
       },
     },
   },

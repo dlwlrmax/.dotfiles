@@ -30,7 +30,9 @@ return {
           CodeiumSuggestion = { fg = colors.overlay0 },
         }
       end,
-      auto_integrations = true,
+      -- PERF: skip plugin-integration detection at startup; LazyVim styles
+      -- most plugin highlights itself (saves ~7ms + detect_integrations work)
+      auto_integrations = false,
     },
   },
 }
