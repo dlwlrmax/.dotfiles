@@ -83,9 +83,24 @@ else
     swap_used_mb=0
 fi
 
+# --- CPU temperature (millidegrees → °C) ---
+cpu_temp=0
+for hw in /sys/class/hwmon/hwmon*; do
+    label=$(cat "$hw/temp1_label" 2>/dev/null || true)
+    case "$label" in
+        *[Cc]pu*|*[Pp]ackage*|*[Tt]ctl*|*[Tt]die*|*[Cc]ore*)
+            cpu_temp=$(( $(cat "$hw/temp1_input" 2>/dev/null || echo 0) / 1000 ))
+            break
+            ;;
+    esac
+done
+if [ "$cpu_temp" -eq 0 ] && [ -r /sys/class/thermal/thermal_zone0/temp ]; then
+    cpu_temp=$(( $(cat /sys/class/thermal/thermal_zone0/temp) / 1000 ))
+fi
+
 # --- JSON output ---
-printf '{"cpu":%d,"gpu":%d,"gpu_freq":%d,"ram":%d,"ram_total":%d,"ram_used":%d,"swap":%d,"swap_total":%d,"swap_used":%d' \
-    "$cpu" "$gpu" "$gpu_freq" "$ram" "$ram_total_mb" "$ram_used_mb" "$swap" "$swap_total_mb" "$swap_used_mb"
+printf '{"cpu":%d,"gpu":%d,"gpu_freq":%d,"ram":%d,"ram_total":%d,"ram_used":%d,"swap":%d,"swap_total":%d,"swap_used":%d,"cpu_temp":%d' \
+    "$cpu" "$gpu" "$gpu_freq" "$ram" "$ram_total_mb" "$ram_used_mb" "$swap" "$swap_total_mb" "$swap_used_mb" "$cpu_temp"
 
 # --- Top 10 CPU processes ---
 echo -n ',"top_processes":['

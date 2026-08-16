@@ -27,6 +27,7 @@ Item {
     property int swapTotalMb: 0
     property int swapUsedMb: 0
     property int gpuFreq: 0
+    property int cpuTemp: 0
     property var topProcesses: []
 
     // ── min / max over ring buffer ──
@@ -285,6 +286,17 @@ Item {
                                 font.family: theme.font
                                 horizontalAlignment: Text.AlignRight
                                 Layout.alignment: Qt.AlignRight
+                            }
+                            Text {
+                                text: root.cpuTemp > 0
+                                      ? (root.cpuTemp > 85 ? " " : root.cpuTemp > 70 ? " " : root.cpuTemp > 50 ? " " : " ") + root.cpuTemp + "°C"
+                                      : ""
+                                color: root.cpuTemp > 85 ? theme.red : root.cpuTemp > 70 ? theme.peach : root.cpuTemp > 50 ? theme.yellow : theme.green
+                                font.pixelSize: theme.fontSize - 2
+                                font.family: theme.font
+                                horizontalAlignment: Text.AlignRight
+                                Layout.alignment: Qt.AlignRight
+                                visible: root.cpuTemp > 0
                             }
                         }
                     }
@@ -612,6 +624,7 @@ Item {
                     if (typeof data.swap_total === "number") root.swapTotalMb = data.swap_total
                     if (typeof data.swap_used === "number") root.swapUsedMb = data.swap_used
                     if (typeof data.gpu_freq === "number") root.gpuFreq = data.gpu_freq
+                    if (typeof data.cpu_temp === "number") root.cpuTemp = data.cpu_temp
                     if (Array.isArray(data.top_processes)) root.topProcesses = data.top_processes
 
                     root.pushHistory("cpuHistory", root.cpuPct)

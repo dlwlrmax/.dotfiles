@@ -103,7 +103,18 @@ fn read_gpu() -> u64 {
         fs::metadata(&p).ok().map(|_| format!("/sys/class/drm/card{idx}/gt/gt0"))
     };
     let gt = gpu_base(0).or_else(|| gpu_base(1)).or_else(|| gpu_base(2));
-    let Some(gt) = gt else { return 0 };
+    let Some(gt) = gt else {
+        // AMD fallback: read gpu_busy_percent directly
+        for idx in 0..3 {
+            let busy_path = format!("/sys/class/drm/card{idx}/device/gpu_busy_percent");
+            if let Ok(busy) = fs::read_to_string(&busy_path) {
+                if let Ok(pct) = busy.trim().parse::<u64>() {
+                    return pct.min(100);
+                }
+            }
+        }
+        return 0;
+    };
 
     let rc6_path = format!("{gt}/rc6_residency_ms");
 

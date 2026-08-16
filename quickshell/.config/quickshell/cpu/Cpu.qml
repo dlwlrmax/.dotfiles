@@ -41,11 +41,20 @@ Item {
 
             Text {
                 text: root.cpuTemp > 0 ? root.cpuTemp + "°" : ""
-                color: root.cpuTemp > 85 ? theme.red : root.cpuTemp > 70 ? theme.yellow : theme.subtext0
+                color: root.cpuTemp > 85 ? theme.red : root.cpuTemp > 70 ? theme.peach : root.cpuTemp > 50 ? theme.yellow : theme.green
                 font.pixelSize: theme.fontSize - 1
                 font.weight: Font.Medium
                 font.family: theme.font
-                visible: false
+                visible: root.cpuTemp > 0
+            }
+
+            Text {
+                text: root.cpuTemp > 85 ? "" : root.cpuTemp > 70 ? "" : root.cpuTemp > 50 ? "" : ""
+                color: root.cpuTemp > 85 ? theme.red : root.cpuTemp > 70 ? theme.peach : root.cpuTemp > 50 ? theme.yellow : theme.green
+                font.pixelSize: theme.fontSize - 1
+                font.weight: Font.Medium
+                font.family: theme.font
+                visible: root.cpuTemp > 0
             }
 
             Text {
