@@ -4,6 +4,7 @@ return {
     dependencies = {
       "xieyonn/blink-cmp-dat-word",
       { "mikavilpas/blink-ripgrep.nvim", version = "*" },
+      { "RicardoRamirezR/blade-nav.nvim", ft = { "blade", "php" } },
     },
     opts = function(_, opts)
       local keymap = {
@@ -88,11 +89,19 @@ return {
             max_items = 20,
             opts = {},
           },
+          ["blade-nav"] = {
+            name = "Blade-nav",
+            module = "blade-nav.integrations.blink",
+            score_offset = 0,
+            opts = {
+              close_tag_on_complete = true,
+            },
+          },
         },
       })
       -- ripgrep not in default sources: avoids spawning `rg` on every
       -- completion keystroke. Trigger manually with <C-Space> (keymap above).
-      opts.sources.default = vim.list_extend(opts.sources.default or {}, { "datword" })
+      opts.sources.default = vim.list_extend(opts.sources.default or {}, { "datword", "blade-nav" })
       opts.cmdline = vim.tbl_deep_extend("force", opts.cmdline or {}, cmdline)
     end,
   },
