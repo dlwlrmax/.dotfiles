@@ -1,75 +1,86 @@
 if status is-interactive
-    # Enable vi mode
+    # Vi mode + cursor shapes
     set -g fish_key_bindings fish_vi_key_bindings
+    set -g fish_cursor_default block
+    set -g fish_cursor_insert line blink
+    set -g fish_cursor_visual underscore
+    set -g fish_cursor_replace_one underscore blink
 
-    # Environment variables
-    set -x EDITOR nvim
-    set -x LANG en_US.UTF-8
+    # History / autosuggestion / fish 4 features
+    set -g fish_history_size 100000
+    set -g fish_autosuggestion_enabled 1
+    set -g fish_features qmark-noglob,regex-easyesc,ampersand-nobg-in-token
+    set -g fish_greeting ""
 
-    # FZF configuration
-    set -x FZF_DEFAULT_OPTS '--height 90% --tmux center,90% --layout reverse --border --margin=1 --padding=1'
-    set -x FZF_CTRL_T_OPTS "
+    # Env
+    set -gx EDITOR nvim
+    set -gx LANG en_US.UTF-8
+    set -gx OPENCODE_ENABLE_EXA 1
+
+    # FZF - env + bindings
+    set -gx FZF_DEFAULT_OPTS '--height 90% --tmux center,90% --layout reverse --border --margin=1 --padding=1'
+    set -gx FZF_CTRL_T_OPTS "
     --walker-skip .git,node_modules,target
     --preview 'bat -n --color=always {}'
     --bind 'ctrl-/:change-preview-window(down|hidden|)'"
-    set -x FZF_CTRL_R_OPTS "
+    set -gx FZF_CTRL_R_OPTS "
     --bind 'ctrl-y:execute-silent(echo -n {2..} | xclip -selection clipboard)+abort'
     --color header:italic
     --header 'Press CTRL-Y to copy command into clipboard'"
-    set -x FZF_ALT_C_OPTS "
+    set -gx FZF_ALT_C_OPTS "
     --walker-skip .git,node_modules,target
     --preview 'tree -C {}'"
 
-    # PNPM
-    set -x PNPM_HOME "$HOME/.local/share/pnpm"
-    if not contains $PNPM_HOME $PATH
-        set -x PATH $PNPM_HOME $PATH
+    if command -v fzf >/dev/null
+        fzf --fish | source
     end
 
-    # PHP Composer
-    set -x PATH "$HOME/.config/composer/vendor/bin" $PATH
+    # Paths - deduped via fish_add_path (in order of priority)
+    fish_add_path --move --prepend $HOME/.local/bin
+    fish_add_path --move --prepend $HOME/.cargo/bin
+    fish_add_path --move --prepend $HOME/go/bin
+    fish_add_path $HOME/.config/composer/vendor/bin
+    fish_add_path $HOME/.opencode/bin
+    fish_add_path $HOME/.local/share/pnpm/bin
 
-    # Golang
-    set -x GOPATH $HOME/go
-    set -x PATH $GOPATH/bin $PATH
+    # Tool-specific env (keep lightweight)
+    set -gx GOPATH $HOME/go
+    set -gx PNPM_HOME "$HOME/.local/share/pnpm"
+    set -gx BUN_INSTALL "$HOME/.bun"
+    fish_add_path $BUN_INSTALL/bin
+    set -gx TUNNELTO_INSTALL "$HOME/.tunnelto"
+    fish_add_path $TUNNELTO_INSTALL/bin
+    set -gx PHPBREW_SET_PROMPT 1
+    set -gx PHPBREW_RC_ENABLE 1
+    set -gx COREPACK_ENABLE_AUTO_PIN 0
 
-    # PHPBREW
-    set -x PHPBREW_SET_PROMPT 1
-    set -x PHPBREW_RC_ENABLE 1
+    # Aliases - keep simple, use abbr for git
+    abbr -a gs git status
+    abbr -a gc git commit
+    abbr -a ga git add
+    alias ls "eza -G --color=auto --icons=auto"
+    alias lgit "lazygit"
+    alias gopen "~/git.sh"
+    alias async "~/.dotfiles/scripts/async.sh"
+    alias cmsg "~/.dotfiles/scripts/generate-commit-msg.sh"
+    alias aicm "git add . && cmsg"
+    alias check-packages "~/.local/bin/check-packages"
+    alias docker-setup "~/.dotfiles/docker-config/base/setup-docker.sh"
+    alias reload-browser "~/.dotfiles/scripts/reload-browser.sh"
+    alias waybar-reload "killall -SIGUSR2 waybar"
+    alias wtm "webtorrent --mpv -d 10000 -u 1000 -o ~/Downloads/webtorrent"
+    alias wt "webtorrent --mpv -o ~/Downloads/webtorrent"
 
-    # Corepack
-    set -x COREPACK_ENABLE_AUTO_PIN 0
-
-    # Additional tools
-    set -x TUNNELTO_INSTALL "/home/kienct/.tunnelto"
-    set -x PATH $TUNNELTO_INSTALL/bin $PATH
-    set -x PATH $HOME/.cargo/bin $PATH
-
-    # Simple aliases
-    alias waybar-reload="killall -SIGUSR2 waybar"
-    alias ls="eza -G --color=auto --icons=auto"
-    alias lgit="lazygit"
-    alias gopen="~/git.sh"
-    alias async="~/.dotfiles/scripts/async.sh"
-    alias cmsg="~/.dotfiles/scripts/generate-commit-msg.sh"
-    alias aicm="git add . && cmsg"
-alias check-packages="~/.local/bin/check-packages"
-    alias docker-setup="~/.dotfiles/docker-config/base/setup-docker.sh"
-    alias reload-browser="~/.dotfiles/scripts/reload-browser.sh"
-    alias wtm="webtorrent --mpv -d 10000 -u 1000 -o ~/Downloads/webtorrent"
-    alias wt="webtorrent --mpv -o ~/Downloads/webtorrent"
-
-    # Complex aliases as functions
-    function connect
+    # Functions - dedup connect/cn
+    function connect --description "sesh connect via fzf"
         sesh connect (sesh list | grep -v -E '(opencode|qwen)' | fzf --height 40% --border --prompt='Select session: ')
     end
-
-    function cn
-        sesh connect (sesh list | grep -v -E '(opencode|qwen)' | fzf --height 40% --border --prompt='Select session: ')
+    function cn --description "alias for connect"
+        connect
     end
 
-    function llog
-        set today (date +%Y-%m-%d)
+    function llog --description "tail laravel log for today"
+        set -l today (date +%Y-%m-%d)
         if test -f "storage/logs/$today.log"
             bat --style=full --paging=auto --pager="less +F" "storage/logs/$today.log"
         else if test -f "storage/logs/laravel-$today.log"
@@ -79,8 +90,8 @@ alias check-packages="~/.local/bin/check-packages"
         end
     end
 
-    function laravel-tail
-        set today (date +%Y-%m-%d)
+    function laravel-tail --description "tail -f laravel log"
+        set -l today (date +%Y-%m-%d)
         if test -f "storage/logs/laravel-$today.log"
             tail -f "storage/logs/laravel-$today.log"
         else
@@ -88,33 +99,20 @@ alias check-packages="~/.local/bin/check-packages"
         end
     end
 
-    # Initialize zoxide
+    # zoxide - lazy init
     if command -v zoxide >/dev/null
         zoxide init fish | source
     end
 
-    if type -q macchina
+    # macchina - run once per session, not every shell
+    if type -q macchina; and not set -q _macchina_ran
         macchina
+        set -g _macchina_ran 1
     end
 
-    set fish_greeting ""
-
-    # Auto-connect to ~/.dotfiles with sesh if not in tmux
-    if test -z "$TMUX"
-        sesh connect ~/.dotfiles
+    # sesh auto-connect - only if truly standalone (no tmux, no existing sesh session)
+    if test -z "$TMUX"; and test -z "$SESH_SESSION"; and status is-interactive
+        # uncomment to enable auto-connect
+        # sesh connect ~/.dotfiles
     end
 end
-
-# opencode
-fish_add_path /home/kienct/.opencode/bin
-
-# Created by `pipx` on 2026-04-24 11:41:22
-fish_add_path -a /home/kienct/.local/bin
-set -gx OPENCODE_ENABLE_EXA 1
-
-# opencode
-fish_add_path /home/kielcao/.opencode/bin
-
-# bun
-set --export BUN_INSTALL "$HOME/.bun"
-set --export PATH $BUN_INSTALL/bin $PATH

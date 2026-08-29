@@ -10,4 +10,9 @@ pnpm-lock.yaml
 __pycache__/
 fish/.config/fish/completions/
 fish/.config/fish/conf.d/
+fish/.config/fish/functions/
+fish/.config/fish/themes/
+fish_variables*
+*.bak
+*.bak.*
 .omo
