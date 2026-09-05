@@ -16,3 +16,4 @@ fish_variables*
 *.bak
 *.bak.*
 .omo
+mimeinfo
