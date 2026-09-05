@@ -54,6 +54,12 @@ if status is-interactive
     set -gx PHPBREW_RC_ENABLE 1
     set -gx COREPACK_ENABLE_AUTO_PIN 0
 
+    # MySQL MCP
+    set -gx MYSQL_HOST "192.168.3.213"
+    set -gx MYSQL_PORT "3306"
+    set -gx MYSQL_USER "dev"
+    set -gx MYSQL_PASSWORD "LangTech@123"
+
     # Aliases - keep simple, use abbr for git
     abbr -a gs git status
     abbr -a gc git commit
