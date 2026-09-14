@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/tui.json",
+  "theme": "catppuccin-macchiato",
+  "keybinds": {
+    "agent_cycle": "tab",
+    "agent_cycle_reverse": "shift+tab"
+  },
+  "plugin": [
+    "oh-my-openagent@latest",
+    "oh-my-opencode-slim"
+  ]
+}

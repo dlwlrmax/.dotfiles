@@ -1,0 +1,24 @@
+---
+name: ai-testing-category-pointer
+description: "Pointer to a library of 1 specialized Ai Testing skills. Use when working on ai-testing-related tasks."
+risk: none
+---
+
+# Ai Testing Capability Library 🎯
+
+This is a **pointer skill**. The 1 specialized Ai Testing skills are stored in a hidden vault to keep your startup context minimal.
+
+## Available skills in this category
+
+- **bdistill-behavioral-xray** — X-ray any AI model's behavioral patterns — refusal boundaries, hallucination tendencies, reasoning style, formatting defaults. No API key needed.
+
+## How to load a skill
+
+1. Identify the skill name above matching your task.
+2. Use `view_file` to read its `SKILL.md` from the vault:
+   `/home/kienct/.config/opencode/skill-libraries/ai-testing/<skill-name>/SKILL.md`
+3. Follow those instructions to complete the request.
+
+**Vault path:** `/home/kienct/.config/opencode/skill-libraries/ai-testing`
+
+> Do not guess best practices — always read from the vault first.
