@@ -83,19 +83,11 @@ Item {
     }
 
     function _refreshPlayer() {
-        // prefer actively playing player
+        // show only an actively playing player with real track info —
+        // paused/stopped/empty players (e.g. idle Chrome) hide entirely
         for (var i = 0; i < Mpris.players.rowCount(); i++) {
             var p = Mpris.players.values[i]
-            if (p && p.isPlaying) {
-                root.currentPlayer = p
-                return
-            }
-        }
-        // fallback: show any player with a valid title
-        // (skips stopped players with empty metadata, like our bridge)
-        for (var i = 0; i < Mpris.players.rowCount(); i++) {
-            var p = Mpris.players.values[i]
-            if (p && p.trackTitle) {
+            if (p && p.isPlaying && (p.trackTitle || p.trackArtist)) {
                 root.currentPlayer = p
                 return
             }

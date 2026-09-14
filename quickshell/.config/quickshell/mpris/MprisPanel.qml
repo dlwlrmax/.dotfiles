@@ -10,17 +10,34 @@ Item {
     property bool active: false
     signal close()
 
-    // Deduplicate by identity: bridge + native MPRIS both populate same players
-    // Each delegate checks if an earlier entry shares its identity → hides if duplicate
-    readonly property int _uniqueCount: {
+    // Filtered player list, rebuilt imperatively on model signals.
+    // (Mpris.players.values carries no row-change notifier usable in
+    // bindings, so a binding-based count goes stale — hence explicit rebuild.)
+    // Rules: hide duplicates (bridge mirror) and content-less players
+    // (stopped + no title/artist, e.g. idle Chrome). Paused/stopped players
+    // WITH track info stay — user may resume them.
+    property var playerModel: []
+    function _rebuildPlayers() {
         var seen = []
+        var out = []
         for (var i = 0; i < Mpris.players.rowCount(); i++) {
             var p = Mpris.players.values[i]
             if (!p) continue
+            if (!p.isPlaying && !p.trackTitle && !p.trackArtist) continue
             var id = p.identity || ""
-            if (seen.indexOf(id) === -1) seen.push(id)
+            if (seen.indexOf(id) !== -1) continue
+            seen.push(id)
+            out.push(p)
         }
-        return seen.length
+        root.playerModel = out
+    }
+    Component.onCompleted: root._rebuildPlayers()
+    Connections {
+        target: Mpris.players
+        function onRowsInserted() { root._rebuildPlayers() }
+        function onRowsRemoved() { root._rebuildPlayers() }
+        function onDataChanged() { root._rebuildPlayers() }
+        function onModelReset() { root._rebuildPlayers() }
     }
 
     clip: true
@@ -58,7 +75,7 @@ Item {
             spacing: 8
 
             Text {
-                text: "Media" + (root._uniqueCount > 0 ? " (" + root._uniqueCount + ")" : "")
+                text: "Media" + (root.playerModel.length > 0 ? " (" + root.playerModel.length + ")" : "")
                 color: theme.text
                 font.pixelSize: theme.fontSize + 1
                 font.bold: true
@@ -92,26 +109,13 @@ Item {
             spacing: 12
 
             Repeater {
-                model: Mpris.players
+                model: root.playerModel
 
                 delegate: ColumnLayout {
                     required property var modelData
                     required property int index
                     spacing: 8
                     Layout.fillWidth: true
-
-                    // Hide duplicate identity (bridge mirror)
-                    readonly property bool _isDuplicate: {
-                        if (!modelData) return true
-                        for (var i = 0; i < index; i++) {
-                            var p = Mpris.players.values[i]
-                            if (p && p.identity === modelData.identity) return true
-                        }
-                        return false
-                    }
-                    visible: !_isDuplicate
-                    // Keep layout stable height even when hidden
-                    height: _isDuplicate ? 0 : implicitHeight
 
                     Rectangle {
                         Layout.fillWidth: true
@@ -314,7 +318,7 @@ Item {
 
             Text {
                 Layout.alignment: Qt.AlignHCenter
-                visible: root._uniqueCount === 0
+                visible: root.playerModel.length === 0
                 text: "No media players"
                 color: theme.subtext0
                 font.pixelSize: theme.fontSize
