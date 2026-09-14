@@ -3,97 +3,58 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import Quickshell
 import Quickshell.Services.SystemTray
+import qs.common
 
 RowLayout {
     id: trayContainer
-    spacing: 2
+    spacing: 3
+    // Never squeeze: shrinking boxes below image size causes visual overlap.
+    // Deficit is absorbed by mpris (fillWidth) upstream in Bar.qml.
+    Layout.minimumWidth: trayContainer.implicitWidth
+    property Theme theme: Theme {}
+    property int maxVisible: 5
+    signal toggleOverflow()
+
+    property int hiddenCount: Math.max(0, SystemTray.items.values.length - trayContainer.maxVisible)
 
     Repeater {
-        model: SystemTray.items
+        model: SystemTray.items.values.slice(0, trayContainer.maxVisible)
 
-        delegate: Rectangle {
-            id: trayDelegate
-            required property var modelData
-            implicitWidth: 14
-            implicitHeight: 14
-            color: "transparent"
+        delegate: TrayIcon {
+        }
+    }
 
-            Image {
-                anchors.fill: parent
-                source: {
-                    var icon = trayDelegate.modelData.icon
-                    if (!icon) return ""
-                    // Direct path/URL — use as-is
-                    if (icon.charAt(0) === '/' || icon.startsWith("file:") || icon.startsWith("http:") || icon.startsWith("https:") || icon.startsWith("qrc:") || icon.startsWith("data:"))
-                        return icon
-                    // Quickshell pixmap provider — use as-is
-                    if (icon.startsWith("image://qspixmap/"))
-                        return icon
-                    // image://icon/<name> — extract name, resolve via iconPath
-                    if (icon.startsWith("image://icon/")) {
-                        var iconName = icon.substring("image://icon/".length)
-                        if (!iconName) return ""
-                        // Extracted name might be a direct path (e.g. ///run/user/...)
-                        if (iconName.charAt(0) === '/') return "file://" + iconName
-                        var r = Quickshell.iconPath(iconName, true)
-                        if (r !== "") return r
-                        // Fallback: try direct hicolor path (for icons not in current theme)
-                        return "file:///usr/share/icons/hicolor/scalable/status/" + iconName + ".svg"
-                    }
-                    // Plain themed icon name — resolve via Quickshell.iconPath
-                    var r = Quickshell.iconPath(icon, true)
-                    if (r !== "") return r
-                    return ""
-                }
-                sourceSize.width: 14
-                sourceSize.height: 14
-                fillMode: Image.PreserveAspectFit
-            }
+    Rectangle {
+        id: overflowBtn
+        visible: trayContainer.hiddenCount > 0
+        implicitWidth: 20
+        implicitHeight: 18
+        color: "transparent"
+        opacity: overflowMouse.containsPress ? 0.55 : 1.0
+        Behavior on opacity { NumberAnimation { duration: 80 } }
 
-            QsMenuAnchor {
-                id: menuAnchor
-                menu: trayDelegate.modelData.menu
-                anchor.item: trayDelegate
-                anchor.edges: Edges.Bottom
-                anchor.gravity: Edges.Bottom | Edges.Right
-            }
+        Text {
+            anchors.centerIn: parent
+            text: "+" + trayContainer.hiddenCount
+            color: overflowMouse.containsMouse ? trayContainer.theme.text : trayContainer.theme.subtext0
+            font.pixelSize: 10
+            font.bold: true
+            font.family: trayContainer.theme.font
+        }
 
-            MouseArea {
-                anchors.fill: parent
-                acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-                hoverEnabled: true
-                onClicked: mouse => {
-                    if (mouse.button === Qt.LeftButton) {
-                        trayDelegate.modelData.activate()
-                    } else if (mouse.button === Qt.MiddleButton) {
-                        trayDelegate.modelData.secondaryActivate()
-                    } else if (mouse.button === Qt.RightButton) {
-                        if (trayDelegate.modelData.hasMenu) {
-                            menuAnchor.anchor.updateAnchor()
-                            menuAnchor.open()
-                        } else {
-                            var win = trayDelegate.Window.window
-                            var pos = trayDelegate.mapToItem(win.contentItem, mouse.x, mouse.y)
-                            trayDelegate.modelData.display(win, pos.x, pos.y)
-                        }
-                    }
-                }
-                onWheel: wheel => {
-                    trayDelegate.modelData.scroll(wheel.angleDelta.y, false)
-                }
+        MouseArea {
+            id: overflowMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: trayContainer.toggleOverflow()
+        }
 
-                ToolTip {
-                    visible: parent.containsMouse && (trayDelegate.modelData.tooltipTitle !== "" || trayDelegate.modelData.title !== "")
-                    text: {
-                        let title = trayDelegate.modelData.tooltipTitle !== "" ? trayDelegate.modelData.tooltipTitle : trayDelegate.modelData.title
-                        if (trayDelegate.modelData.tooltipDescription !== "")
-                            return title + "\n" + trayDelegate.modelData.tooltipDescription
-                        return title
-                    }
-                    delay: 800
-                    font.pixelSize: 10
-                }
-            }
+        ToolTip {
+            visible: overflowMouse.containsMouse
+            text: "Show " + trayContainer.hiddenCount + " hidden icons"
+            delay: 1000
+            font.pixelSize: 10
         }
     }
 }

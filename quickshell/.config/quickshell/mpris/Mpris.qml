@@ -11,6 +11,8 @@ Item {
     property real maxWidth: 200
     signal togglePanel(int centerX)
 
+    // Hard containment: layout squeeze must never paint over neighbors.
+    clip: true
     visible: currentPlayer !== null
     implicitWidth: row.implicitWidth
     implicitHeight: row.implicitHeight
@@ -18,6 +20,10 @@ Item {
 
     RowLayout {
         id: row
+        // Track root width: fillWidth squeeze in bar would otherwise let the
+        // row keep implicit size and paint over the Cpu widget.
+        anchors.left: parent.left
+        anchors.right: parent.right
         spacing: 6
 
         Text {

@@ -18,6 +18,7 @@ import qs.battery
 import qs.kdeconnect  // KDEConnect.qml, KDEConnectPanel.qml
 import qs.launcher
 import qs.clipboard
+import qs.systemtray
 import qs.common
 import qs.osd
 
@@ -53,6 +54,8 @@ ShellRoot {
         property var activeLauncherScreen: null
         property bool clipboardPanelOpen: false
         property var activeClipboardScreen: null
+        property bool trayPanelOpen: false
+        property var activeTrayScreen: null
 
         // Dict maps panel name → open-property name on g. Single source of truth.
         property var _panels: [
@@ -67,7 +70,8 @@ ShellRoot {
             { name: "net",      prop: "netPanelOpen" },
             { name: "kde",      prop: "kdePanelOpen" },
             { name: "launcher", prop: "launcherPanelOpen" },
-            { name: "clipboard",prop: "clipboardPanelOpen" }
+            { name: "clipboard",prop: "clipboardPanelOpen" },
+            { name: "tray", prop: "trayPanelOpen" }
         ]
 
         function closeOtherPanels(name) {
@@ -214,6 +218,11 @@ ShellRoot {
                             g.activeBatteryScreen = screenScope.screenData
                             g.batteryWidgetCenterX = centerX
                         }
+                    }
+                    onToggleTrayPanel: {
+                        g.closeOtherPanels("tray")
+                        g.trayPanelOpen = !g.trayPanelOpen
+                        if (g.trayPanelOpen) g.activeTrayScreen = screenScope.screenData
                     }
                 }
             }
@@ -446,6 +455,19 @@ ShellRoot {
                     anchors.fill: parent
                     active: g.clipboardPanelOpen && g.activeClipboardScreen === screenScope.screenData
                     onClose: g.clipboardPanelOpen = false
+                }
+            }
+
+            PanelOverlay {
+                screen: screenScope.screenData
+                active: g.trayPanelOpen && g.activeTrayScreen === screenScope.screenData
+                onCloseRequested: g.trayPanelOpen = false
+                topMargin: 44
+
+                TrayOverflowPanel {
+                    anchors.fill: parent
+                    active: g.trayPanelOpen && g.activeTrayScreen === screenScope.screenData
+                    onClose: g.trayPanelOpen = false
                 }
             }
         }

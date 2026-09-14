@@ -1,2 +1,4 @@
 module qs.systemtray
 SystemTray 1.0 SystemTray.qml
+TrayIcon 1.0 TrayIcon.qml
+TrayOverflowPanel 1.0 TrayOverflowPanel.qml

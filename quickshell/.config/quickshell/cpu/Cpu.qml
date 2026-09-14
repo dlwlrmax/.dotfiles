@@ -15,6 +15,8 @@ Item {
     property int cpuTemp: dataSource ? (dataSource.cpuTemp || 0) : 0
     signal togglePanel()
 
+    // Hard containment: layout squeeze must never paint over neighbors.
+    clip: true
     implicitWidth: row.implicitWidth
     implicitHeight: row.implicitHeight
     Layout.alignment: Qt.AlignVCenter

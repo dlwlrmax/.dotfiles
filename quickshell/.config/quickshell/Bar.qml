@@ -31,6 +31,7 @@ Item {
     signal toggleNetPanel()
     signal toggleKdePanel(int centerX)
     signal toggleBatteryPanel(int centerX)
+    signal toggleTrayPanel()
     property alias weatherWidget: barWeather
     property var kdeDataSource: null
     property var notifDataSource: null
@@ -86,8 +87,8 @@ Item {
             anchors.right: parent.right
             anchors.rightMargin: 12
             anchors.verticalCenter: parent.verticalCenter
-            width: Math.min(implicitWidth, parent.width / 2 - 80)
-            spacing: 10
+            width: Math.min(implicitWidth, parent.width / 2 - centerClock.width / 2 - 32)
+            spacing: 12
             clip: true
             property real mprisMaxWidth: {
                 let used = 0
@@ -100,14 +101,16 @@ Item {
                     }
                 }
                 used += spacing * Math.max(0, visible - 1)
-                let available = parent.width / 2 - anchors.rightMargin - 68
-                return Math.max(100, available - used)
+                let available = parent.width / 2 - centerClock.width / 2 - 32
+                return Math.max(60, available - used - 24)
             }
 
             Mpris {
                 id: mpris
                 theme: bar.theme
                 Layout.alignment: Qt.AlignVCenter
+                Layout.fillWidth: true
+                Layout.minimumWidth: 60
                 maxWidth: rightSection.mprisMaxWidth
                 onTogglePanel: centerX => bar.toggleMprisPanel(centerX)
             }
@@ -186,6 +189,8 @@ Item {
 
             SystemTray {
                 Layout.alignment: Qt.AlignVCenter
+                theme: bar.theme
+                onToggleOverflow: bar.toggleTrayPanel()
             }
         }
     }
