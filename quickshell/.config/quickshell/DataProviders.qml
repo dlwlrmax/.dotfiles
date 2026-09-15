@@ -433,6 +433,33 @@ Item {
             command: volumeData._notifyCmd
         }
 
+        // Event-driven refresh for external changes (volume knob, hotkeys, apps).
+        // Poll below stays as safety net only.
+        Process {
+            id: volumeSubscribeProc
+            command: ["stdbuf", "-oL", "pactl", "subscribe"]
+            running: true
+
+            stdout: SplitParser {
+                onRead: data => {
+                    if (data.includes("on sink") || data.includes("on server"))
+                        volumeData.refresh();
+                }
+            }
+
+            onRunningChanged: {
+                if (!running) subscribeRestartTimer.restart();
+            }
+        }
+
+        Timer {
+            id: subscribeRestartTimer
+            interval: 1000
+            onTriggered: {
+                if (!volumeSubscribeProc.running) volumeSubscribeProc.running = true;
+            }
+        }
+
         Timer {
             interval: 5000
             running: true
