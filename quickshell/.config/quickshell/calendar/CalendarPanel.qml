@@ -64,23 +64,32 @@ Item {
 
     Component.onCompleted: goToToday()
 
-    // Refresh today every 1h; rebuild grid only when date actually changes
+    function _refreshDay() {
+        // Snapshot BEFORE assigning today: todayDate is bound to today,
+        // so assigning today recomputes todayDate synchronously and a
+        // post-assign comparison would always look equal (rebuild skipped).
+        var old = root.todayDate
+        var d = new Date()
+        root.today = d
+        var newDate = { year: d.getFullYear(), month: d.getMonth(), day: d.getDate() }
+        if (newDate.day !== old.day
+            || newDate.month !== old.month
+            || newDate.year !== old.year) {
+            root.todayDate = newDate
+            // If viewing current year, rebuild to update today highlight
+            if (calYear === newDate.year) buildYear()
+        }
+    }
+
+    // Always current when opened (covers midnight crossing + wake from sleep)
+    onActiveChanged: if (active) root._refreshDay()
+
+    // Check every minute; rebuild grid only when date actually changes
     Timer {
-        interval: 3600000
+        interval: 60000
         running: true
         repeat: true
-        onTriggered: {
-            var d = new Date()
-            root.today = d
-            var newDate = { year: d.getFullYear(), month: d.getMonth(), day: d.getDate() }
-            if (newDate.day !== root.todayDate.day
-                || newDate.month !== root.todayDate.month
-                || newDate.year !== root.todayDate.year) {
-                root.todayDate = newDate
-                // If viewing current year, rebuild to update today highlight
-                if (calYear === newDate.year) buildYear()
-            }
-        }
+        onTriggered: root._refreshDay()
     }
 
     Rectangle {
