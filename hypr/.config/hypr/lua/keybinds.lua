@@ -31,6 +31,9 @@ hl.bind(mainModS .. " + D", hl.dsp.exec_cmd("rofi -show"))
 -- Power menu (quickshell)
 hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("qs ipc call power toggle"))
 
+-- Cycle audio output device (quickshell)
+hl.bind(mainMod .. " + CTRL + A", hl.dsp.exec_cmd("qs ipc call audio cycle"))
+
 -- Screenshot
 hl.bind(mainModS .. " + S", hl.dsp.exec_cmd('grim -g "$(slurp -d)" - | satty -f - --copy-command wl-copy'))
 

@@ -16,6 +16,8 @@ Item {
     property alias volumeData: volumeData
     property alias batteryData: batteryData
 
+    function cycleAudio() { volumeData.cycleSink() }
+
     // ── KDE Connect ─────────────────────────────────────────
 
     Item {
@@ -176,7 +178,7 @@ Item {
         Timer {
             id: saveDebounce
             interval: 500
-            onTriggered: _doSave()
+            onTriggered: notifData._doSave()
         }
 
         Process { id: saveProc }
@@ -372,9 +374,15 @@ Item {
         id: volumeData
         property int volumeLevel: 0
         property bool muted: false
+        property string defaultSink: ""
+        property var _notifyCmd: []
 
         function refresh() {
             if (!volumeFetchProc.running) volumeFetchProc.running = true;
+        }
+
+        function cycleSink() {
+            if (!cycleProc.running) cycleProc.running = true;
         }
 
         Process {
@@ -390,8 +398,39 @@ Item {
                         if (!isNaN(vol)) volumeData.volumeLevel = vol;
                         volumeData.muted = parts[1] === "true";
                     }
+                    if (parts.length >= 3) {
+                        var sink = parts[2];
+                        // Notify on external switches too (panel/hotkey/Bluetooth).
+                        // Cycle path notifies itself immediately; poll catches the rest.
+                        if (volumeData.defaultSink !== "" && sink !== ""
+                            && sink !== volumeData.defaultSink && sink !== "none") {
+                            volumeData._notifyCmd = ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/audio-notify.sh", sink];
+                            if (!switchNotifyProc.running) switchNotifyProc.running = true;
+                        }
+                        if (sink !== "") volumeData.defaultSink = sink;
+                    }
                 }
             }
+        }
+
+        Process {
+            id: cycleProc
+            command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/audio-cycle.sh"]
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    // Script notifies itself; sync baseline so the 5s poll stays silent
+                    var sink = this.text.trim().split("\n").filter(function (l) { return l !== ""; }).pop() || "";
+                    if (sink !== "") volumeData.defaultSink = sink;
+                }
+            }
+            onRunningChanged: {
+                if (!running) volumeData.refresh();
+            }
+        }
+
+        Process {
+            id: switchNotifyProc
+            command: volumeData._notifyCmd
         }
 
         Timer {

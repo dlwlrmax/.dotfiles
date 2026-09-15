@@ -133,6 +133,12 @@ ShellRoot {
         }
     }
 
+    // Audio output cycle (Super+Ctrl+A): next sink + move streams + notify
+    IpcHandler {
+        target: "audio"
+        function cycle(): void { dp.cycleAudio() }
+    }
+
     Instantiator {
         model: Quickshell.screens
         delegate: Item {
