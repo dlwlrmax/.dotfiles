@@ -35,7 +35,7 @@ hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("qs ipc call power toggle"))
 hl.bind(mainMod .. " + CTRL + A", hl.dsp.exec_cmd("qs ipc call audio cycle"))
 
 -- Screenshot
-hl.bind(mainModS .. " + S", hl.dsp.exec_cmd('grim -g "$(slurp -d)" - | satty -f - --copy-command wl-copy'))
+hl.bind(mainModS .. " + S", hl.dsp.exec_cmd('grim -g "$(slurp -d)" - | swappy -f -'))
 
 -- Focus Stremio
 hl.bind(mainMod .. " + S", hl.dsp.exec_cmd("$HOME/.config/hypr/scripts/stremio-focus.sh"))

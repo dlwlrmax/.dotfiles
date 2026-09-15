@@ -34,7 +34,7 @@ local float_apps = {
   "org.gnome.Nautilus",
   "blueman-manager",
   "org.kde.kdeconnect.app",
-  "com.gabm.satty",
+  "swappy",
   "org.pulseaudio.pavucontrol",
   "org.quickshell",
   "waypaper",

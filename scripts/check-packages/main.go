@@ -63,7 +63,7 @@ var packageDB = []struct{ Name, Group string; IsPipx bool }{
 	{Name: "hyprlock", Group: "core"}, {Name: "hyprpolkitagent", Group: "core"}, {Name: "waybar", Group: "core"},
 	{Name: "swaync", Group: "core"}, {Name: "rofi", Group: "core"}, {Name: "walker", Group: "core"},
 	{Name: "grim", Group: "core"}, {Name: "slurp", Group: "core"}, {Name: "wl-clipboard", Group: "core"},
-	{Name: "cliphist", Group: "core"}, {Name: "satty", Group: "core"}, {Name: "ghostty", Group: "core"},
+ {Name: "cliphist", Group: "core"}, {Name: "swappy", Group: "core"}, {Name: "ghostty", Group: "core"},
 	{Name: "dolphin", Group: "core"}, {Name: "fcitx5", Group: "core"}, {Name: "fcitx5-unikey", Group: "core"},
 	{Name: "fcitx5-configtool", Group: "core"}, {Name: "blueman", Group: "core"}, {Name: "easyeffects", Group: "core"},
 	{Name: "xdg-desktop-portal-hyprland", Group: "core"}, {Name: "xdg-desktop-portal-gtk", Group: "core"},
