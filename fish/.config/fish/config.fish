@@ -1,6 +1,6 @@
 if status is-interactive
     # Vi mode + cursor shapes
-    set -g fish_key_bindings fish_vi_key_bindings
+    set -g fish_key_bindings fish_user_key_bindings
     set -g fish_cursor_default block
     set -g fish_cursor_insert line blink
     set -g fish_cursor_visual underscore
