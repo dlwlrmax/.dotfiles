@@ -252,7 +252,7 @@ end
 
 -- Check if subtitles should be auto-downloaded:
 function autosub_allowed()
-    local duration = tonumber(mp.get_property('duration'))
+    local duration = mp.get_property_number('duration', 0)
     local active_format = mp.get_property('file-format')
 
     if not bools.auto then
