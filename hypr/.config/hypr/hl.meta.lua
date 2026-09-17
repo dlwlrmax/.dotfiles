@@ -15,6 +15,7 @@
 ---@field direction? "left"|"right"|"up"|"down"
 ---@field workspace? string|integer
 ---@field monitor? string
+---@field window? string
 
 ---@class HL.WindowMoveTarget
 ---@field direction? "left"|"right"|"up"|"down"
@@ -45,7 +46,8 @@
 ---@field title? string
 ---@field fullscreen? boolean
 ---@field xwayland? boolean
----@field浮? boolean
+---@field float? boolean
+---@field content? string
 ---@field pinned? boolean
 
 ---@class HL.WindowRuleSpec
@@ -67,7 +69,13 @@
 ---@field rounding? integer
 ---@field border_color? string
 ---@field dim_around? boolean
----@field dim_around? boolean
+---@field focus_on_activate? boolean
+---@field no_initial_focus? boolean
+---@field immediate? boolean
+---@field confine_pointer? boolean
+---@field fullscreen? boolean
+---@field content? string
+---@field no_shadow? boolean
 ---@field scrolling_width? number
 
 ---@class HL.LayerRuleMatch

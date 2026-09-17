@@ -28,15 +28,14 @@ hl.on("hyprland.start", function()
     "fcitx5 -d",
     "hyprctl setcursor Bibata-Modern-Ice 20",
     "gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Ice'",
-    "gsettings set org.gnome.desktop.interface color-scheme prefer-dark",
-    "hyprctl reload"
+    "gsettings set org.gnome.desktop.interface color-scheme prefer-dark"
   )
 
   -- ═══════════════════════════════════════════════════════════
   -- TIER 2a: portal backend — register on D-Bus before Qt apps
   -- ═══════════════════════════════════════════════════════════
   launch(0,
-    "/usr/libexec/xdg-desktop-portal-hyprland -r",
+    "sh -c '[ -x /usr/libexec/xdg-desktop-portal-hyprland ] && exec /usr/libexec/xdg-desktop-portal-hyprland -r || exec /usr/lib/xdg-desktop-portal-hyprland -r'",
     "systemctl --user restart xdg-desktop-portal.service"
   )
 

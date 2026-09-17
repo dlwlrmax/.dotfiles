@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Cycle focus: current -> Stremio -> mpv -> previous window
 # Uses address file to avoid Hyprland's unreliable focus history
+# NOTE: hyprctl dispatch takes Lua here: hl.dsp.focus({ window = ... })
+# Native `focuswindow class:…` syntax does NOT work in this build.
 
 STREMIO_CLASS="com.stremio.Stremio"
 MPV_CLASS="mpv"

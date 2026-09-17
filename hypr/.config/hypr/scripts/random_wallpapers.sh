@@ -20,6 +20,10 @@ sed -i -e "s|^preload = .*$|preload = $1|" \
        -e "s|^wallpaper = .*$|wallpaper = ,$1|" \
        "$hyprpaper_config_file"
 
+# sed no-ops when lines absent (fresh config) — append instead
+grep -q "^preload = " "$hyprpaper_config_file" || echo "preload = $1" >> "$hyprpaper_config_file"
+grep -q "^wallpaper = " "$hyprpaper_config_file" || echo "wallpaper = ,$1" >> "$hyprpaper_config_file"
+
 # Reload hyprpaper
 killall -e hyprpaper & 
 sleep 1; 

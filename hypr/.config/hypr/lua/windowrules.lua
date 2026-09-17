@@ -6,7 +6,7 @@ local ok, local_cfg = pcall(require, "lua/local")
 local overrides = ok and local_cfg or {}
 local ws = {
   { pat = "^(Chromium)$", id = 2 },
-  { pat = "^(Lark|Ferdium||ferdium)$", id = 3 },
+  { pat = "^(Lark|Ferdium|ferdium)$", id = 3 },
   { pat = "^(Code|code-oss)$", id = 4 },
   { pat = "[Dd][Bb]eaver|tabularis", id = 5 },
   { pat = "^(Postman|yaak-app|bruno)$", id = 6 },
@@ -116,6 +116,7 @@ hl.window_rule({
 -- Picture-in-Picture (pinned float on second monitor)
 -- ──────────────────────────────────────────────
 local pip_monitor = overrides.secondMonitor or "HDMI-A-1"
+local main_monitor = overrides.mainMonitor or vars.mainMonitor
 
 hl.window_rule({
   match = { class = "mpv" },
@@ -125,6 +126,7 @@ hl.window_rule({
   move = pip_position,
   size = pip_size,
   no_blur = true,
+  focus_on_activate = false,
 })
 hl.window_rule({
   match = { title = "(?i)picture.*picture" },
@@ -207,7 +209,7 @@ hl.window_rule({ match = { content = "game", fullscreen = true }, confine_pointe
 hl.window_rule({
   match = { class = game_classes },
   workspace = 1,
-  monitor = vars.mainMonitor,
+  monitor = main_monitor,
   confine_pointer = true,
   immediate = true,
   fullscreen = true,
@@ -219,7 +221,7 @@ hl.window_rule({
 hl.window_rule({
   match = { class = "gamescope" },
   workspace = 1,
-  monitor = vars.mainMonitor,
+  monitor = main_monitor,
   confine_pointer = true,
   immediate = true,
   fullscreen = true,
