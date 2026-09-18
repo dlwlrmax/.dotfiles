@@ -24,6 +24,26 @@ Item {
     implicitHeight: row.implicitHeight
     Layout.alignment: Qt.AlignVCenter
 
+    function handleVolumeWheel(wheel) {
+        if (volCooldown.elapsedMs() < 100) return
+        volCooldown.restart()
+        if (wheel.angleDelta.y > 0) {
+            if (!root.dataSource) {
+                root._vol = Math.min(100, root._vol + 5)
+                root._muted = false
+            }
+            root._pendingCmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "+5%"]
+            volChangeProc.running = true
+        } else if (wheel.angleDelta.y < 0) {
+            if (!root.dataSource) {
+                root._vol = Math.max(0, root._vol - 5)
+                root._muted = false
+            }
+            root._pendingCmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "-5%"]
+            volChangeProc.running = true
+        }
+    }
+
     function refreshState() {
         if (root.dataSource) {
             root.dataSource.refresh()
@@ -58,25 +78,7 @@ Item {
                     if (!root.dataSource) root._muted = !root._muted
                     toggleMuteProc.running = true
                 }
-                onWheel: wheel => {
-                    if (volCooldown.elapsedMs() < 100) return
-                    volCooldown.restart()
-                    if (wheel.angleDelta.y > 0) {
-                        if (!root.dataSource) {
-                            root._vol = Math.min(100, root._vol + 5)
-                            root._muted = false
-                        }
-                        root._pendingCmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "+5%"]
-                        volChangeProc.running = true
-                    } else if (wheel.angleDelta.y < 0) {
-                        if (!root.dataSource) {
-                            root._vol = Math.max(0, root._vol - 5)
-                            root._muted = false
-                        }
-                        root._pendingCmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "-5%"]
-                        volChangeProc.running = true
-                    }
-                }
+                onWheel: wheel => root.handleVolumeWheel(wheel)
             }
         }
 
@@ -98,25 +100,7 @@ Item {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
                 onClicked: root.togglePanel()
-                onWheel: wheel => {
-                    if (volCooldown.elapsedMs() < 100) return
-                    volCooldown.restart()
-                    if (wheel.angleDelta.y > 0) {
-                        if (!root.dataSource) {
-                            root._vol = Math.min(100, root._vol + 5)
-                            root._muted = false
-                        }
-                        root._pendingCmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "+5%"]
-                        volChangeProc.running = true
-                    } else if (wheel.angleDelta.y < 0) {
-                        if (!root.dataSource) {
-                            root._vol = Math.max(0, root._vol - 5)
-                            root._muted = false
-                        }
-                        root._pendingCmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "-5%"]
-                        volChangeProc.running = true
-                    }
-                }
+                onWheel: wheel => root.handleVolumeWheel(wheel)
             }
         }
     }

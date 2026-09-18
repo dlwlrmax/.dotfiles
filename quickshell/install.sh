@@ -67,20 +67,34 @@ if [ ! -d "$RUST_UTILS" ]; then
     err "rust-utils/ not found at $RUST_UTILS — skipping Rust builds"
 else
     BINS=("sys-stats" "net-stats" "net-panel")
+    build_failed=()
     for bin in "${BINS[@]}"; do
         if [ -f "$RUST_UTILS/$bin/Cargo.toml" ]; then
             info "Building $bin..."
-            (cd "$RUST_UTILS/$bin" && cargo build --release 2>&1 | tail -1)
-            if [ -f "$RUST_UTILS/$bin/target/release/$bin" ]; then
-                cp "$RUST_UTILS/$bin/target/release/$bin" "$HOME/.cargo/bin/$bin"
-                info "  $bin → ~/.cargo/bin/$bin"
-            else
-                err "  $bin build failed"
+            # capture status directly: a pipeline's exit code would hide cargo failures
+            if ! build_log=$(cd "$RUST_UTILS/$bin" && cargo build --release 2>&1); then
+                err "  $bin — cargo build FAILED (last messages):"
+                printf '%s\n' "$build_log" | tail -5 >&2
+                build_failed+=("$bin")
+                continue
             fi
+            printf '%s\n' "$build_log" | tail -1
+            if [ ! -f "$RUST_UTILS/$bin/target/release/$bin" ]; then
+                err "  $bin — build succeeded but target/release/$bin is missing"
+                build_failed+=("$bin")
+                continue
+            fi
+            cp "$RUST_UTILS/$bin/target/release/$bin" "$HOME/.cargo/bin/$bin"
+            info "  $bin → ~/.cargo/bin/$bin"
         else
             warn "  $bin — Cargo.toml not found, skipping"
         fi
     done
+
+    if [ ${#build_failed[@]} -gt 0 ]; then
+        err "Rust build(s) failed: ${build_failed[*]} — stale binaries were NOT reinstalled"
+        exit 1
+    fi
 fi
 
 # ── Services ───────────────────────────────────────────────────────

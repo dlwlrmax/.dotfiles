@@ -75,7 +75,7 @@ Item {
                     anchors.left: parent.left
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
-                    width: parent.width * (root.level / 100.0)
+                    width: parent.width * Math.min(1, root.level / 100.0)
                     radius: 4
                     color: root.muted ? root.theme.surface1 : root.accentColor
                 }

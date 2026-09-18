@@ -7,6 +7,23 @@ set -euo pipefail
 CACHE_FILE="/tmp/quickshell-desktop-cache.json"
 CACHE_HASH_FILE="/tmp/quickshell-desktop-cache.sha256"
 
+# Locale prefix used to match localized keys (Name[en]= etc.)
+LOCALE_TAG="${LANG:-}"
+LOCALE_TAG="${LOCALE_TAG%%.*}"   # e.g. vi_VN.UTF-8 -> vi_VN
+
+# Escape a string for embedding in a JSON string value
+json_escape() {
+  local s="${1-}"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\r'/\\r}"
+  s="${s//$'\t'/\\t}"
+  s="${s//$'\b'/\\b}"
+  s="${s//$'\f'/\\f}"
+  printf '%s' "$s"
+}
+
 # Collect all .desktop files from XDG dirs
 # User dirs first so they override system (first occurrence wins)
 DIRS=()
@@ -73,8 +90,22 @@ for base in "${DIRS[@]}"; do
     noDisplay="false"
     terminal="false"
 
-    while IFS='=' read -r key val; do
-      case "$key" in
+    while IFS= read -r line; do
+      [[ "$line" == *=* ]] || continue
+      key="${line%%=*}"
+      val="${line#*=}"
+      # tolerate spaces around '=' and CRLF line endings: trim both sides
+      key="${key#"${key%%[![:space:]]*}"}"; key="${key%"${key##*[![:space:]]}"}"
+      val="${val#"${val%%[![:space:]]*}"}"; val="${val%"${val##*[![:space:]]}"}"
+      # localized keys: Name[en_GB]= -> base Name, only accept tag matching $LANG
+      base="$key"
+      if [[ "$key" == *"["*"]" ]]; then
+        base="${key%%[*}"
+        base="${base%"${base##*[![:space:]]}"}"
+        tag="${key#*[}"; tag="${tag%]}"
+        [[ "$tag" == "$LOCALE_TAG" || "$tag" == "${LOCALE_TAG%%_*}" ]] || continue
+      fi
+      case "$base" in
         Name)          name="$val" ;;
         GenericName)   generic="$val" ;;
         Icon)          icon="$val" ;;
@@ -85,25 +116,22 @@ for base in "${DIRS[@]}"; do
         NoDisplay)     noDisplay="$val" ;;
         Terminal)      terminal="$val" ;;
       esac
-    done < <(sed '/^\[Desktop Action/,$d' "$file" 2>/dev/null | grep -E '^(Name|GenericName|Icon|Comment|Exec|Categories|Keywords|NoDisplay|Terminal)=' || true)
+    done < <(sed '/^\[Desktop Action/,$d' "$file" 2>/dev/null || true)
 
-    # escape for JSON (backslash first, then double-quote)
-    name="${name//\\/\\\\}"
-    name="${name//\"/\\\"}"
-    generic="${generic//\\/\\\\}"
-    generic="${generic//\"/\\\"}"
-    icon="${icon//\\/\\\\}"
-    icon="${icon//\"/\\\"}"
-    comment="${comment//\\/\\\\}"
-    comment="${comment//\"/\\\"}"
-    exec="${exec//\\/\\\\}"
-    exec="${exec//\"/\\\"}"
-    categories="${categories//\\/\\\\}"
-    categories="${categories//\"/\\\"}"
-    keywords="${keywords//\\/\\\\}"
-    keywords="${keywords//\"/\\\"}"
+    # normalize booleans to JSON true/false (empty or unset -> false)
+    case "${noDisplay,,}" in true) noDisplay=true ;; *) noDisplay=false ;; esac
+    case "${terminal,,}" in  true) terminal=true ;; *) terminal=false ;; esac
 
-    entries+=("{\"id\":\"$id\",\"name\":\"$name\",\"genericName\":\"$generic\",\"icon\":\"$icon\",\"comment\":\"$comment\",\"exec\":\"$exec\",\"categories\":\"$categories\",\"keywords\":\"$keywords\",\"noDisplay\":$noDisplay,\"terminal\":$terminal}")
+    # escape for JSON
+    name="$(json_escape "$name")"
+    generic="$(json_escape "$generic")"
+    icon="$(json_escape "$icon")"
+    comment="$(json_escape "$comment")"
+    exec="$(json_escape "$exec")"
+    categories="$(json_escape "$categories")"
+    keywords="$(json_escape "$keywords")"
+
+    entries+=("{\"id\":\"$(json_escape "$id")\",\"name\":\"$name\",\"genericName\":\"$generic\",\"icon\":\"$icon\",\"comment\":\"$comment\",\"exec\":\"$exec\",\"categories\":\"$categories\",\"keywords\":\"$keywords\",\"noDisplay\":$noDisplay,\"terminal\":$terminal}")
   done < <(find -L "$dir" -maxdepth 1 -name '*.desktop' -type f -print0 2>/dev/null)
 done
 

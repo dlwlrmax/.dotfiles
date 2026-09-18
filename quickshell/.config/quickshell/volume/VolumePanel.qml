@@ -458,7 +458,7 @@ Item {
     }
 
     Timer {
-        interval: 300
+        interval: 1500
         running: root.active && !fetchProc.running
         repeat: true
         triggeredOnStart: true

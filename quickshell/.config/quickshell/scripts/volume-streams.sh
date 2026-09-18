@@ -36,7 +36,15 @@ while IFS= read -r sink_name; do
     [ "$first" = false ] && echo -n ','
     first=false
     echo -n "{\"name\":\"$sink_name\",\"description\":\"$desc\",\"volume\":${vol:-0},\"muted\":$mute,\"default\":$is_default}"
-done < <(pactl list sinks short | awk '{print $2}' | grep "^alsa_output\.")
+# Physical sinks only: keep blocks with ALSA api or a hardware bus
+# (pci/usb/bluetooth). Matches the filter in audio-cycle.sh.
+done < <(pactl list sinks 2>/dev/null | awk '
+    /^Sink #/ { if (name != "" && (api == "alsa" || bus != "")) print name; name = ""; api = ""; bus = "" }
+    $1 == "Name:" { name = $2 }
+    $1 == "device.api" { gsub(/"/, "", $3); api = $3 }
+    $1 == "device.bus" { gsub(/"/, "", $3); bus = $3 }
+    END { if (name != "" && (api == "alsa" || bus != "")) print name }
+')
 
 echo -n '],"streams":['
 

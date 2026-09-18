@@ -18,9 +18,13 @@ RowLayout {
     property int hiddenCount: Math.max(0, SystemTray.items.values.length - trayContainer.maxVisible)
 
     Repeater {
-        model: SystemTray.items.values.slice(0, trayContainer.maxVisible)
+        // QsListModel gives keyed, diffed reuse. values.slice() built a fresh
+        // JS array on every evaluation, resetting the model and recreating all
+        // delegates (flicker).
+        model: SystemTray.items
 
         delegate: TrayIcon {
+            visible: index < trayContainer.maxVisible
         }
     }
 

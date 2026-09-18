@@ -7,6 +7,9 @@ import Quickshell.Services.SystemTray
 Rectangle {
     id: trayIcon
     required property var modelData
+    // Injected by Repeater. Without this declaration, delegate-site bindings
+    // like `visible: index < n` do not resolve (verified on Qt 6.11).
+    required property int index
     property int boxSize: 18
     signal activated()
 

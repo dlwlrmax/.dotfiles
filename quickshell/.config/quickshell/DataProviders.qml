@@ -73,35 +73,7 @@ Item {
         imageSupported: true
 
         onNotification: function(notif) {
-            if (notifData.dnd) return
-
-            if (!notifData.timesLoaded) return
-
-            var key = notifData.notifHash(notif)
-            if (notifData.timesByKey[key] !== undefined
-                && Date.now() - notifData.startupTime < 5000) {
-                notif.tracked = false
-                return
-            }
-
-            notif.tracked = true
-            notifData.addNotifTime(notif)
-            notifData.activeNotifs = notifData.activeNotifs.concat([notif])
-            notifData.count = notifData.activeNotifs.length
-            notifData.tryPlaySound()
-            notifData.newNotification(notif)
-
-            notif.closed.connect(function(reason) {
-                var arr = notifData.activeNotifs
-                for (var i = 0; i < arr.length; i++) {
-                    if (arr[i].id === notif.id) {
-                        arr = arr.slice(0, i).concat(arr.slice(i + 1))
-                        notifData.activeNotifs = arr
-                        notifData.count = arr.length
-                        break
-                    }
-                }
-            })
+            notifData.handleNotification(notif)
         }
     }
 
@@ -116,6 +88,7 @@ Item {
         property var timesByKey: ({})
         property bool timesLoaded: false
         property var savedNotifs: []
+        property var pendingNotifs: []
         property int lastSoundTime: 0
         property int startupTime: Date.now()
         property string storagePath: Quickshell.env("HOME") + "/.local/state/quickshell/notifications.json"
@@ -123,6 +96,10 @@ Item {
         signal dismissPopup(var notifId)
 
         Component.onCompleted: loadSaved()
+
+        // Notifications arriving before the saved-timestamp file loads are queued,
+        // then dispatched once timesLoaded flips true so boot-time notifs are not lost.
+        onTimesLoadedChanged: if (timesLoaded) flushPending()
 
         function requestDismissPopup(notifId) {
             dismissPopup(notifId)
@@ -136,6 +113,48 @@ Item {
                 h |= 0
             }
             return "" + h
+        }
+
+        function handleNotification(notif) {
+            if (dnd) return
+
+            if (!timesLoaded) {
+                pendingNotifs = pendingNotifs.concat([notif])
+                return
+            }
+
+            var key = notifHash(notif)
+            if (timesByKey[key] !== undefined
+                && Date.now() - startupTime < 5000) {
+                notif.tracked = false
+                return
+            }
+
+            notif.tracked = true
+            addNotifTime(notif)
+            activeNotifs = activeNotifs.concat([notif])
+            count = activeNotifs.length
+            tryPlaySound()
+            newNotification(notif)
+
+            notif.closed.connect(function(reason) {
+                var arr = activeNotifs
+                for (var i = 0; i < arr.length; i++) {
+                    if (arr[i].id === notif.id) {
+                        arr = arr.slice(0, i).concat(arr.slice(i + 1))
+                        activeNotifs = arr
+                        count = arr.length
+                        break
+                    }
+                }
+            })
+        }
+
+        function flushPending() {
+            var pending = pendingNotifs
+            pendingNotifs = []
+            for (var i = 0; i < pending.length; i++)
+                handleNotification(pending[i])
         }
 
         function addNotifTime(notif) {
@@ -156,7 +175,7 @@ Item {
                 }),
                 timestamp: t
             }
-            savedNotifs.push(entry)
+            savedNotifs = savedNotifs.concat([entry]).slice(-100)
             saveDebounce.restart()
         }
 
@@ -220,9 +239,12 @@ Item {
         }
 
         function _doSave() {
-            if (saveProc.running) return
-            saveDebounce.stop()
-            var json = JSON.stringify(savedNotifs)
+            // Burst guard: if a write is mid-flight, defer instead of dropping it.
+            if (saveProc.running) {
+                saveDebounce.restart()
+                return
+            }
+            var json = JSON.stringify(savedNotifs.slice(-100))
             var dir = storagePath.substring(0, storagePath.lastIndexOf("/"))
             saveProc.command = [
                 "sh", "-c",

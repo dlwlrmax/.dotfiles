@@ -340,6 +340,9 @@ Rectangle {
         id: hoverArea
         anchors.fill: parent
         hoverEnabled: true
+        // Hover-only: Qt.NoButton keeps containsMouse working for auto-dismiss
+        // pause/resume while press events pass through to dismiss/action buttons.
+        acceptedButtons: Qt.NoButton
         z: 999
         propagateComposedEvents: true
         onContainsMouseChanged: {

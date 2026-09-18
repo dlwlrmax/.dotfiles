@@ -17,11 +17,13 @@ QtObject {
     readonly property string green: "#a6e3a1"
     readonly property string yellow: "#f9e2af"
     readonly property string peach: "#fab387"
-    readonly property string maroon: "#f5c2e7"
+    // Catppuccin Mocha canonical values. maroon/rosewater previously duplicated
+    // pink (#f5c2e7) — copy-paste typo. Unused elsewhere, so no visual change.
+    readonly property string maroon: "#eba0ac"
     readonly property string mauve: "#cba6f7"
     readonly property string pink: "#f5c2e7"
     readonly property string flamingo: "#f2cdcd"
-    readonly property string rosewater: "#f5c2e7"
+    readonly property string rosewater: "#f5e0dc"
     readonly property string black: "#1e1e2e"
     readonly property string white: "#fff"
 

@@ -420,11 +420,16 @@ Item {
         id: dnsSetProc
         running: false
 
-        stdout: StdioCollector {}
+        stdout: StdioCollector { id: dnsSetOut }
 
-        onRunningChanged: {
-            if (!running && command.length > 0) {
+        onExited: exitCode => {
+            if (exitCode === 0) {
                 root.dnsFeedback = "✓ Applied"
+            } else {
+                // Last stdout line as failure detail, else exit code.
+                var lines = dnsSetOut.text.trim().split("\n")
+                var detail = lines.length > 0 ? lines[lines.length - 1].trim() : ""
+                root.dnsFeedback = detail !== "" ? "✗ " + detail : "✗ Failed (code " + exitCode + ")"
             }
         }
     }
