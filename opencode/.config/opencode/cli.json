@@ -18,6 +18,10 @@
   "animations": true,
   "keybinds": {
     "agent.cycle": "tab",
-    "agent.cycle.reverse": "shift+tab"
+    "agent.cycle.reverse": "shift+tab",
+    "session.tab.select.1": "alt+1,<leader>1",
+    "session.tab.select.2": "alt+2,<leader>2",
+    "session.tab.select.3": "alt+3,<leader>3",
+    "session.tab.select.4": "alt+4,<leader>4"
   }
 }

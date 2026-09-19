@@ -111,8 +111,8 @@ fn poll_pulse() -> Option<(String, String)> {
             continue;
         }
 
-        let title = if title.len() > 80 {
-            format!("{}...", &title[..77])
+        let title = if title.chars().count() > 80 {
+            format!("{}...", title.chars().take(77).collect::<String>())
         } else {
             title
         };
@@ -313,11 +313,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let this_id = result.as_ref().map(|(id, _)| id.clone());
         let mut state = match STATE.lock() {
             Ok(s) => s,
-            Err(e) => {
-                eprintln!("[stremio-mpris] Mutex poisoned, skipping cycle: {e}");
-                std::thread::sleep(Duration::from_secs(2));
-                continue;
-            }
+            Err(e) => e.into_inner(),
         };
 
         if let Some((_, title)) = &result {

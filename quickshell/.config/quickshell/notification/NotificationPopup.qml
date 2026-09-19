@@ -55,6 +55,10 @@ Item {
             // Card self-destructs; just drop from map.
             delete root.cards[notif.id]
         })
+        card.destroyed.connect(function() {
+            // Teardown before fade (screen unplug) — avoid dead ref broadcast.
+            if (root.cards[notif.id] === card) delete root.cards[notif.id]
+        })
 
         // User-initiated close (× or auto-dismiss timer) on this screen:
         // broadcast to other screens before local fade completes.

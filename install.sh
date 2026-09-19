@@ -62,7 +62,7 @@ else
 fi
 
 INSTALL_DIR="${OPENCODE_INSTALL_DIR:-.opencode}"  # Allow override via environment variable
-TEMP_DIR="/tmp/opencode-installer-$$"
+TEMP_DIR=$(mktemp -d -t opencode-installer-XXXXXX)
 
 # Cleanup temp directory on exit (success or failure)
 trap 'rm -rf "$TEMP_DIR" 2>/dev/null || true' EXIT INT TERM
@@ -299,11 +299,11 @@ get_component_info() {
     local component_type=$2
     
     if [ "$component_type" = "context" ] && [[ "$component_id" == */* ]]; then
-        jq_exec "first(.components.contexts[]? | select(.path == \".opencode/context/${component_id}.md\"))" "$TEMP_DIR/registry.json"
+        jq_exec --arg id "$component_id" 'first(.components.contexts[]? | select(.path == ".opencode/context/\($id).md"))' "$TEMP_DIR/registry.json"
         return
     fi
 
-    jq_exec ".components.${component_type}[]? | select(.id == \"${component_id}\" or (.aliases // [] | index(\"${component_id}\")))" "$TEMP_DIR/registry.json"
+    jq_exec --arg id "$component_id" --arg type "$component_type" '.components[$type][]? | select(.id == $id or (.aliases // [] | index($id)))' "$TEMP_DIR/registry.json"
 }
 
 resolve_component_path() {
@@ -316,15 +316,15 @@ resolve_component_path() {
         # Try .md extension first (most context files), then fall back to the
         # path as-is for non-markdown files (e.g. paths.json). Fixes #251.
         local result
-        result=$(jq_exec "first(.components.contexts[]? | select(.path == \".opencode/context/${component_id}.md\") | .path)" "$TEMP_DIR/registry.json")
+        result=$(jq_exec --arg id "$component_id" 'first(.components.contexts[]? | select(.path == ".opencode/context/\($id).md") | .path)' "$TEMP_DIR/registry.json")
         if [ -z "$result" ] || [ "$result" = "null" ]; then
-            result=$(jq_exec "first(.components.contexts[]? | select(.path == \".opencode/context/${component_id}\") | .path)" "$TEMP_DIR/registry.json")
+            result=$(jq_exec --arg id "$component_id" 'first(.components.contexts[]? | select(.path == ".opencode/context/\($id)") | .path)' "$TEMP_DIR/registry.json")
         fi
         echo "$result"
         return
     fi
 
-    jq_exec ".components.${registry_key}[]? | select(.id == \"${component_id}\" or (.aliases // [] | index(\"${component_id}\"))) | .path" "$TEMP_DIR/registry.json"
+    jq_exec --arg id "$component_id" --arg key "$registry_key" '.components[$key][]? | select(.id == $id or (.aliases // [] | index($id))) | .path' "$TEMP_DIR/registry.json"
 }
 
 # Helper function to get the correct registry key for a component type
@@ -367,7 +367,7 @@ expand_context_wildcard() {
         prefix="${prefix}/"
     fi
 
-    jq_exec ".components.contexts[]? | select(.path | startswith(\".opencode/context/${prefix}\")) | .path | sub(\"^\\\\.opencode/context/\"; \"\") | sub(\"\\\\.md$\"; \"\")" "$TEMP_DIR/registry.json"
+    jq_exec --arg pfx "$prefix" '.components.contexts[]? | select(.path | startswith(".opencode/context/\($pfx)")) | .path | sub("^\\.opencode/context/"; "") | sub("\\.md$"; "")' "$TEMP_DIR/registry.json"
 }
 
 expand_selected_components() {
@@ -428,7 +428,7 @@ resolve_dependencies() {
     
     # Get dependencies for this component
     local deps
-    deps=$(jq_exec ".components.${registry_key}[] | select(.id == \"${id}\" or (.aliases // [] | index(\"${id}\"))) | .dependencies[]?" "$TEMP_DIR/registry.json" 2>/dev/null || echo "")
+    deps=$(jq_exec --arg id "$id" --arg key "$registry_key" '.components[$key][] | select(.id == $id or (.aliases // [] | index($id))) | .dependencies[]?' "$TEMP_DIR/registry.json" 2>/dev/null || echo "")
     
     if [ -n "$deps" ]; then
         for dep in $deps; do
@@ -802,14 +802,14 @@ show_component_selection() {
         echo -e "${CYAN}${BOLD}${cat_display}:${NC}"
         
         local components
-        components=$(jq_exec ".components.${category}[]? | .id" "$TEMP_DIR/registry.json")
+        components=$(jq_exec --arg cat "$category" '.components[$cat][]? | .id' "$TEMP_DIR/registry.json")
         
         local idx=1
         while IFS= read -r comp_id; do
             local comp_name
-            comp_name=$(jq_exec ".components.${category}[]? | select(.id == \"${comp_id}\") | .name" "$TEMP_DIR/registry.json")
+            comp_name=$(jq_exec --arg cat "$category" --arg id "$comp_id" '.components[$cat][]? | select(.id == $id) | .name' "$TEMP_DIR/registry.json")
             local comp_desc
-            comp_desc=$(jq_exec ".components.${category}[]? | select(.id == \"${comp_id}\") | .description" "$TEMP_DIR/registry.json")
+            comp_desc=$(jq_exec --arg cat "$category" --arg id "$comp_id" '.components[$cat][]? | select(.id == $id) | .description' "$TEMP_DIR/registry.json")
             
             echo "  ${idx}) ${comp_name}"
             echo "     ${comp_desc}"
@@ -1123,7 +1123,7 @@ perform_installation() {
         
         # Check if component has additional files (for skills)
         local files_array
-        files_array=$(jq_exec ".components.${registry_key}[]? | select(.id == \"${id}\") | .files[]?" "$TEMP_DIR/registry.json")
+        files_array=$(jq_exec --arg key "$registry_key" --arg id "$id" '.components[$key][]? | select(.id == $id) | .files[]?' "$TEMP_DIR/registry.json")
         
         if [ -n "$files_array" ]; then
             # Component has multiple files - download all of them

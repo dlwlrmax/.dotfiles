@@ -2,7 +2,13 @@
 # PulseAudio volume streams for Quickshell VolumePanel
 # Outputs JSON: { "sinks": [...], "streams": [...] }
 
-default_sink=$(pactl info | grep "Default Sink:" | cut -d: -f2 | xargs)
+default_sink=$(pactl info 2>/dev/null | grep "Default Sink:" | cut -d: -f2 | xargs)
+sinks_dump=$(pactl list sinks 2>/dev/null)
+
+json_escape() {
+    # Escape \ then ", strip control chars for safe JSON strings
+    printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' | tr -d '\000-\037'
+}
 
 echo -n '{"sinks":['
 first=true
@@ -10,7 +16,7 @@ first=true
 while IFS= read -r sink_name; do
     [ -z "$sink_name" ] && continue
 
-    sink_data=$(pactl list sinks | awk -v sn="$sink_name" '
+    sink_data=$(printf '%s\n' "$sinks_dump" | awk -v sn="$sink_name" '
         BEGIN { found=0; desc=""; vol=0; mute="false" }
         index($0, "Name: " sn) { found=1 }
         found && /Description:/ {
@@ -35,10 +41,11 @@ while IFS= read -r sink_name; do
 
     [ "$first" = false ] && echo -n ','
     first=false
-    echo -n "{\"name\":\"$sink_name\",\"description\":\"$desc\",\"volume\":${vol:-0},\"muted\":$mute,\"default\":$is_default}"
+    esc_name=$(json_escape "$sink_name"); esc_desc=$(json_escape "$desc")
+    echo -n "{\"name\":\"$esc_name\",\"description\":\"$esc_desc\",\"volume\":${vol:-0},\"muted\":$mute,\"default\":$is_default}"
 # Physical sinks only: keep blocks with ALSA api or a hardware bus
 # (pci/usb/bluetooth). Matches the filter in audio-cycle.sh.
-done < <(pactl list sinks 2>/dev/null | awk '
+done < <(printf '%s\n' "$sinks_dump" | awk '
     /^Sink #/ { if (name != "" && (api == "alsa" || bus != "")) print name; name = ""; api = ""; bus = "" }
     $1 == "Name:" { name = $2 }
     $1 == "device.api" { gsub(/"/, "", $3); api = $3 }
@@ -52,7 +59,8 @@ first=true
 while IFS='|' read -r idx app_id app_name icon_name vol mute; do
     [ "$first" = false ] && echo -n ','
     first=false
-    echo -n "{\"id\":$idx,\"name\":\"$app_name\",\"application\":\"${app_id:-$app_name}\",\"icon\":\"${icon_name:-$app_id}\",\"volume\":${vol:-0},\"muted\":$mute}"
+    esc_app=$(json_escape "$app_name"); esc_app_id=$(json_escape "${app_id:-$app_name}"); esc_icon=$(json_escape "${icon_name:-$app_id}")
+    echo -n "{\"id\":$idx,\"name\":\"$esc_app\",\"application\":\"$esc_app_id\",\"icon\":\"$esc_icon\",\"volume\":${vol:-0},\"muted\":$mute}"
 done < <(pactl list sink-inputs | awk '
     BEGIN { idx=""; app_id=""; app_name=""; icon=""; vol=""; mute="false" }
     /Sink Input #/ { match($0, /[0-9]+/); idx=substr($0, RSTART, RLENGTH); app_id=""; app_name=""; icon=""; vol=""; mute="false" }

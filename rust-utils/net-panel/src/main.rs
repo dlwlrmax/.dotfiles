@@ -70,7 +70,7 @@ fn get_interface() -> Option<String> {
     let mut wifi_candidate: Option<&str> = None;
 
     for line in dev.lines().skip(2) {
-        let colon = line.find(':')?;
+        let Some(colon) = line.find(':') else { continue };
         let iface = line[..colon].trim();
 
         // Skip virtual / non-physical interfaces
@@ -91,7 +91,7 @@ fn get_interface() -> Option<String> {
         }
 
         let state_path = format!("/sys/class/net/{iface}/operstate");
-        let state = fs::read_to_string(state_path).ok()?;
+        let Ok(state) = fs::read_to_string(state_path) else { continue };
         if state.trim() != "up" {
             continue;
         }
@@ -437,7 +437,22 @@ fn cmd_speedtest() {
     ];
 
     for (bin, args) in &attempts {
-        if let Ok(output) = Command::new(bin).args(*args).output() {
+        // Bound each attempt so hung binary can't hang panel forever.
+        // Fall back to direct call only when `timeout` binary missing;
+        // on 124 (timed out) move to next binary, don't retry unbounded.
+        let direct = || Command::new(bin).args(*args).output().ok();
+        let output = match Command::new("timeout")
+            .arg("25")
+            .arg(bin)
+            .args(*args)
+            .output()
+        {
+            Ok(o) if o.status.code() == Some(124) => None,
+            Ok(o) => Some(o),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => direct(),
+            Err(_) => None,
+        };
+        if let Some(output) = output {
             if output.status.success() {
                 let stdout = String::from_utf8_lossy(&output.stdout).to_string();
                 print_speedtest_result(&stdout);

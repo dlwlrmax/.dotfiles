@@ -398,6 +398,7 @@ Item {
         property bool muted: false
         property string defaultSink: ""
         property var _notifyCmd: []
+        property var _pendingNotifyCmd: []
 
         function refresh() {
             if (!volumeFetchProc.running) volumeFetchProc.running = true;
@@ -426,8 +427,13 @@ Item {
                         // Cycle path notifies itself immediately; poll catches the rest.
                         if (volumeData.defaultSink !== "" && sink !== ""
                             && sink !== volumeData.defaultSink && sink !== "none") {
-                            volumeData._notifyCmd = ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/audio-notify.sh", sink];
-                            if (!switchNotifyProc.running) switchNotifyProc.running = true;
+                            var notifyCmd = ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/audio-notify.sh", sink];
+                            if (!switchNotifyProc.running) {
+                                volumeData._notifyCmd = notifyCmd;
+                                switchNotifyProc.running = true;
+                            } else {
+                                volumeData._pendingNotifyCmd = notifyCmd;
+                            }
                         }
                         if (sink !== "") volumeData.defaultSink = sink;
                     }
@@ -453,6 +459,13 @@ Item {
         Process {
             id: switchNotifyProc
             command: volumeData._notifyCmd
+            onRunningChanged: {
+                if (!running && volumeData._pendingNotifyCmd.length > 0) {
+                    volumeData._notifyCmd = volumeData._pendingNotifyCmd;
+                    volumeData._pendingNotifyCmd = [];
+                    running = true;
+                }
+            }
         }
 
         // Event-driven refresh for external changes (volume knob, hotkeys, apps).

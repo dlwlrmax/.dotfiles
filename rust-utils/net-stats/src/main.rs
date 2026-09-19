@@ -22,7 +22,7 @@ fn get_interface() -> Option<String> {
 
     for line in dev.lines().skip(2) {
         // line: "  eth0: bytes packets errs ..."
-        let colon = line.find(':')?;
+        let Some(colon) = line.find(':') else { continue };
         let iface = line[..colon].trim();
         // skip loopback, docker, veth, etc.
         if iface.starts_with("lo")
@@ -36,12 +36,13 @@ fn get_interface() -> Option<String> {
             || iface.starts_with("zt")
             || iface.starts_with("dummy")
             || iface.starts_with("bond")
+            || iface.starts_with("tailscale")
         {
             continue;
         }
         // check operstate
         let state_path = format!("/sys/class/net/{iface}/operstate");
-        let state = fs::read_to_string(state_path).ok()?;
+        let Ok(state) = fs::read_to_string(state_path) else { continue };
         if state.trim() != "up" {
             continue;
         }
@@ -70,7 +71,7 @@ fn get_interface() -> Option<String> {
 fn read_stats(iface: &str) -> Option<(u64, u64)> {
     let dev = fs::read_to_string("/proc/net/dev").ok()?;
     for line in dev.lines().skip(2) {
-        let colon = line.find(':')?;
+        let Some(colon) = line.find(':') else { continue };
         let name = line[..colon].trim();
         if name != iface {
             continue;

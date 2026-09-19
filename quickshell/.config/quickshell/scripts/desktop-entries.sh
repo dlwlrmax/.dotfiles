@@ -135,12 +135,12 @@ for base in "${DIRS[@]}"; do
   done < <(find -L "$dir" -maxdepth 1 -name '*.desktop' -type f -print0 2>/dev/null)
 done
 
-{
+cache_tmp=$(mktemp "${CACHE_FILE}.XXXXXX") && {
 echo '['
 for i in "${!entries[@]}"; do
   echo "${entries[$i]}$([ $i -lt $((${#entries[@]}-1)) ] && echo ',' || echo '')"
 done
 echo ']'
-} > "$CACHE_FILE"
-compute_fingerprint > "$CACHE_HASH_FILE"
+} > "$cache_tmp" && mv "$cache_tmp" "$CACHE_FILE"
+hash_tmp=$(mktemp "${CACHE_HASH_FILE}.XXXXXX") && compute_fingerprint > "$hash_tmp" && mv "$hash_tmp" "$CACHE_HASH_FILE"
 cat "$CACHE_FILE"

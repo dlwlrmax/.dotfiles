@@ -112,7 +112,7 @@ Rectangle {
         id: hoverSafety
         interval: 30000
         onTriggered: {
-            if (!dismissTimer.running && autoDismiss && !root._dismissing) {
+            if (!dismissTimer.running && autoDismiss && !root._dismissing && !hoverArea.containsMouse) {
                 root._hoverPaused = false
                 var remaining = root.dismissTimeoutMs * root.progressValue
                 dismissTimer.interval = Math.max(100, remaining)

@@ -169,7 +169,7 @@ function trackselect()
                     last[track.type] = track
                 end
             end
-            if track.external then
+            if track.external and track.title ~= nil and filename ~= nil then
                 track.title = string.gsub(string.gsub(track.title, "%W", "%%%1"), filename, "")
             end
             if next(tracks[track.type].best) == nil or not (tracks[track.type].best.external and tracks[track.type].best.lang ~= nil and not track.external) then
