@@ -1,11 +1,10 @@
 {
   "plugin": [
-    "opencode-agent-skills",
-    "opencode-pty",
-    "opencode-supermemory",
+    "opencode-pty/v2",
     "oh-my-opencode-slim"
   ],
   "$schema": "https://opencode.ai/config.json",
+  "model": "opencode-go/mimo-v2.5",
   // "default_agent": "OpenCoder",
   // "agents": {
   //   "OpenCoder": {
