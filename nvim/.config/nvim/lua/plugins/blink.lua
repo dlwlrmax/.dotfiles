@@ -10,7 +10,7 @@ return {
       local keymap = {
         preset = "default",
         ["<C-o>"] = { "select_and_accept" },
-        ["<Tab>"] = { "fallback" },
+        ["<Tab>"] = { "snippet_forward", "fallback" },
         ["<C-Space>"] = {
           function()
             require("blink.cmp").show({ providers = { "ripgrep" } })
@@ -23,31 +23,14 @@ return {
           auto_show = true,
           draw = {
             columns = {
-              { "kind_icon", "label", "label_description", gap = 1 },
+              { "kind_icon", "label", gap = 1 },
               { "source_name", "kind", gap = 1 },
             },
             components = {
               label = {
                 width = { fill = true, max = 60 },
-                text = function(ctx)
-                  local highlights_info = require("colorful-menu").blink_highlights(ctx)
-                  if highlights_info ~= nil then
-                    return highlights_info.label
-                  else
-                    return ctx.label
-                  end
-                end,
-                highlight = function(ctx)
-                  local highlights = {}
-                  local highlights_info = require("colorful-menu").blink_highlights(ctx)
-                  if highlights_info ~= nil then
-                    highlights = highlights_info.highlights
-                  end
-                  for _, idx in ipairs(ctx.label_matched_indices) do
-                    table.insert(highlights, { idx, idx + 1, group = "BlinkCmpLabelMatch" })
-                  end
-                  return highlights
-                end,
+                text = require("colorful-menu").blink_components_text,
+                highlight = require("colorful-menu").blink_components_highlight,
               },
             },
           },
@@ -101,7 +84,7 @@ return {
       })
       -- ripgrep not in default sources: avoids spawning `rg` on every
       -- completion keystroke. Trigger manually with <C-Space> (keymap above).
-      opts.sources.default = vim.list_extend(opts.sources.default or {}, { "datword", "blade-nav" })
+      opts.sources.default = vim.list_extend(vim.deepcopy(opts.sources.default or {}), { "datword", "blade-nav" })
       opts.cmdline = vim.tbl_deep_extend("force", opts.cmdline or {}, cmdline)
     end,
   },

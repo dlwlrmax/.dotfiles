@@ -4,19 +4,20 @@ return {
     {
       "-",
       function()
-        require("mini.files").open(vim.api.nvim_buf_get_name(0), true)
+        local name = vim.api.nvim_buf_get_name(0)
+        require("mini.files").open(name ~= "" and name or vim.uv.cwd(), true)
       end,
       mode = { "n" },
       desc = "Open mini.files (Directory of Current File)",
     },
     {
-      '_',
+      "_",
       function()
         require("mini.files").open(vim.fn.getcwd(), true)
       end,
       mode = { "n" },
       desc = "Open mini.files (Current Working Directory)",
-    }
+    },
   },
   opts = {
     mappings = {

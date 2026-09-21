@@ -3,8 +3,6 @@
 -- Add any additional options here
 -- Basic config
 
-vim.api.nvim_set_hl(0, "SnacksIndent", { fg = "#4c4f69", bg = "NONE" })
-
 -- Disable some default options
 vim.g.autoformat = false
 
@@ -19,4 +17,4 @@ vim.opt.updatetime = 250
 -- PERF: trim ShaDa (default '100,<50,s10 grew to ~150KB, ~15ms read at startup)
 vim.opt.shada = "!,'50,<30,s5,h"
 
-vim.o.winborder = 'rounded'
+vim.o.winborder = "rounded"

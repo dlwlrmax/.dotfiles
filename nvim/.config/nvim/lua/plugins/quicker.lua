@@ -1,5 +1,5 @@
 return {
-  'stevearc/quicker.nvim',
+  "stevearc/quicker.nvim",
   ft = "qf",
   ---@module "quicker"
   ---@type quicker.SetupOptions

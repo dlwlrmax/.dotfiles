@@ -2,7 +2,7 @@ return {
   "mfussenegger/nvim-lint",
   opts = {
     -- Event to trigger linters
-    events = { "BufWritePost", "BufReadPost", "InsertLeave" },
+    events = { "BufWritePost", "BufReadPost" },
     linters_by_ft = {
       -- Use the "*" filetype to run linters on all filetypes.
       -- ['*'] = { 'global linter' },
@@ -46,7 +46,7 @@ return {
           "%filepath",
         },
         -- Only run when project has phpstan config; avoids spawning
-        -- phpstan on every BufReadPost/InsertLeave for plain PHP files
+        -- phpstan on every BufReadPost for plain PHP files
         condition = function(ctx)
           return vim.fs.find({ "phpstan.neon", "phpstan.neon.dist" }, { path = ctx.filename, upward = true })[1]
         end,

@@ -1,42 +1,17 @@
 return {
   "ThePrimeagen/harpoon",
-  branch = "harpoon2",
-  opts = {
-    menu = {
-      width = vim.api.nvim_win_get_width(0) - 4,
+  -- LazyVim's `editor.harpoon2` extra already supplies branch = "harpoon2",
+  -- opts.settings.save_on_toggle, the <leader>h quick menu and <leader>1-9
+  -- selects. This spec only overrides the add key and drops the extra's
+  -- duplicate <leader>H.
+  keys = {
+    {
+      "<leader>ah",
+      function()
+        require("harpoon"):list():add()
+      end,
+      desc = "Harpoon File",
     },
-    settings = {
-      save_on_toggle = true,
-    },
+    { "<leader>H", false },
   },
-  keys = function()
-    local keys = {
-      {
-        "<leader>ah",
-        function()
-          require("harpoon"):list():add()
-        end,
-        desc = "Harpoon File",
-      },
-      {
-        "<leader>h",
-        function()
-          local harpoon = require("harpoon")
-          harpoon.ui:toggle_quick_menu(harpoon:list())
-        end,
-        desc = "Harpoon Quick Menu",
-      },
-    }
-
-    for i = 1, 9 do
-      table.insert(keys, {
-        "<leader>" .. i,
-        function()
-          require("harpoon"):list():select(i)
-        end,
-        desc = "Harpoon to File " .. i,
-      })
-    end
-    return keys
-  end,
 }

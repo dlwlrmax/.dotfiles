@@ -34,7 +34,7 @@ return {
         end,
         mode = { "i" },
         desc = "[Neocodeium] Accept Word",
-      }
+      },
     },
     config = function()
       local neocodeium = require("neocodeium")

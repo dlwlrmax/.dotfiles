@@ -13,16 +13,21 @@ map("n", "<M-h>", "<cmd>bprevious<cr>", { desc = "Prev Buffer" })
 map("n", "<M-l>", "<cmd>bnext<cr>", { desc = "Next Buffer" })
 
 -- Movement
-map("n", "<S-h>", "^", { desc = "Prev Buffer" })
-map("n", "<S-l>", "$", { desc = "Next Buffer" })
+map("n", "<S-h>", "^", { desc = "To Line Start" })
+map("n", "<S-l>", "$", { desc = "To Line End" })
 map("n", "<leader>l", "<cmd>e #<cr>", { desc = "Switch to Other Buffer" })
 
 -- Default
-map('n', '<C-q>', 'q', { noremap = true })
-map('n', 'q', '<Nop>', { noremap = true })
+map("n", "<C-q>", "q", { noremap = true })
+map("n", "q", "<Nop>", { noremap = true })
 
 -- Replace
-map('n', '<leader>rp', [[:%s/<C-r><C-w>//gIc<Left><Left><Left><Left>]], { silent = false, desc = "Replace word under cursor"})
+map(
+  "n",
+  "<leader>rp",
+  [[:%s/<C-r><C-w>//gIc<Left><Left><Left><Left>]],
+  { silent = false, desc = "Replace word under cursor" }
+)
 
 -- Sidekick
-map('n', '<C-p>', '<cmd>Sidekick cli prompt<cr>')
+map("n", "<C-p>", "<cmd>Sidekick cli prompt<cr>")

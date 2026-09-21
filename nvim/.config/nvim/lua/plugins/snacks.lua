@@ -10,11 +10,11 @@ return {
     },
     {
       "<C-e>",
-      function ()
+      function()
         Snacks.picker.buffers()
       end,
-      desc = "Buffers"
-    }
+      desc = "Buffers",
+    },
   },
   opts = {
     picker = {
@@ -101,7 +101,7 @@ return {
           enabled = function()
             return Snacks.git.get_root() ~= nil
           end,
-          cmd = "hub status --short --branch --renames",
+          cmd = "git status --short --branch --renames",
           height = 5,
           padding = 1,
           ttl = 5 * 60,

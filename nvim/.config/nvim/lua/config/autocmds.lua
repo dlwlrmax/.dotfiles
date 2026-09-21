@@ -10,31 +10,30 @@
 -- Close Diffview before Neovim exits
 vim.api.nvim_create_autocmd("VimLeavePre", {
   callback = function()
-    local success, _ = pcall(vim.cmd, "DiffviewClose")
-    if success then
-      vim.notify("Diffview closed before exit", vim.log.levels.INFO)
+    if vim.fn.exists(":DiffviewClose") == 2 then
+      vim.cmd("DiffviewClose")
     end
   end,
 })
 
--- handle Hlargs Lsp semantic tokens
-vim.api.nvim_create_augroup("LspAttach_hlargs", { clear = true })
-vim.api.nvim_create_autocmd("LspAttach", {
-  group = "LspAttach_hlargs",
-  callback = function(args)
-    if not (args.data and args.data.client_id) then
-      return
-    end
-    local client = vim.lsp.get_client_by_id(args.data.client_id)
-    if not client then
-      return
-    end
-    local caps = client.server_capabilities
-    if not caps then
-      return
-    end
-    if caps.semanticTokensProvider and caps.semanticTokensProvider.full then
-      require("hlargs").disable_buf(args.buf)
-    end
+-- `q` is globally disabled in config/keymaps.lua; restore it where it
+-- natively closes a window/pager.
+vim.api.nvim_create_autocmd("FileType", {
+  group = vim.api.nvim_create_augroup("UserNativeQ", { clear = true }),
+  pattern = {
+    "checkhealth",
+    "dap-repl",
+    "help",
+    "lazy",
+    "lspinfo",
+    "man",
+    "mason",
+    "noice",
+    "notify",
+    "qf",
+    "trouble",
+  },
+  callback = function(ev)
+    vim.keymap.set("n", "q", "q", { buffer = ev.buf, desc = "Close Window" })
   end,
 })

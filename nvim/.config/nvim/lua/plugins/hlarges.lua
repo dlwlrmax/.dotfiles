@@ -1,6 +1,22 @@
 return {
   "m-demare/hlargs.nvim",
   event = "LspAttach",
+  init = function()
+    -- autocmds.lua loads on VeryLazy, possibly after the first LspAttach;
+    -- register here (startup) so hlargs is disabled on semantic-token servers.
+    vim.api.nvim_create_autocmd("LspAttach", {
+      group = vim.api.nvim_create_augroup("LspAttach_hlargs", { clear = true }),
+      callback = function(args)
+        local client = args.data and args.data.client_id and vim.lsp.get_client_by_id(args.data.client_id)
+        if not client then
+          return
+        end
+        if client:supports_method("textDocument/semanticTokens/full") then
+          require("hlargs").disable_buf(args.buf)
+        end
+      end,
+    })
+  end,
   config = function()
     local hlargs = require("hlargs")
     hlargs.setup({

@@ -6,12 +6,6 @@ return {
     },
   },
   {
-    "folke/tokyonight.nvim",
-    lazy = false,
-    priority = 1000,
-    opts = {},
-  },
-  {
     "catppuccin/nvim",
     lazy = false,
     name = "catppuccin",
@@ -22,6 +16,8 @@ return {
         return {
           LineNr = { fg = colors.overlay0 },
           NeoTreeDotfile = { fg = colors.overlay0 },
+          SnacksIndent = { fg = colors.overlay0 },
+          SnacksIndentChunk = { fg = colors.surface2 },
           NeoTreeMessage = { fg = colors.surface2 },
           SnacksPickerListCursorLine = { bg = "#223547" },
           SnacksPickerSelected = { fg = colors.lavender },

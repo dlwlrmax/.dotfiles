@@ -12,7 +12,7 @@ return {
       "prettierd",
       "tailwindcss-language-server",
       "vue-language-server",
-      "vtsls"
-    }
-  }
+      "vtsls",
+    },
+  },
 }
