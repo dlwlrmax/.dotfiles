@@ -17,3 +17,4 @@ fish_variables*
 *.bak.*
 .omo
 mimeinfo
+opencode/.config/opencode/service.json
