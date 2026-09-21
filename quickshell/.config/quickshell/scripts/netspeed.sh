@@ -4,11 +4,9 @@
 
 set -e
 
-CACHE_FILE="/tmp/quickshell-netspeed-cache"
+CACHE_FILE="${XDG_RUNTIME_DIR:-/tmp}/quickshell-netspeed-cache"
 
 get_interface() {
-    local skip_pattern="^(lo|docker|veth|br-|virbr|tun|tap|wg|zt|dummy|bond|team|vlan)"
-
     # Get all interfaces that are up, sorted by preference: wifi > wired > other
     # Single awk pass to extract interfaces and filter
     awk -F: '/^[ \t]*[a-z0-9]+:/{
@@ -31,10 +29,7 @@ get_interface() {
 
 read_stats() {
     local interface="$1"
-    read -r rx tx <<< "$(awk -v iface="${interface}" -F: '
-        {gsub(/^[ \t]+/, "", $1)} $1 == iface {print $2}
-    ' /proc/net/dev | awk '{print $1, $9}')"
-    echo "${rx} ${tx}"
+    awk -v iface="$interface" '$1 == iface ":" {print $2, $10}' /proc/net/dev
 }
 
 human_readable() {

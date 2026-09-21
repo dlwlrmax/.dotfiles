@@ -2,7 +2,7 @@
 # Calculate CPU usage percentage from /proc/stat using cached delta
 # No sleep needed — stores prev sample in cache, diffs on next call
 
-CACHE_FILE="/tmp/quickshell-cpu-cache"
+CACHE_FILE="${XDG_RUNTIME_DIR:-/tmp}/quickshell-cpu-cache"
 
 read -r _ user nice system idle iowait irq softirq steal _ < /proc/stat
 curr_idle=$((idle + iowait))

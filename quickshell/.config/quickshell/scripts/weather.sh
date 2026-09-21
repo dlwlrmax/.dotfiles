@@ -1,4 +1,5 @@
 #!/bin/bash
+# Bar weather: icon + temp for the panel widget.
 # Resolve location: env var > config file > error
 LOCATION="${WEATHER_LOCATION:-}"
 if [[ -z "$LOCATION" ]] && [[ -f "$HOME/.config/quickshell/weather-location" ]]; then
@@ -9,18 +10,11 @@ if [[ -z "$LOCATION" ]]; then
     echo "󰅛 --"
     exit 0
 fi
-LOCATION_ENCODED="${LOCATION// /%20}"
 
-geo=$(curl -s --max-time 5 "https://geocoding-api.open-meteo.com/v1/search?name=${LOCATION_ENCODED}&count=1&language=en&format=json")
-lat=$(echo "$geo" | jq -r '.results[0].latitude // empty')
-lon=$(echo "$geo" | jq -r '.results[0].longitude // empty')
+source "$(dirname "$0")/weather-common.sh"
+resolve_geo "$LOCATION" || { echo "󰅛 --"; exit 0; }
 
-if [[ -z "$lat" ]]; then
-    echo "󰅛 --"
-    exit 0
-fi
-
-data=$(curl -s --max-time 5 "https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto")
+data=$(curl -s --max-time 5 "https://api.open-meteo.com/v1/forecast?latitude=${GEO_LAT}&longitude=${GEO_LON}&current=temperature_2m,weather_code&timezone=auto")
 temp=$(echo "$data" | jq -r '(.current.temperature_2m // empty) | round')
 code=$(echo "$data" | jq -r '.current.weather_code // empty')
 

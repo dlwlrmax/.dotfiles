@@ -70,10 +70,8 @@ Item {
 
             stdout: StdioCollector {
                 onStreamFinished: {
-                    console.log("KDEConnectData: stream complete")
                     try {
                         var data = JSON.parse(this.text.trim())
-                        console.log("KDEConnectData: got", data.devices ? data.devices.length : 0, "devices")
                         kdeData.applyDevices(data.devices || [])
                         kdeData.anyConnected = data.anyConnected || false
                     } catch (e) {
@@ -160,11 +158,7 @@ Item {
             if (changed) kdeData.devices = devs
         }
 
-        onDevicesChanged: console.log("kdeData devices changed: count=", devices.length, "device=", device ? device.name + " bat=" + device.battery : "null")
-        onAnyConnectedChanged: console.log("kdeData anyConnected=", anyConnected)
-
         Component.onCompleted: {
-            console.log("KDEConnectData: completed, starting fetchProc")
             fetchProc.running = true
         }
     }
@@ -220,6 +214,14 @@ Item {
             return "" + h
         }
 
+        // Bound the time maps: entries older than the startup dedup window are useless.
+        function pruneTimes(cutoffSec) {
+            var t = notifTimes
+            for (var k in t) if (t[k] < cutoffSec) delete t[k]
+            var m = timesByKey
+            for (var k in m) if (m[k] < cutoffSec) delete m[k]
+        }
+
         function handleNotification(notif) {
             if (dnd) return
 
@@ -267,6 +269,7 @@ Item {
             var t = Date.now() / 1000
             notifTimes[notif.id] = t
             timesByKey[key] = t
+            if (Object.keys(timesByKey).length > 200) pruneTimes(t - 10)
             var entry = {
                 appName: notif.appName || "",
                 summary: notif.summary || "",

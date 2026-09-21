@@ -8,6 +8,19 @@ CACHE_FILE="$CACHE_DIR/devices.json"
 LAST_BATTERY_FILE="$CACHE_DIR/last_battery.txt"
 CACHE_TTL=8
 
+# Escape a string for embedding in a JSON string value (backslash first).
+json_escape() {
+  local s="${1-}"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\r'/\\r}"
+  s="${s//$'\t'/\\t}"
+  s="${s//$'\b'/\\b}"
+  s="${s//$'\f'/\\f}"
+  printf '%s' "$s"
+}
+
 if ! command -v kdeconnect-cli &>/dev/null; then
   echo '{"devices":[],"anyConnected":false}'
   exit 0
@@ -69,7 +82,7 @@ first=true
 while IFS= read -r line; do
   [ -z "$line" ] && continue
   id=$(echo "$line" | awk '{print $1}')
-  name=$(echo "$line" | cut -d' ' -f2-)
+  name=$(json_escape "$(echo "$line" | cut -d' ' -f2-)")
 
   battery=null
   charging="false"
@@ -97,7 +110,6 @@ while IFS= read -r line; do
       # After 3 consecutive nulls (~15s), force network refresh
       if [ "$consecutive" -ge 3 ]; then
         kdeconnect-cli --refresh 2>/dev/null
-        sleep 1
         bat_raw=$(dbus-send --print-reply --dest=org.kde.kdeconnect \
           "/modules/kdeconnect/devices/${id}/battery" \
           org.freedesktop.DBus.Properties.GetAll \
@@ -137,6 +149,7 @@ while IFS= read -r line; do
     if [ -n "$sig" ] && [ "$sig" -ge 0 ] 2>/dev/null; then signal=$sig; fi
     net=$(echo "$conn_raw" | grep -A1 'string "cellularNetworkType"' | tail -1 | grep -oP 'string "\K[^"]+')
     [ -n "$net" ] && networkType="$net"
+    networkType=$(json_escape "$networkType")
 
     # Notifications
     raw_ids=$(dbus-send --print-reply --dest=org.kde.kdeconnect \
@@ -162,6 +175,7 @@ while IFS= read -r line; do
         [ -z "$silent" ] && silent="false"
 
         reply_id=$(echo "$raw_notif" | grep -A1 'string "replyId"' | tail -1 | grep -oP 'string "\K[^"]+')
+        reply_id=$(json_escape "$reply_id")
         is_conv=$(echo "$raw_notif" | grep -A1 'string "isConversation"' | tail -1 | grep -oP 'boolean \K\w+')
         [ -z "$is_conv" ] && is_conv="false"
 
@@ -175,9 +189,9 @@ while IFS= read -r line; do
           "System UI"|"Báo Mới"|"Bao Moi") continue ;;
         esac
 
-        # Escape JSON strings
-        app=$(echo "$app" | sed 's/"/\\"/g')
-        body=$(echo "$body" | sed 's/"/\\"/g')
+        # Escape JSON strings (backslash first, then quote + control chars)
+        app=$(json_escape "$app")
+        body=$(json_escape "$body")
 
         [ "$count" -gt 0 ] && notifJson="$notifJson,"
         notifJson="$notifJson{\"id\":\"${nid}\",\"deviceId\":\"${id}\",\"appName\":\"$app\",\"body\":\"$body\",\"dismissable\":$dismiss,\"silent\":$silent,\"replyId\":\"${reply_id}\",\"isConversation\":$is_conv}"

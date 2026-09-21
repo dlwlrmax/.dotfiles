@@ -10,8 +10,6 @@ Item {
     property var device: dataSource ? dataSource.device : null
     property bool anyConnected: dataSource ? dataSource.anyConnected : false
     property var dataSource: null
-    onDeviceChanged: console.log("KDEConnect bar: device=", device ? device.name : "null", "battery=", device ? device.battery : "n/a")
-    onAnyConnectedChanged: console.log("KDEConnect bar: anyConnected=", anyConnected)
     signal togglePanel(int centerX)
 
     implicitWidth: anyConnected ? row.implicitWidth : 0

@@ -9,22 +9,15 @@ if [[ -z "$LOCATION" ]]; then
     echo '{"icon":"","temp":"--","feelsLike":"--","humidity":"--","wind":"--","windDir":"","condition":"Set location","location":"","country":"","sunrise":"","sunset":"","pressure":"","uvIndex":"","visibility":"","cloudcover":"","precipMM":"","hourly":[],"daily":[]}'
     exit 0
 fi
-LOCATION_ENCODED="${LOCATION// /%20}"
-
-geo=$(curl -s --max-time 5 "https://geocoding-api.open-meteo.com/v1/search?name=${LOCATION_ENCODED}&count=1&language=en&format=json")
-lat=$(echo "$geo" | jq -r '.results[0].latitude // empty')
-lon=$(echo "$geo" | jq -r '.results[0].longitude // empty')
-city=$(echo "$geo" | jq -r '.results[0].name // "'"$LOCATION"'"')
-country=$(echo "$geo" | jq -r '.results[0].country // ""')
-
-if [[ -z "$lat" ]]; then
+source "$(dirname "$0")/weather-common.sh"
+resolve_geo "$LOCATION" || {
     echo '{"icon":"","temp":"--","feelsLike":"--","humidity":"--","wind":"--","windDir":"","condition":"Unavailable","location":"","country":"","sunrise":"","sunset":"","pressure":"","uvIndex":"","visibility":"","cloudcover":"","precipMM":"","hourly":[],"daily":[]}'
     exit 0
-fi
+}
 
-data=$(curl -s --max-time 10 "https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,cloud_cover,precipitation&daily=temperature_2m_max,temperature_2m_min,weather_code,sunrise,sunset,precipitation_sum,precipitation_probability_max&hourly=temperature_2m,weather_code,precipitation_probability,wind_speed_10m&forecast_hours=8&forecast_days=7&timezone=auto")
+data=$(curl -s --max-time 10 "https://api.open-meteo.com/v1/forecast?latitude=${GEO_LAT}&longitude=${GEO_LON}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,cloud_cover,precipitation&daily=temperature_2m_max,temperature_2m_min,weather_code,sunrise,sunset,precipitation_sum,precipitation_probability_max&hourly=temperature_2m,weather_code,precipitation_probability,wind_speed_10m&forecast_hours=8&forecast_days=7&timezone=auto")
 
-result=$(echo "$data" | jq -c --arg loc "$city" --arg cnt "$country" '
+result=$(echo "$data" | jq -c --arg loc "$GEO_CITY" --arg cnt "$GEO_COUNTRY" '
 def wmoicon:
     if . == 0 then "🌞"
     elif . == 1 then "☀️"

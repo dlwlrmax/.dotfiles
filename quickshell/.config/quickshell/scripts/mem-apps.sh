@@ -3,8 +3,10 @@
 # Top 15 processes by RSS
 
 # ── RAM / Swap summary (single free call) ──
-eval "$(free -m | awk '/^Mem:/  {print "ramTotal="$2,"ramUsed="$3}
-                       /^Swap:/ {print "swapTotal="$2,"swapUsed="$3}')"
+read -r ramTotal ramUsed swapTotal swapUsed <<< "$(free -m | awk '
+  /^Mem:/  {ramTotal=$2; ramUsed=$3}
+  /^Swap:/ {swapTotal=$2; swapUsed=$3}
+  END {print ramTotal, ramUsed, swapTotal, swapUsed}')"
 ramPct=$((100 * ramUsed / ramTotal))
 swapPct=$((swapTotal > 0 ? 100 * swapUsed / swapTotal : 0))
 

@@ -4,7 +4,9 @@
 set -euo pipefail
 
 # --- CPU: delta from /proc/stat, separate cache file ---
-CPU_CACHE="/tmp/quickshell-sysusage-cpu-cache"
+RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp}"
+CPU_CACHE="$RUNTIME_DIR/quickshell-sysusage-cpu-cache"
+GPU_CACHE="$RUNTIME_DIR/quickshell-sysusage-gpu-cache"
 
 read -r _ user nice system idle iowait irq softirq steal _ < /proc/stat
 curr_idle=$((idle + iowait))
@@ -29,16 +31,18 @@ gpu_found=false
 for card in 0 1 2; do
     GT="/sys/class/drm/card${card}/gt/gt0"
     if [ -f "$GT/rc6_residency_ms" ]; then
-        r1=$(cat "$GT/rc6_residency_ms" 2>/dev/null) || r1=0
-        f1=$(cat "$GT/rps_act_freq_mhz" 2>/dev/null) || f1=0
-        sleep 0.5
-        r2=$(cat "$GT/rc6_residency_ms" 2>/dev/null) || r2=0
-        f2=$(cat "$GT/rps_act_freq_mhz" 2>/dev/null) || f2=0
-        drc6=$((r2 - r1))
-        if [ "$drc6" -ge 0 ] && [ "$drc6" -le 500 ]; then
-            gpu=$((100 * (500 - drc6) / 500))
+        rc6=$(cat "$GT/rc6_residency_ms" 2>/dev/null) || rc6=0
+        wall=$(awk '{printf "%d", $1*1000}' /proc/uptime)
+        if [ -f "$GPU_CACHE" ]; then
+            read -r prev_rc6 prev_wall < "$GPU_CACHE"
+            drc6=$((rc6 - prev_rc6))
+            dwall=$((wall - prev_wall))
+            if [ "$drc6" -ge 0 ] && [ "$dwall" -gt 0 ] && [ "$drc6" -le "$dwall" ]; then
+                gpu=$((100 * (dwall - drc6) / dwall))
+            fi
         fi
-        gpu_freq=$(((f1 + f2) / 2))
+        echo "$rc6 $wall" > "$GPU_CACHE"
+        gpu_freq=$(cat "$GT/rps_act_freq_mhz" 2>/dev/null) || gpu_freq=0
         gpu_found=true
         break
     fi
