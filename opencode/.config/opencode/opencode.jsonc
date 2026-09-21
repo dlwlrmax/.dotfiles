@@ -1,6 +1,5 @@
 {
   "plugin": [
-    "opencode-pty/v2",
     "oh-my-opencode-slim"
   ],
   "$schema": "https://opencode.ai/config.json",
