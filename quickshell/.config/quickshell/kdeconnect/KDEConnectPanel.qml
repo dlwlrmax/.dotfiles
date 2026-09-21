@@ -287,6 +287,32 @@ Item {
                             font.family: theme.font
                             verticalAlignment: Text.AlignVCenter
                         }
+
+                        Text {
+                            visible: modelData && modelData.notifications && modelData.notifications.some(function(n) { return n.dismissable })
+                            text: "Clear"
+                            color: theme.blue
+                            font.pixelSize: theme.fontSize - 1
+                            font.family: theme.font
+
+                            MouseArea {
+                                anchors.fill: parent
+                                anchors.margins: -6
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    var notifs = (modelData && modelData.notifications) || []
+                                    for (var i = 0; i < notifs.length; i++) {
+                                        if (!notifs[i].dismissable) continue
+                                        var devId = notifs[i].deviceId || modelData.id || ""
+                                        var nid = notifs[i].id || ""
+                                        if (!devId || !nid) continue
+                                        if (root.dataSource && root.dataSource.dismissOptimistic)
+                                            root.dataSource.dismissOptimistic(devId, nid)
+                                        dismissProc.dismiss(devId, nid)
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     Repeater {
@@ -343,6 +369,14 @@ Item {
                                         }
 
                                         Text {
+                                            visible: modelData && (modelData.silent === true || modelData.dismissable === false)
+                                            text: modelData && modelData.dismissable === false ? "Ongoing" : "Silent"
+                                            color: theme.subtext0
+                                            font.pixelSize: theme.fontSize - 3
+                                            font.family: theme.font
+                                        }
+
+                                        Text {
                                             text: modelData ? modelData.body || "" : ""
                                             color: theme.text
                                             font.pixelSize: theme.fontSize - 1
@@ -388,10 +422,10 @@ Item {
                                         }
                                     }
 
-                                    // Dismiss button
+                                    // Dismiss button (28px hit area, visual ✕ unchanged)
                                     Rectangle {
-                                        implicitWidth: 20
-                                        implicitHeight: 20
+                                        implicitWidth: 28
+                                        implicitHeight: 28
                                         radius: 6
                                         color: "transparent"
                                         visible: modelData && modelData.dismissable
@@ -399,19 +433,22 @@ Item {
                                         Text {
                                             anchors.centerIn: parent
                                             text: "✕"
-                                            color: theme.subtext0
+                                            color: dismissTap.pressed ? theme.text : theme.subtext0
                                             font.pixelSize: theme.fontSize
                                             font.family: theme.font
                                         }
 
                                         MouseArea {
+                                            id: dismissTap
                                             anchors.fill: parent
                                             cursorShape: Qt.PointingHandCursor
                                             onClicked: {
                                                 var devId = modelData.deviceId || ""
                                                 var notifId = modelData.id || ""
-                                                if (devId && notifId)
-                                                    dismissProc.dismiss(devId, notifId)
+                                                if (!devId || !notifId) return
+                                                if (root.dataSource && root.dataSource.dismissOptimistic)
+                                                    root.dataSource.dismissOptimistic(devId, notifId)
+                                                dismissProc.dismiss(devId, notifId)
                                             }
                                         }
                                     }
@@ -524,19 +561,45 @@ Item {
         }
     }
 
-    // Process: dismiss notification
+    // Process: dismiss notification (queued, refreshes shared data on finish)
     Process {
         id: dismissProc
         property string deviceId: ""
         property string notifId: ""
+        property var queue: []
         command: []
 
         function dismiss(devId, nid) {
+            if (running) {
+                queue = queue.concat([{devId: devId, nid: nid}])
+                return
+            }
             deviceId = devId
             notifId = nid
             command = ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh",
                 "dismiss", devId, nid]
             running = true
+        }
+
+        function refreshSource() {
+            if (root.dataSource && root.dataSource.refresh)
+                root.dataSource.refresh()
+        }
+
+        onRunningChanged: {
+            if (!running) {
+                if (queue.length > 0) {
+                    var next = queue[0]
+                    queue = queue.slice(1)
+                    deviceId = next.devId
+                    notifId = next.nid
+                    command = ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh",
+                        "dismiss", next.devId, next.nid]
+                    running = true
+                } else {
+                    refreshSource()
+                }
+            }
         }
     }
 

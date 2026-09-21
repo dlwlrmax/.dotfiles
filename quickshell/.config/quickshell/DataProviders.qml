@@ -46,6 +46,7 @@ Item {
         }
 
         Timer {
+            id: kdePollTimer
             interval: 10000
             running: true
             repeat: true
@@ -53,6 +54,36 @@ Item {
             onTriggered: {
                 if (!fetchProc.running) fetchProc.running = true
             }
+        }
+
+        function refresh() {
+            if (!fetchProc.running) fetchProc.running = true
+            else kdePollTimer.restart()
+        }
+
+        // Remove one notification locally so dismiss feels instant.
+        // Authoritative state arrives on next poll.
+        function dismissOptimistic(devId, nid) {
+            var devs = kdeData.devices
+            var changed = false
+            for (var d = 0; d < devs.length; d++) {
+                var dev = devs[d]
+                if (devId && dev.id !== devId) continue
+                var notifs = dev.notifications || []
+                var kept = []
+                for (var i = 0; i < notifs.length; i++) {
+                    if (notifs[i].id !== nid) kept.push(notifs[i])
+                    else changed = true
+                }
+                if (changed) {
+                    var copy = {}
+                    for (var k in dev) copy[k] = dev[k]
+                    copy.notifications = kept
+                    copy.notifCount = kept.length
+                    devs = devs.slice(0, d).concat([copy]).concat(devs.slice(d + 1))
+                }
+            }
+            if (changed) kdeData.devices = devs
         }
 
         onDevicesChanged: console.log("kdeData devices changed: count=", devices.length, "device=", device ? device.name + " bat=" + device.battery : "null")

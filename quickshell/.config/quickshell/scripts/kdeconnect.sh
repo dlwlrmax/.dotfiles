@@ -119,7 +119,7 @@ while IFS= read -r line; do
     raw_ids=$(dbus-send --print-reply --dest=org.kde.kdeconnect \
       "/modules/kdeconnect/devices/${id}/notifications" \
       org.kde.kdeconnect.device.notifications.activeNotifications 2>/dev/null)
-    ids=$(echo "$raw_ids" | grep -oP 'string "\K[^"]+' 2>/dev/null)
+    ids=$(echo "$raw_ids" | grep -oP 'string "\K[^"]+' 2>/dev/null | sort -nr | tr '\n' ' ')
     if [ -n "$ids" ]; then
       count=0
       for nid in $ids; do
@@ -135,6 +135,8 @@ while IFS= read -r line; do
         ticker=$(echo "$raw_notif" | grep -A1 'string "ticker"' | tail -1 | grep -oP 'string "\K[^"]+')
         dismiss=$(echo "$raw_notif" | grep -A1 'string "dismissable"' | tail -1 | grep -oP '(true|false)')
         [ -z "$dismiss" ] && dismiss="false"
+        silent=$(echo "$raw_notif" | grep -A1 'string "silent"' | tail -1 | grep -oP 'boolean \K\w+')
+        [ -z "$silent" ] && silent="false"
 
         reply_id=$(echo "$raw_notif" | grep -A1 'string "replyId"' | tail -1 | grep -oP 'string "\K[^"]+')
         is_conv=$(echo "$raw_notif" | grep -A1 'string "isConversation"' | tail -1 | grep -oP 'boolean \K\w+')
@@ -155,7 +157,7 @@ while IFS= read -r line; do
         body=$(echo "$body" | sed 's/"/\\"/g')
 
         [ "$count" -gt 0 ] && notifJson="$notifJson,"
-        notifJson="$notifJson{\"id\":\"${nid}\",\"deviceId\":\"${id}\",\"appName\":\"$app\",\"body\":\"$body\",\"dismissable\":$dismiss,\"replyId\":\"${reply_id}\",\"isConversation\":$is_conv}"
+        notifJson="$notifJson{\"id\":\"${nid}\",\"deviceId\":\"${id}\",\"appName\":\"$app\",\"body\":\"$body\",\"dismissable\":$dismiss,\"silent\":$silent,\"replyId\":\"${reply_id}\",\"isConversation\":$is_conv}"
         count=$((count + 1))
       done
       notifCount=$count
