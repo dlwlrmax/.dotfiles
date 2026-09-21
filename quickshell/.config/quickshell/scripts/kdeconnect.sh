@@ -23,6 +23,29 @@ if [ "${1:-}" = "dismiss" ]; then
   exit 0
 fi
 
+# Dismiss-all mode: ./kdeconnect.sh dismiss-all <deviceId>
+# One process dismisses every dismissable notification. Ongoing stays.
+if [ "${1:-}" = "dismiss-all" ]; then
+  dev="$2"
+  raw_ids=$(dbus-send --print-reply --dest=org.kde.kdeconnect \
+    "/modules/kdeconnect/devices/${dev}/notifications" \
+    org.kde.kdeconnect.device.notifications.activeNotifications 2>/dev/null)
+  echo "$raw_ids" | grep -oP 'string "\K[^"]+' 2>/dev/null | while read -r nid; do
+    [ -z "$nid" ] && continue
+    is_dismiss=$(dbus-send --print-reply --dest=org.kde.kdeconnect \
+      "/modules/kdeconnect/devices/${dev}/notifications/${nid}" \
+      org.freedesktop.DBus.Properties.GetAll \
+      string:"org.kde.kdeconnect.device.notifications.notification" 2>/dev/null \
+      | grep -A1 'string "dismissable"' | tail -1 | grep -oP '(true|false)')
+    [ "$is_dismiss" = "true" ] || continue
+    dbus-send --print-reply --dest=org.kde.kdeconnect \
+      "/modules/kdeconnect/devices/${dev}/notifications/${nid}" \
+      org.kde.kdeconnect.device.notifications.notification.dismiss >/dev/null 2>&1
+  done
+  rm -f "$CACHE_FILE"
+  exit 0
+fi
+
 # Cache hit? Return cached data if fresh enough
 if [ -f "$CACHE_FILE" ]; then
   now=$(date +%s)

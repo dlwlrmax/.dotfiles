@@ -300,16 +300,11 @@ Item {
                                 anchors.margins: -6
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    var notifs = (modelData && modelData.notifications) || []
-                                    for (var i = 0; i < notifs.length; i++) {
-                                        if (!notifs[i].dismissable) continue
-                                        var devId = notifs[i].deviceId || modelData.id || ""
-                                        var nid = notifs[i].id || ""
-                                        if (!devId || !nid) continue
-                                        if (root.dataSource && root.dataSource.dismissOptimistic)
-                                            root.dataSource.dismissOptimistic(devId, nid)
-                                        dismissProc.dismiss(devId, nid)
-                                    }
+                                    var devId = modelData.id || ((modelData.notifications || [])[0] || {}).deviceId || ""
+                                    if (!devId) return
+                                    if (root.dataSource && root.dataSource.clearOptimistic)
+                                        root.dataSource.clearOptimistic(devId)
+                                    dismissProc.dismissAll(devId)
                                 }
                             }
                         }
@@ -581,6 +576,19 @@ Item {
             running = true
         }
 
+        // Single-shot batch clear: one process, survives panel close window.
+        function dismissAll(devId) {
+            if (running) {
+                queue = queue.concat([{devId: devId, nid: "__all__"}])
+                return
+            }
+            deviceId = devId
+            notifId = "__all__"
+            command = ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh",
+                "dismiss-all", devId]
+            running = true
+        }
+
         function refreshSource() {
             if (root.dataSource && root.dataSource.refresh)
                 root.dataSource.refresh()
@@ -593,8 +601,12 @@ Item {
                     queue = queue.slice(1)
                     deviceId = next.devId
                     notifId = next.nid
-                    command = ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh",
-                        "dismiss", next.devId, next.nid]
+                    if (next.nid === "__all__")
+                        command = ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh",
+                            "dismiss-all", next.devId]
+                    else
+                        command = ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh",
+                            "dismiss", next.devId, next.nid]
                     running = true
                 } else {
                     refreshSource()

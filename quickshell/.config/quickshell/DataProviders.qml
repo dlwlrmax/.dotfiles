@@ -25,6 +25,44 @@ Item {
         property var devices: []
         property var device: devices.length > 0 ? devices[0] : null
         property bool anyConnected: false
+        // Recently-dismissed nids (nid -> epoch ms). Stale polls landing
+        // inside the window get filtered so cleared items stay cleared.
+        property var suppressed: ({})
+        property bool refreshPending: false
+
+        function pruneSuppressed(now) {
+            var out = {}
+            for (var k in suppressed) {
+                if (now - suppressed[k] < 60000) out[k] = suppressed[k]
+            }
+            suppressed = out
+        }
+
+        function applyDevices(devs) {
+            var now = Date.now()
+            pruneSuppressed(now)
+            var filtered = []
+            for (var d = 0; d < devs.length; d++) {
+                var dev = devs[d]
+                var notifs = dev.notifications || []
+                var kept = []
+                for (var i = 0; i < notifs.length; i++) {
+                    var nid = notifs[i].id
+                    if (suppressed[nid] !== undefined && now - suppressed[nid] < 60000) continue
+                    kept.push(notifs[i])
+                }
+                if (kept.length !== notifs.length) {
+                    var copy = {}
+                    for (var k in dev) copy[k] = dev[k]
+                    copy.notifications = kept
+                    copy.notifCount = kept.length
+                    filtered.push(copy)
+                } else {
+                    filtered.push(dev)
+                }
+            }
+            kdeData.devices = filtered
+        }
 
         Process {
             id: fetchProc
@@ -36,10 +74,14 @@ Item {
                     try {
                         var data = JSON.parse(this.text.trim())
                         console.log("KDEConnectData: got", data.devices ? data.devices.length : 0, "devices")
-                        kdeData.devices = data.devices || []
+                        kdeData.applyDevices(data.devices || [])
                         kdeData.anyConnected = data.anyConnected || false
                     } catch (e) {
                         console.log("KDEConnectData parse error:", e)
+                    }
+                    if (kdeData.refreshPending) {
+                        kdeData.refreshPending = false
+                        if (!fetchProc.running) fetchProc.running = true
                     }
                 }
             }
@@ -58,7 +100,14 @@ Item {
 
         function refresh() {
             if (!fetchProc.running) fetchProc.running = true
-            else kdePollTimer.restart()
+            else refreshPending = true
+        }
+
+        function stampSuppressed(nid) {
+            var m = {}
+            for (var k in suppressed) m[k] = suppressed[k]
+            m[nid] = Date.now()
+            suppressed = m
         }
 
         // Remove one notification locally so dismiss feels instant.
@@ -73,7 +122,32 @@ Item {
                 var kept = []
                 for (var i = 0; i < notifs.length; i++) {
                     if (notifs[i].id !== nid) kept.push(notifs[i])
-                    else changed = true
+                    else { changed = true; stampSuppressed(nid) }
+                }
+                if (changed) {
+                    var copy = {}
+                    for (var k in dev) copy[k] = dev[k]
+                    copy.notifications = kept
+                    copy.notifCount = kept.length
+                    devs = devs.slice(0, d).concat([copy]).concat(devs.slice(d + 1))
+                }
+            }
+            if (changed) kdeData.devices = devs
+        }
+
+        // Remove all dismissable locally so Clear feels instant + persists
+        // across the 10s poll gap. Ongoing (dismissable=false) stays.
+        function clearOptimistic(devId) {
+            var devs = kdeData.devices
+            var changed = false
+            for (var d = 0; d < devs.length; d++) {
+                var dev = devs[d]
+                if (devId && dev.id !== devId) continue
+                var notifs = dev.notifications || []
+                var kept = []
+                for (var i = 0; i < notifs.length; i++) {
+                    if (!notifs[i].dismissable) kept.push(notifs[i])
+                    else { changed = true; stampSuppressed(notifs[i].id) }
                 }
                 if (changed) {
                     var copy = {}
