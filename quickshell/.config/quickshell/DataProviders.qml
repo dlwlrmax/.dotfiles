@@ -214,6 +214,15 @@ Item {
             return "" + h
         }
 
+        // Some clients emit contentless Notify calls (no app name, summary,
+        // body, icon, image or actions). They would render as blank "Unknown"
+        // cards and pollute persistence, so they are dropped on ingest and load.
+        function isContentless(n) {
+            return !n.appName && !n.summary && !n.body && !n.appIcon
+                && !n.desktopEntry && !n.image
+                && (!n.actions || n.actions.length === 0)
+        }
+
         // Bound the time maps: entries older than the startup dedup window are useless.
         function pruneTimes(cutoffSec) {
             var t = notifTimes
@@ -224,6 +233,7 @@ Item {
 
         function handleNotification(notif) {
             if (dnd) return
+            if (isContentless(notif)) return
 
             if (!timesLoaded) {
                 pendingNotifs = pendingNotifs.concat([notif])
@@ -320,8 +330,12 @@ Item {
                         return
                     }
                     try {
-                        var data = JSON.parse(text)
-                        if (Array.isArray(data)) {
+                        var parsed = JSON.parse(text)
+                        if (Array.isArray(parsed)) {
+                            // Drop previously persisted contentless entries.
+                            var data = parsed.filter(function(d) {
+                                return !notifData.isContentless(d)
+                            })
                             notifData.savedNotifs = data
                             var map = {}
                             for (var i = 0; i < data.length; i++) {
