@@ -17,8 +17,11 @@ PREV_FILE="${XDG_RUNTIME_DIR:-/tmp}/stremio-prev-window"
 # Fallback location only: keep the file private if we ever land in /tmp.
 [ -n "${XDG_RUNTIME_DIR:-}" ] || umask 077
 
-# Freeze PIP hover-peek so cycling focus onto a PIP never shoves it aside.
-hyprctl eval 'local ok,m=pcall(require,"lua/pippeek") if ok and m and m.block_until_leave then m.block_until_leave() end return "ok"' >/dev/null 2>&1
+# NOTE: the PIP hover-peek guard is NOT applied here. It is applied synchronously
+# in the SUPER+S keybind (lua/keybinds.lua -> pippeek.block_until_leave()), in the
+# same key event. Doing it here meant exec_cmd -> bash -> hyprctl eval latency, in
+# which the 100 ms peek poll could move the window first; it also re-armed the
+# block after the cursor had already left, suppressing the peek for too long.
 
 command -v jq >/dev/null 2>&1 || exit 1
 

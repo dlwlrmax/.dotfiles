@@ -28,6 +28,7 @@ local POLL_MS  = 100  -- poll period
 local ENTER_MS = 150  -- dwell on a PIP before peeking
 local LEAVE_MS = 300  -- dwell away before restoring
 local TOL      = 2    -- px tolerance for "still where we put it"
+local ARM_LEAVE_MS = 500 -- cursor-away dwell that releases a SUPER+S peek block
 
 -- Which windows count as a PIP. Remove an entry to opt that app out.
 local PIP_CLASSES = {
@@ -58,7 +59,7 @@ end
 -- Config reloads re-run this chunk: keep one shared state table and one timer.
 local S = _G.__hl_pippeek
 if not S then
-  S = { enabled = true, peek_x = DEFAULT_PEEK_X, wins = {}, arm_blocked = false, timer = nil }
+  S = { enabled = true, peek_x = DEFAULT_PEEK_X, wins = {}, arm_blocked = false, arm_away = 0, timer = nil }
   _G.__hl_pippeek = S
 end
 
@@ -83,6 +84,13 @@ local function move_win(addr, x, y)
   hl.dispatch(hl.dsp.window.move({ x = x, y = y, window = "address:" .. addr }))
 end
 
+-- Live top-left of a tracked window, or nil if it is gone/not queryable.
+local function window_at(addr)
+  local ok, w = pcall(hl.get_window, "address:" .. addr)
+  if ok and w and w.at then return w.at.x, w.at.y end
+  return nil
+end
+
 local function new_win(addr, b)
   return {
     addr = addr,
@@ -92,6 +100,7 @@ local function new_win(addr, b)
     hover_ticks = 0,
     away_ticks = 0,
     settle = 0,         -- ticks to skip re-reading geometry after our own move
+    warm = 3,           -- loose home capture while the window rule is still placing it
   }
 end
 
@@ -118,29 +127,33 @@ end
 -- p (cursor position, may be nil) and mod (Super held) are read once per tick.
 local function step(w, st, p, mod)
   if (w.fullscreen or 0) ~= 0 or (w.fullscreen_client or 0) ~= 0 then
-    -- Fullscreen: leave it alone. Forget the peek so geometry is re-adopted on exit.
-    st.state, st.target, st.original = "normal", nil, nil
+    -- Fullscreen: leave it alone, but keep the resting box so exit returns home.
+    st.state, st.target = "normal", nil
     st.hover_ticks, st.away_ticks = 0, 0
     return
   end
 
   local cur = box(w)
 
-  if st.settle > 0 then
-    st.settle = st.settle - 1
-  elseif st.state == "normal" then
-    -- Adopt outside moves (drag, window rule, monitor change) as the new resting box.
-    if not st.original
-      or math.abs(cur.x - st.original.x) > TOL
-      or math.abs(cur.y - st.original.y) > TOL then
-      st.original = cur
-    end
-  elseif st.target
-    and (math.abs(cur.x - st.target.x) > TOL or math.abs(cur.y - st.target.y) > TOL) then
-    -- Moved while peeked: treat it as the new resting box.
-    st.original, st.state, st.target = cur, "normal", nil
+  -- First sight: the window rule may still be placing the window, so hold the
+  -- corner loosely for a few ticks before freezing it.
+  if (st.warm or 0) > 0 and st.state == "normal" then
+    st.warm = st.warm - 1
+    st.original = cur
   end
 
+  if st.settle > 0 then
+    st.settle = st.settle - 1
+  elseif st.state == "peeked" and st.target
+    and (math.abs(cur.x - st.target.x) > TOL or math.abs(cur.y - st.target.y) > TOL) then
+    -- Moved while peeked by something other than us: send it home, stop peeking.
+    restore(st)
+    st.settle = 2
+  end
+
+  -- The resting box is sticky: captured on first sight and never re-adopted from a
+  -- later move. A displaced PIP stays displaced until the peek cycle or SUPER+S
+  -- brings it home, instead of the move silently redefining "home".
   if not st.original then st.original = cur end
   if not S.enabled then return end
 
@@ -211,7 +224,10 @@ local function tick()
     return
   end
 
-  -- A SUPER+S focus cycle freezes peekage until the cursor leaves every PIP.
+  -- A SUPER+S focus cycle freezes peekage until the cursor has been away from
+  -- every PIP for ARM_LEAVE_MS. The dwell is required: focusing a PIP warps the
+  -- cursor onto it, so releasing on the first "not inside right now" tick let the
+  -- warp land afterwards and trigger a fresh peek.
   if S.arm_blocked then
     if p then
       local still_here = false
@@ -222,7 +238,14 @@ local function tick()
           break
         end
       end
-      if not still_here then S.arm_blocked = false end
+      if still_here then
+        S.arm_away = 0
+      else
+        S.arm_away = (S.arm_away or 0) + 1
+        if S.arm_away * POLL_MS >= ARM_LEAVE_MS then
+          S.arm_blocked, S.arm_away = false, 0
+        end
+      end
     end
   end
 end
@@ -249,15 +272,21 @@ function M.is_enabled()
   return S.enabled
 end
 
--- Called by the SUPER+S focus bind: bring any peeked PIP back home, then leave it
--- alone until the cursor leaves every PIP. Freezing alone was not enough: if the
--- hover-peek had already fired, the window stayed parked away from home.
+-- Called by the SUPER+S focus bind: put every tracked PIP back on its resting box
+-- if it is not there (peeked or dragged off), then hold it there until the cursor
+-- has been away from every PIP. Freezing alone was not enough: if the hover-peek
+-- had already fired, the window stayed parked away from home.
 function M.block_until_leave()
-  S.arm_blocked = true
+  S.arm_blocked, S.arm_away = true, 0
   for _, st in pairs(S.wins) do
-    if st.state == "peeked" then
-      restore(st)
-      st.settle = 2
+    if st.original then
+      local x, y = window_at(st.addr)
+      if st.state == "peeked" or x == nil
+        or math.abs(x - st.original.x) > TOL
+        or math.abs(y - st.original.y) > TOL then
+        restore(st)
+        st.settle = 2
+      end
     end
   end
 end

@@ -37,8 +37,15 @@ hl.bind(mainMod .. " + CTRL + A", hl.dsp.exec_cmd("qs ipc call audio cycle"))
 -- Screenshot
 hl.bind(mainModS .. " + S", hl.dsp.exec_cmd('grim -g "$(slurp -d)" - | swappy -f -'))
 
--- Focus cycle (Stremio/mpv/prev). The script also freezes PIP hover-peek — see lua/pippeek.lua
-hl.bind(mainMod .. " + S", hl.dsp.exec_cmd("$HOME/.config/hypr/scripts/stremio-focus.sh"))
+-- Focus cycle (Stremio/mpv/prev). The PIP hover-peek guard (lua/pippeek.lua) runs
+-- HERE, in the same key event, not inside stremio-focus.sh: that path is
+-- exec_cmd -> bash -> hyprctl eval, and the 100 ms peek poll could fire a move in
+-- the spawn gap. Synchronous guard = the poll can never see an unguarded tick.
+local pippeek = select(2, pcall(require, "lua/pippeek"))
+hl.bind(mainMod .. " + S", function()
+  if pippeek and pippeek.block_until_leave then pippeek.block_until_leave() end
+  hl.dispatch(hl.dsp.exec_cmd("$HOME/.config/hypr/scripts/stremio-focus.sh"))
+end)
 
 -- Fullscreen
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" }))
