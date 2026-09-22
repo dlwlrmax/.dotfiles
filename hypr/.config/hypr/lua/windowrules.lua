@@ -80,7 +80,9 @@ hl.window_rule({
 })
 
 -- Float + sizing
-hl.window_rule({ match = { class = "^(Chromium|Google-chrome|Navicat)$" }, min_size = "800 600" })
+-- Removed: min_size "800 600" for ^(Chromium|Google-chrome|Navicat)$ — it applied
+-- to popups as well, so small dialogs were forced up to 800x600. Popups now keep
+-- the size the application asks for.
 hl.window_rule({
   name = "mission-center",
   match = { class = "^(io.missioncenter.MissionCenter)$" },
@@ -100,14 +102,12 @@ hl.window_rule({
   name = "chat-gpt",
   match = { title = "(.*chat.openai.com.*)" },
   float = true,
-  size = "500 50%",
   move = "20 70",
 })
 hl.window_rule({
   name = "file-manager",
   match = { class = "^(xdg-desktop-portal-gtk)$" },
   float = true,
-  size = "960 680",
   rounding = 18,
 })
 
@@ -176,7 +176,8 @@ hl.window_rule({
   },
   pin = true,
 })
-hl.window_rule({ match = { title = "^(Clipman)$" }, size = "100 20" })
+-- Removed: `match = { title = "^(Clipman)$" }, size = "100 20"` — it forced that
+-- popup to 100x20 px. Popups size themselves now.
 
 -- ──────────────────────────────────────────────
 -- Terminal opacity
@@ -202,6 +203,13 @@ hl.window_rule({
   center = true,
 })
 
+-- DBeaver popups. Inside `match`, `float = true` is a FILTER (only windows that
+-- are already floating), not a property — so the tiled main window, which shares
+-- class ^DBeaver$, is never touched. This rule only centers/dims DBeaver's own
+-- floating dialogs.
+-- Not achievable via rules: auto-floating only the dialogs. A title-based
+-- main/dialog split (main = "^DBeaver\\s" + float = false) was tested in both
+-- orders and never took effect; `floating` is rejected as a match key.
 hl.window_rule({
   name = "dbeaver-popups",
   match = { class = "^DBeaver$", float = true },
