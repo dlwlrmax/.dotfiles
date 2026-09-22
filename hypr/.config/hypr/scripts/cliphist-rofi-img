@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-tmp_dir="/tmp/cliphist"
+tmp_dir="${XDG_RUNTIME_DIR:-/tmp}/cliphist"
 rm -rf "$tmp_dir"
 
 if [[ -n "$1" ]]; then
@@ -8,6 +8,7 @@ if [[ -n "$1" ]]; then
     exit
 fi
 
+umask 077
 mkdir -p "$tmp_dir"
 
 read -r -d '' prog <<EOF

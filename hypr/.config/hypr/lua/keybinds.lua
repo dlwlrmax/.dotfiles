@@ -13,8 +13,8 @@ hl.bind(mainModS .. " + Q", hl.dsp.window.close())
 -- Lock
 hl.bind(mainModS .. " + M", hl.dsp.exec_cmd("hyprlock"))
 
--- Notifications
-hl.bind(mainMod .. " + M", hl.dsp.exec_cmd("swaync-client -t -sw"))
+-- Notifications: quickshell owns org.freedesktop.Notifications (swaync is not
+-- installed/enabled, so its bind was removed).
 
 -- File manager
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(fileManager))
@@ -25,8 +25,8 @@ hl.bind(mainMod .. " + V", hl.dsp.window.center())
 
 -- App launcher (quickshell)
 hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("qs ipc call launcher toggle"))
--- Rofi fallback (temporary, drop later)
-hl.bind(mainModS .. " + D", hl.dsp.exec_cmd("rofi -show"))
+-- Rofi fallback (temporary, drop later). Needs an explicit mode argument.
+hl.bind(mainModS .. " + D", hl.dsp.exec_cmd("rofi -show drun"))
 
 -- Power menu (quickshell)
 hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("qs ipc call power toggle"))
@@ -37,7 +37,7 @@ hl.bind(mainMod .. " + CTRL + A", hl.dsp.exec_cmd("qs ipc call audio cycle"))
 -- Screenshot
 hl.bind(mainModS .. " + S", hl.dsp.exec_cmd('grim -g "$(slurp -d)" - | swappy -f -'))
 
--- Focus Stremio
+-- Focus cycle (Stremio/mpv/prev). The script also freezes PIP hover-peek — see lua/pippeek.lua
 hl.bind(mainMod .. " + S", hl.dsp.exec_cmd("$HOME/.config/hypr/scripts/stremio-focus.sh"))
 
 -- Fullscreen

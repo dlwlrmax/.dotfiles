@@ -11,7 +11,7 @@ local ws = {
   { pat = "[Dd][Bb]eaver|tabularis", id = 5 },
   { pat = "^(Postman|yaak-app|bruno)$", id = 6 },
   { pat = "^(Spotify)$", id = 7 },
-  { pat = "^(zen-beta|zen|com.mitchellh.ghostty)$", id = 10 },
+  { pat = "^(zen-beta|zen)$", id = 10 },
   { pat = "^(com.mitchellh.ghostty)$", id = overrides.terminal_ws or 10 },
 }
 for _, v in ipairs(ws) do
@@ -40,7 +40,6 @@ local float_apps = {
   "waypaper",
   "org.kde.ark",
   "font-manager",
-  "code-oss",
 }
 hl.window_rule({
   match = { class = string.format("^(%s)$", table.concat(float_apps, "|")) },
@@ -168,7 +167,15 @@ hl.window_rule({
 -- Chrome popups
 -- ──────────────────────────────────────────────
 hl.window_rule({ match = { title = "^(chromium-browser|Hình ảnh|Bitwarden)$" }, float = true })
-hl.window_rule({ match = { title = "^(chromium-browser)$" }, pin = true })
+-- Pinned always-on-top: restrict to real browser classes so page-controlled
+-- document.title cannot pin an arbitrary window above everything.
+hl.window_rule({
+  match = {
+    class = "^(google-chrome|Google-chrome|chromium|Chromium|chromium-browser|zen|zen-beta|firefox)$",
+    title = "^(chromium-browser)$",
+  },
+  pin = true,
+})
 hl.window_rule({ match = { title = "^(Clipman)$" }, size = "100 20" })
 
 -- ──────────────────────────────────────────────
@@ -181,6 +188,7 @@ hl.window_rule({ match = { class = "^(com.mitchellh.ghostty|kitty)$" }, opacity 
 -- Misc window rules
 -- ──────────────────────────────────────────────
 hl.window_rule({ match = { class = "^(fcitx)$" }, pseudo = true })
+-- Matches helper/override-redirect windows that carry neither class nor title.
 hl.window_rule({ match = { class = "^()$", title = "^()$" }, no_blur = true })
 
 hl.window_rule({
@@ -249,9 +257,9 @@ hl.window_rule({
 -- Quickshell panel bar
 hl.layer_rule({ match = { namespace = "^quickshell-bar$" }, ignore_alpha = 0.4 })
 
--- Notification overlays
+-- Notification overlays (swaync rules removed: swaync is not installed/enabled;
+-- quickshell notifications use the "notifications" namespace below)
 hl.layer_rule({ match = { namespace = "^(notifications)$" }, blur = true, ignore_alpha = 0.5 })
-hl.layer_rule({ match = { namespace = "^(swaync-.*)$" }, blur = true, ignore_alpha = 0.5 })
 
 -- DMS control center
 hl.layer_rule({

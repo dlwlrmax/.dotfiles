@@ -15,14 +15,23 @@ fi
 # Path to your hyprpaper configuration file
 hyprpaper_config_file="$HOME/.config/hypr/hyprpaper.conf"
 
-# Update the config file with the new wallpaper path 
-sed -i -e "s|^preload = .*$|preload = $1|" \
-       -e "s|^wallpaper = .*$|wallpaper = ,$1|" \
-       "$hyprpaper_config_file"
+# Resolve absolute path and validate extension before touching the config
+path="$(realpath -- "$1")"
+case "${path,,}" in
+    *.jpg|*.jpeg|*.png|*.webp|*.bmp) ;;
+    *)
+        echo "Error: unsupported wallpaper file type: $1"
+        exit 1
+        ;;
+esac
 
-# sed no-ops when lines absent (fresh config) — append instead
-grep -q "^preload = " "$hyprpaper_config_file" || echo "preload = $1" >> "$hyprpaper_config_file"
-grep -q "^wallpaper = " "$hyprpaper_config_file" || echo "wallpaper = ,$1" >> "$hyprpaper_config_file"
+# Rewrite the config atomically: keep every line except preload/wallpaper, then append the new ones
+tmp_file="$(mktemp "${hyprpaper_config_file}.XXXXXX")" || exit 1
+grep -v -e '^preload = ' -e '^wallpaper = ' "$hyprpaper_config_file" > "$tmp_file" || true
+printf 'preload = %s\nwallpaper = ,%s\n' "$path" "$path" >> "$tmp_file"
+# Keep the config's existing permissions (mktemp would otherwise leave it 0600).
+chmod --reference="$hyprpaper_config_file" "$tmp_file" 2>/dev/null || chmod 644 "$tmp_file"
+mv "$tmp_file" "$hyprpaper_config_file"
 
 # Reload hyprpaper
 killall -e hyprpaper & 

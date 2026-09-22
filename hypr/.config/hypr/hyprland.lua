@@ -4,7 +4,7 @@
 require("lua/variables")
 require("lua/layout")
 require("lua/windowrules")
-require("lua/mpvpeek")
+require("lua/pippeek")
 require("lua/keybinds")
 require("lua/autostart")
 require("lua/workspaces")

@@ -1,12 +1,16 @@
 #!/bin/bash
+set -u
 sleep 1
 killall -e xdg-desktop-portal-hyprland
 killall -e xdg-desktop-portal-wlr
 killall xdg-desktop-portal
 if [ -x /usr/libexec/xdg-desktop-portal-hyprland ]; then
-  /usr/libexec/xdg-desktop-portal-hyprland &
+  nohup /usr/libexec/xdg-desktop-portal-hyprland >/dev/null 2>&1 &
+  disown
 else
-  /usr/lib/xdg-desktop-portal-hyprland &
+  nohup /usr/lib/xdg-desktop-portal-hyprland >/dev/null 2>&1 &
+  disown
 fi
 sleep 2
-/usr/lib/xdg-desktop-portal &
+nohup /usr/lib/xdg-desktop-portal >/dev/null 2>&1 &
+disown
