@@ -249,9 +249,17 @@ function M.is_enabled()
   return S.enabled
 end
 
--- Called by the SUPER+S focus bind: no peek until the cursor leaves every PIP.
+-- Called by the SUPER+S focus bind: bring any peeked PIP back home, then leave it
+-- alone until the cursor leaves every PIP. Freezing alone was not enough: if the
+-- hover-peek had already fired, the window stayed parked away from home.
 function M.block_until_leave()
   S.arm_blocked = true
+  for _, st in pairs(S.wins) do
+    if st.state == "peeked" then
+      restore(st)
+      st.settle = 2
+    end
+  end
 end
 
 if not S.timer then
