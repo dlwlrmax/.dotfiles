@@ -30,6 +30,10 @@ clients=$(hyprctl clients -j 2>/dev/null) || exit 1
 # Resolve ring members live; "-" when the window is not running.
 # PIP detection mirrors lua/pippeek.lua is_pip(): mpv/stremio classes, a pinned
 # floating browser window (PIP titles follow the media title), or a title match.
+# The PiP slot MUST exclude Stremio/mpv addresses: ispip() also matches those
+# classes, so without the exclusion pip_addr == stremio_addr whenever Stremio is
+# the only media window, and the Stremio step re-focused Stremio instead of
+# falling through to the previous window.
 read -r stremio_addr mpv_addr pip_addr < <(jq -r --arg sc "$STREMIO_CLASS" --arg mc "$MPV_CLASS" '
   def ispip:
     (.floating == true) and
@@ -37,9 +41,11 @@ read -r stremio_addr mpv_addr pip_addr < <(jq -r --arg sc "$STREMIO_CLASS" --arg
      or ((.class // "") | test("^(stremio-enhanced|com\\.stremio\\.Stremio)$"))
      or ((((.class // "") | test("^(zen|zen-beta|firefox|chromium|Chromium|chromium-browser|google-chrome|Google-chrome)$")) and (.pinned == true)))
      or (((.title // "") | ascii_downcase) | test("picture.*picture")));
-  [ (first(.[] | select((.class // "") == $sc)) | .address // "-"),
-    (first(.[] | select((.class // "") == $mc)) | .address // "-"),
-    (first(.[] | select(ispip)) | .address // "-") ] | @tsv
+  ((first(.[] | select((.class // "") == $sc)) | .address) // "-") as $strem
+  | ((first(.[] | select((.class // "") == $mc)) | .address) // "-") as $mpv
+  | [ $strem,
+      $mpv,
+      ((first(.[] | select(ispip) | select(.address != $strem and .address != $mpv)) | .address) // "-") ] | @tsv
 ' <<<"$clients")
 
 active=$(hyprctl activewindow -j 2>/dev/null | jq -r '.address // "-"')
