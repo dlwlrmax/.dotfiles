@@ -213,6 +213,7 @@ hl.window_rule({
 hl.window_rule({
   name = "dbeaver-popups",
   match = { class = "^DBeaver$", float = true },
+  max_size = "1200 800",
   dim_around = true,
   center = true,
 })
