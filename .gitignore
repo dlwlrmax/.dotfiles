@@ -19,3 +19,6 @@ fish_variables*
 mimeinfo
 opencode/.config/opencode/service.json
 opencode/.config/opencode/.oh-my-opencode-slim/skills-manifest.json
+opencode/.config/opencode/skills/*
+!opencode/.config/opencode/skills/estudy-backend/
+!opencode/.config/opencode/skills/estudy-backend/*
