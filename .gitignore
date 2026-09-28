@@ -1,4 +1,7 @@
 .opencode
+.env
+.env.local
+.env.prod
 **/target/
 AGENTS.md
 node_modules/
