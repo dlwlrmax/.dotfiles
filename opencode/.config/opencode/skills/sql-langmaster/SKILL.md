@@ -101,6 +101,29 @@ Local writes only:
 - Report: env, host, affected rows or row count, verify query.
 - Never leave credentials in output files.
 
+### Step 5: Clone data (prod → local)
+
+`dev` has limited grants (SELECT/INSERT/UPDATE/DELETE — no CREATE/DROP/LOCK). Prod `ba` is SELECT-only. No admin needed if you stay within that.
+
+1. Compare schema first: `SHOW TABLES` both sides must match. Missing local tables cannot be created by `dev` — run Laravel migrations or ask admin before cloning.
+2. Size check: `SELECT COUNT(*)` on prod table. Big tables: clone with `--where` slices, never whole DB blindly.
+3. Dump prod data-only (dump is a read — prod stays read-only):
+   ```bash
+   set -a; source ~/.dotfiles/.env; set +a
+   MYSQL_PWD="$PROD_DB_PASSWORD" mysqldump --default-character-set=utf8mb4 \
+     -h "$PROD_DB_HOST" -P "$PROD_DB_PORT" -u "$PROD_DB_USERNAME" \
+     --single-transaction --skip-lock-tables --no-tablespaces \
+     --no-create-info --skip-triggers --skip-routines --skip-events \
+     erp_hbr actions > /tmp/opencode/prod-actions.sql
+   ```
+   Notes: `--skip-lock-tables` because `ba` lacks LOCK; `--no-tablespaces` because `ba` lacks PROCESS; `--no-create-info` because `dev` cannot CREATE anyway; views/triggers skipped (`ba` lacks SHOW VIEW/TRIGGER) — copy their DDL via admin if needed.
+4. Load local. `dev` lacks DROP so no `TRUNCATE` — use `DELETE`:
+   ```bash
+   mysql-local erp_hbr -e "SET FOREIGN_KEY_CHECKS=0; DELETE FROM actions; SOURCE /tmp/opencode/prod-actions.sql; SET FOREIGN_KEY_CHECKS=1;"
+   ```
+5. Verify `COUNT(*)` matches both sides, then destroy the dump (`shred -u` or `rm` — it holds prod data).
+6. Never reverse direction (local → prod). That is a prod write — forbidden.
+
 ## Local vs Prod Checklist
 
 - [ ] Which file vars came from (`.env.local` vs `.env.prod`)?
