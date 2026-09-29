@@ -34,12 +34,15 @@ Item {
         spacing: 4
 
         Item {
-            implicitWidth: iconText.implicitWidth
+            // Keep badge readable without letting it cover the icon.
+            implicitWidth: Math.max(iconText.implicitWidth + 12,
+                                    badgeText.implicitWidth + 6)
             implicitHeight: iconText.implicitHeight
 
             Text {
                 id: iconText
-                anchors.centerIn: parent
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
                 text: "\uF10B"  // phone icon
                 color: theme.text
                 font.pixelSize: theme.fontSize + 4
@@ -52,11 +55,11 @@ Item {
                 visible: root.device && root.device.notifCount > 0
                 anchors.top: parent.top
                 anchors.right: parent.right
-                anchors.topMargin: -4
-                anchors.rightMargin: -6
-                width: Math.max(12, badgeText.implicitWidth + 4)
-                height: 12
-                radius: 6
+                anchors.topMargin: 1
+                anchors.rightMargin: 1
+                width: Math.max(16, badgeText.implicitWidth + 4)
+                height: 10
+                radius: 5
                 color: theme.red
 
                 Text {
@@ -65,7 +68,7 @@ Item {
                     text: root.device && root.device.notifCount > 0
                           ? (root.device.notifCount > 9 ? "9+" : root.device.notifCount) : ""
                     color: theme.white
-                    font.pixelSize: 8
+                    font.pixelSize: 7
                     font.bold: true
                     font.family: theme.font
                 }
