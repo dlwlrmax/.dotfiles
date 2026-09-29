@@ -9,18 +9,20 @@ MouseArea {
     id: root
     property Theme theme: Theme {}
     width: row.implicitWidth
-    height: row.implicitHeight
+    implicitHeight: row.implicitHeight
+    Layout.alignment: Qt.AlignVCenter
 
     RowLayout {
         id: row
         anchors.centerIn: parent
+        anchors.verticalCenterOffset: 2
         spacing: 0
 
         Text {
             id: icon
             text: idleInhibitor.enabled ? "󰈈" : ""
             font.family: root.theme.font
-            font.pixelSize: root.theme.fontSize + 5
+            font.pixelSize: root.theme.fontSize + 8
             color: idleInhibitor.enabled ? root.theme.green : root.theme.red
             Layout.alignment: Qt.AlignVCenter
         }

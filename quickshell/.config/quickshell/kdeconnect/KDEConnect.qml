@@ -15,7 +15,7 @@ Item {
     // Hard containment: layout squeeze must never paint over neighbors.
     clip: true
     implicitWidth: anyConnected ? row.implicitWidth : 0
-    implicitHeight: row.implicitHeight
+    implicitHeight: row.implicitHeight + 4
     Layout.alignment: Qt.AlignVCenter
     visible: anyConnected
 
@@ -31,18 +31,17 @@ Item {
 
     RowLayout {
         id: row
+        y: 4
         spacing: 4
 
         Item {
-            // Keep badge readable without letting it cover the icon.
-            implicitWidth: Math.max(iconText.implicitWidth + 12,
-                                    badgeText.implicitWidth + 6)
-            implicitHeight: iconText.implicitHeight
+            // Match notification badge containment and spacing.
+            implicitWidth: Math.max(iconText.implicitWidth + 6, badge.width + 2)
+            implicitHeight: iconText.implicitHeight + 4
 
             Text {
                 id: iconText
-                anchors.left: parent.left
-                anchors.verticalCenter: parent.verticalCenter
+                anchors.centerIn: parent
                 text: "\uF10B"  // phone icon
                 color: theme.text
                 font.pixelSize: theme.fontSize + 4
@@ -52,14 +51,15 @@ Item {
 
             // Notification badge
             Rectangle {
+                id: badge
                 visible: root.device && root.device.notifCount > 0
                 anchors.top: parent.top
                 anchors.right: parent.right
-                anchors.topMargin: 1
+                anchors.topMargin: -4
                 anchors.rightMargin: 1
-                width: Math.max(16, badgeText.implicitWidth + 4)
-                height: 10
-                radius: 5
+                width: Math.max(24, badgeText.implicitWidth + 6)
+                height: 12
+                radius: 7
                 color: theme.red
 
                 Text {
@@ -68,7 +68,7 @@ Item {
                     text: root.device && root.device.notifCount > 0
                           ? (root.device.notifCount > 9 ? "9+" : root.device.notifCount) : ""
                     color: theme.white
-                    font.pixelSize: 7
+                    font.pixelSize: 9
                     font.bold: true
                     font.family: theme.font
                 }
