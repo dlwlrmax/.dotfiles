@@ -27,7 +27,7 @@ Item {
 
             Text {
                 text: root.cpuUsage + "%"
-                color: root.cpuUsage > 70 ? theme.red : root.cpuUsage > 30 ? theme.yellow : theme.green
+                color: root.cpuUsage > theme.cpuLoadCrit ? theme.red : root.cpuUsage > theme.cpuLoadWarn ? theme.yellow : theme.green
                 font.pixelSize: theme.fontSize - 1
                 font.weight: Font.Medium
                 font.family: theme.font
@@ -35,7 +35,7 @@ Item {
 
             Text {
                 text: ""
-                color: root.cpuUsage > 70 ? theme.red : root.cpuUsage > 30 ? theme.yellow : theme.green
+                color: root.cpuUsage > theme.cpuLoadCrit ? theme.red : root.cpuUsage > theme.cpuLoadWarn ? theme.yellow : theme.green
                 font.pixelSize: theme.fontSize + 5
                 font.weight: Font.Medium
                 font.family: theme.font
@@ -43,7 +43,7 @@ Item {
 
             Text {
                 text: root.cpuTemp > 0 ? root.cpuTemp + "°" : ""
-                color: root.cpuTemp > 85 ? theme.red : root.cpuTemp > 70 ? theme.peach : root.cpuTemp > 50 ? theme.yellow : theme.green
+                color: root.cpuTemp > theme.cpuTempCrit ? theme.red : root.cpuTemp > theme.cpuTempHigh ? theme.peach : root.cpuTemp > theme.cpuTempWarn ? theme.yellow : theme.green
                 font.pixelSize: theme.fontSize - 1
                 font.weight: Font.Medium
                 font.family: theme.font
@@ -51,8 +51,8 @@ Item {
             }
 
             Text {
-                text: root.cpuTemp > 85 ? "" : root.cpuTemp > 70 ? "" : root.cpuTemp > 50 ? "" : ""
-                color: root.cpuTemp > 85 ? theme.red : root.cpuTemp > 70 ? theme.peach : root.cpuTemp > 50 ? theme.yellow : theme.green
+                text: root.cpuTemp > theme.cpuTempCrit ? "" : root.cpuTemp > theme.cpuTempHigh ? "" : root.cpuTemp > theme.cpuTempWarn ? "" : ""
+                color: root.cpuTemp > theme.cpuTempCrit ? theme.red : root.cpuTemp > theme.cpuTempHigh ? theme.peach : root.cpuTemp > theme.cpuTempWarn ? theme.yellow : theme.green
                 font.pixelSize: theme.fontSize - 1
                 font.weight: Font.Medium
                 font.family: theme.font
@@ -61,7 +61,7 @@ Item {
 
             Text {
                 text: root.gpuUsage + "%"
-                color: root.gpuUsage > 70 ? theme.red : root.gpuUsage > 30 ? theme.yellow : theme.green
+                color: root.gpuUsage > theme.cpuLoadCrit ? theme.red : root.gpuUsage > theme.cpuLoadWarn ? theme.yellow : theme.green
                 font.pixelSize: theme.fontSize - 1
                 font.weight: Font.Medium
                 font.family: theme.font
@@ -69,7 +69,7 @@ Item {
 
             Text {
                 text: "󰢮"
-                color: root.gpuUsage > 70 ? theme.red : root.gpuUsage > 30 ? theme.yellow : theme.green
+                color: root.gpuUsage > theme.cpuLoadCrit ? theme.red : root.gpuUsage > theme.cpuLoadWarn ? theme.yellow : theme.green
                 font.pixelSize: theme.fontSize + 5
                 font.weight: Font.Medium
                 font.family: theme.font
@@ -77,7 +77,7 @@ Item {
 
             Text {
                 text: root.ramUsage + "%"
-                color: root.ramUsage > 80 ? theme.red : root.ramUsage > 50 ? theme.yellow : theme.green
+                color: root.ramUsage > theme.ramCrit ? theme.red : root.ramUsage > theme.ramWarn ? theme.yellow : theme.green
                 font.pixelSize: theme.fontSize - 1
                 font.weight: Font.Medium
                 font.family: theme.font
@@ -85,7 +85,7 @@ Item {
 
             Text {
                 text: ""
-                color: root.ramUsage > 80 ? theme.red : root.ramUsage > 50 ? theme.yellow : theme.green
+                color: root.ramUsage > theme.ramCrit ? theme.red : root.ramUsage > theme.ramWarn ? theme.yellow : theme.green
                 font.pixelSize: theme.fontSize + 5
                 font.weight: Font.Medium
                 font.family: theme.font
@@ -93,7 +93,7 @@ Item {
 
             Text {
                 text: root.swapUsage + "%"
-                color: root.swapUsage > 50 ? theme.red : root.swapUsage > 20 ? theme.yellow : theme.green
+                color: root.swapUsage > theme.swapCrit ? theme.red : root.swapUsage > theme.swapWarn ? theme.yellow : theme.green
                 font.pixelSize: theme.fontSize - 1
                 font.weight: Font.Medium
                 font.family: theme.font
@@ -102,7 +102,7 @@ Item {
 
             Text {
                 text: "󰾵"
-                color: root.swapUsage > 50 ? theme.red : root.swapUsage > 20 ? theme.yellow : theme.green
+                color: root.swapUsage > theme.swapCrit ? theme.red : root.swapUsage > theme.swapWarn ? theme.yellow : theme.green
                 font.pixelSize: theme.fontSize + 1
                 font.weight: Font.Medium
                 font.family: theme.font
@@ -122,7 +122,7 @@ Item {
 
     Process {
         id: cpuProc
-        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/cpu-usage.sh"]
+        command: ["bash", theme.scriptDir + "/cpu-usage.sh"]
         running: !root.dataSource
 
         stdout: StdioCollector {
@@ -139,7 +139,7 @@ Item {
 
     Process {
         id: memProc
-        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/mem-usage.sh"]
+        command: ["bash", theme.scriptDir + "/mem-usage.sh"]
         running: !root.dataSource
 
         stdout: StdioCollector {
@@ -160,7 +160,7 @@ Item {
 
     Process {
         id: gpuProc
-        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/gpu-usage.sh"]
+        command: ["bash", theme.scriptDir + "/gpu-usage.sh"]
         running: !root.dataSource
 
         stdout: StdioCollector {

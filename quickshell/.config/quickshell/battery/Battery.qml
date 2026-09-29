@@ -20,6 +20,8 @@ Item {
         return theme.subtext0
     }
 
+    // Hard containment: layout squeeze must never paint over neighbors.
+    clip: true
     implicitWidth: batteryIcon ? iconText.implicitWidth : 0
     implicitHeight: iconText.implicitHeight
     Layout.alignment: Qt.AlignVCenter
@@ -45,7 +47,7 @@ Item {
 
     Process {
         id: battProc
-        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/battery.sh"]
+        command: ["bash", theme.scriptDir + "/battery.sh"]
         running: !root.dataSource
 
         stdout: StdioCollector {

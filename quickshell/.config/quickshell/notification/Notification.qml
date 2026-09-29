@@ -11,27 +11,31 @@ Item {
     signal togglePanel()
 
     onDataSourceChanged: {
-        if (dataSource)
+        if (dataSource && dataSource.count !== undefined)
             notifCount = dataSource.count
     }
 
     Connections {
         target: dataSource
+        enabled: root.dataSource !== null
         ignoreUnknownSignals: true
         function onCountChanged() {
-            root.notifCount = dataSource.count
+            if (root.dataSource && root.dataSource.count !== undefined)
+                root.notifCount = root.dataSource.count
         }
     }
 
-    implicitWidth: iconText.implicitWidth
-    implicitHeight: iconText.implicitHeight
+    // Hard containment: layout squeeze must never paint over neighbors.
+    clip: true
+    implicitWidth: Math.max(iconText.implicitWidth + 6, badge.width + 2)
+    implicitHeight: iconText.implicitHeight + 4
 
     Text {
         id: iconText
         anchors.centerIn: parent
         text: root.dnd ? "\uF09B" : "\uF0F3"
         color: root.notifCount > 0 ? theme.white : theme.surface1
-        font.pixelSize: theme.fontSize + 7
+        font.pixelSize: theme.fontSize + 8
         font.weight: Font.Medium
         font.family: theme.font
     }
@@ -41,9 +45,9 @@ Item {
         visible: root.notifCount > 0
         anchors.top: parent.top
         anchors.right: parent.right
-        anchors.topMargin: -1
-        anchors.rightMargin: -3
-        width: Math.max(12, badgeText.implicitWidth + 6)
+        anchors.topMargin: 1
+        anchors.rightMargin: 1
+        width: Math.max(24, badgeText.implicitWidth + 6)
         height: 12
         radius: 7
         color: theme.red

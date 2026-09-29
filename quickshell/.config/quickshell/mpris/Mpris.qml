@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Services.Mpris
@@ -50,6 +51,18 @@ Item {
             elide: Text.ElideRight
             Layout.maximumWidth: root.maxWidth
             Layout.fillWidth: false
+
+            MouseArea {
+                id: labelHover
+                anchors.fill: parent
+                hoverEnabled: true
+                acceptedButtons: Qt.NoButton
+                cursorShape: Qt.PointingHandCursor
+            }
+
+            ToolTip.visible: labelHover.containsMouse && trackLabel.truncated
+            ToolTip.delay: 500
+            ToolTip.text: trackLabel.text
         }
     }
 
@@ -84,10 +97,12 @@ Item {
 
     function _refreshPlayer() {
         // show only an actively playing player with real track info —
-        // paused/stopped/empty players (e.g. idle Chrome) hide entirely
-        for (var i = 0; i < Mpris.players.rowCount(); i++) {
-            var p = Mpris.players.values[i]
-            if (p && p.isPlaying && (p.trackTitle || p.trackArtist)) {
+        // paused/stopped/empty players (e.g. idle Chrome) hide entirely.
+        // UntypedObjectModel exposes `values`, not a QML-callable rowCount().
+        var players = Mpris.players.values || []
+        for (var i = 0; i < players.length; i++) {
+            var p = players[i]
+            if (p && p.isPlaying && (p.trackTitle)) {
                 root.currentPlayer = p
                 return
             }

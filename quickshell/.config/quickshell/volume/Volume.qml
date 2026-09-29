@@ -14,12 +14,14 @@ Item {
     readonly property bool muted: dataSource ? dataSource.muted : _muted
     signal togglePanel()
 
-    property string iconColor: root.muted ? theme.surface1 : (root.volumeLevel > 80 ? theme.red : root.volumeLevel > 50 ? theme.yellow : root.volumeLevel > 30 ? theme.peach : theme.green)
+    property string iconColor: root.muted ? theme.surface1 : (root.volumeLevel > theme.volumeCriticalLevel ? theme.volumeCriticalColor : root.volumeLevel > theme.volumeWarnLevel ? theme.volumeWarnColor : root.volumeLevel > theme.volumeElevatedLevel ? theme.volumeElevatedColor : theme.volumeNormalColor)
     property string iconText: root.muted ? "" : (root.volumeLevel > 70 ? "" : root.volumeLevel > 30 ? "" : "")
     property string textColor: root.muted ? theme.surface1 : theme.text
 
     property var _pendingCmd: []
 
+    // Hard containment: layout squeeze must never paint over neighbors.
+    clip: true
     implicitWidth: row.implicitWidth
     implicitHeight: row.implicitHeight
     Layout.alignment: Qt.AlignVCenter
@@ -107,7 +109,7 @@ Item {
 
     Process {
         id: volProc
-        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/volume-status.sh"]
+        command: ["bash", theme.scriptDir + "/volume-status.sh"]
         running: !root.dataSource
 
         stdout: StdioCollector {

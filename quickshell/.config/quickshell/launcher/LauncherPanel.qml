@@ -26,6 +26,7 @@ Item {
     property var recentApps: []
     property var _recentMap: ({})  // id → timestamp for O(1) lookup
     property bool _suppressFilter: false
+    property bool _entryRefreshTried: false  // one cache-bust retry per empty load
 
     // ── load .desktop entries via shell script ──
 
@@ -35,7 +36,7 @@ Item {
 
     Process {
         id: loadProc
-        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/desktop-entries.sh"]
+        command: ["bash", theme.scriptDir + "/desktop-entries.sh"]
 
         stdout: StdioCollector {
             onStreamFinished: {
@@ -59,11 +60,32 @@ Item {
                     }
                     root.allEntries = next
                     root.applyFilter()
+                    if (next.length > 0) {
+                        root._entryRefreshTried = false
+                    } else if (!root._entryRefreshTried) {
+                        // Zero entries usually means a stale/partial
+                        // desktop-cache.json. Bust it and let the script
+                        // rebuild (loadEntries runs again on cacheClearProc
+                        // exit, and loadTimer retries while empty) instead of
+                        // showing an empty launcher.
+                        root._entryRefreshTried = true
+                        cacheClearProc.running = true
+                    }
                 } catch (ex) {
                     console.log("Launcher: parse error", ex.message)
                 }
             }
         }
+    }
+
+    // Removes desktop-entries.sh's on-disk cache so the next run recomputes
+    // from the .desktop files instead of replaying a stale/empty result.
+    Process {
+        id: cacheClearProc
+        command: ["bash", "-c",
+            "rm -f " + root._recentDir + "/desktop-cache.json " +
+                    root._recentDir + "/desktop-cache.sha256"]
+        onExited: root.loadEntries()
     }
 
     Timer {

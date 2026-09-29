@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import qs.common
@@ -11,7 +12,9 @@ Rectangle {
 
     color: theme.color
     radius: 12
-    height: content.implicitHeight + 16
+    border.color: theme.surface0
+    border.width: 1
+    height: content.implicitHeight + 20
         + (actionFlow.visible ? actionFlow.implicitHeight + 6 : 0)
 
     function unescapeHtml(text) {
@@ -31,6 +34,7 @@ Rectangle {
     }
 
     function actionLabel(action) {
+        action = action || {}
         var t = action.text
         if (t && t.indexOf(":") > 0)
             return t.substring(t.indexOf(":") + 1)
@@ -64,17 +68,15 @@ Rectangle {
         }
         width: 4
         radius: 2
-        color: notifData.urgency === 2 ? theme.red
-            : notifData.urgency === 0 ? theme.green
-            : theme.blue
+        color: notifData && notifData.urgency === 2 ? theme.red : theme.surface1
         visible: true
     }
 
     RowLayout {
         id: content
         anchors.fill: parent
-        anchors.margins: 8
-        anchors.leftMargin: 24
+        anchors.margins: 10
+        anchors.leftMargin: 26
         spacing: 10
 
         Rectangle {
@@ -87,8 +89,8 @@ Rectangle {
             AppIcon {
                 id: notifIcon
                 anchors.centerIn: parent
-                appId: notifData.desktopEntry || ""
-                iconName: notifData.appIcon || ""
+                appId: notifData && notifData.desktopEntry || ""
+                iconName: notifData && notifData.appIcon || ""
                 size: 24
                 hideOnMissing: true
             }
@@ -111,17 +113,29 @@ Rectangle {
                 spacing: 6
 
                 Text {
-                    text: notifData.appName || "Unknown"
+                    id: appNameText
+                    text: notifData && notifData.appName || "Unknown"
                     color: theme.text
                     font.pixelSize: theme.fontSize
                     font.bold: true
                     font.family: theme.font
                     Layout.fillWidth: true
                     elide: Text.ElideRight
+
+                    MouseArea {
+                        id: appNameHover
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        acceptedButtons: Qt.NoButton
+                    }
+
+                    ToolTip.visible: appNameHover.containsMouse && appNameText.truncated
+                    ToolTip.delay: 500
+                    ToolTip.text: appNameText.text
                 }
 
                 Text {
-                    text: root.formatTime(root.getNotifTime(notifData.id))
+                    text: root.formatTime(root.getNotifTime(notifData && notifData.id))
                     color: theme.white
                     font.pixelSize: theme.fontSize - 3
                     font.family: theme.font
@@ -139,31 +153,63 @@ Rectangle {
                         anchors.fill: parent
                         anchors.margins: -6
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: notifData.dismiss()
+                    onClicked: {
+                        if (notifData && notifData.dismiss) notifData.dismiss()
+                    }
                     }
                 }
             }
 
             Text {
-                text: root.unescapeHtml(notifData.summary || "")
+                id: summaryText
+                text: root.unescapeHtml(notifData && notifData.summary || "")
                 color: theme.text
                 font.pixelSize: theme.fontSize
                 font.family: theme.font
                 Layout.fillWidth: true
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                visible: !!notifData.summary && notifData.summary.length > 0
+                maximumLineCount: 2
+                elide: Text.ElideRight
+                clip: true
+                visible: !!(notifData && notifData.summary) && notifData.summary.length > 0
                 textFormat: Text.RichText
+
+                MouseArea {
+                    id: summaryHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    acceptedButtons: Qt.NoButton
+                }
+
+                ToolTip.visible: summaryHover.containsMouse && summaryText.truncated
+                ToolTip.delay: 500
+                ToolTip.text: summaryText.text
             }
 
             Text {
-                text: root.unescapeHtml(notifData.body || "")
+                id: bodyText
+                text: root.unescapeHtml(notifData && notifData.body || "")
                 color: theme.subtext0
                 font.pixelSize: theme.fontSize - 2
                 font.family: theme.font
                 Layout.fillWidth: true
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                visible: !!notifData.body && notifData.body.length > 0
+                maximumLineCount: 3
+                elide: Text.ElideRight
+                clip: true
+                visible: !!(notifData && notifData.body) && notifData.body.length > 0
                 textFormat: Text.RichText
+
+                MouseArea {
+                    id: bodyHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    acceptedButtons: Qt.NoButton
+                }
+
+                ToolTip.visible: bodyHover.containsMouse && bodyText.truncated
+                ToolTip.delay: 500
+                ToolTip.text: bodyText.text
             }
 
             // Action buttons
@@ -172,22 +218,24 @@ Rectangle {
                 Layout.fillWidth: true
                 Layout.topMargin: 4
                 spacing: 4
-                visible: notifData.actions && notifData.actions.length > 0
+                visible: !!(notifData && notifData.actions) && notifData.actions.length > 0
 
                 Repeater {
-                    model: notifData.actions ? notifData.actions.length : 0
+                    model: notifData && notifData.actions ? notifData.actions.length : 0
 
                     delegate: Rectangle {
                         required property int index
                         implicitWidth: actLabel.implicitWidth + 14
                         implicitHeight: 24
                         radius: 6
-                        color: theme.surface1
+                        color: hovered ? theme.surface0 : theme.surface1
+
+                        property bool hovered: false
 
                         Text {
                             id: actLabel
                             anchors.centerIn: parent
-                            text: root.actionLabel(notifData.actions[index])
+                            text: root.actionLabel(notifData && notifData.actions ? notifData.actions[index] : null)
                             color: theme.blue
                             font.pixelSize: theme.fontSize - 2
                             font.family: theme.font
@@ -196,7 +244,13 @@ Rectangle {
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: notifData.actions[index].invoke()
+                            hoverEnabled: true
+                            onEntered: parent.hovered = true
+                            onExited: parent.hovered = false
+                            onClicked: {
+                                var action = notifData && notifData.actions ? notifData.actions[index] : null
+                                if (action && action.invoke) action.invoke()
+                            }
                         }
                     }
                 }

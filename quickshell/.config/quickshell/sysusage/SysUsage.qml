@@ -52,7 +52,7 @@ Item {
 
     Process {
         id: fetchProc
-        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/mem-apps.sh"]
+        command: ["bash", theme.scriptDir + "/mem-apps.sh"]
 
         stdout: StdioCollector {
             onStreamFinished: {

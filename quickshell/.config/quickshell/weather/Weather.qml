@@ -24,6 +24,8 @@ Item {
         }
     }
 
+    // Hard containment: layout squeeze must never paint over neighbors.
+    clip: true
     implicitWidth: row.implicitWidth
     implicitHeight: row.implicitHeight
 
@@ -63,7 +65,7 @@ Item {
 
     Process {
         id: weatherProc
-        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/weather.sh"]
+        command: ["bash", theme.scriptDir + "/weather.sh"]
         running: !root.dataSource
 
         stdout: StdioCollector {

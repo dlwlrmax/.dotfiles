@@ -44,10 +44,13 @@ PanelWindow {
         anchors.top: parent.top
         opacity: 0
         focus: true
+        clip: true
         Keys.onEscapePressed: root.closeRequested()
 
-        width: children.length > 0 ? children[0].implicitWidth : 0
-        height: children.length > 0 ? children[0].implicitHeight : 0
+        // Never collapse to 0x0: content that has not reported an implicit size
+        // yet would otherwise be clipped away entirely.
+        width: children.length > 0 ? Math.max(children[0].implicitWidth, 1) : 1
+        height: children.length > 0 ? Math.max(children[0].implicitHeight, 1) : 1
 
         Binding {
             target: wrapper.anchors

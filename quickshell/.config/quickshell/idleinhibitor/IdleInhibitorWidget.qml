@@ -3,10 +3,11 @@ import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import qs.common
 
 MouseArea {
     id: root
-    property var theme
+    property Theme theme: Theme {}
     width: row.implicitWidth
     height: row.implicitHeight
 
@@ -18,8 +19,8 @@ MouseArea {
         Text {
             id: icon
             text: idleInhibitor.enabled ? "󰈈" : ""
-            font.family: "JetBrainsMono Nerd Font Mono"
-            font.pointSize: root.theme.fontSize + 5
+            font.family: root.theme.font
+            font.pixelSize: root.theme.fontSize + 5
             color: idleInhibitor.enabled ? root.theme.green : root.theme.red
             Layout.alignment: Qt.AlignVCenter
         }

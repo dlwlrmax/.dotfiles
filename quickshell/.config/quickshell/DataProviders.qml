@@ -4,9 +4,11 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Notifications
 import QtQuick
+import qs.common
 
 Item {
     id: root
+    property Theme theme: Theme {}
     property alias kdeData: kdeData
     property alias notifServer: notifServer
     property alias notifData: notifData
@@ -66,7 +68,7 @@ Item {
 
         Process {
             id: fetchProc
-            command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh"]
+            command: ["bash", theme.scriptDir + "/kdeconnect.sh"]
 
             stdout: StdioCollector {
                 onStreamFinished: {
@@ -190,7 +192,8 @@ Item {
         property var pendingNotifs: []
         property int lastSoundTime: 0
         property int startupTime: Date.now()
-        property string storagePath: Quickshell.env("HOME") + "/.local/state/quickshell/notifications.json"
+        // XDG-aware: same resolved path as before when XDG_STATE_HOME is unset.
+        property string storagePath: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/quickshell/notifications.json"
         signal newNotification(var notif)
         signal dismissPopup(var notifId)
 
@@ -383,7 +386,7 @@ Item {
 
         Process {
             id: soundProc
-            command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/notification-sound.sh"]
+            command: ["bash", theme.scriptDir + "/notification-sound.sh"]
         }
 
         function tryPlaySound() {
@@ -406,7 +409,7 @@ Item {
 
         Process {
             id: sysFetchProc
-            command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/sys-data.sh"]
+            command: ["bash", theme.scriptDir + "/sys-data.sh"]
 
             stdout: StdioCollector {
                 onStreamFinished: {
@@ -442,7 +445,7 @@ Item {
 
         Process {
             id: netFetchProc
-            command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/net-data.sh"]
+            command: ["bash", theme.scriptDir + "/net-data.sh"]
 
             stdout: StdioCollector {
                 onStreamFinished: {
@@ -485,7 +488,7 @@ Item {
 
         Process {
             id: weatherFetchProc
-            command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/weather.sh"]
+            command: ["bash", theme.scriptDir + "/weather.sh"]
 
             stdout: StdioCollector {
                 onStreamFinished: {
@@ -532,7 +535,7 @@ Item {
 
         Process {
             id: volumeFetchProc
-            command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/volume-status.sh"]
+            command: ["bash", theme.scriptDir + "/volume-status.sh"]
 
             stdout: StdioCollector {
                 onStreamFinished: {
@@ -549,7 +552,7 @@ Item {
                         // Cycle path notifies itself immediately; poll catches the rest.
                         if (volumeData.defaultSink !== "" && sink !== ""
                             && sink !== volumeData.defaultSink && sink !== "none") {
-                            var notifyCmd = ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/audio-notify.sh", sink];
+                            var notifyCmd = ["bash", theme.scriptDir + "/audio-notify.sh", sink];
                             if (!switchNotifyProc.running) {
                                 volumeData._notifyCmd = notifyCmd;
                                 switchNotifyProc.running = true;
@@ -565,7 +568,7 @@ Item {
 
         Process {
             id: cycleProc
-            command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/audio-cycle.sh"]
+            command: ["bash", theme.scriptDir + "/audio-cycle.sh"]
             stdout: StdioCollector {
                 onStreamFinished: {
                     // Script notifies itself; sync baseline so the 5s poll stays silent
@@ -637,7 +640,7 @@ Item {
 
         Process {
             id: batteryFetchProc
-            command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/battery.sh"]
+            command: ["bash", theme.scriptDir + "/battery.sh"]
 
             stdout: StdioCollector {
                 onStreamFinished: {

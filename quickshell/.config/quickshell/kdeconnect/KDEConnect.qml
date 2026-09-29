@@ -12,6 +12,8 @@ Item {
     property var dataSource: null
     signal togglePanel(int centerX)
 
+    // Hard containment: layout squeeze must never paint over neighbors.
+    clip: true
     implicitWidth: anyConnected ? row.implicitWidth : 0
     implicitHeight: row.implicitHeight
     Layout.alignment: Qt.AlignVCenter
@@ -92,7 +94,7 @@ Item {
     // Fallback poll when no shared dataSource
     Process {
         id: kdProc
-        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh"]
+        command: ["bash", theme.scriptDir + "/kdeconnect.sh"]
         running: !root.dataSource
 
         stdout: StdioCollector {

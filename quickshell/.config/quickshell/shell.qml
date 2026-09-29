@@ -144,6 +144,7 @@ ShellRoot {
         delegate: Item {
             id: screenScope
             property var screenData: modelData
+            property Theme theme: Theme {}
 
             PanelWindow {
                 screen: screenScope.screenData
@@ -152,7 +153,7 @@ ShellRoot {
                 anchors.right: true
                 color: "transparent"
                 exclusionMode: ExclusionMode.Auto
-                implicitHeight: 44
+                implicitHeight: theme.barHeight
                 WlrLayershell.layer: WlrLayer.Top
                 WlrLayershell.namespace: "quickshell-bar"
 
@@ -234,7 +235,7 @@ ShellRoot {
             }
 
             // Notification popup window (toast-style, appears below bar)
-            // Top anchor + margin pushes it below bar; no left/right → centered.
+            // Top anchor + margin pushes stack below bar; horizontal center keeps it centered.
             PanelWindow {
                 screen: screenScope.screenData
                 anchors.top: true
@@ -244,7 +245,7 @@ ShellRoot {
                 implicitHeight: notifPopupItem.implicitHeight > 0 ? notifPopupItem.implicitHeight + 60 : 0
                 WlrLayershell.layer: WlrLayer.Overlay
                 WlrLayershell.namespace: "quickshell-notif-popup"
-                WlrLayershell.margins.top: 44
+                WlrLayershell.margins.top: theme.barHeight
 
                 NotificationPopup {
                     id: notifPopupItem
@@ -277,7 +278,7 @@ ShellRoot {
                 visible: volumeOsd.opacity > 0
                 WlrLayershell.layer: WlrLayer.Overlay
                 WlrLayershell.namespace: "quickshell-osd"
-                WlrLayershell.margins.top: 44
+                WlrLayershell.margins.top: theme.barHeight
 
                 OsdPopup {
                     id: volumeOsd
@@ -294,7 +295,7 @@ ShellRoot {
                 screen: screenScope.screenData
                 active: g.notifPanelOpen && g.activeNotifScreen === screenScope.screenData
                 onCloseRequested: g.notifPanelOpen = false
-                topMargin: 44
+                topMargin: theme.barHeight
 
                 NotificationPanel {
                     anchors.fill: parent
@@ -309,7 +310,7 @@ ShellRoot {
                 screen: screenScope.screenData
                 active: g.mprisPanelOpen && g.activeMprisScreen === screenScope.screenData
                 onCloseRequested: g.mprisPanelOpen = false
-                topMargin: 44
+                topMargin: theme.barHeight
                 position: PanelOverlay.Position.TopCenter
                 centerOffset: g.mprisWidgetCenterX - screenScope.screenData.width / 2
 
@@ -324,7 +325,7 @@ ShellRoot {
                 screen: screenScope.screenData
                 active: g.volumePanelOpen && g.activeVolumeScreen === screenScope.screenData
                 onCloseRequested: g.volumePanelOpen = false
-                topMargin: 44
+                topMargin: theme.barHeight
 
                 VolumePanel {
                     anchors.fill: parent
@@ -337,7 +338,7 @@ ShellRoot {
                 screen: screenScope.screenData
                 active: g.weatherPanelOpen && g.activeWeatherScreen === screenScope.screenData
                 onCloseRequested: g.weatherPanelOpen = false
-                topMargin: 44
+                topMargin: theme.barHeight
 
                 WeatherPanel {
                     anchors.fill: parent
@@ -354,7 +355,7 @@ ShellRoot {
                 screen: screenScope.screenData
                 active: g.calendarPanelOpen && g.activeCalendarScreen === screenScope.screenData
                 onCloseRequested: g.calendarPanelOpen = false
-                topMargin: 44
+                topMargin: theme.barHeight
                 position: PanelOverlay.Position.TopCenter
 
                 CalendarPanel {
@@ -368,7 +369,7 @@ ShellRoot {
                 screen: screenScope.screenData
                 active: g.sysUsagePanelOpen && g.activeSysUsageScreen === screenScope.screenData
                 onCloseRequested: g.sysUsagePanelOpen = false
-                topMargin: 44
+                topMargin: theme.barHeight
                 rightMargin: 250
 
                 SysUsagePanel {
@@ -382,7 +383,7 @@ ShellRoot {
                 screen: screenScope.screenData
                 active: g.netPanelOpen && g.activeNetScreen === screenScope.screenData
                 onCloseRequested: g.netPanelOpen = false
-                topMargin: 44
+                topMargin: theme.barHeight
 
                 NetPanel {
                     anchors.fill: parent
@@ -409,7 +410,7 @@ ShellRoot {
                 screen: screenScope.screenData
                 active: g.kdePanelOpen && g.activeKdeScreen === screenScope.screenData
                 onCloseRequested: g.kdePanelOpen = false
-                topMargin: 44
+                topMargin: theme.barHeight
                 position: PanelOverlay.Position.TopCenter
                 centerOffset: g.kdeWidgetCenterX - screenScope.screenData.width / 2
 
@@ -425,7 +426,7 @@ ShellRoot {
                 screen: screenScope.screenData
                 active: g.batteryPanelOpen && g.activeBatteryScreen === screenScope.screenData
                 onCloseRequested: g.batteryPanelOpen = false
-                topMargin: 44
+                topMargin: theme.barHeight
                 position: PanelOverlay.Position.TopCenter
                 centerOffset: g.batteryWidgetCenterX - screenScope.screenData.width / 2
 
@@ -468,7 +469,7 @@ ShellRoot {
                 screen: screenScope.screenData
                 active: g.trayPanelOpen && g.activeTrayScreen === screenScope.screenData
                 onCloseRequested: g.trayPanelOpen = false
-                topMargin: 44
+                topMargin: theme.barHeight
 
                 TrayOverflowPanel {
                     anchors.fill: parent

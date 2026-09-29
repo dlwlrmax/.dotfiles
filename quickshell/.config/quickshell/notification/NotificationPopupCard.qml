@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import qs.common
@@ -6,88 +7,79 @@ import qs.common
 Rectangle {
     id: root
     property Theme theme: Theme {}
-    property var notifData: ({})
+    property var groupData: ({})
     property var notifTimes: ({})
-    // Only critical (urgency=2) notifications require manual dismiss.
-    // All others auto-close, even if the server sent expireTimeout=0
-    // (KDE sometimes sends 0 for popups like calls that never arrive a close signal).
-    property bool autoDismiss: notifData.urgency !== 2
+    property bool expanded: false
+    property bool autoDismiss: !latest || latest.urgency !== 2
     property int dismissTimeoutMs: {
-        if (notifData.expireTimeout > 0) return notifData.expireTimeout;
-        var u = notifData.urgency || 1;
-        if (u === 0) return 8000;
-        return 10000; // Normal or fallback
+        if (latest && latest.expireTimeout > 0) return latest.expireTimeout
+        return latest && latest.urgency === 0 ? 8000 : 10000
     }
-
-    signal dismissed()
-    // Emitted when user clicks × or auto-dismiss timer fires (NOT when
-    // fadeOut is triggered by a cross-screen broadcast). Parent popup
-    // uses this to broadcast dismiss to other screens.
-    signal dismissRequested()
-
-    // KDE Connect escapes HTML in body (e.g. &lt;b&gt; → literal <b>).
-    // Unescape first so RichText can render actual tags.
-    function unescapeHtml(text) {
-        if (!text) return ""
-        return text.replace(/&amp;/g, '&')
-                   .replace(/&lt;/g, '<')
-                   .replace(/&gt;/g, '>')
-                   .replace(/&quot;/g, '"')
-                   .replace(/&#39;/g, "'")
-                   .replace(/&#x27;/g, "'")
-                   .replace(/&#x2F;/g, '/')
-    }
-
-    clip: true
-    color: theme.color
-    radius: 12
-    border {
-        color: theme.surface1
-        width: 1
-    }
-
     property bool _dismissing: false
     property bool _hoverPaused: false
     property real progressValue: 1.0
     property real _hoverElapsedBeforePause: 0
+    readonly property var latest: groupData && groupData.latest ? groupData.latest : null
 
+    signal dismissed()
+    signal dismissRequested()
+    signal messageDismissRequested(var notifId)
+
+    color: theme.color
+    radius: 12
+    border.color: theme.surface0
+    border.width: 1
+    clip: true
     width: 400
-    height: content.implicitHeight + 16
-        + (actionFlow.visible ? actionFlow.implicitHeight + 6 : 0)
+    height: cardLayout.implicitHeight + 20
 
-    function getNotifTime(id) {
-        var t = notifTimes[id]
-        return t || 0
-    }
-
-    function actionLabel(action) {
-        var t = action.text
-        if (t && t.indexOf(":") > 0)
-            return t.substring(t.indexOf(":") + 1)
-        return t || action.identifier || ""
+    function unescapeHtml(text) {
+        if (!text) return ""
+        return text.replace(/&amp;/g, '&').replace(/&lt;/g, '<')
+                   .replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+                   .replace(/&#39;/g, "'").replace(/&#x27;/g, "'")
+                   .replace(/&#x2F;/g, '/')
     }
 
     function formatTime(unixEpoch) {
-        if (!unixEpoch) return "";
-        var d = new Date(unixEpoch * 1000);
-        var now = new Date();
-        var pad = function(n) { return n < 10 ? "0" + n : n; };
-        var hhmm = pad(d.getHours()) + ":" + pad(d.getMinutes());
-        if (d.getFullYear() === now.getFullYear()
-            && d.getMonth() === now.getMonth()
-            && d.getDate() === now.getDate()) {
-            return hhmm;
-        }
-        var months = ["Jan","Feb","Mar","Apr","May","Jun",
-                      "Jul","Aug","Sep","Oct","Nov","Dec"];
-        return months[d.getMonth()] + " " + d.getDate() + " " + hhmm;
+        if (!unixEpoch) return ""
+        var d = new Date(unixEpoch * 1000)
+        var pad = function(n) { return n < 10 ? "0" + n : n }
+        return pad(d.getHours()) + ":" + pad(d.getMinutes())
     }
 
-    // Auto-dismiss timer — reliable trigger (Timer > NumberAnimation.onStopped)
+    function resetTimer() {
+        _dismissing = false
+        progressValue = 1.0
+        dismissTimer.stop()
+        progressAnim.stop()
+        if (autoDismiss && dismissTimeoutMs > 0) {
+            dismissTimer.interval = dismissTimeoutMs
+            dismissTimer.start()
+            progressAnim.restart()
+        }
+    }
+
+    function fadeOut() {
+        fadeAnim.to = 0
+        fadeAnim.start()
+    }
+
+    function requestDismiss() {
+        if (_dismissing) return
+        _dismissing = true
+        dismissTimer.stop()
+        hoverSafety.stop()
+        progressAnim.stop()
+        dismissRequested()
+        fadeOut()
+    }
+
+    onGroupDataChanged: resetTimer()
+
     Timer {
         id: dismissTimer
         interval: root.dismissTimeoutMs
-        running: false
         repeat: false
         onTriggered: {
             if (root._dismissing) return
@@ -97,37 +89,30 @@ Rectangle {
         }
     }
 
-    // Smooth countdown progress (visual only — dismissTimer handles the actual close)
     NumberAnimation on progressValue {
         id: progressAnim
         from: 1.0
         to: 0.0
         duration: root.dismissTimeoutMs
-        running: autoDismiss && root.dismissTimeoutMs > 0 && !root._dismissing
+        running: root.autoDismiss && root.dismissTimeoutMs > 0 && !root._dismissing
         paused: root._hoverPaused
     }
 
-    // Safety: force-resume auto-dismiss if stuck > 30s (hover missed leave event)
     Timer {
         id: hoverSafety
         interval: 30000
         onTriggered: {
-            if (!dismissTimer.running && autoDismiss && !root._dismissing && !hoverArea.containsMouse) {
+            if (!dismissTimer.running && root.autoDismiss && !root._dismissing
+                    && !hoverArea.containsMouse) {
                 root._hoverPaused = false
-                var remaining = root.dismissTimeoutMs * root.progressValue
-                dismissTimer.interval = Math.max(100, remaining)
+                dismissTimer.interval = Math.max(100, root.dismissTimeoutMs * root.progressValue)
                 dismissTimer.start()
             }
         }
     }
 
-    // Start the dismiss timer when card is ready
-    Component.onCompleted: {
-        if (autoDismiss && root.dismissTimeoutMs > 0)
-            dismissTimer.start()
-    }
+    Component.onCompleted: resetTimer()
 
-    // Fade in on appear
     NumberAnimation {
         target: root
         property: "opacity"
@@ -137,21 +122,15 @@ Rectangle {
         running: true
     }
 
-    function fadeOut() {
-        fadeAnim.to = 0
-        fadeAnim.start()
-    }
-
-    // User/timer-initiated dismiss: broadcast to other screens, then fade
-    // this card. Other screens' cards fade via the broadcast handler.
-    function requestDismiss() {
-        if (_dismissing) return
-        _dismissing = true
-        dismissTimer.stop()
-        hoverSafety.stop()
-        progressAnim.stop()
-        root.dismissRequested()
-        root.fadeOut()
+    transform: Translate { id: slideTransform; y: -8 }
+    NumberAnimation {
+        target: slideTransform
+        property: "y"
+        from: -8
+        to: 0
+        duration: 180
+        easing.type: Easing.OutCubic
+        running: true
     }
 
     PropertyAnimation {
@@ -165,196 +144,203 @@ Rectangle {
         }
     }
 
-    // --- Card content (same visual as NotificationCard) ---
     Rectangle {
-        anchors {
-            left: parent.left
-            top: parent.top
-            bottom: parent.bottom
-            leftMargin: 8
-            topMargin: 8
-            bottomMargin: 8
-        }
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.leftMargin: 8
+        anchors.topMargin: 8
+        anchors.bottomMargin: 8
         width: 4
         radius: 2
-        color: hoverArea.containsMouse ? theme.yellow
-            : notifData.urgency === 2 ? theme.red
-            : notifData.urgency === 0 ? theme.green
-            : theme.blue
-        visible: true
+        color: root.latest && root.latest.urgency === 2 ? theme.red : theme.surface1
     }
 
-    RowLayout {
-        id: content
-        anchors.fill: parent
-        anchors.margins: 8
-        anchors.leftMargin: 24
-        spacing: 10
+    ColumnLayout {
+        id: cardLayout
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.margins: 10
+        anchors.leftMargin: 26
+        spacing: 6
 
-        Rectangle {
-            width: 36
-            height: 36
-            radius: 18
-            color: theme.surface1
-            Layout.alignment: Qt.AlignVCenter
-
-            AppIcon {
-                id: notifIcon
-                anchors.centerIn: parent
-                appId: notifData.desktopEntry || ""
-                iconName: notifData.appIcon || ""
-                size: 24
-                hideOnMissing: true
-            }
-
-            Text {
-                anchors.centerIn: parent
-                text: "\uF0E0"
-                color: theme.subtext0
-                font.pixelSize: 16
-                visible: !notifIcon.iconFound
-            }
-        }
-
-        ColumnLayout {
+        RowLayout {
             Layout.fillWidth: true
-            spacing: 2
+            spacing: 10
 
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 6
+            Rectangle {
+                width: 36
+                height: 36
+                radius: 18
+                color: theme.surface1
 
+                AppIcon {
+                    id: notifIcon
+                    anchors.centerIn: parent
+                    appId: root.latest && root.latest.desktopEntry || ""
+                    iconName: root.latest && root.latest.appIcon || ""
+                    size: 24
+                    hideOnMissing: true
+                }
                 Text {
-                    text: notifData.appName || "Unknown"
+                    anchors.centerIn: parent
+                    text: "\uF0E0"
+                    color: theme.subtext0
+                    font.pixelSize: 16
+                    visible: !notifIcon.iconFound
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 1
+                Text {
+                    text: root.groupData.appName || "Unknown"
                     color: theme.text
                     font.pixelSize: theme.fontSize
                     font.bold: true
                     font.family: theme.font
-                    Layout.fillWidth: true
                     elide: Text.ElideRight
+                    Layout.fillWidth: true
                 }
-
                 Text {
-                    text: root.formatTime(root.getNotifTime(notifData.id))
-                    color: theme.white
-                    font.pixelSize: theme.fontSize - 3
-                    font.family: theme.font
-                    Layout.alignment: Qt.AlignVCenter
-                }
-
-                Text {
-                    text: "\u00D7"
+                    text: root.latest ? root.unescapeHtml(root.latest.summary || root.latest.body || "") : ""
                     color: theme.subtext0
-                    font.pixelSize: theme.fontSize + 2
+                    font.pixelSize: theme.fontSize - 2
                     font.family: theme.font
-                    Layout.alignment: Qt.AlignVCenter
-
-                    MouseArea {
-                        anchors.fill: parent
-                        anchors.margins: -6
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.requestDismiss()
-                    }
+                    elide: Text.ElideRight
+                    maximumLineCount: 1
+                    Layout.fillWidth: true
                 }
             }
 
-            Text {
-                text: root.unescapeHtml(notifData.summary || "")
-                color: theme.text
-                font.pixelSize: theme.fontSize
-                font.family: theme.font
-                Layout.fillWidth: true
-                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                visible: !!notifData.summary && notifData.summary.length > 0
-                textFormat: Text.RichText
-            }
-
-            Text {
-                text: root.unescapeHtml(notifData.body || "")
-                color: theme.subtext0
-                font.pixelSize: theme.fontSize - 2
-                font.family: theme.font
-                Layout.fillWidth: true
-                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                visible: !!notifData.body && notifData.body.length > 0
-                textFormat: Text.RichText
-            }
-
-            // Action buttons
-            Flow {
-                id: actionFlow
-                Layout.fillWidth: true
-                Layout.topMargin: 4
-                spacing: 4
-                visible: notifData.actions && notifData.actions.length > 0
-
-                Repeater {
-                    model: notifData.actions ? notifData.actions.length : 0
-
-                    delegate: Rectangle {
-                        required property int index
-                        implicitWidth: actLabel.implicitWidth + 14
-                        implicitHeight: 24
-                        radius: 6
-                        color: theme.surface1
-
-                        Text {
-                            id: actLabel
-                            anchors.centerIn: parent
-                            text: root.actionLabel(notifData.actions[index])
-                            color: theme.blue
-                            font.pixelSize: theme.fontSize - 2
-                            font.family: theme.font
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: notifData.actions[index].invoke()
-                        }
-                    }
-                }
-            }
-
-            // Countdown progress bar (inside content area)
             Rectangle {
-                Layout.fillWidth: true
-                Layout.topMargin: 4
-                height: 3
-                radius: 1.5
-                color: Qt.rgba(0, 0, 0, 0.2)
-
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    width: parent.width * root.progressValue
-                    radius: 1.5
+                visible: (root.groupData.count || 0) > 1
+                implicitWidth: countText.implicitWidth + 12
+                implicitHeight: 22
+                radius: 11
+                color: theme.surface1
+                Text {
+                    id: countText
+                    anchors.centerIn: parent
+                    text: root.groupData.count || 0
                     color: theme.blue
+                    font.pixelSize: theme.fontSize - 2
+                    font.bold: true
+                }
+            }
+
+            Text {
+                text: root.formatTime(root.notifTimes[root.latest && root.latest.id])
+                color: theme.white
+                font.pixelSize: theme.fontSize - 3
+                font.family: theme.font
+            }
+            Text {
+                text: "\u00D7"
+                color: theme.subtext0
+                font.pixelSize: theme.fontSize + 2
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -6
+                    onClicked: root.requestDismiss()
                 }
             }
         }
+
+        Text {
+            Layout.fillWidth: true
+            visible: root.latest && root.latest.body && root.latest.summary
+            text: root.latest ? root.unescapeHtml(root.latest.body || "") : ""
+            color: theme.text
+            font.pixelSize: theme.fontSize - 2
+            font.family: theme.font
+            maximumLineCount: 2
+            elide: Text.ElideRight
+            wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+        }
+
+        ColumnLayout {
+            visible: root.expanded
+            Layout.fillWidth: true
+            spacing: 4
+
+            Repeater {
+                model: root.groupData.messages || []
+                delegate: Rectangle {
+                    required property var modelData
+                    Layout.fillWidth: true
+                    implicitHeight: messageText.implicitHeight + 8
+                    radius: 5
+                    color: theme.surface1
+                    Text {
+                        id: messageText
+                        anchors.left: parent.left
+                        anchors.right: closeText.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.margins: 6
+                        text: root.unescapeHtml(modelData.summary || modelData.body || "")
+                        color: theme.subtext0
+                        font.pixelSize: theme.fontSize - 3
+                        font.family: theme.font
+                        maximumLineCount: 2
+                        elide: Text.ElideRight
+                    }
+                    Text {
+                        id: closeText
+                        anchors.right: parent.right
+                        anchors.rightMargin: 6
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "\u00D7"
+                        color: theme.subtext0
+                        MouseArea {
+                            anchors.fill: parent
+                            anchors.margins: -4
+                            onClicked: root.messageDismissRequested(modelData.id)
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            height: 3
+            radius: 1.5
+            color: Qt.rgba(0, 0, 0, 0.2)
+            Rectangle {
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: parent.width * root.progressValue
+                radius: 1.5
+                color: theme.blue
+            }
+        }
+    }
+
+    MouseArea {
+        id: toggleArea
+        anchors.fill: parent
+        z: -1
+        onClicked: root.expanded = !root.expanded
     }
 
     MouseArea {
         id: hoverArea
         anchors.fill: parent
         hoverEnabled: true
-        // Hover-only: Qt.NoButton keeps containsMouse working for auto-dismiss
-        // pause/resume while press events pass through to dismiss/action buttons.
         acceptedButtons: Qt.NoButton
         z: 999
-        propagateComposedEvents: true
         onContainsMouseChanged: {
-            if (!autoDismiss) return
+            if (!root.autoDismiss) return
             root._hoverPaused = containsMouse
             if (containsMouse) {
-                // Pause: record elapsed time so we can resume correctly
                 root._hoverElapsedBeforePause = root.dismissTimeoutMs * (1 - root.progressValue)
                 dismissTimer.stop()
                 hoverSafety.start()
             } else {
-                // Resume with remaining time
                 var remaining = root.dismissTimeoutMs - root._hoverElapsedBeforePause
                 if (remaining > 0) {
                     dismissTimer.interval = Math.max(100, remaining)

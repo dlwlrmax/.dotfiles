@@ -28,7 +28,7 @@ Item {
     // ── DNS apply feedback ──
     property string dnsFeedback: ""
     property string dnsAppliedLabel: ""
-    property string dnsBin: Quickshell.env("HOME") + "/.config/quickshell/scripts/net-panel.sh"
+    property string dnsBin: theme.scriptDir + "/net-panel.sh"
 
     // ── Hardcoded DNS providers ──
     property var dnsProviders: [
@@ -322,7 +322,7 @@ Item {
             visible: root.tailscaleData && root.tailscaleData.active
 
             Text {
-                text: "Exit Node: " + (root.tailscaleData.exit_node || "No exit node")
+                text: "Exit Node: " + ((root.tailscaleData && root.tailscaleData.exit_node) || "No exit node")
                 color: theme.subtext1
                 font.pixelSize: theme.fontSize - 1
                 font.family: theme.font

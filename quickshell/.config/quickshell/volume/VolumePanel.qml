@@ -363,7 +363,7 @@ Item {
                                 anchors.top: parent.top
                                 anchors.bottom: parent.bottom
                                 radius: 3
-                                color: modelData && modelData.muted ? theme.surface1 : theme.green
+                                color: modelData && modelData.muted ? theme.surface1 : theme.volumeNormalColor
                                 width: parent.width * Math.min(1, streamSliderDelegate._val)
                             }
 
@@ -442,7 +442,7 @@ Item {
 
     Process {
         id: fetchProc
-        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/volume-streams.sh"]
+        command: ["bash", theme.scriptDir + "/volume-streams.sh"]
 
         stdout: StdioCollector {
             onStreamFinished: {

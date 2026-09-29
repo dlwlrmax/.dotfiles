@@ -341,7 +341,7 @@ Item {
 
     Process {
         id: fetchProc
-        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/weather-detail.sh"]
+        command: ["bash", theme.scriptDir + "/weather-detail.sh"]
 
         stdout: StdioCollector {
             onStreamFinished: {

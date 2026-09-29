@@ -609,7 +609,7 @@ Item {
 
     Process {
         id: fetchProc
-        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/sys-usage-full.sh"]
+        command: ["bash", theme.scriptDir + "/sys-usage-full.sh"]
 
         stdout: StdioCollector {
             onStreamFinished: {

@@ -12,7 +12,7 @@ Item {
     property int autoHideMs: 1500
 
     readonly property Theme theme: Theme {}
-    readonly property string accentColor: root.muted ? theme.surface1 : (root.level > 80 ? theme.red : root.level > 50 ? theme.yellow : root.level > 30 ? theme.peach : theme.green)
+    readonly property string accentColor: root.muted ? theme.surface1 : (root.level > theme.volumeCriticalLevel ? theme.volumeCriticalColor : root.level > theme.volumeWarnLevel ? theme.volumeWarnColor : root.level > theme.volumeElevatedLevel ? theme.volumeElevatedColor : theme.volumeNormalColor)
 
     implicitWidth: osdRow.implicitWidth + 32
     implicitHeight: osdRow.implicitHeight + 16

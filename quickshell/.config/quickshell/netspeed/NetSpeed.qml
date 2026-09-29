@@ -12,6 +12,8 @@ Item {
     property string ulText: dataSource ? dataSource.ulText : "--"
     signal togglePanel()
 
+    // Hard containment: layout squeeze must never paint over neighbors.
+    clip: true
     implicitWidth: col.implicitWidth
     implicitHeight: col.implicitHeight
     Layout.alignment: Qt.AlignVCenter
@@ -78,7 +80,7 @@ Item {
 
     Process {
         id: netProc
-        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/netspeed.sh"]
+        command: ["bash", theme.scriptDir + "/netspeed.sh"]
         running: !root.dataSource
 
         stdout: StdioCollector {

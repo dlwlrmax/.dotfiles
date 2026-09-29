@@ -571,7 +571,7 @@ Item {
             }
             deviceId = devId
             notifId = nid
-            command = ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh",
+            command = ["bash", theme.scriptDir + "/kdeconnect.sh",
                 "dismiss", devId, nid]
             running = true
         }
@@ -584,7 +584,7 @@ Item {
             }
             deviceId = devId
             notifId = "__all__"
-            command = ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh",
+            command = ["bash", theme.scriptDir + "/kdeconnect.sh",
                 "dismiss-all", devId]
             running = true
         }
@@ -602,10 +602,10 @@ Item {
                     deviceId = next.devId
                     notifId = next.nid
                     if (next.nid === "__all__")
-                        command = ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh",
+                        command = ["bash", theme.scriptDir + "/kdeconnect.sh",
                             "dismiss-all", next.devId]
                     else
-                        command = ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh",
+                        command = ["bash", theme.scriptDir + "/kdeconnect.sh",
                             "dismiss", next.devId, next.nid]
                     running = true
                 } else {
@@ -638,7 +638,7 @@ Item {
     // Fetch devices (fallback when no shared dataSource)
     Process {
         id: fetchProc
-        command: ["bash", Quickshell.env("HOME") + "/.config/quickshell/scripts/kdeconnect.sh"]
+        command: ["bash", theme.scriptDir + "/kdeconnect.sh"]
 
         stdout: StdioCollector {
             onStreamFinished: {

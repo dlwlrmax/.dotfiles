@@ -1,5 +1,7 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Window
 import Quickshell
 import qs.common
 
@@ -18,8 +20,10 @@ Item {
     property var months: []
 
     clip: true
-    implicitWidth: 720
-    implicitHeight: 560
+    // Cap to the screen so the fixed panel never spills off small displays;
+    // when the 12-month grid no longer fits, gridScroll scrolls instead.
+    implicitWidth: Math.min(720, Screen.width * 0.9)
+    implicitHeight: Math.min(560, Screen.height * 0.9)
 
     function cellGrid(month) {
         var firstDay = new Date(calYear, month, 1).getDay(); // 0=Sun
@@ -180,85 +184,96 @@ Item {
         }
 
         // ── 12-month grid (4 cols × 3 rows) ──
-        GridLayout {
-            id: yearGrid
+        // ScrollView: fills exactly when the grid fits the capped height,
+        // scrolls (instead of clipping months) when the screen is short.
+        ScrollView {
+            id: gridScroll
             Layout.fillWidth: true
             Layout.fillHeight: true
-            columns: 4
-            rowSpacing: 10
-            columnSpacing: 14
+            clip: true
+            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+            ScrollBar.vertical.policy: ScrollBar.AsNeeded
 
-            Repeater {
-                model: root.months
-                delegate: ColumnLayout {
-                    id: monthBlock
-                    required property var modelData
-                    property var m: modelData
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    spacing: 2
+            GridLayout {
+                id: yearGrid
+                width: gridScroll.availableWidth
+                height: Math.max(implicitHeight, gridScroll.availableHeight)
+                columns: 4
+                rowSpacing: 10
+                columnSpacing: 14
 
-                    // month name
-                    Text {
-                        text: m.name
-                        color: theme.subtext1
-                        font.pixelSize: theme.fontSize + 1
-                        font.bold: true
-                        font.family: theme.font
-                        Layout.alignment: Qt.AlignHCenter
-                    }
-
-                    // day-of-week headers
-                    RowLayout {
+                Repeater {
+                    model: root.months
+                    delegate: ColumnLayout {
+                        id: monthBlock
+                        required property var modelData
+                        property var m: modelData
                         Layout.fillWidth: true
-                        spacing: 0
-                        Repeater {
-                            model: root.dayHeaders
-                            delegate: Text {
-                                text: modelData
-                                color: theme.surface1
-                                font.pixelSize: theme.fontSize - 1
-                                font.family: theme.font
-                                horizontalAlignment: Text.AlignHCenter
-                                Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        spacing: 2
+
+                        // month name
+                        Text {
+                            text: m.name
+                            color: theme.subtext1
+                            font.pixelSize: theme.fontSize + 1
+                            font.bold: true
+                            font.family: theme.font
+                            Layout.alignment: Qt.AlignHCenter
+                        }
+
+                        // day-of-week headers
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 0
+                            Repeater {
+                                model: root.dayHeaders
+                                delegate: Text {
+                                    text: modelData
+                                    color: theme.surface1
+                                    font.pixelSize: theme.fontSize - 1
+                                    font.family: theme.font
+                                    horizontalAlignment: Text.AlignHCenter
+                                    Layout.fillWidth: true
+                                }
                             }
                         }
-                    }
 
-                    // 6 week rows
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 0
-                        Repeater {
-                            model: 6
-                            delegate: RowLayout {
-                                id: weekRow
-                                property int rowIdx: index
-                                Layout.fillWidth: true
-                                spacing: 0
-                                Repeater {
-                                    model: 7
-                                    delegate: Item {
-                                        property int cellIdx: weekRow.rowIdx * 7 + index
-                                        property var cell: cellIdx < monthBlock.m.grid.length ? monthBlock.m.grid[cellIdx] : null
-                                        Layout.fillWidth: true
-                                        implicitHeight: 18
+                        // 6 week rows
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 0
+                            Repeater {
+                                model: 6
+                                delegate: RowLayout {
+                                    id: weekRow
+                                    property int rowIdx: index
+                                    Layout.fillWidth: true
+                                    spacing: 0
+                                    Repeater {
+                                        model: 7
+                                        delegate: Item {
+                                            property int cellIdx: weekRow.rowIdx * 7 + index
+                                            property var cell: cellIdx < monthBlock.m.grid.length ? monthBlock.m.grid[cellIdx] : null
+                                            Layout.fillWidth: true
+                                            implicitHeight: 18
 
-                                        Rectangle {
-                                            anchors.centerIn: parent
-                                            width: 20
-                                            height: 20
-                                            radius: 4
-                                            color: cell && cell.today ? theme.mauve : "transparent"
-                                            visible: cell !== null
-
-                                            Text {
+                                            Rectangle {
                                                 anchors.centerIn: parent
-                                                text: cell ? cell.day : ""
-                                                color: cell ? (cell.today ? theme.base : (cell.other ? theme.surface0 : theme.subtext0)) : "transparent"
-                                                font.pixelSize: theme.fontSize - 1
-                                                font.bold: cell && cell.today
-                                                font.family: theme.font
+                                                width: 20
+                                                height: 20
+                                                radius: 4
+                                                color: cell && cell.today ? theme.mauve : "transparent"
+                                                visible: cell !== null
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: cell ? cell.day : ""
+                                                    color: cell ? (cell.today ? theme.base : (cell.other ? theme.surface0 : theme.subtext0)) : "transparent"
+                                                    font.pixelSize: theme.fontSize - 1
+                                                    font.bold: cell && cell.today
+                                                    font.family: theme.font
+                                                }
                                             }
                                         }
                                     }
