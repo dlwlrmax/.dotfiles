@@ -1,31 +1,39 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Io
 import qs.common
 
 Item {
     id: root
     property Theme theme: Theme {}
+    property var dataSource: null
     property var device: dataSource ? dataSource.device : null
     property bool anyConnected: dataSource ? dataSource.anyConnected : false
-    property var dataSource: null
     signal togglePanel(int centerX)
+
+    function batteryColor(b) {
+        if (b === null || b === undefined || b < 0) return theme.text
+        if (b < 20) return theme.red
+        if (b < 50) return theme.yellow
+        return theme.green
+    }
 
     // Hard containment: layout squeeze must never paint over neighbors.
     clip: true
-    implicitWidth: anyConnected ? row.implicitWidth : 0
+    implicitWidth: row.implicitWidth
     implicitHeight: row.implicitHeight + 4
     Layout.alignment: Qt.AlignVCenter
-    visible: anyConnected
+    visible: true
+    opacity: anyConnected ? 1 : 0.35
 
     MouseArea {
         id: clickArea
-        anchors.fill: row
+        anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
         onClicked: {
-            var globalPos = root.mapToItem(null, 0, 0)
-            root.togglePanel(globalPos.x + root.width / 2)
+            var win = root.window
+            var p = root.mapToItem(win ? win.contentItem : null, 0, 0)
+            root.togglePanel(p.x + root.width / 2)
         }
     }
 
@@ -46,7 +54,7 @@ Item {
                 color: theme.text
                 font.pixelSize: theme.fontSize + 4
                 font.weight: Font.Medium
-                font.family: theme.font
+                font.family: root.theme && root.theme.monoFont ? root.theme.monoFont : theme.font
             }
 
             // Notification badge
@@ -57,8 +65,8 @@ Item {
                 anchors.right: parent.right
                 anchors.topMargin: -4
                 anchors.rightMargin: 1
-                width: Math.max(24, badgeText.implicitWidth + 6)
-                height: 12
+                width: Math.max(14, badgeText.implicitWidth + 8)
+                height: 14
                 radius: 7
                 color: theme.red
 
@@ -81,56 +89,10 @@ Item {
             visible: root.device && root.anyConnected
             text: root.device && root.device.battery !== null && root.device.battery >= 0
                   ? root.device.battery + "%" : "--"
-            color: {
-                if (!root.device || root.device.battery === null) return theme.text
-                var b = root.device.battery
-                if (b < 20) return theme.red
-                if (b < 50) return theme.yellow
-                return theme.green
-            }
+            color: root.device ? root.batteryColor(root.device.battery) : theme.text
             font.pixelSize: theme.fontSize - 1
             font.weight: Font.Medium
             font.family: theme.font
-        }
-    }
-
-    // Fallback poll when no shared dataSource
-    Process {
-        id: kdProc
-        command: ["bash", theme.scriptDir + "/kdeconnect.sh"]
-        running: !root.dataSource
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (root.dataSource) return
-                try {
-                    var data = JSON.parse(this.text.trim())
-                    root.anyConnected = data.anyConnected || false
-                    if (data.devices && data.devices.length > 0) {
-                        root.device = data.devices[0]
-                    } else {
-                        root.device = null
-                    }
-                } catch (e) {
-                    console.log("KDEConnect parse error:", e)
-                }
-            }
-        }
-
-        onRunningChanged: {
-            if (!running && !root.dataSource)
-                pollTimer.restart()
-        }
-    }
-
-    Timer {
-        id: pollTimer
-        interval: 10000
-        running: !root.dataSource
-        repeat: true
-        triggeredOnStart: !root.dataSource
-        onTriggered: {
-            if (!root.dataSource && !kdProc.running) kdProc.running = true
         }
     }
 }

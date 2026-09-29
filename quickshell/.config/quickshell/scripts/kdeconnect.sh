@@ -3,23 +3,57 @@
 # Output: JSON with device list + battery + signal + notifications
 # {"devices":[{"id":"...","name":"...","battery":51,"charging":false,"reachable":true,"signal":4,"networkType":"LTE","notifCount":3,"notifications":[{"appName":"...","title":"...","text":"...","dismissable":true,"replyId":"...","isConversation":false}]}],"anyConnected":true}
 
+set -u
+
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/quickshell/kdeconnect"
 CACHE_FILE="$CACHE_DIR/devices.json"
-LAST_BATTERY_FILE="$CACHE_DIR/last_battery.txt"
 CACHE_TTL=8
 
-# Escape a string for embedding in a JSON string value (backslash first).
-json_escape() {
-  local s="${1-}"
-  s="${s//\\/\\\\}"
-  s="${s//\"/\\\"}"
-  s="${s//$'\n'/\\n}"
-  s="${s//$'\r'/\\r}"
-  s="${s//$'\t'/\\t}"
-  s="${s//$'\b'/\\b}"
-  s="${s//$'\f'/\\f}"
-  printf '%s' "$s"
+# Notification app filter: colon-separated custom names from KDECONNECT_FILTER
+# env or "$CACHE_DIR/../kdeconnect-filter.txt". Baseline filters always apply.
+NOTIF_FILTER_FILE="$CACHE_DIR/../kdeconnect-filter.txt"
+custom_filter="${KDECONNECT_FILTER:-}"
+if [ -z "$custom_filter" ] && [ -f "$NOTIF_FILTER_FILE" ]; then
+  custom_filter=$(cat "$NOTIF_FILTER_FILE" 2>/dev/null)
+fi
+custom_filter=$(printf '%s' "$custom_filter" | tr '\n' ':')
+
+# True if the app should be filtered out of the notification list.
+is_filtered() {
+  local app="${1-}"
+  case "$app" in
+    "System UI"|"Báo Mới"|"Bao Moi") return 0 ;;
+  esac
+  if [ -n "$custom_filter" ]; then
+    local IFS=:
+    local f
+    for f in $custom_filter; do
+      f="${f#"${f%%[![:space:]]*}"}"
+      f="${f%"${f##*[![:space:]]}"}"
+      [ -n "$f" ] && [ "$app" = "$f" ] && return 0
+    done
+  fi
+  return 1
 }
+
+# Escape a string for embedding in a JSON string value (without surrounding quotes).
+if command -v python3 &>/dev/null; then
+  json_escape() {
+    printf '%s' "${1-}" | python3 -c 'import sys,json; sys.stdout.write(json.dumps(sys.stdin.read(), ensure_ascii=False)[1:-1])'
+  }
+else
+  json_escape() {
+    local s="${1-}"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    s="${s//$'\b'/\\b}"
+    s="${s//$'\f'/\\f}"
+    printf '%s' "$s"
+  }
+fi
 
 if ! command -v kdeconnect-cli &>/dev/null; then
   echo '{"devices":[],"anyConnected":false}'
@@ -28,8 +62,8 @@ fi
 
 # Dismiss notification mode: ./kdeconnect.sh dismiss <deviceId> <notifId>
 if [ "${1:-}" = "dismiss" ]; then
-  dbus-send --print-reply --dest=org.kde.kdeconnect \
-    "/modules/kdeconnect/devices/${2}/notifications/${3}" \
+  timeout 5 dbus-send --print-reply --dest=org.kde.kdeconnect \
+    "/modules/kdeconnect/devices/${2:-}/notifications/${3:-}" \
     org.kde.kdeconnect.device.notifications.notification.dismiss
   # Invalidate cache so next poll picks up changes
   rm -f "$CACHE_FILE"
@@ -39,19 +73,19 @@ fi
 # Dismiss-all mode: ./kdeconnect.sh dismiss-all <deviceId>
 # One process dismisses every dismissable notification. Ongoing stays.
 if [ "${1:-}" = "dismiss-all" ]; then
-  dev="$2"
-  raw_ids=$(dbus-send --print-reply --dest=org.kde.kdeconnect \
+  dev="${2:-}"
+  raw_ids=$(timeout 5 dbus-send --print-reply --dest=org.kde.kdeconnect \
     "/modules/kdeconnect/devices/${dev}/notifications" \
     org.kde.kdeconnect.device.notifications.activeNotifications 2>/dev/null)
   echo "$raw_ids" | grep -oP 'string "\K[^"]+' 2>/dev/null | while read -r nid; do
     [ -z "$nid" ] && continue
-    is_dismiss=$(dbus-send --print-reply --dest=org.kde.kdeconnect \
+    is_dismiss=$(timeout 5 dbus-send --print-reply --dest=org.kde.kdeconnect \
       "/modules/kdeconnect/devices/${dev}/notifications/${nid}" \
       org.freedesktop.DBus.Properties.GetAll \
       string:"org.kde.kdeconnect.device.notifications.notification" 2>/dev/null \
       | grep -A1 'string "dismissable"' | tail -1 | grep -oP '(true|false)')
     [ "$is_dismiss" = "true" ] || continue
-    dbus-send --print-reply --dest=org.kde.kdeconnect \
+    timeout 5 dbus-send --print-reply --dest=org.kde.kdeconnect \
       "/modules/kdeconnect/devices/${dev}/notifications/${nid}" \
       org.kde.kdeconnect.device.notifications.notification.dismiss >/dev/null 2>&1
   done
@@ -70,19 +104,33 @@ if [ -f "$CACHE_FILE" ]; then
   fi
 fi
 
-devices=$(kdeconnect-cli -a --id-name-only 2>/dev/null)
+# All paired devices (reachable or not); reachability derived from the
+# available list below. Note: this kdeconnect-cli has no `-c` flag — `-l`
+# lists all paired devices and `-a` lists available (paired + reachable) ones.
+devices=$(kdeconnect-cli -l --id-name-only 2>/dev/null)
 if [ -z "$devices" ]; then
   echo '{"devices":[],"anyConnected":false}'
   exit 0
 fi
 
+# Reachable device ids: a paired device absent here is not reachable.
+connected=$(kdeconnect-cli -a --id-name-only 2>/dev/null)
+
 output='{"devices":['
 first=true
+anyConnected=false
 
 while IFS= read -r line; do
   [ -z "$line" ] && continue
   id=$(echo "$line" | awk '{print $1}')
   name=$(json_escape "$(echo "$line" | cut -d' ' -f2-)")
+
+  reachable=false
+  if [ -n "$id" ] && [ -n "$connected" ] && \
+     echo "$connected" | awk '{print $1}' | grep -qxF "$id"; then
+    reachable=true
+    anyConnected=true
+  fi
 
   battery=null
   charging="false"
@@ -90,10 +138,11 @@ while IFS= read -r line; do
   networkType=""
   notifCount=0
   notifJson=""
+  last_battery_file="$CACHE_DIR/last_battery_${id}.txt"
 
   if [ -n "$id" ]; then
     # Battery — GetAll gets charge + isCharging in one call
-    bat_raw=$(dbus-send --print-reply --dest=org.kde.kdeconnect \
+    bat_raw=$(timeout 5 dbus-send --print-reply --dest=org.kde.kdeconnect \
       "/modules/kdeconnect/devices/${id}/battery" \
       org.freedesktop.DBus.Properties.GetAll \
       string:"org.kde.kdeconnect.device.battery" 2>/dev/null)
@@ -105,23 +154,19 @@ while IFS= read -r line; do
       consecutive=0
       [ -f "$consecutive_file" ] && consecutive=$(cat "$consecutive_file")
       consecutive=$((consecutive + 1))
-      echo "$consecutive" > "$consecutive_file"
 
-      # After 3 consecutive nulls (~15s), force network refresh
+      # After 3 consecutive nulls (~15s), force one network refresh, then reset
+      # the counter to 0 so the next attempt needs another full threshold.
       if [ "$consecutive" -ge 3 ]; then
         kdeconnect-cli --refresh 2>/dev/null
-        bat_raw=$(dbus-send --print-reply --dest=org.kde.kdeconnect \
+        bat_raw=$(timeout 5 dbus-send --print-reply --dest=org.kde.kdeconnect \
           "/modules/kdeconnect/devices/${id}/battery" \
           org.freedesktop.DBus.Properties.GetAll \
           string:"org.kde.kdeconnect.device.battery" 2>/dev/null)
         charge=$(echo "$bat_raw" | grep -A1 'string "charge"' | tail -1 | grep -oP 'int32 \K-?\d+')
+        consecutive=0
       fi
-
-      # After 6 consecutive nulls (~30s), force device refresh
-      if [ "$consecutive" -ge 6 ]; then
-        kdeconnect-cli --refresh 2>/dev/null
-        rm -f "$consecutive_file"
-      fi
+      echo "$consecutive" > "$consecutive_file"
     else
       # Valid battery — reset consecutive counter
       rm -f "$CACHE_DIR/consecutive_null_${id}" 2>/dev/null
@@ -129,11 +174,11 @@ while IFS= read -r line; do
 
     if [ -n "$charge" ] && [ "$charge" -ge 0 ] 2>/dev/null; then
       battery=$charge
-      echo "$id $battery" > "$LAST_BATTERY_FILE"
+      echo "$battery" > "$last_battery_file"
     else
-      # Fallback: use last known battery from cache
-      if [ -f "$LAST_BATTERY_FILE" ]; then
-        cached=$(grep "^${id} " "$LAST_BATTERY_FILE" | awk '{print $2}')
+      # Fallback: use last known battery for this device
+      if [ -f "$last_battery_file" ]; then
+        cached=$(cat "$last_battery_file" 2>/dev/null)
         [ -n "$cached" ] && [ "$cached" -ge 0 ] 2>/dev/null && battery=$cached
       fi
     fi
@@ -141,7 +186,7 @@ while IFS= read -r line; do
     [ "$isch" = "true" ] && charging="true"
 
     # Connectivity — GetAll gets strength + type in one call
-    conn_raw=$(dbus-send --print-reply --dest=org.kde.kdeconnect \
+    conn_raw=$(timeout 5 dbus-send --print-reply --dest=org.kde.kdeconnect \
       "/modules/kdeconnect/devices/${id}/connectivity_report" \
       org.freedesktop.DBus.Properties.GetAll \
       string:"org.kde.kdeconnect.device.connectivity_report" 2>/dev/null)
@@ -152,7 +197,7 @@ while IFS= read -r line; do
     networkType=$(json_escape "$networkType")
 
     # Notifications
-    raw_ids=$(dbus-send --print-reply --dest=org.kde.kdeconnect \
+    raw_ids=$(timeout 5 dbus-send --print-reply --dest=org.kde.kdeconnect \
       "/modules/kdeconnect/devices/${id}/notifications" \
       org.kde.kdeconnect.device.notifications.activeNotifications 2>/dev/null)
     ids=$(echo "$raw_ids" | grep -oP 'string "\K[^"]+' 2>/dev/null | sort -nr | tr '\n' ' ')
@@ -160,7 +205,7 @@ while IFS= read -r line; do
       count=0
       for nid in $ids; do
         [ -z "$nid" ] && continue
-        raw_notif=$(dbus-send --print-reply --dest=org.kde.kdeconnect \
+        raw_notif=$(timeout 5 dbus-send --print-reply --dest=org.kde.kdeconnect \
           "/modules/kdeconnect/devices/${id}/notifications/${nid}" \
           org.freedesktop.DBus.Properties.GetAll \
           string:"org.kde.kdeconnect.device.notifications.notification" 2>/dev/null)
@@ -185,9 +230,7 @@ while IFS= read -r line; do
         [ -z "$body" ] && body="$title"
 
         # Filter unwanted apps
-        case "$app" in
-          "System UI"|"Báo Mới"|"Bao Moi") continue ;;
-        esac
+        if is_filtered "$app"; then continue; fi
 
         # Escape JSON strings (backslash first, then quote + control chars)
         app=$(json_escape "$app")
@@ -202,10 +245,10 @@ while IFS= read -r line; do
   fi
 
   [ "$first" = true ] && first=false || output="$output,"
-  output="$output{\"id\":\"${id}\",\"name\":\"${name}\",\"battery\":${battery},\"charging\":${charging},\"reachable\":true,\"signal\":${signal},\"networkType\":\"${networkType}\",\"notifCount\":${notifCount},\"notifications\":[${notifJson}]}"
+  output="$output{\"id\":\"${id}\",\"name\":\"${name}\",\"battery\":${battery},\"charging\":${charging},\"reachable\":${reachable},\"signal\":${signal},\"networkType\":\"${networkType}\",\"notifCount\":${notifCount},\"notifications\":[${notifJson}]}"
 done <<< "$devices"
 
-output="$output],\"anyConnected\":true}"
+output="$output],\"anyConnected\":${anyConnected}}"
 
 # Write cache
 mkdir -p "$CACHE_DIR"

@@ -14,6 +14,14 @@ Item {
 
     property var devices: dataSource ? dataSource.devices : []
 
+    // Battery accent shared with the bar widget thresholds (see KDEConnect.qml).
+    function batteryColor(b) {
+        if (b === null || b === undefined || b < 0) return theme.text
+        if (b < 20) return theme.red
+        if (b < 50) return theme.yellow
+        return theme.green
+    }
+
     clip: true
     implicitWidth: 340
     implicitHeight: 400
@@ -41,8 +49,14 @@ Item {
         id: scrollView
         anchors.fill: parent
         anchors.margins: 14
+        contentWidth: width
         contentHeight: contentColumn.implicitHeight
+        boundsBehavior: Flickable.StopAtBounds
         clip: true
+
+        ScrollBar.vertical: ScrollBar {
+            policy: ScrollBar.AsNeeded
+        }
 
         ColumnLayout {
             id: contentColumn
@@ -63,15 +77,21 @@ Item {
                     Layout.fillWidth: true
                 }
 
-                Text {
-                    text: "×"
-                    color: theme.subtext0
-                    font.pixelSize: theme.fontSize + 4
-                    font.family: theme.font
+                Rectangle {
+                    implicitWidth: 28
+                    implicitHeight: 28
+                    color: "transparent"
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "×"
+                        color: theme.subtext0
+                        font.pixelSize: theme.fontSize + 4
+                        font.family: theme.font
+                    }
 
                     MouseArea {
                         anchors.fill: parent
-                        anchors.margins: -4
                         cursorShape: Qt.PointingHandCursor
                         onClicked: root.close()
                     }
@@ -104,6 +124,15 @@ Item {
                     Layout.fillWidth: true
                     spacing: 8
 
+                    // Computed once per device instead of calling .some() every frame.
+                    property bool hasDismissable: {
+                        var ns = modelData && modelData.notifications
+                                 ? modelData.notifications : []
+                        for (var i = 0; i < ns.length; i++)
+                            if (ns[i].dismissable) return true
+                        return false
+                    }
+
                     // Device card
                     Rectangle {
                         Layout.fillWidth: true
@@ -118,7 +147,7 @@ Item {
 
                             Text {
                                 text: ""
-                                color: "#ffffff"
+                                color: theme.text
                                 font.pixelSize: theme.fontSize + 12
                                 font.family: theme.font
                             }
@@ -144,13 +173,7 @@ Item {
                                     Text {
                                         text: modelData && modelData.battery !== null && modelData.battery >= 0
                                               ? modelData.battery + "%" : ""
-                                        color: {
-                                            if (!modelData || modelData.battery === null) return "#ffffff"
-                                            var b = modelData.battery
-                                            if (b < 20) return "#f38ba8"
-                                            if (b < 50) return "#f9e2af"
-                                            return "#a6e3a1"
-                                        }
+                                        color: root.batteryColor(modelData ? modelData.battery : null)
                                         font.pixelSize: theme.fontSize
                                         font.weight: Font.Bold
                                         font.family: theme.font
@@ -161,7 +184,7 @@ Item {
                                     Layout.fillWidth: true
                                     implicitHeight: 6
                                     radius: 3
-                                    color: Qt.darker(theme.surface0, 1.2)
+                                    color: theme.surface1
                                     visible: modelData && modelData.battery !== null && modelData.battery >= 0
 
                                     Rectangle {
@@ -169,13 +192,7 @@ Item {
                                         anchors.top: parent.top
                                         anchors.bottom: parent.bottom
                                         radius: 3
-                                        color: {
-                                            if (!modelData || modelData.battery === null) return "#ffffff"
-                                            var b = modelData.battery
-                                            if (b < 20) return "#f38ba8"
-                                            if (b < 50) return "#f9e2af"
-                                            return "#a6e3a1"
-                                        }
+                                        color: root.batteryColor(modelData ? modelData.battery : null)
                                         width: parent.width * Math.min(1, Math.max(0,
                                             (modelData ? modelData.battery : 0) / 100))
                                     }
@@ -192,7 +209,7 @@ Item {
                                         if (modelData.charging) parts.push("Charging")
                                         if (modelData.networkType) parts.push(modelData.networkType)
                                         if (modelData.signal !== null && modelData.signal >= 0) {
-                                            parts.push((modelData.signal * 25) + "%")
+                                            parts.push(Math.round(modelData.signal * 25) + "%")
                                         }
                                         return parts.join(" · ")
                                     }
@@ -231,29 +248,6 @@ Item {
                                     }
                                 }
 
-                                Rectangle {
-                                    implicitWidth: 28
-                                    implicitHeight: 28
-                                    radius: 8
-                                    color: theme.surface1
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "󰁟"
-                                        color: theme.text
-                                        font.pixelSize: theme.fontSize + 2
-                                        font.family: theme.font
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            if (modelData && modelData.id)
-                                                shareProc.share(modelData.id)
-                                        }
-                                    }
-                                }
                             }
                         }
                     }
@@ -289,7 +283,7 @@ Item {
                         }
 
                         Text {
-                            visible: modelData && modelData.notifications && modelData.notifications.some(function(n) { return n.dismissable })
+                            visible: hasDismissable
                             text: "Clear"
                             color: theme.blue
                             font.pixelSize: theme.fontSize - 1
@@ -315,7 +309,7 @@ Item {
 
                         delegate: Rectangle {
                             id: notifDelegate
-                            required property var modelData
+                            required property var notifData
                             Layout.fillWidth: true
                             implicitHeight: topRow.implicitHeight + 16
                                 + (replyArea.visible ? replyArea.implicitHeight + 8 : 0)
@@ -346,7 +340,7 @@ Item {
                                         Text {
                                             anchors.centerIn: parent
                                             text: ""
-                                            color: "#ffffff"
+                                            color: theme.text
                                             font.pixelSize: theme.fontSize + 2
                                             font.family: theme.font
                                         }
@@ -357,27 +351,27 @@ Item {
                                         spacing: 1
 
                                         Text {
-                                            text: modelData ? modelData.appName || "App" : "App"
+                                            text: notifData ? notifData.appName || "App" : "App"
                                             color: theme.subtext1
                                             font.pixelSize: theme.fontSize - 2
                                             font.family: theme.font
                                         }
 
                                         Text {
-                                            visible: modelData && (modelData.silent === true || modelData.dismissable === false)
-                                            text: modelData && modelData.dismissable === false ? "Ongoing" : "Silent"
+                                            visible: notifData && (notifData.silent === true || notifData.dismissable === false)
+                                            text: notifData && notifData.dismissable === false ? "Ongoing" : "Silent"
                                             color: theme.subtext0
                                             font.pixelSize: theme.fontSize - 3
                                             font.family: theme.font
                                         }
 
                                         Text {
-                                            text: modelData ? modelData.body || "" : ""
+                                            text: notifData ? notifData.body || "" : ""
                                             color: theme.text
                                             font.pixelSize: theme.fontSize - 1
                                             font.family: theme.font
                                             elide: Text.ElideRight
-                                            maximumLineCount: expanded ? Infinity : 1
+                                            maximumLineCount: expanded ? 10 : 1
                                             Layout.fillWidth: true
                                             wrapMode: expanded ? Text.Wrap : Text.NoWrap
 
@@ -396,7 +390,7 @@ Item {
                                         implicitHeight: 22
                                         radius: 6
                                         color: theme.surface1
-                                        visible: modelData && modelData.replyId
+                                        visible: notifData && notifData.replyId
 
                                         Text {
                                             id: replyBtnText
@@ -411,8 +405,8 @@ Item {
                                             anchors.fill: parent
                                             cursorShape: Qt.PointingHandCursor
                                             onClicked: {
-                                                parent.parent.parent.parent.replying =
-                                                    !parent.parent.parent.parent.replying
+                                                notifDelegate.replying =
+                                                    !notifDelegate.replying
                                             }
                                         }
                                     }
@@ -423,7 +417,7 @@ Item {
                                         implicitHeight: 28
                                         radius: 6
                                         color: "transparent"
-                                        visible: modelData && modelData.dismissable
+                                        visible: notifData && notifData.dismissable
 
                                         Text {
                                             anchors.centerIn: parent
@@ -438,8 +432,8 @@ Item {
                                             anchors.fill: parent
                                             cursorShape: Qt.PointingHandCursor
                                             onClicked: {
-                                                var devId = modelData.deviceId || ""
-                                                var notifId = modelData.id || ""
+                                                var devId = notifData.deviceId || ""
+                                                var notifId = notifData.id || ""
                                                 if (!devId || !notifId) return
                                                 if (root.dataSource && root.dataSource.dismissOptimistic)
                                                     root.dataSource.dismissOptimistic(devId, notifId)
@@ -455,7 +449,7 @@ Item {
                                     Layout.fillWidth: true
                                     Layout.leftMargin: 36
                                     spacing: 6
-                                    visible: parent.parent.replying
+                                    visible: notifDelegate.replying
 
                                     Rectangle {
                                         Layout.fillWidth: true
@@ -471,6 +465,7 @@ Item {
                                             font.pixelSize: theme.fontSize - 1
                                             font.family: theme.font
                                             clip: true
+                                            maximumLength: 500
                                             verticalAlignment: TextInput.AlignVCenter
 
                                             Text {
@@ -518,9 +513,9 @@ Item {
                             }
 
                             function sendReply() {
-                                var devId = modelData.deviceId || ""
-                                var nid = modelData.id || ""
-                                var msg = replyInput.text
+                                var devId = notifData.deviceId || ""
+                                var nid = notifData.id || ""
+                                var msg = replyInput.text.trim().slice(0, 500)
                                 if (devId && nid && msg) {
                                     replyProc.sendReply(devId, nid, msg)
                                     replying = false
@@ -545,16 +540,6 @@ Item {
         }
     }
 
-    // Process: send file
-    Process {
-        id: shareProc
-        command: []
-
-        function share(devId) {
-            command = ["kdeconnect-cli", "-d", devId, "--share"]
-            running = true
-        }
-    }
 
     // Process: dismiss notification (queued, refreshes shared data on finish)
     Process {
@@ -621,9 +606,12 @@ Item {
         property string deviceId: ""
         property string notifId: ""
         property string message: ""
+        property bool busy: false
         command: []
 
         function sendReply(devId, nid, msg) {
+            if (busy) return
+            busy = true
             deviceId = devId
             notifId = nid
             message = msg
@@ -633,31 +621,10 @@ Item {
                 "string:" + msg]
             running = true
         }
-    }
 
-    // Fetch devices (fallback when no shared dataSource)
-    Process {
-        id: fetchProc
-        command: ["bash", theme.scriptDir + "/kdeconnect.sh"]
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (root.dataSource) return
-                try {
-                    var data = JSON.parse(this.text.trim())
-                    root.devices = data.devices || []
-                } catch (e) {
-                    console.log("KDEConnect panel parse error:", e)
-                }
-            }
+        onRunningChanged: {
+            if (!running) busy = false
         }
     }
 
-    Timer {
-        interval: 5000
-        running: root.active && !root.dataSource && !fetchProc.running
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: fetchProc.running = true
-    }
 }
