@@ -104,7 +104,7 @@
     },
     "opencode-zen-free": {
       "orchestrator": {
-        "model": "opencode-go/mimo-v2.5",
+        "model": "opencode/nemotron-3-ultra-free",
         "variant": "high",
         "skills": [
           "*"
@@ -115,7 +115,7 @@
         ]
       },
       "oracle": {
-        "model": "opencode/big-pickle",
+        "model": "opencode/nemotron-3-ultra-free",
         "temperature": 0.4,
         "variant": "max",
         "skills": [
@@ -139,21 +139,21 @@
         ]
       },
       "designer": {
-        "model": "opencode/mimo-v2.5-free",
+        "model": "opencode/longcat-2.5-preview-free",
         "temperature": 0.3,
         "variant": "medium",
         "skills": [],
         "mcps": []
       },
       "fixer": {
-        "model": "opencode/mimo-v2.5-free",
+        "model": "opencode/mimo-v2.6-flash-free",
         "variant": "high",
         "temperature": 0.2,
         "skills": [],
         "mcps": []
       },
       "observer": {
-        "model": "opencode/mimo-v2.5-free",
+        "model": "opencode/mimo-v2.6-flash-free",
         "temperature": 0.2,
         "variant": "low",
         "skills": [],
