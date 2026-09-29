@@ -29,6 +29,9 @@ Item {
     property int gpuFreq: 0
     property int cpuTemp: 0
     property var topProcesses: []
+    property string topProcJson: ""
+    property bool hasData: false
+    property bool gpuAvail: false
 
     // ── min / max over ring buffer ──
     property int cpuMin: 0
@@ -55,120 +58,60 @@ Item {
 
     function lineColor(metric, pct) {
         if (metric === "cpu") {
-            if (pct > 80) return theme.red
-            if (pct > 50) return theme.yellow
+            if (pct > theme.sysCpuLineCrit) return theme.red
+            if (pct > theme.sysCpuLineWarn) return theme.yellow
             return theme.blue
         }
         if (metric === "gpu") {
-            if (pct > 70) return theme.red
-            if (pct > 40) return theme.yellow
+            if (pct > theme.sysGpuLineCrit) return theme.red
+            if (pct > theme.sysGpuLineWarn) return theme.yellow
             return theme.mauve
         }
         if (metric === "ram") {
-            if (pct > 80) return theme.red
-            if (pct > 50) return theme.yellow
+            if (pct > theme.sysRamLineCrit) return theme.red
+            if (pct > theme.sysRamLineWarn) return theme.yellow
             return theme.green
         }
         // swap
-        if (pct > 50) return theme.red
-        if (pct > 20) return theme.yellow
+        if (pct > theme.sysSwapLineCrit) return theme.red
+        if (pct > theme.sysSwapLineWarn) return theme.yellow
         return theme.peach
     }
 
     function pushHistory(which, value) {
-        var arr = root[which].concat([value])
-        if (arr.length > root.maxHistory)
-            arr = arr.slice(arr.length - root.maxHistory)
-        root[which] = arr
-
-        // recalc min/max
+        var arr = root[which]
         var minProp = which.replace("History", "Min")
         var maxProp = which.replace("History", "Max")
-        if (arr.length === 0) {
-            root[minProp] = 0; root[maxProp] = 0
-        } else {
-            var lo = 100, hi = 0
-            for (var i = 0; i < arr.length; i++) {
+        var evicted
+        if (arr.length >= root.maxHistory)
+            evicted = arr.shift()
+        arr.push(value)
+
+        if (arr.length === 1) {
+            root[minProp] = value
+            root[maxProp] = value
+        } else if (evicted !== undefined
+                   && (evicted === root[minProp] || evicted === root[maxProp])) {
+            // A bound left the window — rescan only then.
+            var lo = arr[0], hi = arr[0]
+            for (var i = 1; i < arr.length; i++) {
                 if (arr[i] < lo) lo = arr[i]
                 if (arr[i] > hi) hi = arr[i]
             }
-            root[minProp] = lo; root[maxProp] = hi
+            root[minProp] = lo
+            root[maxProp] = hi
+        } else {
+            if (value < root[minProp]) root[minProp] = value
+            if (value > root[maxProp]) root[maxProp] = value
         }
         requestPaints()
     }
 
     function requestPaints() {
-        if (cpuCanvas) cpuCanvas.requestPaint()
-        if (gpuCanvas) gpuCanvas.requestPaint()
-        if (ramCanvas) ramCanvas.requestPaint()
-        if (swapCanvas) swapCanvas.requestPaint()
-    }
-
-    function drawSparkline(canvas, hist) {
-        var w = canvas.width, h = canvas.height, n = hist.length
-        if (w < 20 || h < 20 || n < 1) return
-
-        var ctx = canvas.getContext("2d")
-        ctx.clearRect(0, 0, w, h)
-
-        var padR = 6  // right padding for terminal dot clearance
-        var padB = 4  // bottom padding
-        var padT = 4  // top padding
-        var plotW = w - padR
-        var plotH = h - padT - padB
-        var baseY = h - padB
-
-        // grid lines (25%, 50%, 75%)
-        ctx.strokeStyle = theme.surface0
-        ctx.lineWidth = 0.5
-        for (var g = 25; g <= 75; g += 25) {
-            var gy = baseY - (g / 100) * plotH
-            ctx.beginPath()
-            ctx.moveTo(0, gy)
-            ctx.lineTo(w, gy)
-            ctx.stroke()
-        }
-
-        if (n === 1) {
-            var sx = plotW / 2
-            var sy = baseY - (hist[0] / 100) * plotH
-            ctx.fillStyle = canvas.lineClr
-            ctx.beginPath()
-            ctx.arc(sx, sy, 2.5, 0, 2 * Math.PI)
-            ctx.fill()
-            return
-        }
-
-        var stepX = plotW / (n - 1)
-
-        // ── filled area ──
-        ctx.beginPath()
-        ctx.moveTo(0, baseY)
-        ctx.lineTo(0, baseY - (hist[0] / 100) * plotH)
-        for (var i = 1; i < n; i++)
-            ctx.lineTo(i * stepX, baseY - (hist[i] / 100) * plotH)
-        ctx.lineTo((n - 1) * stepX, baseY)
-        ctx.closePath()
-        ctx.fillStyle = canvas.fillClr
-        ctx.fill()
-
-        // ── line ──
-        ctx.beginPath()
-        ctx.moveTo(0, baseY - (hist[0] / 100) * plotH)
-        for (var j = 1; j < n; j++)
-            ctx.lineTo(j * stepX, baseY - (hist[j] / 100) * plotH)
-        ctx.strokeStyle = canvas.lineClr
-        ctx.lineWidth = 1.5
-        ctx.lineJoin = "round"
-        ctx.stroke()
-
-        // ── terminal dot ──
-        var lx = (n - 1) * stepX
-        var ly = baseY - (hist[n - 1] / 100) * plotH
-        ctx.fillStyle = canvas.lineClr
-        ctx.beginPath()
-        ctx.arc(lx, ly, 2.5, 0, 2 * Math.PI)
-        ctx.fill()
+        if (cpuCard) cpuCard.requestPaint()
+        if (gpuCard) gpuCard.requestPaint()
+        if (ramCard) ramCard.requestPaint()
+        if (swapCard) swapCard.requestPaint()
     }
 
     // ── layout ──
@@ -214,14 +157,24 @@ Item {
                 Layout.fillWidth: true
             }
 
-            Text {
-                text: "×"
-                color: theme.subtext0
-                font.pixelSize: theme.fontSize + 4
-                font.family: theme.font
+            Rectangle {
+                Layout.preferredWidth: 24
+                Layout.preferredHeight: 24
+                radius: 4
+                color: closeMa.containsMouse ? theme.surface0 : "transparent"
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "×"
+                    color: theme.subtext0
+                    font.pixelSize: theme.fontSize + 4
+                    font.family: theme.font
+                }
+
                 MouseArea {
+                    id: closeMa
                     anchors.fill: parent
-                    anchors.margins: -4
+                    hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.close()
                 }
@@ -243,127 +196,47 @@ Item {
                 anchors.fill: parent
                 spacing: 6
 
-                // ── CPU ──
-                Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    RowLayout {
-                        anchors.fill: parent
-                        spacing: 4
-                        Text {
-                            text: "CPU"
-                            color: root.lineColor("cpu", root.cpuPct)
-                            font.pixelSize: theme.fontSize - 1
-                            font.bold: true
-                            font.family: theme.font
-                            width: 24
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        Canvas {
-                            id: cpuCanvas
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            property string lineClr: root.lineColor("cpu", root.cpuPct)
-                            property string fillClr: root.hexToRgba(lineClr, 0.15)
-                            onPaint: root.drawSparkline(this, root.cpuHistory)
-                        }
-                        ColumnLayout {
-                            width: 54
-                            spacing: 1
-                            Text {
-                                text: root.cpuPct + "%"
-                                color: root.lineColor("cpu", root.cpuPct)
-                                font.pixelSize: theme.fontSize + 1
-                                font.bold: true
-                                font.family: theme.font
-                                horizontalAlignment: Text.AlignRight
-                                Layout.alignment: Qt.AlignRight
-                            }
-                            Text {
-                                text: "L" + root.cpuMin + " H" + root.cpuMax
-                                color: theme.subtext0
-                                font.pixelSize: theme.fontSize - 2
-                                font.family: theme.font
-                                horizontalAlignment: Text.AlignRight
-                                Layout.alignment: Qt.AlignRight
-                            }
-                            Text {
-                                text: root.cpuTemp > 0
-                                      ? (root.cpuTemp > 85 ? " " : root.cpuTemp > 70 ? " " : root.cpuTemp > 50 ? " " : " ") + root.cpuTemp + "°C"
-                                      : ""
-                                color: root.cpuTemp > 85 ? theme.red : root.cpuTemp > 70 ? theme.peach : root.cpuTemp > 50 ? theme.yellow : theme.green
-                                font.pixelSize: theme.fontSize - 2
-                                font.family: theme.font
-                                horizontalAlignment: Text.AlignRight
-                                Layout.alignment: Qt.AlignRight
-                                visible: root.cpuTemp > 0
-                            }
-                        }
-                    }
+                MetricCard {
+                    id: cpuCard
+                    theme: root.theme
+                    label: "CPU"
+                    history: root.cpuHistory
+                    pct: root.cpuPct
+                    minVal: root.cpuMin
+                    maxVal: root.cpuMax
+                    hasData: root.hasData
+                    lineClr: root.lineColor("cpu", root.cpuPct)
+                    fillClr: root.hexToRgba(root.lineColor("cpu", root.cpuPct), 0.15)
+                    subText: root.cpuTemp > 0
+                             ? (root.cpuTemp > theme.cpuTempCrit ? " " : root.cpuTemp > theme.cpuTempHigh ? " " : root.cpuTemp > theme.cpuTempWarn ? " " : " ") + root.cpuTemp + "°C"
+                             : ""
+                    subColor: root.cpuTemp > theme.cpuTempCrit ? theme.red : root.cpuTemp > theme.cpuTempHigh ? theme.peach : root.cpuTemp > theme.cpuTempWarn ? theme.yellow : theme.green
+                    subVisible: root.cpuTemp > 0
                 }
 
                 // ── separator ──
                 Rectangle {
-                    width: 1
+                    Layout.preferredWidth: 1
                     Layout.fillHeight: true
                     color: theme.surface0
+                    visible: gpuCard.visible
                 }
 
-                // ── GPU ──
-                Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    RowLayout {
-                        anchors.fill: parent
-                        spacing: 4
-                        Text {
-                            text: "GPU"
-                            color: root.lineColor("gpu", root.gpuPct)
-                            font.pixelSize: theme.fontSize - 1
-                            font.bold: true
-                            font.family: theme.font
-                            width: 24
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        Canvas {
-                            id: gpuCanvas
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            property string lineClr: root.lineColor("gpu", root.gpuPct)
-                            property string fillClr: root.hexToRgba(lineClr, 0.15)
-                            onPaint: root.drawSparkline(this, root.gpuHistory)
-                        }
-                        ColumnLayout {
-                            width: 54
-                            spacing: 1
-                            Text {
-                                text: root.gpuPct + "%"
-                                color: root.lineColor("gpu", root.gpuPct)
-                                font.pixelSize: theme.fontSize + 1
-                                font.bold: true
-                                font.family: theme.font
-                                horizontalAlignment: Text.AlignRight
-                                Layout.alignment: Qt.AlignRight
-                            }
-                            Text {
-                                text: "L" + root.gpuMin + " H" + root.gpuMax
-                                color: theme.subtext0
-                                font.pixelSize: theme.fontSize - 2
-                                font.family: theme.font
-                                horizontalAlignment: Text.AlignRight
-                                Layout.alignment: Qt.AlignRight
-                            }
-                            Text {
-                                text: root.gpuFreq > 0 ? root.gpuFreq + "MHz" : ""
-                                color: theme.subtext1
-                                font.pixelSize: theme.fontSize - 2
-                                font.family: theme.font
-                                horizontalAlignment: Text.AlignRight
-                                Layout.alignment: Qt.AlignRight
-                                visible: root.gpuFreq > 0
-                            }
-                        }
-                    }
+                MetricCard {
+                    id: gpuCard
+                    visible: root.gpuAvail
+                    theme: root.theme
+                    label: "GPU"
+                    history: root.gpuHistory
+                    pct: root.gpuPct
+                    minVal: root.gpuMin
+                    maxVal: root.gpuMax
+                    hasData: root.hasData
+                    lineClr: root.lineColor("gpu", root.gpuPct)
+                    fillClr: root.hexToRgba(root.lineColor("gpu", root.gpuPct), 0.15)
+                    subText: root.gpuFreq > 0 ? root.gpuFreq + "MHz" : ""
+                    subColor: theme.subtext1
+                    subVisible: root.gpuFreq > 0
                 }
             }
         }
@@ -377,129 +250,49 @@ Item {
                 anchors.fill: parent
                 spacing: 6
 
-                // ── RAM ──
-                Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    RowLayout {
-                        anchors.fill: parent
-                        spacing: 4
-                        Text {
-                            text: "RAM"
-                            color: root.lineColor("ram", root.ramPct)
-                            font.pixelSize: theme.fontSize - 1
-                            font.bold: true
-                            font.family: theme.font
-                            width: 24
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        Canvas {
-                            id: ramCanvas
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            property string lineClr: root.lineColor("ram", root.ramPct)
-                            property string fillClr: root.hexToRgba(lineClr, 0.15)
-                            onPaint: root.drawSparkline(this, root.ramHistory)
-                        }
-                        ColumnLayout {
-                            width: 54
-                            spacing: 1
-                            Text {
-                                text: root.ramPct + "%"
-                                color: root.lineColor("ram", root.ramPct)
-                                font.pixelSize: theme.fontSize + 1
-                                font.bold: true
-                                font.family: theme.font
-                                horizontalAlignment: Text.AlignRight
-                                Layout.alignment: Qt.AlignRight
-                            }
-                            Text {
-                                text: "L" + root.ramMin + " H" + root.ramMax
-                                color: theme.subtext0
-                                font.pixelSize: theme.fontSize - 2
-                                font.family: theme.font
-                                horizontalAlignment: Text.AlignRight
-                                Layout.alignment: Qt.AlignRight
-                            }
-                            Text {
-                                text: root.ramTotalMb > 0
-                                      ? root.fmtMem(root.ramUsedMb) + "/" + root.fmtMem(root.ramTotalMb)
-                                      : ""
-                                color: theme.subtext1
-                                font.pixelSize: theme.fontSize - 2
-                                font.family: theme.font
-                                horizontalAlignment: Text.AlignRight
-                                Layout.alignment: Qt.AlignRight
-                                visible: root.ramTotalMb > 0
-                            }
-                        }
-                    }
+                MetricCard {
+                    id: ramCard
+                    theme: root.theme
+                    label: "RAM"
+                    history: root.ramHistory
+                    pct: root.ramPct
+                    minVal: root.ramMin
+                    maxVal: root.ramMax
+                    hasData: root.hasData
+                    lineClr: root.lineColor("ram", root.ramPct)
+                    fillClr: root.hexToRgba(root.lineColor("ram", root.ramPct), 0.15)
+                    subText: root.ramTotalMb > 0
+                             ? root.fmtMem(root.ramUsedMb) + "/" + root.fmtMem(root.ramTotalMb)
+                             : ""
+                    subColor: theme.subtext1
+                    subVisible: root.ramTotalMb > 0
                 }
 
                 // ── separator ──
                 Rectangle {
-                    width: 1
+                    Layout.preferredWidth: 1
                     Layout.fillHeight: true
                     color: theme.surface0
+                    visible: swapCard.visible
                 }
 
-                // ── SWAP ──
-                Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    RowLayout {
-                        anchors.fill: parent
-                        spacing: 4
-                        Text {
-                            text: "SWAP"
-                            color: root.lineColor("swap", root.swapPct)
-                            font.pixelSize: theme.fontSize - 1
-                            font.bold: true
-                            font.family: theme.font
-                            width: 24
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        Canvas {
-                            id: swapCanvas
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            property string lineClr: root.lineColor("swap", root.swapPct)
-                            property string fillClr: root.hexToRgba(lineClr, 0.15)
-                            onPaint: root.drawSparkline(this, root.swapHistory)
-                        }
-                        ColumnLayout {
-                            width: 54
-                            spacing: 1
-                            Text {
-                                text: root.swapPct + "%"
-                                color: root.lineColor("swap", root.swapPct)
-                                font.pixelSize: theme.fontSize + 1
-                                font.bold: true
-                                font.family: theme.font
-                                horizontalAlignment: Text.AlignRight
-                                Layout.alignment: Qt.AlignRight
-                            }
-                            Text {
-                                text: "L" + root.swapMin + " H" + root.swapMax
-                                color: theme.subtext0
-                                font.pixelSize: theme.fontSize - 2
-                                font.family: theme.font
-                                horizontalAlignment: Text.AlignRight
-                                Layout.alignment: Qt.AlignRight
-                            }
-                            Text {
-                                text: root.swapTotalMb > 0
-                                      ? root.fmtMem(root.swapUsedMb) + "/" + root.fmtMem(root.swapTotalMb)
-                                      : ""
-                                color: theme.subtext1
-                                font.pixelSize: theme.fontSize - 2
-                                font.family: theme.font
-                                horizontalAlignment: Text.AlignRight
-                                Layout.alignment: Qt.AlignRight
-                                visible: root.swapTotalMb > 0
-                            }
-                        }
-                    }
+                MetricCard {
+                    id: swapCard
+                    visible: root.swapTotalMb > 0
+                    theme: root.theme
+                    label: "SWAP"
+                    history: root.swapHistory
+                    pct: root.swapPct
+                    minVal: root.swapMin
+                    maxVal: root.swapMax
+                    hasData: root.hasData
+                    lineClr: root.lineColor("swap", root.swapPct)
+                    fillClr: root.hexToRgba(root.lineColor("swap", root.swapPct), 0.15)
+                    subText: root.swapTotalMb > 0
+                             ? root.fmtMem(root.swapUsedMb) + "/" + root.fmtMem(root.swapTotalMb)
+                             : ""
+                    subColor: theme.subtext1
+                    subVisible: root.swapTotalMb > 0
                 }
             }
         }
@@ -530,7 +323,7 @@ Item {
                 font.pixelSize: theme.fontSize - 1
                 font.bold: true
                 font.family: theme.font
-                width: 50
+                Layout.preferredWidth: 50
                 horizontalAlignment: Text.AlignRight
             }
 
@@ -540,7 +333,7 @@ Item {
                 font.pixelSize: theme.fontSize - 1
                 font.bold: true
                 font.family: theme.font
-                width: 42
+                Layout.preferredWidth: 42
                 horizontalAlignment: Text.AlignRight
             }
         }
@@ -576,13 +369,13 @@ Item {
                     color: {
                         var mb = parseInt(modelData.ram)
                         if (isNaN(mb)) return theme.subtext0
-                        if (mb > 1024) return theme.red
-                        if (mb > 512) return theme.yellow
+                        if (mb > theme.sysProcRamCrit) return theme.red
+                        if (mb > theme.sysProcRamWarn) return theme.yellow
                         return theme.subtext0
                     }
                     font.pixelSize: theme.fontSize - 1
                     font.family: theme.font
-                    width: 50
+                    Layout.preferredWidth: 50
                     horizontalAlignment: Text.AlignRight
                 }
 
@@ -590,13 +383,13 @@ Item {
                     text: modelData.cpu
                     color: {
                         var v = parseFloat(modelData.cpu)
-                        if (v > 20) return theme.red
-                        if (v > 10) return theme.yellow
+                        if (v > theme.sysProcCpuCrit) return theme.red
+                        if (v > theme.sysProcCpuWarn) return theme.yellow
                         return theme.subtext0
                     }
                     font.pixelSize: theme.fontSize - 1
                     font.family: theme.font
-                    width: 42
+                    Layout.preferredWidth: 42
                     horizontalAlignment: Text.AlignRight
                 }
             }
@@ -625,12 +418,26 @@ Item {
                     if (typeof data.swap_used === "number") root.swapUsedMb = data.swap_used
                     if (typeof data.gpu_freq === "number") root.gpuFreq = data.gpu_freq
                     if (typeof data.cpu_temp === "number") root.cpuTemp = data.cpu_temp
-                    if (Array.isArray(data.top_processes)) root.topProcesses = data.top_processes
+                    if (Array.isArray(data.top_processes)) {
+                        var json = JSON.stringify(data.top_processes)
+                        if (json !== root.topProcJson) {
+                            root.topProcJson = json
+                            root.topProcesses = data.top_processes
+                        }
+                    }
+
+                    // GPU presence: prefer the script flag, else sticky heuristic.
+                    if (data.gpu_available !== undefined)
+                        root.gpuAvail = data.gpu_available === 1 || data.gpu_available === true
+                    else if (root.gpuPct > 0 || root.gpuFreq > 0)
+                        root.gpuAvail = true
 
                     root.pushHistory("cpuHistory", root.cpuPct)
                     root.pushHistory("gpuHistory", root.gpuPct)
                     root.pushHistory("ramHistory", root.ramPct)
                     root.pushHistory("swapHistory", root.swapPct)
+
+                    root.hasData = true
                 } catch (e) {
                     console.log("sys-usage-full parse error:", e)
                 }

@@ -26,6 +26,7 @@ echo "$curr_idle $curr_total" > "$CPU_CACHE"
 gpu=0
 gpu_freq=0
 gpu_found=false
+gpu_available=0
 
 # Intel
 for card in 0 1 2; do
@@ -44,6 +45,7 @@ for card in 0 1 2; do
         echo "$rc6 $wall" > "$GPU_CACHE"
         gpu_freq=$(cat "$GT/rps_act_freq_mhz" 2>/dev/null) || gpu_freq=0
         gpu_found=true
+        gpu_available=1
         break
     fi
 done
@@ -61,6 +63,7 @@ if ! $gpu_found; then
                     break
                 fi
             done
+            gpu_available=1
             break
         fi
     done
@@ -103,8 +106,8 @@ if [ "$cpu_temp" -eq 0 ] && [ -r /sys/class/thermal/thermal_zone0/temp ]; then
 fi
 
 # --- JSON output ---
-printf '{"cpu":%d,"gpu":%d,"gpu_freq":%d,"ram":%d,"ram_total":%d,"ram_used":%d,"swap":%d,"swap_total":%d,"swap_used":%d,"cpu_temp":%d' \
-    "$cpu" "$gpu" "$gpu_freq" "$ram" "$ram_total_mb" "$ram_used_mb" "$swap" "$swap_total_mb" "$swap_used_mb" "$cpu_temp"
+printf '{"cpu":%d,"gpu":%d,"gpu_freq":%d,"gpu_available":%d,"ram":%d,"ram_total":%d,"ram_used":%d,"swap":%d,"swap_total":%d,"swap_used":%d,"cpu_temp":%d' \
+    "$cpu" "$gpu" "$gpu_freq" "$gpu_available" "$ram" "$ram_total_mb" "$ram_used_mb" "$swap" "$swap_total_mb" "$swap_used_mb" "$cpu_temp"
 
 # --- Top 10 CPU processes ---
 echo -n ',"top_processes":['

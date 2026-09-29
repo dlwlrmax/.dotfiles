@@ -53,6 +53,22 @@ QtObject {
     readonly property int swapCrit: 50
     readonly property int swapWarn: 20
 
+    // SysUsagePanel sparkline line-color bands and process-list color bands.
+    // Values mirror the literals previously hardcoded in the panel so the
+    // rendered colors are unchanged; the panel now reads these roles.
+    readonly property int sysCpuLineCrit: 80
+    readonly property int sysCpuLineWarn: 50
+    readonly property int sysGpuLineCrit: 70
+    readonly property int sysGpuLineWarn: 40
+    readonly property int sysRamLineCrit: 80
+    readonly property int sysRamLineWarn: 50
+    readonly property int sysSwapLineCrit: 50
+    readonly property int sysSwapLineWarn: 20
+    readonly property int sysProcRamCrit: 1024
+    readonly property int sysProcRamWarn: 512
+    readonly property int sysProcCpuCrit: 20
+    readonly property int sysProcCpuWarn: 10
+
     readonly property int fontSize: 12
     readonly property string font: "JetBrainsMono Nerd Font Mono"
 
