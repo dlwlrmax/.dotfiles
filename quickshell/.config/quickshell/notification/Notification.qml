@@ -48,9 +48,12 @@ Item {
         anchors.right: parent.right
         anchors.topMargin: 1
         anchors.rightMargin: 1
-        width: Math.max(24, badgeText.implicitWidth + 6)
-        height: 12
-        radius: 7
+        // True circle like KDE Connect: square with radius = diameter/2.
+        // Clamp diameter to 18 so wide "9+" text stays circular.
+        readonly property int diameter: Math.min(18, Math.max(14, badgeText.implicitWidth + 8))
+        width: badge.diameter
+        height: badge.diameter
+        radius: badge.diameter / 2
         color: theme.red
 
         Text {

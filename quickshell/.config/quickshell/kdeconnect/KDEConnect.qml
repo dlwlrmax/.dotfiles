@@ -57,7 +57,8 @@ Item {
                 font.family: root.theme && root.theme.monoFont ? root.theme.monoFont : theme.font
             }
 
-            // Notification badge
+            // Notification badge: tiny circular red count dot at top-right of phone glyph.
+            // Shows ONLY the notification count. Single digit = 14px, "9+" = 16px.
             Rectangle {
                 id: badge
                 visible: root.device && root.device.notifCount > 0
@@ -65,9 +66,10 @@ Item {
                 anchors.right: parent.right
                 anchors.topMargin: -4
                 anchors.rightMargin: 1
-                width: Math.max(14, badgeText.implicitWidth + 8)
-                height: 14
-                radius: 7
+                property int badgeDiameter: root.device && root.device.notifCount > 9 ? 16 : 14
+                width: badgeDiameter
+                height: badgeDiameter
+                radius: badgeDiameter / 2
                 color: theme.red
 
                 Text {
