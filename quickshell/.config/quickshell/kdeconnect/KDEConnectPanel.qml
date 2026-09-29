@@ -309,7 +309,7 @@ Item {
 
                         delegate: Rectangle {
                             id: notifDelegate
-                            required property var notifData
+                            required property var modelData
                             Layout.fillWidth: true
                             implicitHeight: topRow.implicitHeight + 16
                                 + (replyArea.visible ? replyArea.implicitHeight + 8 : 0)
@@ -351,22 +351,22 @@ Item {
                                         spacing: 1
 
                                         Text {
-                                            text: notifData ? notifData.appName || "App" : "App"
+                                            text: modelData ? modelData.appName || "App" : "App"
                                             color: theme.subtext1
                                             font.pixelSize: theme.fontSize - 2
                                             font.family: theme.font
                                         }
 
                                         Text {
-                                            visible: notifData && (notifData.silent === true || notifData.dismissable === false)
-                                            text: notifData && notifData.dismissable === false ? "Ongoing" : "Silent"
+                                            visible: modelData && (modelData.silent === true || modelData.dismissable === false)
+                                            text: modelData && modelData.dismissable === false ? "Ongoing" : "Silent"
                                             color: theme.subtext0
                                             font.pixelSize: theme.fontSize - 3
                                             font.family: theme.font
                                         }
 
                                         Text {
-                                            text: notifData ? notifData.body || "" : ""
+                                            text: modelData ? modelData.body || "" : ""
                                             color: theme.text
                                             font.pixelSize: theme.fontSize - 1
                                             font.family: theme.font
@@ -390,7 +390,7 @@ Item {
                                         implicitHeight: 22
                                         radius: 6
                                         color: theme.surface1
-                                        visible: notifData && notifData.replyId
+                                        visible: modelData && modelData.replyId
 
                                         Text {
                                             id: replyBtnText
@@ -417,7 +417,7 @@ Item {
                                         implicitHeight: 28
                                         radius: 6
                                         color: "transparent"
-                                        visible: notifData && notifData.dismissable
+                                        visible: modelData && modelData.dismissable
 
                                         Text {
                                             anchors.centerIn: parent
@@ -432,8 +432,8 @@ Item {
                                             anchors.fill: parent
                                             cursorShape: Qt.PointingHandCursor
                                             onClicked: {
-                                                var devId = notifData.deviceId || ""
-                                                var notifId = notifData.id || ""
+                                                var devId = modelData.deviceId || ""
+                                                var notifId = modelData.id || ""
                                                 if (!devId || !notifId) return
                                                 if (root.dataSource && root.dataSource.dismissOptimistic)
                                                     root.dataSource.dismissOptimistic(devId, notifId)
@@ -513,8 +513,8 @@ Item {
                             }
 
                             function sendReply() {
-                                var devId = notifData.deviceId || ""
-                                var nid = notifData.id || ""
+                                var devId = modelData.deviceId || ""
+                                var nid = modelData.id || ""
                                 var msg = replyInput.text.trim().slice(0, 500)
                                 if (devId && nid && msg) {
                                     replyProc.sendReply(devId, nid, msg)
