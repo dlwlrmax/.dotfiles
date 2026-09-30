@@ -41,7 +41,6 @@ return {
           "--error-format=raw",
           "--no-progress",
           "--memory-limit=2G", -- prevent OOM on large files
-          "--level=8", -- change to max, 9, or your preferred level
           "--no-interactivity",
           "%filepath",
         },

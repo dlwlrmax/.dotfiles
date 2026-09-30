@@ -7,6 +7,7 @@ return {
       "shellcheck",
       "eslint-lsp",
       "intelephense",
+      "phpstan",
       "pint",
       "prettier",
       "prettierd",
