@@ -21,7 +21,7 @@ Item {
     // Hard containment: layout squeeze must never paint over neighbors.
     clip: true
     implicitWidth: row.implicitWidth
-    implicitHeight: row.implicitHeight + 4
+    implicitHeight: row.implicitHeight + 6.5
     Layout.alignment: Qt.AlignVCenter
     visible: true
     opacity: anyConnected ? 1 : 0.35
