@@ -16,6 +16,7 @@ Rectangle {
         return latest && latest.urgency === 0 ? 8000 : 10000
     }
     property bool _dismissing: false
+    property bool _dismissed: false
     property bool _hoverPaused: false
     property real progressValue: 1.0
     property real _hoverElapsedBeforePause: 0
@@ -48,7 +49,14 @@ Rectangle {
         return pad(d.getHours()) + ":" + pad(d.getMinutes())
     }
 
+    function stopTimers() {
+        dismissTimer.stop()
+        hoverSafety.stop()
+        progressAnim.stop()
+    }
+
     function resetTimer() {
+        if (_dismissed) return
         _dismissing = false
         progressValue = 1.0
         dismissTimer.stop()
@@ -61,16 +69,16 @@ Rectangle {
     }
 
     function fadeOut() {
+        if (_dismissed) return
+        stopTimers()
         fadeAnim.to = 0
         fadeAnim.start()
     }
 
     function requestDismiss() {
-        if (_dismissing) return
+        if (_dismissing || _dismissed) return
         _dismissing = true
-        dismissTimer.stop()
-        hoverSafety.stop()
-        progressAnim.stop()
+        stopTimers()
         dismissRequested()
         fadeOut()
     }
@@ -82,7 +90,7 @@ Rectangle {
         interval: root.dismissTimeoutMs
         repeat: false
         onTriggered: {
-            if (root._dismissing) return
+            if (root._dismissing || root._dismissed) return
             root._dismissing = true
             root.dismissRequested()
             root.fadeOut()
@@ -102,7 +110,8 @@ Rectangle {
         id: hoverSafety
         interval: 30000
         onTriggered: {
-            if (!dismissTimer.running && root.autoDismiss && !root._dismissing
+            if (root._dismissed || root._dismissing) return
+            if (!dismissTimer.running && root.autoDismiss
                     && !hoverArea.containsMouse) {
                 root._hoverPaused = false
                 dismissTimer.interval = Math.max(100, root.dismissTimeoutMs * root.progressValue)
@@ -138,9 +147,14 @@ Rectangle {
         target: root
         property: "opacity"
         duration: 200
+        // Never destroy the Repeater delegate directly: that leaves a dangling
+        // model row and Qt warns "indestructible object". Emit dismissed();
+        // NotificationPopup removes the model row, which destroys the delegate.
         onFinished: {
+            if (root._dismissed) return
+            root._dismissed = true
+            root.stopTimers()
             root.dismissed()
-            root.destroy()
         }
     }
 
@@ -334,7 +348,7 @@ Rectangle {
         acceptedButtons: Qt.NoButton
         z: 999
         onContainsMouseChanged: {
-            if (!root.autoDismiss) return
+            if (root._dismissed || root._dismissing || !root.autoDismiss) return
             root._hoverPaused = containsMouse
             if (containsMouse) {
                 root._hoverElapsedBeforePause = root.dismissTimeoutMs * (1 - root.progressValue)

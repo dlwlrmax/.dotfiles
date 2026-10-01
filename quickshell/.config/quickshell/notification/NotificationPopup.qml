@@ -24,8 +24,41 @@ Item {
     // Track live cards by app key so cross-screen dismiss still reaches group.
     property var cards: ({})
 
+    // Model stores only detached plain data. Live Quickshell Notification
+    // QObjects must never be parked in ListModel roles: converting them back
+    // through fromQVariantMap after the QObject is destroyed crashes the
+    // QV4 engine (SIGSEGV inside QV4::fromQVariantMap).
     ListModel {
         id: notificationModel
+    }
+
+    // Snapshot the scalar fields we render. Everything is a plain JS value so
+    // the snapshot stays valid after the source Notification is destroyed.
+    function snapshotNotif(notif) {
+        return {
+            id: notif.id,
+            appName: notif.appName || "",
+            summary: notif.summary || "",
+            body: notif.body || "",
+            urgency: (notif.urgency !== undefined && notif.urgency !== null) ? notif.urgency : 1,
+            timestamp: notif.timestamp || (Date.now() / 1000),
+            appIcon: notif.appIcon || "",
+            desktopEntry: notif.desktopEntry || "",
+            expireTimeout: notif.expireTimeout || 0
+        }
+    }
+
+    // Always emit the same role shape: object keys fixed, messages always an
+    // array of plain objects. Prevents "role of different type [List ->
+    // VariantMap]" and keeps Repeater delegate bindings stable.
+    function makeGroup(key, messages) {
+        return {
+            key: key,
+            appName: (messages.length && messages[0].appName) ? messages[0].appName : "Unknown",
+            count: messages.length,
+            messages: messages,
+            latest: messages.length ? messages[0] : null
+        }
     }
 
     ColumnLayout {
@@ -62,7 +95,9 @@ Item {
                         delete root.cards[group.key]
                 }
 
-                // Let card finish its own fade/destroy before removing model row.
+                // Delegate lifetime is driven solely by model removal. The card
+                // fades, then asks for its row to go; Qt.callLater keeps the
+                // model write out of the animation/signal emission stack.
                 onDismissed: Qt.callLater(function() { root.removeGroup(group.key) })
                 onDismissRequested: {
                     root.dismissGroup(group.key)
@@ -116,9 +151,13 @@ Item {
 
     function cardForNotification(notifId) {
         for (var i = 0; i < notificationModel.count; ++i) {
-            var group = notificationModel.get(i).group
+            var row = notificationModel.get(i)
+            var group = row ? row.group : null
+            if (!group || !group.messages) continue
             for (var j = 0; j < group.messages.length; ++j) {
-                if (group.messages[j].id === notifId) return root.cards[group.key]
+                var message = group.messages[j]
+                if (message && message.id === notifId)
+                    return root.cards[group.key] || null
             }
         }
         return null
@@ -129,79 +168,70 @@ Item {
         if (!notif.tracked) return
 
         var key = root.appKey(notif)
+        var snapshot = root.snapshotNotif(notif)
         for (var i = 0; i < notificationModel.count; ++i) {
-            var existing = notificationModel.get(i).group
-            if (existing.key !== key) continue
+            var row = notificationModel.get(i)
+            var existing = row ? row.group : null
+            if (!existing || existing.key !== key) continue
 
-            var messages = existing.messages.slice()
-            messages.unshift(notif)
-            var updated = {
-                key: key,
-                appName: notif.appName || existing.appName || "Unknown",
-                latest: notif,
-                count: messages.length,
-                messages: messages
-            }
-            notificationModel.setProperty(i, "group", updated)
+            var messages = (existing.messages || []).slice()
+            messages.unshift(snapshot)
+            notificationModel.setProperty(i, "group", root.makeGroup(key, messages))
             notificationModel.move(i, 0, 1)
             return
         }
 
         notificationModel.insert(0, {
-            group: {
-                key: key,
-                appName: notif.appName || "Unknown",
-                latest: notif,
-                count: 1,
-                messages: [notif]
-            }
+            group: root.makeGroup(key, [snapshot])
         })
     }
 
     function dismissGroup(key) {
         var group = groupForKey(key)
-        if (!group) return
+        if (!group || !group.messages) return
         for (var i = 0; i < group.messages.length; ++i) {
-            if (root.dataSource && root.dataSource.requestDismissPopup)
-                root.dataSource.requestDismissPopup(group.messages[i].id)
+            var message = group.messages[i]
+            if (message && root.dataSource && root.dataSource.requestDismissPopup)
+                root.dataSource.requestDismissPopup(message.id)
         }
     }
 
     function groupForKey(key) {
         for (var i = 0; i < notificationModel.count; ++i) {
-            if (notificationModel.get(i).group.key === key)
-                return notificationModel.get(i).group
+            var row = notificationModel.get(i)
+            if (row && row.group && row.group.key === key)
+                return row.group
         }
         return null
     }
 
     function removeMessage(key, id) {
         var group = groupForKey(key)
-        if (!group) return
-        var messages = group.messages.filter(function(message) { return message.id !== id })
+        if (!group || !group.messages) return
+        var messages = group.messages.filter(function(message) {
+            return message && message.id !== id
+        })
         if (!messages.length) {
             var card = root.cards[key]
             if (card) card.fadeOut()
             return
         }
-        var updated = {
-            key: key,
-            appName: group.appName,
-            latest: messages[0],
-            count: messages.length,
-            messages: messages
-        }
+        var rowIndex = -1
         for (var i = 0; i < notificationModel.count; ++i) {
-            if (notificationModel.get(i).group.key === key) {
-                notificationModel.setProperty(i, "group", updated)
-                return
+            var row = notificationModel.get(i)
+            if (row && row.group && row.group.key === key) {
+                rowIndex = i
+                break
             }
         }
+        if (rowIndex >= 0)
+            notificationModel.setProperty(rowIndex, "group", root.makeGroup(key, messages))
     }
 
     function removeGroup(key) {
         for (var i = 0; i < notificationModel.count; ++i) {
-            if (notificationModel.get(i).group.key === key) {
+            var row = notificationModel.get(i)
+            if (row && row.group && row.group.key === key) {
                 notificationModel.remove(i)
                 return
             }
