@@ -11,17 +11,17 @@ Item {
     signal togglePanel()
 
     onDataSourceChanged: {
-        if (dataSource && dataSource.count !== undefined)
-            notifCount = dataSource.count
+        if (dataSource && dataSource.unreadCount !== undefined)
+            notifCount = dataSource.unreadCount
     }
 
     Connections {
         target: dataSource
         enabled: root.dataSource !== null
         ignoreUnknownSignals: true
-        function onCountChanged() {
-            if (root.dataSource && root.dataSource.count !== undefined)
-                root.notifCount = root.dataSource.count
+        function onUnreadCountChanged() {
+            if (root.dataSource && root.dataSource.unreadCount !== undefined)
+                root.notifCount = root.dataSource.unreadCount
         }
     }
 

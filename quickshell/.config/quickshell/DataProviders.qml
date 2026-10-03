@@ -211,6 +211,29 @@ Item {
         property var notifTimes: ({})
         property var timesByKey: ({})
         property var history: []
+        // Total unread = live (active) notifications + unread history rows that
+        // are not already represented by a live entry. This is the bar badge's
+        // source of truth: it must stay > 0 while any unread notification exists,
+        // even when nothing is actively popping. Mirrors the panel's totalCount.
+        // Defined here (not just on the panel) so the bar icon can see it; the
+        // binding re-evaluates whenever activeNotifs or history is reassigned.
+        property int unreadCount: (function() {
+            var live = activeNotifs ? activeNotifs.length : 0
+            var ids = {}
+            for (var i = 0; i < live; i++) {
+                var d = activeNotifs[i]
+                if (d && d._dbId !== undefined && d._dbId !== null) ids[d._dbId] = true
+            }
+            var rows = history ? history : []
+            var unreadHist = 0
+            for (var j = 0; j < rows.length; j++) {
+                var r = rows[j]
+                if (r.read === 1) continue
+                if (r.id !== undefined && ids[r.id]) continue
+                unreadHist++
+            }
+            return live + unreadHist
+        })()
         property bool timesLoaded: false
         property var pendingNotifs: []
         property int lastSoundTime: 0
@@ -340,6 +363,9 @@ Item {
                     Db.markRead(notifs[i]._dbId)
                 notifs[i].dismiss()
             }
+            // Clear All also moves every unread history row into Read (the
+            // merged Unread section now holds live + unread history).
+            Db.markAllRead()
             refreshHistory()
         }
 

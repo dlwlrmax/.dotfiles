@@ -137,27 +137,7 @@ Item {
                     anchors.top: parent.top
                     spacing: 12
 
-                    // ── Active (live) ───────────────────────────
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 6
-                        visible: root.reversedNotifs.length > 0
-
-                        Text {
-                            text: "Active"
-                            color: theme.subtext0
-                            font.pixelSize: theme.fontSize - 1
-                            font.bold: true
-                            font.family: theme.font
-                        }
-
-                        Repeater {
-                            model: root.groupedNotifs
-                            delegate: activeGroupDelegate
-                        }
-                    }
-
-                    // ── Unread ─────────────────────────────────
+                    // ── Unread (live notifications on top, then unread history) ──
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 6
@@ -167,8 +147,8 @@ Item {
                             spacing: 8
 
                             Text {
-                                text: "Unread" + (root.unreadRows.length > 0
-                                    ? " (" + root.unreadRows.length + ")" : "")
+                                property int cnt: root.reversedNotifs.length + root.unreadRows.length
+                                text: "Unread" + (cnt > 0 ? " (" + cnt + ")" : "")
                                 color: theme.text
                                 font.pixelSize: theme.fontSize
                                 font.bold: true
@@ -181,7 +161,8 @@ Item {
                                 color: theme.blue
                                 font.pixelSize: theme.fontSize - 1
                                 font.family: theme.font
-                                visible: root.unreadRows.length > 0
+                                property int cnt: root.reversedNotifs.length + root.unreadRows.length
+                                visible: cnt > 0
 
                                 MouseArea {
                                     anchors.fill: parent
@@ -196,13 +177,21 @@ Item {
                         }
 
                         Text {
-                            visible: root.unreadRows.length === 0
+                            visible: root.reversedNotifs.length === 0 && root.unreadRows.length === 0
                             text: "Nothing unread"
                             color: theme.subtext0
                             font.pixelSize: theme.fontSize - 1
                             font.family: theme.font
                         }
 
+                        // Live notifications — grouped by app, with dismiss,
+                        // action buttons, and urgency styling.
+                        Repeater {
+                            model: root.groupedNotifs
+                            delegate: activeGroupDelegate
+                        }
+
+                        // Unread history rows below the live ones.
                         Repeater {
                             model: root.unreadRows
                             delegate: historyCardDelegate
