@@ -44,7 +44,7 @@ hl.on("hyprland.start", function()
   -- (delayed for portal to settle)
   -- ═══════════════════════════════════════════════════════════
   launch(1,
-    "quickshell",
+    "qs -d",
     "hyprpaper",
     "waypaper --restore",
     "walker --gapplication-service",

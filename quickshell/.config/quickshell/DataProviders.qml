@@ -66,19 +66,36 @@ Item {
             kdeData.devices = filtered
         }
 
+        function applyJson(text) {
+            try {
+                var data = JSON.parse(text.trim())
+                applyDevices(data.devices || [])
+                anyConnected = data.anyConnected || false
+                return true
+            } catch (e) {
+                console.log("KDEConnectData parse error:", e)
+                return false
+            }
+        }
+
+        // Cache-first poll: reuse the SQLite snapshot while fresh (8s),
+        // otherwise hit the fetcher script.
+        function poll() {
+            var row = Db.cacheGet("kde")
+            if (Db.cacheFresh(row)) {
+                applyJson(row.json)
+                return
+            }
+            if (!fetchProc.running) fetchProc.running = true
+        }
+
         Process {
             id: fetchProc
             command: ["bash", theme.scriptDir + "/kdeconnect.sh"]
 
             stdout: StdioCollector {
                 onStreamFinished: {
-                    try {
-                        var data = JSON.parse(this.text.trim())
-                        kdeData.applyDevices(data.devices || [])
-                        kdeData.anyConnected = data.anyConnected || false
-                    } catch (e) {
-                        console.log("KDEConnectData parse error:", e)
-                    }
+                    if (kdeData.applyJson(this.text)) Db.cachePut("kde", this.text)
                     if (kdeData.refreshPending) {
                         kdeData.refreshPending = false
                         if (!fetchProc.running) fetchProc.running = true
@@ -93,9 +110,7 @@ Item {
             running: true
             repeat: true
             triggeredOnStart: true
-            onTriggered: {
-                if (!fetchProc.running) fetchProc.running = true
-            }
+            onTriggered: kdeData.poll()
         }
 
         function refresh() {
@@ -132,7 +147,11 @@ Item {
                     devs = devs.slice(0, d).concat([copy]).concat(devs.slice(d + 1))
                 }
             }
-            if (changed) kdeData.devices = devs
+            if (changed) {
+                kdeData.devices = devs
+                Db.cacheInvalidate("kde")
+                kdeData.refresh()
+            }
         }
 
         // Remove all dismissable locally so Clear feels instant + persists
@@ -157,11 +176,15 @@ Item {
                     devs = devs.slice(0, d).concat([copy]).concat(devs.slice(d + 1))
                 }
             }
-            if (changed) kdeData.devices = devs
+            if (changed) {
+                kdeData.devices = devs
+                Db.cacheInvalidate("kde")
+                kdeData.refresh()
+            }
         }
 
         Component.onCompleted: {
-            fetchProc.running = true
+            poll()
         }
     }
 
@@ -187,13 +210,11 @@ Item {
         property var activeNotifs: []
         property var notifTimes: ({})
         property var timesByKey: ({})
+        property var history: []
         property bool timesLoaded: false
-        property var savedNotifs: []
         property var pendingNotifs: []
         property int lastSoundTime: 0
         property int startupTime: Date.now()
-        // XDG-aware: same resolved path as before when XDG_STATE_HOME is unset.
-        property string storagePath: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/quickshell/notifications.json"
         signal newNotification(var notif)
         signal dismissPopup(var notifId)
 
@@ -256,6 +277,10 @@ Item {
             count = activeNotifs.length
             tryPlaySound()
             newNotification(notif)
+            // Debounce: bursts of notifications otherwise reload the whole
+            // history table per message. markRead/delete paths still call
+            // refreshHistory() synchronously for immediate UX.
+            historyRefreshTimer.restart()
 
             notif.closed.connect(function(reason) {
                 var arr = activeNotifs
@@ -296,8 +321,8 @@ Item {
                 }),
                 timestamp: t
             }
-            savedNotifs = savedNotifs.concat([entry]).slice(-100)
-            saveDebounce.restart()
+            var newId = Db.insertNotification(entry)
+            if (newId !== undefined && newId !== null) notif._dbId = newId
         }
 
         function toggleDnd() {
@@ -309,79 +334,94 @@ Item {
             activeNotifs = []
             count = 0
             for (var i = 0; i < notifs.length; i++) {
+                // Clear = done: mark the backing DB row read so the row lands in
+                // Read after its live entry goes away, not back under Unread.
+                if (notifs[i]._dbId !== undefined && notifs[i]._dbId !== null)
+                    Db.markRead(notifs[i]._dbId)
                 notifs[i].dismiss()
             }
+            refreshHistory()
         }
 
-        // --- persistence ---
-
-        Timer {
-            id: saveDebounce
-            interval: 500
-            onTriggered: notifData._doSave()
-        }
-
-        Process { id: saveProc }
-
-        Process {
-            id: loadProc
-            stdout: StdioCollector {
-                onStreamFinished: {
-                    var text = this.text.trim()
-                    if (!text) {
-                        notifData.timesLoaded = true
-                        return
-                    }
-                    try {
-                        var parsed = JSON.parse(text)
-                        if (Array.isArray(parsed)) {
-                            // Drop previously persisted contentless entries.
-                            var data = parsed.filter(function(d) {
-                                return !notifData.isContentless(d)
-                            })
-                            notifData.savedNotifs = data
-                            var map = {}
-                            for (var i = 0; i < data.length; i++) {
-                                var d = data[i]
-                                var s = (d.appName || "") + "|" + (d.summary || "") + "|" + (d.body || "")
-                                var h = 0
-                                for (var j = 0; j < s.length; j++) {
-                                    h = ((h << 5) - h) + s.charCodeAt(j)
-                                    h |= 0
-                                }
-                                map["" + h] = d.timestamp || 0
-                            }
-                            notifData.timesByKey = map
-                            console.log("notifData: loaded", data.length, "saved notifs,", Object.keys(map).length, "timestamps")
-                        }
-                        notifData.timesLoaded = true
-                    } catch (e) {
-                        console.log("Failed to load notifications.json:", e)
-                        notifData.timesLoaded = true
-                    }
-                }
-            }
-        }
-
-        function _doSave() {
-            // Burst guard: if a write is mid-flight, defer instead of dropping it.
-            if (saveProc.running) {
-                saveDebounce.restart()
-                return
-            }
-            var json = JSON.stringify(savedNotifs.slice(-100))
-            var dir = storagePath.substring(0, storagePath.lastIndexOf("/"))
-            saveProc.command = [
-                "sh", "-c",
-                "mkdir -p \"$1\" && printf '%s' \"$2\" > \"$3\"",
-                "_", dir, json, storagePath
-            ]
-            saveProc.running = true
-        }
+        // --- persistence (SQLite via qs.common Db) ---
 
         function loadSaved() {
-            loadProc.command = ["cat", storagePath]
-            loadProc.running = true
+            // Drop previously persisted contentless entries (older rows may
+            // predate the ingest filter). The DB is the single source of truth.
+            var data = Db.loadNotifications().filter(function(d) {
+                return !notifData.isContentless(d)
+            })
+            var map = {}
+            for (var i = 0; i < data.length; i++) {
+                var d = data[i]
+                var s = (d.appName || "") + "|" + (d.summary || "") + "|" + (d.body || "")
+                var h = 0
+                for (var j = 0; j < s.length; j++) {
+                    h = ((h << 5) - h) + s.charCodeAt(j)
+                    h |= 0
+                }
+                map["" + h] = d.timestamp || 0
+            }
+            notifData.timesByKey = map
+            console.log("notifData: loaded", data.length, "saved notifs,", Object.keys(map).length, "timestamps")
+            notifData.timesLoaded = true
+            refreshHistory()
+        }
+
+        function refreshHistory() {
+            notifData.history = Db.loadHistory()
+            console.log("notifData: loaded", notifData.history.length, "history rows (",
+                notifData.history.filter(function(r) { return r.read !== 1 }).length, "unread)")
+        }
+
+        // Mark a single notification read. Accepts a live notif object (uses
+        // its _dbId), a history row (uses .id), or a raw DB id.
+        function markRead(target) {
+            if (target === null || target === undefined) return
+            var id = -1
+            if (typeof target === "object") {
+                if (target._dbId !== undefined && target._dbId !== null) id = target._dbId
+                else if (target.id !== undefined && target.id !== null) id = target.id
+            } else {
+                id = target
+            }
+            if (id === -1 || id === null) return
+            Db.markRead(id)
+            // Reload from the DB with fresh array/object references so the
+            // panel's Unread/Read groups reconcile reactively. Mutating the
+            // existing array in place and reassigning the same reference would
+            // not trigger a QML change notification.
+            refreshHistory()
+        }
+
+        function markAllRead() {
+            Db.markAllRead()
+            refreshHistory()
+        }
+
+        // Delete one history row (history card dismiss).
+        function deleteHistoryRow(id) {
+            if (id === undefined || id === null) return
+            Db.deleteHistoryRow(id)
+            refreshHistory()
+        }
+
+        // Wipe only the read rows (Read group "Clear read").
+        function clearRead() {
+            Db.deleteRead()
+            refreshHistory()
+        }
+
+        // Wipe all history (full clear).
+        function clearHistory() {
+            Db.deleteHistory()
+            refreshHistory()
+        }
+
+        Timer {
+            id: historyRefreshTimer
+            interval: 400
+            onTriggered: notifData.refreshHistory()
         }
 
         Process {

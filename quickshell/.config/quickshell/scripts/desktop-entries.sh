@@ -1,12 +1,9 @@
 #!/bin/bash
 # Generate JSON array of .desktop entries for launcher
 # Output: [{id, name, genericName, icon, comment, exec, categories, noDisplay, terminal}]
+# --fingerprint: print only the desktop-file fingerprint hash and exit.
 
 set -euo pipefail
-
-CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/quickshell"
-CACHE_FILE="$CACHE_DIR/desktop-cache.json"
-CACHE_HASH_FILE="$CACHE_DIR/desktop-cache.sha256"
 
 # Locale prefix used to match localized keys (Name[en]= etc.)
 LOCALE_TAG="${LANG:-}"
@@ -55,16 +52,10 @@ compute_fingerprint() {
   done | sort | sha256sum | cut -d' ' -f1
 }
 
-# Compute fingerprint once; reused for cache check and cache write.
-new_hash=$(compute_fingerprint)
-
-# Use cache only if fingerprint matches (detects any change)
-if [ -f "$CACHE_FILE" ] && [ -f "$CACHE_HASH_FILE" ]; then
-    old_hash=$(cat "$CACHE_HASH_FILE")
-    if [ "$old_hash" = "$new_hash" ]; then
-        cat "$CACHE_FILE"
-        exit 0
-    fi
+# Fingerprint mode: used by the launcher to cheaply detect changes.
+if [ "${1:-}" = "--fingerprint" ]; then
+  compute_fingerprint
+  exit 0
 fi
 
 declare -A seen
@@ -138,13 +129,8 @@ for base in "${DIRS[@]}"; do
   done < <(find -L "$dir" -maxdepth 1 -name '*.desktop' -type f -print0 2>/dev/null)
 done
 
-mkdir -p "$CACHE_DIR"
-cache_tmp=$(mktemp "${CACHE_FILE}.XXXXXX") && {
 echo '['
 for i in "${!entries[@]}"; do
   echo "${entries[$i]}$([ $i -lt $((${#entries[@]}-1)) ] && echo ',' || echo '')"
 done
 echo ']'
-} > "$cache_tmp" && mv "$cache_tmp" "$CACHE_FILE"
-hash_tmp=$(mktemp "${CACHE_HASH_FILE}.XXXXXX") && printf '%s\n' "$new_hash" > "$hash_tmp" && mv "$hash_tmp" "$CACHE_HASH_FILE"
-cat "$CACHE_FILE"

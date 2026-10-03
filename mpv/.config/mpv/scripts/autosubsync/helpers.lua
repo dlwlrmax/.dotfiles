@@ -20,6 +20,8 @@ function self.alt_dirs()
         '/opt/homebrew/bin',
         '/usr/local/bin',
         utils.join_path(os.getenv("HOME") or "~", '.local/bin'),
+        '/usr/bin',
+        '/bin',
     }
 end
 

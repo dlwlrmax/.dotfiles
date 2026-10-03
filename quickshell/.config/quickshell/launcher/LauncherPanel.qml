@@ -21,71 +21,74 @@ Item {
     property var filteredEntries: []
     property int selectedIndex: 0
     property bool searchMode: false  // false = normal (navigate), true = insert (type)
-    property string _recentDir: Quickshell.env("HOME") + "/.cache/quickshell"
-    property string _recentFile: _recentDir + "/recent-apps.json"
     property var recentApps: []
     property var _recentMap: ({})  // id → timestamp for O(1) lookup
     property bool _suppressFilter: false
-    property bool _entryRefreshTried: false  // one cache-bust retry per empty load
+    property string _pendingFingerprint: ""  // hash captured by --fingerprint for the next full refresh
 
-    // ── load .desktop entries via shell script ──
+    // ── load .desktop entries (SQLite cache + fingerprint refresh) ──
+
+    function _applyEntries(list) {
+        var next = []
+        for (var i = 0; i < list.length; i++) {
+            var e = list[i]
+            if (e.noDisplay) continue
+            next.push({
+                id: e.id,
+                name: e.name || e.id,
+                genericName: e.genericName || "",
+                icon: e.icon || "",
+                exec: e.exec || "",
+                categories: e.categories || "",
+                keywords: e.keywords || "",
+                comment: e.comment || "",
+                terminal: e.terminal
+            })
+        }
+        root.allEntries = next
+        root.applyFilter()
+    }
 
     function loadEntries() {
-        if (!loadProc.running) loadProc.running = true
+        // Paint the DB snapshot instantly, then verify freshness cheaply.
+        var cached = Db.loadApps()
+        if (cached.length > 0) root._applyEntries(cached)
+        if (!fpProc.running) fpProc.running = true
     }
 
     Process {
-        id: loadProc
+        id: fpProc
+        command: ["bash", theme.scriptDir + "/desktop-entries.sh", "--fingerprint"]
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var fp = this.text.trim()
+                if (root.allEntries.length === 0 || fp !== Db.getAppsFingerprint()) {
+                    root._pendingFingerprint = fp
+                    if (!fullProc.running) fullProc.running = true
+                }
+            }
+        }
+    }
+
+    Process {
+        id: fullProc
         command: ["bash", theme.scriptDir + "/desktop-entries.sh"]
 
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
                     var data = JSON.parse(this.text.trim())
-                    var next = []
-                    for (var i = 0; i < data.length; i++) {
-                        var e = data[i]
-                        if (e.noDisplay) continue
-                        next.push({
-                            id: e.id,
-                            name: e.name || e.id,
-                            genericName: e.genericName || "",
-                            icon: e.icon || "",
-                            exec: e.exec || "",
-                            categories: e.categories || "",
-                            keywords: e.keywords || "",
-                            comment: e.comment || "",
-                            terminal: e.terminal
-                        })
-                    }
-                    root.allEntries = next
-                    root.applyFilter()
-                    if (next.length > 0) {
-                        root._entryRefreshTried = false
-                    } else if (!root._entryRefreshTried) {
-                        // Zero entries usually means a stale/partial
-                        // desktop-cache.json. Bust it and let the script
-                        // rebuild (loadEntries runs again on cacheClearProc
-                        // exit, and loadTimer retries while empty) instead of
-                        // showing an empty launcher.
-                        root._entryRefreshTried = true
-                        cacheClearProc.running = true
-                    }
+                    if (!Array.isArray(data)) return
+                    Db.replaceApps(data)
+                    if (root._pendingFingerprint.length > 0)
+                        Db.setAppsFingerprint(root._pendingFingerprint)
+                    root._applyEntries(Db.loadApps())
                 } catch (ex) {
                     console.log("Launcher: parse error", ex.message)
                 }
             }
         }
-    }
-
-    // Removes desktop-entries.sh's on-disk cache so the next run recomputes
-    // from the .desktop files instead of replaying a stale/empty result.
-    Process {
-        id: cacheClearProc
-        command: ["bash", "-c",
-            "rm -f " + root._recentDir + "/desktop-cache.json " +
-                    root._recentDir + "/desktop-cache.sha256"]
-        onExited: root.loadEntries()
     }
 
     Timer {
@@ -98,7 +101,7 @@ Item {
                 running = false
                 return
             }
-            if (!loadProc.running) loadProc.running = true
+            root.loadEntries()
         }
     }
 
@@ -113,25 +116,9 @@ Item {
     // ── recent apps ──
 
     function loadRecent() {
-        recentReadProc.running = true
-    }
-
-    Process {
-        id: recentReadProc
-        command: ["cat", root._recentFile]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    var data = JSON.parse(this.text.trim())
-                    root.recentApps = data
-                    root._buildRecentMap()
-                    root.applyFilter()
-                } catch (ex) {
-                    root.recentApps = []
-                    root._recentMap = ({})
-                }
-            }
-        }
+        root.recentApps = Db.loadRecents()
+        root._buildRecentMap()
+        root.applyFilter()
     }
 
     function _buildRecentMap() {
@@ -165,22 +152,7 @@ Item {
         root.recentApps.unshift({ id: entryId, time: now })
         while (root.recentApps.length > 30) root.recentApps.pop()
         root._buildRecentMap()
-        root._saveRecent()
-    }
-
-    function _saveRecent() {
-        var json = JSON.stringify(root.recentApps)
-        var escaped = json.replace(/'/g, "'\\''")
-        recentWriteProc.command = [
-            "bash", "-c",
-            "mkdir -p " + root._recentDir + " && echo '" + escaped + "' > " + root._recentFile
-        ]
-        recentWriteProc.running = true
-    }
-
-    Process {
-        id: recentWriteProc
-        command: ["true"]
+        Db.markRecent(entryId, now)
     }
 
     // ── filter / match ──

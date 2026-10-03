@@ -73,11 +73,27 @@ local function notify(message, level, duration)
     mp.osd_message(message, duration)
 end
 
+-- Pause playback for the duration of a (possibly long) operation and return a
+-- `finish(msg, level, dur)` closure that notifies and restores the saved pause
+-- state. If the user was already paused before, we stay paused; if they were
+-- playing, we resume. Calls nest safely (each scope restores its own state).
+local function begin_pause()
+    local was_paused = mp.get_property_bool("pause")
+    mp.set_property_bool("pause", true)
+    return function(msg, level, dur)
+        if msg then
+            notify(msg, level, dur)
+        end
+        mp.set_property_bool("pause", was_paused)
+    end
+end
+
 local function subprocess(args)
     return mp.command_native {
         name = "subprocess",
         playback_only = false,
         capture_stdout = true,
+        capture_stderr = true,
         args = args
     }
 end
@@ -135,6 +151,52 @@ local function startswith(str, prefix)
     return string.sub(str, 1, string.len(prefix)) == prefix
 end
 
+local function is_url(path)
+    return type(path) == "string" and path:match("^https?://") ~= nil
+end
+
+local function get_url_extension(url)
+    local path = url:match("^[^?#]*") or url
+    path = path:gsub("/+$", "")
+    local ext = path:match("%.(%w+)$")
+    if ext then
+        ext = ext:lower()
+        if ext == "srt" or ext == "ass" then
+            return ext
+        end
+    end
+    return "srt"
+end
+
+-- Download a remote subtitle URL to a local temp file so external tools and
+-- parsers can read it. Returns the local path, or nil on failure.
+local function download_subtitle(url, tag)
+    local target = os_temp() .. 'autosubsync_' .. (tag or 'downloaded') .. '.' .. get_url_extension(url)
+    notify("Downloading subtitle...", nil, 3)
+    local ret
+    local curl = h.find_executable('curl')
+    if h.file_exists(curl) then
+        ret = subprocess { curl, '-L', '--max-time', '30', '-o', target, url }
+    else
+        local wget = h.find_executable('wget')
+        if h.file_exists(wget) then
+            ret = subprocess { wget, '-O', target, url }
+        end
+    end
+    if ret == nil or ret.status ~= 0 or not h.file_exists(target) then
+        notify(
+                table.concat {
+                    "Subtitle synchronization failed:\nCouldn't download ",
+                    url
+                },
+                "error",
+                5
+        )
+        return nil
+    end
+    return target
+end
+
 local function get_retimed_sub_directory(sub_path)
     local sub_dir, sub_name = utils.split_path(sub_path)
     local video_dir, video_name = utils.split_path(mp.get_property("path"))
@@ -142,7 +204,9 @@ local function get_retimed_sub_directory(sub_path)
     if config.new_sub_directory ~= "" then
         return config.new_sub_directory
     elseif startswith(sub_dir, os_temp()) then
-        return video_dir
+        -- Downloaded/extracted subs live in temp, retimed output goes next to
+        -- the video; if the video itself is a remote stream, keep it local.
+        return is_url(mp.get_property("path")) and os_temp() or video_dir
     else
         return sub_dir
     end
@@ -152,7 +216,7 @@ local function get_retimed_sub_name(sub_path, suffix)
     local sub_dir, sub_name = utils.split_path(sub_path)
     local video_dir, video_name = utils.split_path(mp.get_property("path"))
 
-    if startswith(sub_dir, os_temp()) then
+    if startswith(sub_dir, os_temp()) and not is_url(mp.get_property("path")) then
         return table.concat { remove_extension(video_name), suffix, get_extension(sub_name) }
     else
         return table.concat { remove_extension(sub_name), suffix, get_extension(sub_name) }
@@ -207,17 +271,27 @@ local function extract_to_file(subtitle_track)
 end
 
 local function sync_subtitles(ref_sub_path)
+    local finish = begin_pause()
     local reference_file_path = ref_sub_path or mp.get_property("path")
     local _, sub_track = get_active_track('sub')
     if sub_track == nil then
-        return
+        return finish()
     end
     local subtitle_path = sub_track.external and sub_track['external-filename'] or extract_to_file(sub_track)
+    if subtitle_path == nil then
+        return finish()
+    end
+    if is_url(subtitle_path) then
+        subtitle_path = download_subtitle(subtitle_path)
+        if subtitle_path == nil then
+            return finish()
+        end
+    end
     local engine_name = engine_selector:get_engine_name()
     local engine_path = config[engine_name .. '_path']
 
     if h.is_path(config.ffmpeg_path) and not h.file_exists(engine_path) then
-        return notify(
+        return finish(
                 string.format("Can't find %s executable.\nPlease specify the correct path in the config.", engine_name),
                 "error",
                 5
@@ -225,7 +299,7 @@ local function sync_subtitles(ref_sub_path)
     end
 
     if not h.file_exists(subtitle_path) then
-        return notify(
+        return finish(
                 table.concat {
                     "Subtitle synchronization failed:\nCouldn't find ",
                     subtitle_path or "external subtitle file."
@@ -252,7 +326,7 @@ local function sync_subtitles(ref_sub_path)
     end
 
     if ret == nil then
-        return notify("Parsing failed or no args passed.", "fatal", 3)
+        return finish("Parsing failed or no args passed.", "fatal", 3)
     end
 
     if ret.status == 0 then
@@ -263,22 +337,29 @@ local function sync_subtitles(ref_sub_path)
             if config.unload_old_sub then
                 mp.commandv("sub_remove", old_sid)
             end
+            finish()
         else
-            notify("Error: couldn't add synchronized subtitle.", "error", 3)
+            finish("Error: couldn't add synchronized subtitle.", "error", 3)
         end
     else
-        notify("Subtitle synchronization failed.", "error", 3)
+        local err = ret.stderr and ret.stderr:gsub("%s+$", "") or ""
+        if err ~= "" then
+            finish("Subtitle synchronization failed:\n" .. err, "error", 7)
+        else
+            finish("Subtitle synchronization failed.", "error", 3)
+        end
     end
 end
 
 local function sync_to_subtitle()
+    local finish = begin_pause()
     local selected_track = track_selector:get_selected_track()
 
     if selected_track and selected_track.external then
         sync_subtitles(selected_track['external-filename'])
     else
         if h.is_path(config.ffmpeg_path) and not h.file_exists(config.ffmpeg_path) then
-            return notify("Can't find ffmpeg executable.\nPlease specify the correct path in the config.", "error", 5)
+            return finish("Can't find ffmpeg executable.\nPlease specify the correct path in the config.", "error", 5)
         end
         local temp_sub_fp = extract_to_file(selected_track)
         if temp_sub_fp then
@@ -286,6 +367,7 @@ local function sync_to_subtitle()
             os.remove(temp_sub_fp)
         end
     end
+    finish()
 end
 
 local function sync_to_manual_offset()
@@ -294,16 +376,23 @@ local function sync_to_manual_offset()
     if tonumber(sub_delay) == 0 then
         return notify("There were no manual timings set, nothing to do!", "error", 7)
     end
+    local finish = begin_pause()
     local file_path = track.external and track['external-filename'] or extract_to_file(track)
     if file_path == nil then
-        return
+        return finish()
+    end
+    if is_url(file_path) then
+        file_path = download_subtitle(file_path)
+        if file_path == nil then
+            return finish()
+        end
     end
 
     local ext = get_extension(file_path)
     local codec_parser_map = { ass = sub.ASS, subrip = sub.SRT }
     local parser = codec_parser_map[track['codec']]
     if parser == nil then
-        return notify(string.format("Error: unsupported codec: %s", track['codec']), "error", 3)
+        return finish(string.format("Error: unsupported codec: %s", track['codec']), "error", 3)
     end
     local s = parser:populate(file_path)
     s:shift_timing(sub_delay)
@@ -317,7 +406,7 @@ local function sync_to_manual_offset()
         mp.commandv("sub_remove", track.id)
     end
     mp.set_property("sub-delay", 0)
-    return notify(string.format("Manual timings saved, loading '%s'", s.filename), "info", 7)
+    return finish(string.format("Manual timings saved, loading '%s'", s.filename), "info", 7)
 end
 
 ------------------------------------------------------------

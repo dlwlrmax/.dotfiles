@@ -12,7 +12,6 @@ Item {
     property int ramUsage: dataSource ? dataSource.ramUsage : 0
     property int swapUsage: dataSource ? dataSource.swapUsage : 0
     property int gpuUsage: dataSource ? dataSource.gpuUsage : 0
-    property int cpuTemp: dataSource ? (dataSource.cpuTemp || 0) : 0
     signal togglePanel()
 
     // Hard containment: layout squeeze must never paint over neighbors.
@@ -39,24 +38,6 @@ Item {
                 font.pixelSize: theme.fontSize + 5
                 font.weight: Font.Medium
                 font.family: theme.font
-            }
-
-            Text {
-                text: root.cpuTemp > 0 ? root.cpuTemp + "°" : ""
-                color: root.cpuTemp > theme.cpuTempCrit ? theme.red : root.cpuTemp > theme.cpuTempHigh ? theme.peach : root.cpuTemp > theme.cpuTempWarn ? theme.yellow : theme.green
-                font.pixelSize: theme.fontSize - 1
-                font.weight: Font.Medium
-                font.family: theme.font
-                visible: root.cpuTemp > 0
-            }
-
-            Text {
-                text: root.cpuTemp > theme.cpuTempCrit ? "" : root.cpuTemp > theme.cpuTempHigh ? "" : root.cpuTemp > theme.cpuTempWarn ? "" : ""
-                color: root.cpuTemp > theme.cpuTempCrit ? theme.red : root.cpuTemp > theme.cpuTempHigh ? theme.peach : root.cpuTemp > theme.cpuTempWarn ? theme.yellow : theme.green
-                font.pixelSize: theme.fontSize - 1
-                font.weight: Font.Medium
-                font.family: theme.font
-                visible: root.cpuTemp > 0
             }
 
             Text {

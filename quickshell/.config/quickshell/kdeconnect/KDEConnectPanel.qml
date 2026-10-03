@@ -594,6 +594,18 @@ Item {
                             "dismiss", next.devId, next.nid]
                     running = true
                 } else {
+                    // Stamp optimistic removal for the just-finished item before
+                    // forcing a fetch: the daemon may not have applied the dismiss
+                    // yet, and a premature fetch would cachePut a snapshot that
+                    // still contains it (replayed until the next poll).
+                    if (root.dataSource) {
+                        if (notifId === "__all__") {
+                            if (root.dataSource.clearOptimistic)
+                                root.dataSource.clearOptimistic(deviceId)
+                        } else if (root.dataSource.dismissOptimistic) {
+                            root.dataSource.dismissOptimistic(deviceId, notifId)
+                        }
+                    }
                     refreshSource()
                 }
             }

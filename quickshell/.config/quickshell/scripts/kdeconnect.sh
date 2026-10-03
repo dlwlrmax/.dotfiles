@@ -6,8 +6,6 @@
 set -u
 
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/quickshell/kdeconnect"
-CACHE_FILE="$CACHE_DIR/devices.json"
-CACHE_TTL=8
 
 # Notification app filter: colon-separated custom names from KDECONNECT_FILTER
 # env or "$CACHE_DIR/../kdeconnect-filter.txt". Baseline filters always apply.
@@ -65,8 +63,6 @@ if [ "${1:-}" = "dismiss" ]; then
   timeout 5 dbus-send --print-reply --dest=org.kde.kdeconnect \
     "/modules/kdeconnect/devices/${2:-}/notifications/${3:-}" \
     org.kde.kdeconnect.device.notifications.notification.dismiss
-  # Invalidate cache so next poll picks up changes
-  rm -f "$CACHE_FILE"
   exit 0
 fi
 
@@ -89,19 +85,7 @@ if [ "${1:-}" = "dismiss-all" ]; then
       "/modules/kdeconnect/devices/${dev}/notifications/${nid}" \
       org.kde.kdeconnect.device.notifications.notification.dismiss >/dev/null 2>&1
   done
-  rm -f "$CACHE_FILE"
   exit 0
-fi
-
-# Cache hit? Return cached data if fresh enough
-if [ -f "$CACHE_FILE" ]; then
-  now=$(date +%s)
-  mtime=$(stat -c %Y "$CACHE_FILE" 2>/dev/null)
-  age=$((now - mtime))
-  if [ "$age" -lt "$CACHE_TTL" ]; then
-    cat "$CACHE_FILE"
-    exit 0
-  fi
 fi
 
 # All paired devices (reachable or not); reachability derived from the
@@ -249,9 +233,5 @@ while IFS= read -r line; do
 done <<< "$devices"
 
 output="$output],\"anyConnected\":${anyConnected}}"
-
-# Write cache
-mkdir -p "$CACHE_DIR"
-echo "$output" > "$CACHE_FILE"
 
 echo "$output"

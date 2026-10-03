@@ -9,11 +9,16 @@ Rectangle {
     property Theme theme: Theme {}
     property var notifData: ({})
     property var notifTimes: ({})
+    property bool read: false
+    property bool unread: false
+    property var onDismissRequest: null
+    property var onMarkRead: null
 
     color: theme.color
     radius: 12
     border.color: theme.surface0
     border.width: 1
+    opacity: root.read ? 0.55 : 1.0
     height: content.implicitHeight + 20
         + (actionFlow.visible ? actionFlow.implicitHeight + 6 : 0)
 
@@ -30,7 +35,9 @@ Rectangle {
 
     function getNotifTime(id) {
         var t = notifTimes[id]
-        return t || 0
+        if (t) return t
+        if (notifData && notifData.timestamp) return notifData.timestamp
+        return 0
     }
 
     function actionLabel(action) {
@@ -68,7 +75,8 @@ Rectangle {
         }
         width: 4
         radius: 2
-        color: notifData && notifData.urgency === 2 ? theme.red : theme.surface1
+        color: root.unread ? theme.blue
+            : (notifData && notifData.urgency === 2 ? theme.red : theme.surface1)
         visible: true
     }
 
@@ -112,6 +120,15 @@ Rectangle {
                 Layout.fillWidth: true
                 spacing: 6
 
+                Rectangle {
+                    width: 8
+                    height: 8
+                    radius: 4
+                    color: theme.blue
+                    visible: root.unread
+                    Layout.alignment: Qt.AlignVCenter
+                }
+
                 Text {
                     id: appNameText
                     text: notifData && notifData.appName || "Unknown"
@@ -154,7 +171,8 @@ Rectangle {
                         anchors.margins: -6
                         cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        if (notifData && notifData.dismiss) notifData.dismiss()
+                        if (root.onDismissRequest) root.onDismissRequest()
+                        else if (notifData && notifData.dismiss) notifData.dismiss()
                     }
                     }
                 }
@@ -255,6 +273,18 @@ Rectangle {
                     }
                 }
             }
+        }
+    }
+
+    // Click anywhere on the card body (outside the × and action buttons) to
+    // mark it read. Live notifications keep .dismiss(); history rows use the
+    // supplied onDismissRequest instead.
+    MouseArea {
+        anchors.fill: parent
+        z: -1
+        cursorShape: root.onMarkRead ? Qt.PointingHandCursor : Qt.ArrowCursor
+        onClicked: {
+            if (root.onMarkRead) root.onMarkRead()
         }
     }
 
