@@ -19,14 +19,16 @@ Item {
 
     // DB row ids backing the live notifications, so history can skip them and
     // avoid showing the same notification twice (once live, once as history).
-    property var liveIds: (function() {
+    // NOTE: plain binding (not IIFE) so it re-evaluates whenever activeNotifs
+    // is reassigned (concat on add, slice on close/dismiss, reset on clearAll).
+    property var liveIds: {
         var m = {}
         var a = dataSource && dataSource.activeNotifs ? dataSource.activeNotifs : []
         for (var i = 0; i < a.length; i++)
             if (a[i] && a[i]._dbId !== undefined && a[i]._dbId !== null)
                 m[a[i]._dbId] = true
         return m
-    })()
+    }
 
     property var historyAll: dataSource && dataSource.history ? dataSource.history : []
     property var historyRows: root.historyAll.filter(function(r) {
@@ -433,7 +435,15 @@ Item {
     // ── helpers ────────────────────────────────────────────────
 
     function notificationGroupKey(notif) {
-        return notif.desktopEntry || notif.appName || notif.appIcon || "unknown"
+        // Normalize: desktopEntry is the stable id; bare appName varies in
+        // case/whitespace per sender ("Telegram" vs "telegram") and would
+        // split one app into several groups. appIcon is per-notification
+        // artwork, never a grouping key — last-resort fallback only.
+        var de = (notif.desktopEntry || "").trim().toLowerCase()
+        if (de) return de
+        var app = (notif.appName || "").trim().toLowerCase()
+        if (app) return app
+        return (notif.appIcon || "unknown")
     }
 
     function groupNotifications(notifs) {

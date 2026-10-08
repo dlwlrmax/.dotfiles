@@ -214,6 +214,15 @@ Item {
         property var activeNotifs: []
         property var notifTimes: ({})
         property var timesByKey: ({})
+        // Mirror-window for cross-app duplicates of the same message
+        // (e.g. Ferdium + KDE Connect WhatsApp relay): same sender + same
+        // message core arriving via two apps within mirrorWindowSec
+        // collapses to the first arrival. Sender linkage is required so
+        // unrelated identical texts never match.
+        // Null-prototype map: keys are message text, so a "__proto__" body
+        // must not touch the prototype.
+        property var mirrorTimes: Object.create(null)
+        property int mirrorWindowSec: 30
         property var history: []
         // Total unread = live (active) notifications + unread history rows that
         // are not already represented by a live entry. This is the bar badge's
@@ -290,6 +299,119 @@ Item {
             for (var k in m) if (m[k] < cutoffSec) delete m[k]
         }
 
+        // Entities are decoded for comparison only (display stays PlainText
+        // raw). Otherwise KDE's "&lt;br/&gt;" never equals Ferdium's "<br/>".
+        // Numeric/hex refs + &apos;/&nbsp; covered: relays emit those while
+        // desktop clients send the literal chars.
+        function mirrorDecodeEntities(s) {
+            return s.replace(/&#x([0-9a-fA-F]+);/g, function(m, h) { return String.fromCharCode(parseInt(h, 16)) })
+                .replace(/&#(\d+);/g, function(m, d) { return String.fromCharCode(parseInt(d, 10)) })
+                .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"").replace(/&#39;/g, "'").replace(/&apos;/g, "'").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&")
+        }
+
+        // Strip leading media markers the phone relay prepends after the
+        // sender prefix (photo/video/file thumbnails Ferdium does not add).
+        // /u so astral pictographs match as code points; \uFE0F so
+        // VS16-terminated markers (🖼️) strip fully instead of leaving FE0F.
+        function mirrorStripMedia(s) {
+            return s.replace(/^[📷🔗🎥🎙📄📹🖼🎞🎧📸\uFE0F]+\s*/u, "")
+        }
+
+        function mirrorSenderKey(s) {
+            return (s || "").toLowerCase()
+        }
+
+        // Normalized identity of a notification for mirror matching: the
+        // sender plus every plausible message core (full body, plus body
+        // minus a leading "sender: " prefix). Ferdium carries body=message
+        // while KDE carries body="sender: [emoji]message", so comparing
+        // both forms is what lets the pair meet.
+        function mirrorParts(notif) {
+            var sender = ((notif.summary || "").replace(/\s+/g, " ")).trim()
+            var body = mirrorDecodeEntities((notif.body || "").replace(/\s+/g, " ").trim())
+            // Null-prototype: keys are message text, and "__proto__" as a
+            // body would otherwise set the prototype instead of an entry.
+            var cores = Object.create(null)
+            var full = mirrorStripMedia(body)
+            if (full) cores[full] = true
+            var senderPart = ""
+            // 64 chars + \s*: long names and "Alice:hi" (no space) relays.
+            // False splits are harmless — sender linkage must still match.
+            var m = body.match(/^([^:]{1,64}):\s*([\s\S]+)$/)
+            if (m) {
+                senderPart = m[1].trim()
+                var rest = mirrorStripMedia(m[2].trim())
+                if (rest) cores[rest] = true
+            }
+            return { sender: sender, senderPart: senderPart, cores: cores }
+        }
+
+        function isMirror(notif) {
+            var p = mirrorParts(notif)
+            var now = Date.now() / 1000
+            var ps = mirrorSenderKey(p.sender)
+            var psp = mirrorSenderKey(p.senderPart)
+            for (var key in p.cores) {
+                // Per-core entry LIST: same text from different senders
+                // ("ok" from Alice, then "ok" from Bob) must not clobber.
+                var list = mirrorTimes[key]
+                if (!list) continue
+                for (var i = 0; i < list.length; i++) {
+                    var e = list[i]
+                    if (!e || now - e.t > mirrorWindowSec) continue
+                    if ((e.app || "") === (notif.appName || "")) continue
+                    // Case-folded: "Alice" (Ferdium) meets "alice" (relay).
+                    if ((e.senderL && (e.senderL === ps || (psp && e.senderL === psp)))
+                        || (ps && e.senderPartL && ps === e.senderPartL)) return true
+                }
+            }
+            return false
+        }
+
+        function rememberMirror(notif) {
+            var p = mirrorParts(notif)
+            // Senderless entries can never link — don't spend cap on them.
+            if (!p.sender && !p.senderPart) return
+            var t = Date.now() / 1000
+            var entry = { t: t, app: notif.appName || "", senderL: mirrorSenderKey(p.sender), senderPartL: mirrorSenderKey(p.senderPart) }
+            for (var key in p.cores) {
+                var list = mirrorTimes[key]
+                if (!list) { list = []; mirrorTimes[key] = list }
+                list.push(entry)
+            }
+            pruneMirror(t)
+        }
+
+        function pruneMirror(now) {
+            var keys = Object.keys(mirrorTimes)
+            var total = 0
+            var i, j, l
+            for (i = 0; i < keys.length; i++) {
+                l = mirrorTimes[keys[i]]
+                for (j = l.length - 1; j >= 0; j--) if (now - l[j].t > mirrorWindowSec) l.splice(j, 1)
+                if (!l.length) delete mirrorTimes[keys[i]]
+                else total += l.length
+            }
+            // Expiry alone can't bound a fresh-message flood: drop oldest
+            // first past the cap instead of growing without bound.
+            if (total > 300) {
+                var all = []
+                keys = Object.keys(mirrorTimes)
+                for (i = 0; i < keys.length; i++) {
+                    l = mirrorTimes[keys[i]]
+                    for (j = 0; j < l.length; j++) all.push({ k: keys[i], e: l[j] })
+                }
+                all.sort(function(a, b) { return a.e.t - b.e.t })
+                for (i = 0; i < all.length - 250; i++) {
+                    l = mirrorTimes[all[i].k]
+                    if (!l) continue
+                    var idx = l.indexOf(all[i].e)
+                    if (idx >= 0) l.splice(idx, 1)
+                    if (!l.length) delete mirrorTimes[all[i].k]
+                }
+            }
+        }
+
         function handleNotification(notif) {
             if (dnd) return
             if (isContentless(notif)) return
@@ -306,8 +428,18 @@ Item {
                 return
             }
 
+            // Cross-app mirror (Ferdium + KDE Connect relay of the same
+            // message): same sender + same core within mirrorWindowSec from
+            // a different app collapses to the first arrival. Dropped here
+            // means no popup, no sound, no DB row for the duplicate.
+            if (isMirror(notif)) {
+                notif.tracked = false
+                return
+            }
+
             notif.tracked = true
             addNotifTime(notif)
+            rememberMirror(notif)
             activeNotifs = activeNotifs.concat([notif])
             count = activeNotifs.length
             tryPlaySound()
