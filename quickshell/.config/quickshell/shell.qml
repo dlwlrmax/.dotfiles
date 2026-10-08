@@ -146,14 +146,6 @@ ShellRoot {
             property var screenData: modelData
             property Theme theme: Theme {}
 
-            // Toasts must render on ONE screen only: without this every monitor
-            // mirrors the same notification. Gate popup + signal handling to the
-            // Hyprland-focused monitor (Bar toggle paths already use screenData).
-            // Fallback to the primary screen while Hyprland state is unavailable.
-            readonly property bool _focusedScreen: Hyprland.focusedMonitor === null
-                ? screenScope.screenData === Quickshell.screens[0]
-                : Hyprland.monitorFor(screenScope.screenData) === Hyprland.focusedMonitor
-
             PanelWindow {
                 screen: screenScope.screenData
                 anchors.top: true
@@ -242,14 +234,12 @@ ShellRoot {
                 }
             }
 
-            // Notification popup window (toast-style, appears below bar)
-            // Top anchor + margin pushes stack below bar; horizontal center keeps it centered.
+            // Toasts mirror on ALL screens (per user preference).
             PanelWindow {
                 screen: screenScope.screenData
                 anchors.top: true
                 color: "transparent"
                 exclusionMode: ExclusionMode.Ignore
-                visible: screenScope._focusedScreen
                 implicitWidth: 440
                 implicitHeight: notifPopupItem.implicitHeight > 0 ? notifPopupItem.implicitHeight + 60 : 0
                 WlrLayershell.layer: WlrLayer.Overlay
@@ -269,7 +259,6 @@ ShellRoot {
 
                 Connections {
                     target: dp.notifData
-                    enabled: screenScope._focusedScreen
                     function onNewNotification(notif) {
                         notifPopupItem.onNotification(notif)
                     }
