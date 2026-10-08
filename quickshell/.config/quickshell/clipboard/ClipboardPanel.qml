@@ -73,8 +73,10 @@ Item {
 
     function copyEntry(entry) {
         if (!entry) return
+        var id = String(entry.id)
+        if (!/^[0-9]+$/.test(id)) return
         Quickshell.execDetached({
-            command: ["bash", "-c", "cliphist decode " + entry.id + " | wl-copy"]
+            command: ["bash", "-c", 'cliphist decode "$1" | wl-copy', "_", id]
         })
         close()
     }

@@ -100,5 +100,7 @@ if [ "$cpu_temp" -eq 0 ] && [ -r /sys/class/thermal/thermal_zone0/temp ]; then
 fi
 
 # --- JSON output ---
-printf '{"cpu":%d,"ram":%d,"swap":%d,"gpu":%d,"cpu_temp":%d}\n' \
-    "$cpu_usage" "$ram_usage" "$swap_usage" "$gpu" "$cpu_temp"
+# gpu_freq is extra (ignored by the Bar) so the SysUsagePanel fallback path can
+# reuse this single shell implementation without a second CPU/GPU cache impl.
+printf '{"cpu":%d,"ram":%d,"swap":%d,"gpu":%d,"gpu_freq":%d,"cpu_temp":%d}\n' \
+    "$cpu_usage" "$ram_usage" "$swap_usage" "$gpu" "$gpu_freq" "$cpu_temp"

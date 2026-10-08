@@ -25,6 +25,7 @@ Item {
     property var _recentMap: ({})  // id → timestamp for O(1) lookup
     property bool _suppressFilter: false
     property string _pendingFingerprint: ""  // hash captured by --fingerprint for the next full refresh
+    property int loadTries: 0  // bounded retries while the app list is still empty
 
     // ── load .desktop entries (SQLite cache + fingerprint refresh) ──
 
@@ -91,16 +92,16 @@ Item {
         }
     }
 
+    // Only poll while this panel's screen is the active one, so closed panels
+    // (and screens the panel was never opened on) never hit the DB/script.
+    // loadTimer gives up after 30 tries (~60s) if the app list stays empty.
     Timer {
         id: loadTimer
         interval: 2000
         repeat: true
-        running: true
+        running: root.active && root.allEntries.length === 0 && root.loadTries < 30
         onTriggered: {
-            if (root.allEntries.length > 0) {
-                running = false
-                return
-            }
+            root.loadTries++
             root.loadEntries()
         }
     }
@@ -109,7 +110,7 @@ Item {
         id: refreshTimer
         interval: 300000
         repeat: true
-        running: true
+        running: root.active
         onTriggered: loadEntries()
     }
 
@@ -232,12 +233,126 @@ Item {
         selectedIndex = 0
     }
 
+    // Parse a freedesktop.org Exec= string into an argv array without invoking
+    // a shell. Respects single/double quotes and backslash escapes, expands %%
+    // to %, drops URL/file/other field codes, and substitutes %c (app name) /
+    // %k (desktop file path) when available, otherwise drops them.
+    function parseXdgExec(exec, entry) {
+        var argv = []
+        if (!exec) return argv
+        var i = 0
+        var n = exec.length
+        var arg = ""
+        var hasArg = false
+        var inSingle = false
+        var inDouble = false
+
+        function flush() {
+            if (hasArg) {
+                argv.push(arg)
+                arg = ""
+                hasArg = false
+            }
+        }
+
+        while (i < n) {
+            var c = exec.charAt(i)
+
+            if (inSingle) {
+                if (c === "'") {
+                    inSingle = false
+                } else {
+                    arg += c
+                }
+                hasArg = true
+                i++
+                continue
+            }
+
+            if (inDouble) {
+                if (c === "\\" && i + 1 < n) {
+                    arg += exec.charAt(i + 1)
+                    hasArg = true
+                    i += 2
+                    continue
+                }
+                if (c === '"') {
+                    inDouble = false
+                } else {
+                    arg += c
+                }
+                hasArg = true
+                i++
+                continue
+            }
+
+            if (c === "\\" && i + 1 < n) {
+                arg += exec.charAt(i + 1)
+                hasArg = true
+                i += 2
+                continue
+            }
+
+            if (c === "'") {
+                inSingle = true
+                hasArg = true
+                i++
+                continue
+            }
+
+            if (c === '"') {
+                inDouble = true
+                hasArg = true
+                i++
+                continue
+            }
+
+            if (c === " " || c === "\t" || c === "\n") {
+                flush()
+                i++
+                continue
+            }
+
+            if (c === "%") {
+                var code = exec.charAt(i + 1)
+                if (code === "%") {
+                    arg += "%"
+                    hasArg = true
+                } else if (code === "c") {
+                    if (entry && entry.name) {
+                        arg += entry.name
+                        hasArg = true
+                    }
+                } else if (code === "f" || code === "F" || code === "u" || code === "U"
+                        || code === "d" || code === "D" || code === "n" || code === "N"
+                        || code === "i" || code === "v" || code === "m" || code === "k") {
+                    // Field codes with no local substitution: drop.
+                } else {
+                    arg += c
+                    hasArg = true
+                    i++
+                    continue
+                }
+                i += 2
+                continue
+            }
+
+            arg += c
+            hasArg = true
+            i++
+        }
+        flush()
+        return argv
+    }
+
     function launch(entry) {
         if (!entry) return
+        var argv = parseXdgExec(entry.exec || "", entry)
+        if (argv.length === 0) return
+        if (entry.terminal) argv = ["foot", "-e"].concat(argv)
         root.markRecent(entry.id)
-        var exec = entry.exec.replace(/%[UfFuUdDnNickvm]/g, '').trim()
         Quickshell.execDetached({
-            command: ["bash", "-c", exec],
+            command: argv,
             workingDirectory: Quickshell.env("HOME")
         })
         appLaunched()
@@ -348,6 +463,7 @@ Item {
             query = ""
             selectedIndex = 0
             root.searchMode = true  // start in insert mode
+            root.loadTries = 0      // allow a fresh bounded retry window
             loadEntries()
             Qt.callLater(function () {
                 searchField.forceActiveFocus()

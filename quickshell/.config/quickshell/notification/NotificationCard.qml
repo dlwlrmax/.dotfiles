@@ -22,17 +22,6 @@ Rectangle {
     height: content.implicitHeight + 20
         + (actionFlow.visible ? actionFlow.implicitHeight + 6 : 0)
 
-    function unescapeHtml(text) {
-        if (!text) return ""
-        return text.replace(/&amp;/g, '&')
-                   .replace(/&lt;/g, '<')
-                   .replace(/&gt;/g, '>')
-                   .replace(/&quot;/g, '"')
-                   .replace(/&#39;/g, "'")
-                   .replace(/&#x27;/g, "'")
-                   .replace(/&#x2F;/g, '/')
-    }
-
     function getNotifTime(id) {
         var t = notifTimes[id]
         if (t) return t
@@ -180,7 +169,7 @@ Rectangle {
 
             Text {
                 id: summaryText
-                text: root.unescapeHtml(notifData && notifData.summary || "")
+                text: notifData && notifData.summary || ""
                 color: theme.text
                 font.pixelSize: theme.fontSize
                 font.family: theme.font
@@ -190,7 +179,7 @@ Rectangle {
                 elide: Text.ElideRight
                 clip: true
                 visible: !!(notifData && notifData.summary) && notifData.summary.length > 0
-                textFormat: Text.RichText
+                textFormat: Text.PlainText
 
                 MouseArea {
                     id: summaryHover
@@ -206,7 +195,7 @@ Rectangle {
 
             Text {
                 id: bodyText
-                text: root.unescapeHtml(notifData && notifData.body || "")
+                text: notifData && notifData.body || ""
                 color: theme.subtext0
                 font.pixelSize: theme.fontSize - 2
                 font.family: theme.font
@@ -216,7 +205,7 @@ Rectangle {
                 elide: Text.ElideRight
                 clip: true
                 visible: !!(notifData && notifData.body) && notifData.body.length > 0
-                textFormat: Text.RichText
+                textFormat: Text.PlainText
 
                 MouseArea {
                     id: bodyHover

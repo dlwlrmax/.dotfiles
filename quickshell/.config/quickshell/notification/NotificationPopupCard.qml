@@ -34,14 +34,6 @@ Rectangle {
     width: 400
     height: cardLayout.implicitHeight + 20
 
-    function unescapeHtml(text) {
-        if (!text) return ""
-        return text.replace(/&amp;/g, '&').replace(/&lt;/g, '<')
-                   .replace(/&gt;/g, '>').replace(/&quot;/g, '"')
-                   .replace(/&#39;/g, "'").replace(/&#x27;/g, "'")
-                   .replace(/&#x2F;/g, '/')
-    }
-
     function formatTime(unixEpoch) {
         if (!unixEpoch) return ""
         var d = new Date(unixEpoch * 1000)
@@ -219,13 +211,14 @@ Rectangle {
                     Layout.fillWidth: true
                 }
                 Text {
-                    text: root.latest ? root.unescapeHtml(root.latest.summary || root.latest.body || "") : ""
+                    text: root.latest ? (root.latest.summary || root.latest.body || "") : ""
                     color: theme.subtext0
                     font.pixelSize: theme.fontSize - 2
                     font.family: theme.font
                     elide: Text.ElideRight
                     maximumLineCount: 1
                     Layout.fillWidth: true
+                    textFormat: Text.PlainText
                 }
             }
 
@@ -266,13 +259,14 @@ Rectangle {
         Text {
             Layout.fillWidth: true
             visible: root.latest && root.latest.body && root.latest.summary
-            text: root.latest ? root.unescapeHtml(root.latest.body || "") : ""
+            text: root.latest ? (root.latest.body || "") : ""
             color: theme.text
             font.pixelSize: theme.fontSize - 2
             font.family: theme.font
             maximumLineCount: 2
             elide: Text.ElideRight
             wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+            textFormat: Text.PlainText
         }
 
         ColumnLayout {
@@ -294,12 +288,13 @@ Rectangle {
                         anchors.right: closeText.left
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.margins: 6
-                        text: root.unescapeHtml(modelData.summary || modelData.body || "")
+                        text: modelData.summary || modelData.body || ""
                         color: theme.subtext0
                         font.pixelSize: theme.fontSize - 3
                         font.family: theme.font
                         maximumLineCount: 2
                         elide: Text.ElideRight
+                        textFormat: Text.PlainText
                     }
                     Text {
                         id: closeText

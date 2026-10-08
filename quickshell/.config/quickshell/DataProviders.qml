@@ -91,7 +91,7 @@ Item {
 
         Process {
             id: fetchProc
-            command: ["bash", theme.scriptDir + "/kdeconnect.sh"]
+            command: [theme.scriptDir + "/kdeconnect.sh"]
 
             stdout: StdioCollector {
                 onStreamFinished: {
@@ -135,16 +135,18 @@ Item {
                 if (devId && dev.id !== devId) continue
                 var notifs = dev.notifications || []
                 var kept = []
+                var devChanged = false
                 for (var i = 0; i < notifs.length; i++) {
                     if (notifs[i].id !== nid) kept.push(notifs[i])
-                    else { changed = true; stampSuppressed(nid) }
+                    else { devChanged = true; stampSuppressed(nid) }
                 }
-                if (changed) {
+                if (devChanged) {
                     var copy = {}
                     for (var k in dev) copy[k] = dev[k]
                     copy.notifications = kept
                     copy.notifCount = kept.length
                     devs = devs.slice(0, d).concat([copy]).concat(devs.slice(d + 1))
+                    changed = true
                 }
             }
             if (changed) {
@@ -164,16 +166,18 @@ Item {
                 if (devId && dev.id !== devId) continue
                 var notifs = dev.notifications || []
                 var kept = []
+                var devChanged = false
                 for (var i = 0; i < notifs.length; i++) {
                     if (!notifs[i].dismissable) kept.push(notifs[i])
-                    else { changed = true; stampSuppressed(notifs[i].id) }
+                    else { devChanged = true; stampSuppressed(notifs[i].id) }
                 }
-                if (changed) {
+                if (devChanged) {
                     var copy = {}
                     for (var k in dev) copy[k] = dev[k]
                     copy.notifications = kept
                     copy.notifCount = kept.length
                     devs = devs.slice(0, d).concat([copy]).concat(devs.slice(d + 1))
+                    changed = true
                 }
             }
             if (changed) {
@@ -247,18 +251,26 @@ Item {
         // then dispatched once timesLoaded flips true so boot-time notifs are not lost.
         onTimesLoadedChanged: if (timesLoaded) flushPending()
 
+        // Ask the server to close the live notification so activeNotifs
+        // actually shrinks for apps that never emit CloseNotification on their
+        // own. dismiss() is idempotent, so it is safe when the server already
+        // auto-expired the entry. DB state (read/history) is untouched here.
         function requestDismissPopup(notifId) {
+            var arr = activeNotifs
+            for (var i = 0; i < arr.length; i++) {
+                if (arr[i] && arr[i].id === notifId) {
+                    arr[i].dismiss()
+                    break
+                }
+            }
             dismissPopup(notifId)
         }
 
-        function notifHash(notif) {
-            var s = (notif.appName || "") + "|" + (notif.summary || "") + "|" + (notif.body || "")
-            var h = 0
-            for (var i = 0; i < s.length; i++) {
-                h = ((h << 5) - h) + s.charCodeAt(i)
-                h |= 0
-            }
-            return "" + h
+        // Dedup key: the full (appName, summary, body) tuple. The previous
+        // 32-bit hash collided across distinct notifications and silently
+        // dropped real ones inside the 5s startup window.
+        function notifKey(notif) {
+            return (notif.appName || "") + "|" + (notif.summary || "") + "|" + (notif.body || "")
         }
 
         // Some clients emit contentless Notify calls (no app name, summary,
@@ -287,7 +299,7 @@ Item {
                 return
             }
 
-            var key = notifHash(notif)
+            var key = notifKey(notif)
             if (timesByKey[key] !== undefined
                 && Date.now() - startupTime < 5000) {
                 notif.tracked = false
@@ -326,7 +338,7 @@ Item {
         }
 
         function addNotifTime(notif) {
-            var key = notifHash(notif)
+            var key = notifKey(notif)
             var t = Date.now() / 1000
             notifTimes[notif.id] = t
             timesByKey[key] = t
@@ -380,13 +392,7 @@ Item {
             var map = {}
             for (var i = 0; i < data.length; i++) {
                 var d = data[i]
-                var s = (d.appName || "") + "|" + (d.summary || "") + "|" + (d.body || "")
-                var h = 0
-                for (var j = 0; j < s.length; j++) {
-                    h = ((h << 5) - h) + s.charCodeAt(j)
-                    h |= 0
-                }
-                map["" + h] = d.timestamp || 0
+                map[notifData.notifKey(d)] = d.timestamp || 0
             }
             notifData.timesByKey = map
             console.log("notifData: loaded", data.length, "saved notifs,", Object.keys(map).length, "timestamps")
@@ -452,7 +458,7 @@ Item {
 
         Process {
             id: soundProc
-            command: ["bash", theme.scriptDir + "/notification-sound.sh"]
+            command: [theme.scriptDir + "/notification-sound.sh"]
         }
 
         function tryPlaySound() {
@@ -472,10 +478,11 @@ Item {
         property int swapUsage: 0
         property int gpuUsage: 0
         property int cpuTemp: 0
+        property bool _parseWarned: false
 
         Process {
             id: sysFetchProc
-            command: ["bash", theme.scriptDir + "/sys-data.sh"]
+            command: [Quickshell.env("HOME") + "/.cargo/bin/sys-stats"]
 
             stdout: StdioCollector {
                 onStreamFinished: {
@@ -486,7 +493,17 @@ Item {
                         if (!isNaN(data.swap)) cpuData.swapUsage = data.swap;
                         if (!isNaN(data.gpu)) cpuData.gpuUsage = data.gpu;
                         if (!isNaN(data.cpu_temp)) cpuData.cpuTemp = data.cpu_temp;
-                    } catch (e) {}
+                    } catch (e) {
+                        // Warn once per failure mode instead of spamming every
+                        // 2s poll. Include the raw payload (truncated) so a bad
+                        // sys-stats build is diagnosable.
+                        if (!cpuData._parseWarned) {
+                            cpuData._parseWarned = true
+                            var raw = this.text ? this.text.trim() : ""
+                            if (raw.length > 120) raw = raw.substring(0, 120) + "..."
+                            console.warn("cpuData: sys-stats JSON parse failed:", e, "raw:", raw)
+                        }
+                    }
                 }
             }
         }
@@ -511,7 +528,7 @@ Item {
 
         Process {
             id: netFetchProc
-            command: ["bash", theme.scriptDir + "/net-data.sh"]
+            command: [Quickshell.env("HOME") + "/.cargo/bin/net-stats"]
 
             stdout: StdioCollector {
                 onStreamFinished: {
@@ -554,7 +571,7 @@ Item {
 
         Process {
             id: weatherFetchProc
-            command: ["bash", theme.scriptDir + "/weather.sh"]
+            command: [theme.scriptDir + "/weather.sh"]
 
             stdout: StdioCollector {
                 onStreamFinished: {
@@ -590,18 +607,25 @@ Item {
         property string defaultSink: ""
         property var _notifyCmd: []
         property var _pendingNotifyCmd: []
+        // True while an explicit cycleSink() is in flight. Suppresses the poll's
+        // sink-change notify so a cycle never produces two popups (the script
+        // already notifies itself once).
+        property bool _cycling: false
 
         function refresh() {
             if (!volumeFetchProc.running) volumeFetchProc.running = true;
         }
 
         function cycleSink() {
-            if (!cycleProc.running) cycleProc.running = true;
+            if (!cycleProc.running) {
+                volumeData._cycling = true
+                cycleProc.running = true
+            }
         }
 
         Process {
             id: volumeFetchProc
-            command: ["bash", theme.scriptDir + "/volume-status.sh"]
+            command: [theme.scriptDir + "/volume-status.sh"]
 
             stdout: StdioCollector {
                 onStreamFinished: {
@@ -617,8 +641,9 @@ Item {
                         // Notify on external switches too (panel/hotkey/Bluetooth).
                         // Cycle path notifies itself immediately; poll catches the rest.
                         if (volumeData.defaultSink !== "" && sink !== ""
-                            && sink !== volumeData.defaultSink && sink !== "none") {
-                            var notifyCmd = ["bash", theme.scriptDir + "/audio-notify.sh", sink];
+                            && sink !== volumeData.defaultSink && sink !== "none"
+                            && !volumeData._cycling) {
+                            var notifyCmd = [theme.scriptDir + "/audio-notify.sh", sink];
                             if (!switchNotifyProc.running) {
                                 volumeData._notifyCmd = notifyCmd;
                                 switchNotifyProc.running = true;
@@ -634,16 +659,22 @@ Item {
 
         Process {
             id: cycleProc
-            command: ["bash", theme.scriptDir + "/audio-cycle.sh"]
+            command: [theme.scriptDir + "/audio-cycle.sh"]
             stdout: StdioCollector {
                 onStreamFinished: {
                     // Script notifies itself; sync baseline so the 5s poll stays silent
                     var sink = this.text.trim().split("\n").filter(function (l) { return l !== ""; }).pop() || "";
                     if (sink !== "") volumeData.defaultSink = sink;
+                    volumeData._cycling = false;
                 }
             }
             onRunningChanged: {
-                if (!running) volumeData.refresh();
+                if (!running) {
+                    // Stream handler normally ran already and synced the
+                    // baseline; only clear the gate here if there was no output.
+                    if (volumeData._cycling) volumeData._cycling = false;
+                    volumeData.refresh();
+                }
             }
         }
 
@@ -706,7 +737,7 @@ Item {
 
         Process {
             id: batteryFetchProc
-            command: ["bash", theme.scriptDir + "/battery.sh"]
+            command: [theme.scriptDir + "/battery.sh"]
 
             stdout: StdioCollector {
                 onStreamFinished: {

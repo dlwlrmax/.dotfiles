@@ -152,6 +152,10 @@ QtObject {
                  e.appIcon || "", e.desktopEntry || "", e.expireTimeout || 0,
                  actions, e.timestamp || 0, 0])
             id = rs.insertId
+            // 7-day TTL: drop stale rows so history cannot grow unbounded on
+            // machines that rarely clear. timestamp is epoch seconds.
+            tx.executeSql("DELETE FROM notifications WHERE timestamp < "
+                + "CAST(strftime('%s','now','-7 days') AS INTEGER)")
             tx.executeSql("DELETE FROM notifications WHERE id NOT IN "
                 + "(SELECT id FROM notifications ORDER BY id DESC LIMIT " + _notifCap + ")")
         })

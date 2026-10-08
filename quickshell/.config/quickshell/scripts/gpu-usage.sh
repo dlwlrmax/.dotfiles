@@ -2,7 +2,8 @@
 # Calculate GPU usage — supports Intel (RC6 residency) and AMD (gpu_busy_percent)
 # Output: BUSY_PCT FREQ_MHZ
 
-CACHE_FILE="${XDG_RUNTIME_DIR:-/tmp}/quickshell-gpu-cache"
+# Unified GPU RC6 cache shared with sys-stats.sh (same "rc6 wall_us" format).
+CACHE_FILE="${XDG_RUNTIME_DIR:-/tmp}/quickshell-sysstats-gpu-cache"
 
 # ── Intel GPU: use RC6 residency delta across polls (no sleep) ──
 for card in 0 1 2; do

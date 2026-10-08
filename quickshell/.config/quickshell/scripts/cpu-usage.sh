@@ -2,7 +2,9 @@
 # Calculate CPU usage percentage from /proc/stat using cached delta
 # No sleep needed — stores prev sample in cache, diffs on next call
 
-CACHE_FILE="${XDG_RUNTIME_DIR:-/tmp}/quickshell-cpu-cache"
+# Unified CPU delta cache shared by every shell sys-stats impl (Bar + panels);
+# the rust sys-stats binary has its own cache and is preferred when present.
+CACHE_FILE="${XDG_RUNTIME_DIR:-/tmp}/quickshell-sysstats-cpu-cache"
 
 read -r _ user nice system idle iowait irq softirq steal _ < /proc/stat
 curr_idle=$((idle + iowait))

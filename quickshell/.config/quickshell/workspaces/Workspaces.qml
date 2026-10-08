@@ -63,10 +63,12 @@ Row {
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
                     if (_switching) return
+                    var id = wsDelegate.modelData.id
+                    if (!Number.isInteger(id)) return
                     _switching = true
                     wsSwitch.command = [
                         "hyprctl", "eval",
-                        "hl.dispatch(hl.dsp.focus({ workspace = " + wsDelegate.modelData.id + " }))"
+                        "hl.dispatch(hl.dsp.focus({ workspace = " + id + " }))"
                     ];
                     wsSwitch.startDetached();
                     wsGuardTimer.restart()

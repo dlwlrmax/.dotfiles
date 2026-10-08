@@ -7,6 +7,7 @@ import qs.common
 Item {
     id: root
     property Theme theme: Theme {}
+    property bool active: false
     property int ramPct: 0
     property int swapPct: 0
     signal togglePanel()
@@ -67,9 +68,12 @@ Item {
         }
     }
 
+    // Only poll while explicitly activated. This standalone widget is currently
+    // unused (Bar renders cpu/Cpu.qml); leaving it always-on caused a dead 2s
+    // mem-apps.sh poll. Matches the active-gated sibling SysUsagePanel.
     Timer {
         interval: 2000
-        running: true
+        running: root.active
         repeat: true
         triggeredOnStart: true
         onTriggered: fetchProc.running = true

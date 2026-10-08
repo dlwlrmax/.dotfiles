@@ -1,116 +1,60 @@
 #!/bin/bash
-# Combined CPU + GPU + RAM + Swap stats, outputs JSON
-# Uses separate CPU cache to avoid clashing with bar widget polling
+# Rich system usage for SysUsagePanel: base stats + memory totals + top processes.
+#
+# The base stats (cpu/gpu/gpu_freq/ram/swap/cpu_temp) come from the SAME source
+# the Bar uses, so Bar (2s) and panel (2s) never run competing CPU impls:
+#   - rust ~/.cargo/bin/sys-stats binary when present (shared cache), else
+#   - sys-stats.sh (single unified shell impl + quickshell-sysstats-* caches).
+#
+# Panel-only fields (ram_total/ram_used/swap_total/swap_used/gpu_available and
+# top_processes) are appended here. Output JSON keys are unchanged for QML.
 set -euo pipefail
 
-# --- CPU: delta from /proc/stat, separate cache file ---
-RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp}"
-CPU_CACHE="$RUNTIME_DIR/quickshell-sysusage-cpu-cache"
-GPU_CACHE="$RUNTIME_DIR/quickshell-sysusage-gpu-cache"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BIN="$HOME/.cargo/bin/sys-stats"
 
-read -r _ user nice system idle iowait irq softirq steal _ < /proc/stat
-curr_idle=$((idle + iowait))
-curr_total=$((user + nice + system + idle + iowait + irq + softirq + steal))
-
-if [ -f "$CPU_CACHE" ]; then
-    read -r prev_idle prev_total < "$CPU_CACHE"
-    delta_idle=$((curr_idle - prev_idle))
-    delta_total=$((curr_total - prev_total))
-    [ "$delta_total" -gt 0 ] && cpu=$((100 * (delta_total - delta_idle) / delta_total)) || cpu=0
-else
-    cpu=0
+# --- Base stats: prefer the rust binary, fall back to the shell impl ---
+base=""
+if [ -x "$BIN" ]; then
+    base=$("$BIN" 2>/dev/null) || base=""
 fi
-echo "$curr_idle $curr_total" > "$CPU_CACHE"
-
-# --- GPU: Intel RC6 residency or AMD gpu_busy_percent ---
-gpu=0
-gpu_freq=0
-gpu_found=false
-gpu_available=0
-
-# Intel
-for card in 0 1 2; do
-    GT="/sys/class/drm/card${card}/gt/gt0"
-    if [ -f "$GT/rc6_residency_ms" ]; then
-        rc6=$(cat "$GT/rc6_residency_ms" 2>/dev/null) || rc6=0
-        wall=$(awk '{printf "%d", $1*1000}' /proc/uptime)
-        if [ -f "$GPU_CACHE" ]; then
-            read -r prev_rc6 prev_wall < "$GPU_CACHE"
-            drc6=$((rc6 - prev_rc6))
-            dwall=$((wall - prev_wall))
-            if [ "$drc6" -ge 0 ] && [ "$dwall" -gt 0 ] && [ "$drc6" -le "$dwall" ]; then
-                gpu=$((100 * (dwall - drc6) / dwall))
-            fi
-        fi
-        echo "$rc6 $wall" > "$GPU_CACHE"
-        gpu_freq=$(cat "$GT/rps_act_freq_mhz" 2>/dev/null) || gpu_freq=0
-        gpu_found=true
-        gpu_available=1
-        break
-    fi
-done
-
-# AMD (only if Intel not found)
-if ! $gpu_found; then
-    for card in 0 1 2; do
-        DEV="/sys/class/drm/card${card}/device"
-        BUSY="$DEV/gpu_busy_percent"
-        if [ -f "$BUSY" ]; then
-            gpu=$(cat "$BUSY" 2>/dev/null) || gpu=0
-            for hwmon in "$DEV"/hwmon/hwmon*; do
-                if [ -f "$hwmon/freq1_input" ]; then
-                    gpu_freq=$(($(cat "$hwmon/freq1_input") / 1000000))
-                    break
-                fi
-            done
-            gpu_available=1
-            break
-        fi
-    done
+if [ -z "$base" ]; then
+    base=$(bash "$SCRIPT_DIR/sys-stats.sh")
 fi
+# Drop the closing brace so panel-only fields can be appended.
+base="${base%\}}"
 
-# --- RAM + Swap ---
+# --- Memory totals (MB) ---
 read -r ram_total ram_used ram_avail swap_total swap_used <<< "$(free -k | awk '
   /^Mem:/  {ram_total=$2; ram_used=$3; ram_avail=$7}
   /^Swap:/ {swap_total=$2; swap_used=$3}
   END {print ram_total, ram_used, ram_avail, swap_total, swap_used}
 ')"
-
-ram=$((100 * ram_used / ram_total))
 ram_total_mb=$((ram_total / 1024))
 ram_used_mb=$((ram_used / 1024))
-
 if [ "$swap_total" -gt 0 ]; then
-    swap=$((100 * swap_used / swap_total))
     swap_total_mb=$((swap_total / 1024))
     swap_used_mb=$((swap_used / 1024))
 else
-    swap=0
     swap_total_mb=0
     swap_used_mb=0
 fi
 
-# --- CPU temperature (millidegrees → °C) ---
-cpu_temp=0
-for hw in /sys/class/hwmon/hwmon*; do
-    label=$(cat "$hw/temp1_label" 2>/dev/null || true)
-    case "$label" in
-        *[Cc]pu*|*[Pp]ackage*|*[Tt]ctl*|*[Tt]die*|*[Cc]ore*)
-            cpu_temp=$(( $(cat "$hw/temp1_input" 2>/dev/null || echo 0) / 1000 ))
-            break
-            ;;
-    esac
+# --- GPU availability (same sysfs detection as the shell base impl) ---
+gpu_available=0
+for card in 0 1 2; do
+    if [ -f "/sys/class/drm/card${card}/gt/gt0/rc6_residency_ms" ] \
+        || [ -f "/sys/class/drm/card${card}/device/gpu_busy_percent" ]; then
+        gpu_available=1
+        break
+    fi
 done
-if [ "$cpu_temp" -eq 0 ] && [ -r /sys/class/thermal/thermal_zone0/temp ]; then
-    cpu_temp=$(( $(cat /sys/class/thermal/thermal_zone0/temp) / 1000 ))
-fi
 
-# --- JSON output ---
-printf '{"cpu":%d,"gpu":%d,"gpu_freq":%d,"gpu_available":%d,"ram":%d,"ram_total":%d,"ram_used":%d,"swap":%d,"swap_total":%d,"swap_used":%d,"cpu_temp":%d' \
-    "$cpu" "$gpu" "$gpu_freq" "$gpu_available" "$ram" "$ram_total_mb" "$ram_used_mb" "$swap" "$swap_total_mb" "$swap_used_mb" "$cpu_temp"
+# --- Base + panel totals ---
+printf '%s,"ram_total":%d,"ram_used":%d,"swap_total":%d,"swap_used":%d,"gpu_available":%d,"top_processes":[' \
+    "$base" "$ram_total_mb" "$ram_used_mb" "$swap_total_mb" "$swap_used_mb" "$gpu_available"
 
 # --- Top 10 CPU processes ---
-echo -n ',"top_processes":['
 ps -eo comm:50,pcpu,rss --sort=-pcpu --no-headers 2>/dev/null | awk '
 {
     # last field = rss, second-to-last = pcpu, rest = name
@@ -125,7 +69,7 @@ ps -eo comm:50,pcpu,rss --sort=-pcpu --no-headers 2>/dev/null | awk '
     if (length(name) < 2) next
     rss_mb = int(rss / 1024)
     printf "%s{\"name\":\"%s\",\"cpu\":\"%s\",\"ram\":%d}",
-           (NR > 1 ? "," : ""), name, pcpu, rss_mb
-    if (NR >= 10) exit
+           (n++ ? "," : ""), name, pcpu, rss_mb
+    if (n >= 10) exit
 }'
 echo ']}'

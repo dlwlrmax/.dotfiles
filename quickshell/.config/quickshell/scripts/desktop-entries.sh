@@ -12,6 +12,8 @@ LOCALE_TAG="${LOCALE_TAG%%.*}"   # e.g. vi_VN.UTF-8 -> vi_VN
 # Escape a string for embedding in a JSON string value
 json_escape() {
   local s="${1-}"
+  # Strip control chars that break JSON, keeping \n \r \t \b \f (escaped below).
+  s="${s//[$'\001'-$'\007'$'\013'$'\016'-$'\037']/}"
   s="${s//\\/\\\\}"
   s="${s//\"/\\\"}"
   s="${s//$'\n'/\\n}"
@@ -85,6 +87,8 @@ for base in "${DIRS[@]}"; do
     terminal="false"
 
     while IFS= read -r line; do
+      # Bash-only stop at the first [Desktop Action ...] group (no sed fork).
+      if [[ "$line" == "[Desktop Action"* ]]; then break; fi
       [[ "$line" == *=* ]] || continue
       key="${line%%=*}"
       val="${line#*=}"
@@ -110,7 +114,7 @@ for base in "${DIRS[@]}"; do
         NoDisplay)     noDisplay="$val" ;;
         Terminal)      terminal="$val" ;;
       esac
-    done < <(sed '/^\[Desktop Action/,$d' "$file" 2>/dev/null || true)
+    done < "$file"
 
     # normalize booleans to JSON true/false (empty or unset -> false)
     case "${noDisplay,,}" in true) noDisplay=true ;; *) noDisplay=false ;; esac

@@ -2,236 +2,334 @@
 # Fetch KDE Connect device status
 # Output: JSON with device list + battery + signal + notifications
 # {"devices":[{"id":"...","name":"...","battery":51,"charging":false,"reachable":true,"signal":4,"networkType":"LTE","notifCount":3,"notifications":[{"appName":"...","title":"...","text":"...","dismissable":true,"replyId":"...","isConversation":false}]}],"anyConnected":true}
+#
+# All collection happens in ONE embedded python3 process via dbus-python:
+#   - no per-device / per-notification dbus-send + timeout forks
+#   - no per-field python3 json_escape forks
+#   - full property values via GetAll, so quotes/newlines are never truncated
+#   - control chars (\x00-\x1F except \n \r \t \b \f) are stripped for valid JSON
+# The JSON shape is unchanged for QML compatibility.
+#
+# Modes:
+#   (none)                        -> full status JSON
+#   dismiss <deviceId> <notifId>  -> dismiss one notification
+#   dismiss-all <deviceId>        -> dismiss every dismissable notification
 
 set -u
 
-CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/quickshell/kdeconnect"
-
-# Notification app filter: colon-separated custom names from KDECONNECT_FILTER
-# env or "$CACHE_DIR/../kdeconnect-filter.txt". Baseline filters always apply.
-NOTIF_FILTER_FILE="$CACHE_DIR/../kdeconnect-filter.txt"
-custom_filter="${KDECONNECT_FILTER:-}"
-if [ -z "$custom_filter" ] && [ -f "$NOTIF_FILTER_FILE" ]; then
-  custom_filter=$(cat "$NOTIF_FILTER_FILE" 2>/dev/null)
-fi
-custom_filter=$(printf '%s' "$custom_filter" | tr '\n' ':')
-
-# True if the app should be filtered out of the notification list.
-is_filtered() {
-  local app="${1-}"
-  case "$app" in
-    "System UI"|"Báo Mới"|"Bao Moi") return 0 ;;
-  esac
-  if [ -n "$custom_filter" ]; then
-    local IFS=:
-    local f
-    for f in $custom_filter; do
-      f="${f#"${f%%[![:space:]]*}"}"
-      f="${f%"${f##*[![:space:]]}"}"
-      [ -n "$f" ] && [ "$app" = "$f" ] && return 0
-    done
-  fi
-  return 1
-}
-
-# Escape a string for embedding in a JSON string value (without surrounding quotes).
-if command -v python3 &>/dev/null; then
-  json_escape() {
-    printf '%s' "${1-}" | python3 -c 'import sys,json; sys.stdout.write(json.dumps(sys.stdin.read(), ensure_ascii=False)[1:-1])'
-  }
-else
-  json_escape() {
-    local s="${1-}"
-    s="${s//\\/\\\\}"
-    s="${s//\"/\\\"}"
-    s="${s//$'\n'/\\n}"
-    s="${s//$'\r'/\\r}"
-    s="${s//$'\t'/\\t}"
-    s="${s//$'\b'/\\b}"
-    s="${s//$'\f'/\\f}"
-    printf '%s' "$s"
-  }
-fi
-
-if ! command -v kdeconnect-cli &>/dev/null; then
+if ! command -v python3 &>/dev/null; then
   echo '{"devices":[],"anyConnected":false}'
   exit 0
 fi
 
-# Dismiss notification mode: ./kdeconnect.sh dismiss <deviceId> <notifId>
-if [ "${1:-}" = "dismiss" ]; then
-  timeout 5 dbus-send --print-reply --dest=org.kde.kdeconnect \
-    "/modules/kdeconnect/devices/${2:-}/notifications/${3:-}" \
-    org.kde.kdeconnect.device.notifications.notification.dismiss
-  exit 0
-fi
+exec python3 - "$@" <<'PYEOF'
+import json
+import os
+import subprocess
+import sys
 
-# Dismiss-all mode: ./kdeconnect.sh dismiss-all <deviceId>
-# One process dismisses every dismissable notification. Ongoing stays.
-if [ "${1:-}" = "dismiss-all" ]; then
-  dev="${2:-}"
-  raw_ids=$(timeout 5 dbus-send --print-reply --dest=org.kde.kdeconnect \
-    "/modules/kdeconnect/devices/${dev}/notifications" \
-    org.kde.kdeconnect.device.notifications.activeNotifications 2>/dev/null)
-  echo "$raw_ids" | grep -oP 'string "\K[^"]+' 2>/dev/null | while read -r nid; do
-    [ -z "$nid" ] && continue
-    is_dismiss=$(timeout 5 dbus-send --print-reply --dest=org.kde.kdeconnect \
-      "/modules/kdeconnect/devices/${dev}/notifications/${nid}" \
-      org.freedesktop.DBus.Properties.GetAll \
-      string:"org.kde.kdeconnect.device.notifications.notification" 2>/dev/null \
-      | grep -A1 'string "dismissable"' | tail -1 | grep -oP '(true|false)')
-    [ "$is_dismiss" = "true" ] || continue
-    timeout 5 dbus-send --print-reply --dest=org.kde.kdeconnect \
-      "/modules/kdeconnect/devices/${dev}/notifications/${nid}" \
-      org.kde.kdeconnect.device.notifications.notification.dismiss >/dev/null 2>&1
-  done
-  exit 0
-fi
+import dbus
 
-# All paired devices (reachable or not); reachability derived from the
-# available list below. Note: this kdeconnect-cli has no `-c` flag — `-l`
-# lists all paired devices and `-a` lists available (paired + reachable) ones.
-devices=$(kdeconnect-cli -l --id-name-only 2>/dev/null)
-if [ -z "$devices" ]; then
-  echo '{"devices":[],"anyConnected":false}'
-  exit 0
-fi
+BUS_NAME = "org.kde.kdeconnect"
+BASE = "/modules/kdeconnect"
+NOTIF_IFACE = "org.kde.kdeconnect.device.notifications"
 
-# Reachable device ids: a paired device absent here is not reachable.
-connected=$(kdeconnect-cli -a --id-name-only 2>/dev/null)
 
-output='{"devices":['
-first=true
-anyConnected=false
+def cache_dir():
+    base = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache")
+    return os.path.join(base, "quickshell", "kdeconnect")
 
-while IFS= read -r line; do
-  [ -z "$line" ] && continue
-  id=$(echo "$line" | awk '{print $1}')
-  name=$(json_escape "$(echo "$line" | cut -d' ' -f2-)")
 
-  reachable=false
-  if [ -n "$id" ] && [ -n "$connected" ] && \
-     echo "$connected" | awk '{print $1}' | grep -qxF "$id"; then
-    reachable=true
-    anyConnected=true
-  fi
+# Notification app filter: baseline names always apply; KDECONNECT_FILTER env
+# or "<cache parent>/kdeconnect-filter.txt" adds colon/newline separated names.
+def load_filter():
+    names = {"System UI", "Báo Mới", "Bao Moi"}
+    custom = os.environ.get("KDECONNECT_FILTER", "")
+    if not custom:
+        path = os.path.join(os.path.dirname(cache_dir()), "kdeconnect-filter.txt")
+        try:
+            with open(path, "r", encoding="utf-8", errors="replace") as fh:
+                custom = fh.read()
+        except OSError:
+            custom = ""
+    for part in custom.replace("\n", ":").split(":"):
+        part = part.strip()
+        if part:
+            names.add(part)
+    return names
 
-  battery=null
-  charging="false"
-  signal=null
-  networkType=""
-  notifCount=0
-  notifJson=""
-  last_battery_file="$CACHE_DIR/last_battery_${id}.txt"
 
-  if [ -n "$id" ]; then
-    # Battery — GetAll gets charge + isCharging in one call
-    bat_raw=$(timeout 5 dbus-send --print-reply --dest=org.kde.kdeconnect \
-      "/modules/kdeconnect/devices/${id}/battery" \
-      org.freedesktop.DBus.Properties.GetAll \
-      string:"org.kde.kdeconnect.device.battery" 2>/dev/null)
-    charge=$(echo "$bat_raw" | grep -A1 'string "charge"' | tail -1 | grep -oP 'int32 \K-?\d+')
+# Strip control characters (\x00-\x1F) that break JSON, keeping the whitespace
+# escapes json.dumps already handles: \n \r \t \b \f.
+_ALLOWED_CTRL = "\n\r\t\b\f"
 
-    # Auto-heal: if battery unknown, try refreshing connection
-    if [ -z "$charge" ] || [ "$charge" -lt 0 ] 2>/dev/null; then
-      consecutive_file="$CACHE_DIR/consecutive_null_${id}"
-      consecutive=0
-      [ -f "$consecutive_file" ] && consecutive=$(cat "$consecutive_file")
-      consecutive=$((consecutive + 1))
 
-      # After 3 consecutive nulls (~15s), force one network refresh, then reset
-      # the counter to 0 so the next attempt needs another full threshold.
-      if [ "$consecutive" -ge 3 ]; then
-        kdeconnect-cli --refresh 2>/dev/null
-        bat_raw=$(timeout 5 dbus-send --print-reply --dest=org.kde.kdeconnect \
-          "/modules/kdeconnect/devices/${id}/battery" \
-          org.freedesktop.DBus.Properties.GetAll \
-          string:"org.kde.kdeconnect.device.battery" 2>/dev/null)
-        charge=$(echo "$bat_raw" | grep -A1 'string "charge"' | tail -1 | grep -oP 'int32 \K-?\d+')
-        consecutive=0
-      fi
-      echo "$consecutive" > "$consecutive_file"
-    else
-      # Valid battery — reset consecutive counter
-      rm -f "$CACHE_DIR/consecutive_null_${id}" 2>/dev/null
-    fi
+def clean(value):
+    if value is None:
+        return ""
+    text = str(value)
+    return "".join(ch for ch in text if ord(ch) >= 0x20 or ch in _ALLOWED_CTRL)
 
-    if [ -n "$charge" ] && [ "$charge" -ge 0 ] 2>/dev/null; then
-      battery=$charge
-      echo "$battery" > "$last_battery_file"
-    else
-      # Fallback: use last known battery for this device
-      if [ -f "$last_battery_file" ]; then
-        cached=$(cat "$last_battery_file" 2>/dev/null)
-        [ -n "$cached" ] && [ "$cached" -ge 0 ] 2>/dev/null && battery=$cached
-      fi
-    fi
-    isch=$(echo "$bat_raw" | grep -A1 'string "isCharging"' | tail -1 | grep -oP 'boolean \K\w+')
-    [ "$isch" = "true" ] && charging="true"
 
-    # Connectivity — GetAll gets strength + type in one call
-    conn_raw=$(timeout 5 dbus-send --print-reply --dest=org.kde.kdeconnect \
-      "/modules/kdeconnect/devices/${id}/connectivity_report" \
-      org.freedesktop.DBus.Properties.GetAll \
-      string:"org.kde.kdeconnect.device.connectivity_report" 2>/dev/null)
-    sig=$(echo "$conn_raw" | grep -A1 'string "cellularNetworkStrength"' | tail -1 | grep -oP 'int32 \K-?\d+')
-    if [ -n "$sig" ] && [ "$sig" -ge 0 ] 2>/dev/null; then signal=$sig; fi
-    net=$(echo "$conn_raw" | grep -A1 'string "cellularNetworkType"' | tail -1 | grep -oP 'string "\K[^"]+')
-    [ -n "$net" ] && networkType="$net"
-    networkType=$(json_escape "$networkType")
+def as_bool(value):
+    try:
+        return bool(value)
+    except Exception:
+        return False
 
-    # Notifications
-    raw_ids=$(timeout 5 dbus-send --print-reply --dest=org.kde.kdeconnect \
-      "/modules/kdeconnect/devices/${id}/notifications" \
-      org.kde.kdeconnect.device.notifications.activeNotifications 2>/dev/null)
-    ids=$(echo "$raw_ids" | grep -oP 'string "\K[^"]+' 2>/dev/null | sort -nr | tr '\n' ' ')
-    if [ -n "$ids" ]; then
-      count=0
-      for nid in $ids; do
-        [ -z "$nid" ] && continue
-        raw_notif=$(timeout 5 dbus-send --print-reply --dest=org.kde.kdeconnect \
-          "/modules/kdeconnect/devices/${id}/notifications/${nid}" \
-          org.freedesktop.DBus.Properties.GetAll \
-          string:"org.kde.kdeconnect.device.notifications.notification" 2>/dev/null)
 
-        app=$(echo "$raw_notif" | grep -A1 'string "appName"' | tail -1 | grep -oP 'string "\K[^"]+')
-        title=$(echo "$raw_notif" | grep -A1 'string "title"' | tail -1 | grep -oP 'string "\K[^"]+')
-        text=$(echo "$raw_notif" | grep -A1 'string "text"' | tail -1 | grep -oP 'string "\K[^"]+')
-        ticker=$(echo "$raw_notif" | grep -A1 'string "ticker"' | tail -1 | grep -oP 'string "\K[^"]+')
-        dismiss=$(echo "$raw_notif" | grep -A1 'string "dismissable"' | tail -1 | grep -oP '(true|false)')
-        [ -z "$dismiss" ] && dismiss="false"
-        silent=$(echo "$raw_notif" | grep -A1 'string "silent"' | tail -1 | grep -oP 'boolean \K\w+')
-        [ -z "$silent" ] && silent="false"
+def as_int(value):
+    try:
+        return int(value)
+    except Exception:
+        return None
 
-        reply_id=$(echo "$raw_notif" | grep -A1 'string "replyId"' | tail -1 | grep -oP 'string "\K[^"]+')
-        reply_id=$(json_escape "$reply_id")
-        is_conv=$(echo "$raw_notif" | grep -A1 'string "isConversation"' | tail -1 | grep -oP 'boolean \K\w+')
-        [ -z "$is_conv" ] && is_conv="false"
+
+def props(bus, path, iface):
+    obj = bus.get_object(BUS_NAME, path, introspect=False)
+    return dbus.Interface(obj, "org.freedesktop.DBus.Properties").GetAll(iface)
+
+
+def read_battery(bus, dev_id, dev_path):
+    """Battery percent (int|None) + charging bool, with auto-heal + last-known fallback."""
+    cd = cache_dir()
+    try:
+        os.makedirs(cd, exist_ok=True)
+    except OSError:
+        pass
+    last_file = os.path.join(cd, "last_battery_%s.txt" % dev_id)
+    consec_file = os.path.join(cd, "consecutive_null_%s" % dev_id)
+    bat_path = "%s/battery" % dev_path
+
+    charge = None
+    charging = False
+    try:
+        bp = props(bus, bat_path, "org.kde.kdeconnect.device.battery")
+        charge = as_int(bp.get("charge"))
+        charging = as_bool(bp.get("isCharging", False))
+    except Exception:
+        charge = None
+
+    if charge is None or charge < 0:
+        # Auto-heal: after 3 consecutive nulls (~15s) force one network refresh.
+        consecutive = 0
+        try:
+            with open(consec_file, "r") as fh:
+                consecutive = int(fh.read().strip() or 0)
+        except Exception:
+            consecutive = 0
+        consecutive += 1
+        if consecutive >= 3:
+            try:
+                subprocess.run(
+                    ["kdeconnect-cli", "--refresh"],
+                    timeout=5,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            except Exception:
+                pass
+            try:
+                bp = props(bus, bat_path, "org.kde.kdeconnect.device.battery")
+                charge = as_int(bp.get("charge"))
+                charging = as_bool(bp.get("isCharging", False))
+            except Exception:
+                pass
+            consecutive = 0
+        try:
+            with open(consec_file, "w") as fh:
+                fh.write(str(consecutive))
+        except OSError:
+            pass
+    else:
+        try:
+            os.remove(consec_file)
+        except OSError:
+            pass
+
+    if charge is not None and charge >= 0:
+        try:
+            with open(last_file, "w") as fh:
+                fh.write(str(charge))
+        except OSError:
+            pass
+        battery = charge
+    else:
+        battery = None
+        try:
+            with open(last_file, "r") as fh:
+                cached = as_int(fh.read().strip())
+            if cached is not None and cached >= 0:
+                battery = cached
+        except Exception:
+            pass
+    return battery, charging
+
+
+def read_connectivity(bus, dev_path):
+    """Signal strength (int|None, -1 means unknown) + network type string."""
+    try:
+        cp = props(bus, "%s/connectivity_report" % dev_path,
+                   "org.kde.kdeconnect.device.connectivity_report")
+    except Exception:
+        return None, ""
+    sig = as_int(cp.get("cellularNetworkStrength"))
+    signal = sig if (sig is not None and sig >= 0) else None
+    net = clean(cp.get("cellularNetworkType", ""))
+    return signal, net
+
+
+def read_notifications(bus, dev_id, filt):
+    notif_path = "%s/devices/%s/notifications" % (BASE, dev_id)
+    try:
+        nobj = bus.get_object(BUS_NAME, notif_path, introspect=False)
+        nids = [str(x) for x in
+                dbus.Interface(nobj, NOTIF_IFACE).activeNotifications()]
+    except Exception:
+        return []
+
+    # Match previous `sort -nr` (numeric descending).
+    try:
+        nids.sort(key=lambda x: -int(x))
+    except (ValueError, TypeError):
+        nids.sort(reverse=True)
+
+    out = []
+    for nid in nids:
+        try:
+            d = props(bus, "%s/%s" % (notif_path, nid),
+                      NOTIF_IFACE + ".notification")
+        except Exception:
+            continue
+
+        app = clean(d.get("appName", ""))
+        if app in filt:
+            continue
 
         # Best body: text > ticker > title
-        body="$text"
-        [ -z "$body" ] && body="$ticker"
-        [ -z "$body" ] && body="$title"
+        body = clean(d.get("text", "")) or clean(d.get("ticker", "")) \
+            or clean(d.get("title", ""))
 
-        # Filter unwanted apps
-        if is_filtered "$app"; then continue; fi
+        out.append({
+            "id": nid,
+            "deviceId": str(dev_id),
+            "appName": app,
+            "body": body,
+            "dismissable": as_bool(d.get("dismissable", False)),
+            "silent": as_bool(d.get("silent", False)),
+            "replyId": clean(d.get("replyId", "")),
+            "isConversation": as_bool(d.get("isConversation", False)),
+        })
+    return out
 
-        # Escape JSON strings (backslash first, then quote + control chars)
-        app=$(json_escape "$app")
-        body=$(json_escape "$body")
 
-        [ "$count" -gt 0 ] && notifJson="$notifJson,"
-        notifJson="$notifJson{\"id\":\"${nid}\",\"deviceId\":\"${id}\",\"appName\":\"$app\",\"body\":\"$body\",\"dismissable\":$dismiss,\"silent\":$silent,\"replyId\":\"${reply_id}\",\"isConversation\":$is_conv}"
-        count=$((count + 1))
-      done
-      notifCount=$count
-    fi
-  fi
+def collect():
+    bus = dbus.SessionBus()
+    daemon = dbus.Interface(
+        bus.get_object(BUS_NAME, BASE, introspect=False),
+        "org.kde.kdeconnect.daemon",
+    )
+    try:
+        ids = [str(x) for x in daemon.devices(False, True)]
+    except Exception:
+        try:
+            ids = [str(x) for x in daemon.devices()]
+        except Exception:
+            ids = []
 
-  [ "$first" = true ] && first=false || output="$output,"
-  output="$output{\"id\":\"${id}\",\"name\":\"${name}\",\"battery\":${battery},\"charging\":${charging},\"reachable\":${reachable},\"signal\":${signal},\"networkType\":\"${networkType}\",\"notifCount\":${notifCount},\"notifications\":[${notifJson}]}"
-done <<< "$devices"
+    filt = load_filter()
+    devices_out = []
+    any_connected = False
 
-output="$output],\"anyConnected\":${anyConnected}}"
+    for dev_id in ids:
+        dev_path = "%s/devices/%s" % (BASE, dev_id)
+        try:
+            dev_props = props(bus, dev_path, "org.kde.kdeconnect.device")
+        except Exception:
+            continue
+        if "isPaired" in dev_props and not as_bool(dev_props.get("isPaired")):
+            continue
 
-echo "$output"
+        reachable = as_bool(dev_props.get("isReachable", False))
+        if reachable:
+            any_connected = True
+
+        battery, charging = read_battery(bus, dev_id, dev_path)
+        signal, network = read_connectivity(bus, dev_path)
+        notifications = read_notifications(bus, dev_id, filt)
+
+        devices_out.append({
+            "id": str(dev_id),
+            "name": clean(dev_props.get("name", "")),
+            "battery": battery,
+            "charging": charging,
+            "reachable": reachable,
+            "signal": signal,
+            "networkType": network,
+            "notifCount": len(notifications),
+            "notifications": notifications,
+        })
+
+    return {"devices": devices_out, "anyConnected": any_connected}
+
+
+def notif_iface(bus, dev_id, nid):
+    obj = bus.get_object(
+        BUS_NAME,
+        "%s/devices/%s/notifications/%s" % (BASE, dev_id, nid),
+        introspect=False,
+    )
+    return dbus.Interface(obj, NOTIF_IFACE + ".notification")
+
+
+def dismiss(dev_id, nid):
+    notif_iface(dbus.SessionBus(), dev_id, nid).dismiss()
+
+
+def dismiss_all(dev_id):
+    bus = dbus.SessionBus()
+    try:
+        nobj = bus.get_object(
+            BUS_NAME, "%s/devices/%s/notifications" % (BASE, dev_id),
+            introspect=False)
+        nids = [str(x) for x in dbus.Interface(nobj, NOTIF_IFACE).activeNotifications()]
+    except Exception:
+        return
+    for nid in nids:
+        try:
+            d = props(bus, "%s/devices/%s/notifications/%s" % (BASE, dev_id, nid),
+                      NOTIF_IFACE + ".notification")
+        except Exception:
+            continue
+        if not as_bool(d.get("dismissable", False)):
+            continue
+        try:
+            notif_iface(bus, dev_id, nid).dismiss()
+        except Exception:
+            pass
+
+
+def main():
+    args = sys.argv[1:]
+    mode = args[0] if args else ""
+    if mode == "dismiss":
+        try:
+            dismiss(args[1] if len(args) > 1 else "",
+                    args[2] if len(args) > 2 else "")
+        except Exception:
+            pass
+        return
+    if mode == "dismiss-all":
+        try:
+            dismiss_all(args[1] if len(args) > 1 else "")
+        except Exception:
+            pass
+        return
+    try:
+        print(json.dumps(collect(), ensure_ascii=False, separators=(",", ":")))
+    except Exception:
+        print('{"devices":[],"anyConnected":false}')
+
+
+main()
+PYEOF

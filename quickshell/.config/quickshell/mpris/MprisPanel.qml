@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Io
 import Quickshell.Services.Mpris
 import qs.common
 
@@ -181,7 +182,7 @@ Item {
                                         if (typeof modelData.raise === "function" && modelData.canRaise) {
                                             modelData.raise()
                                         } else {
-                                            Quickshell.execDetached(["hyprctl", "dispatch", "focuswindow", "class:zen"])
+                                            root.focusPlayer(modelData)
                                         }
                                     }
                                 }
@@ -501,8 +502,51 @@ Item {
 
             Button {
                 Layout.alignment: Qt.AlignHCenter
-                text: "Open Zen"
-                onClicked: Quickshell.execDetached(["zen-browser"])
+                text: "Open browser"
+                onClicked: defaultBrowserProc.running = true
+            }
+        }
+    }
+
+    // Derive a Hyprland window-class candidate from a player's identity.
+    // Preference: desktopEntry basename, then identity, then dbusName tail.
+    function playerClass(player) {
+        if (!player) return ""
+        var de = player.desktopEntry || ""
+        if (de) {
+            de = String(de).replace(/\.desktop$/i, "")
+            var dot = de.lastIndexOf(".")
+            if (dot >= 0) de = de.substring(dot + 1)
+            if (de) return de
+        }
+        var id = player.identity || ""
+        if (id) {
+            id = String(id).split(" - ")[0].trim().toLowerCase().replace(/\s+/g, "")
+            if (id) return id
+        }
+        var bus = player.dbusName || ""
+        if (bus) {
+            var tail = String(bus).split(".").pop()
+            if (tail) return tail.toLowerCase()
+        }
+        return ""
+    }
+
+    function focusPlayer(player) {
+        var cls = root.playerClass(player)
+        if (cls.length === 0) return
+        Quickshell.execDetached(["hyprctl", "dispatch", "focuswindow", "class:" + cls])
+    }
+
+    // Empty state has no player to derive from, so open the system default
+    // http handler (data-derived, no hardcoded browser name).
+    Process {
+        id: defaultBrowserProc
+        command: ["xdg-mime", "query", "default", "x-scheme-handler/http"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var de = this.text.trim()
+                if (de.length > 0) Quickshell.execDetached(["gtk-launch", de])
             }
         }
     }
