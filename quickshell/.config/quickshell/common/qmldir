@@ -1,5 +1,6 @@
 module qs.common
 singleton Db 1.0 Db.qml
+singleton Sanitize 1.0 Sanitize.qml
 Theme 1.0 Theme.qml
 IconMap 1.0 IconMap.qml
 AppIcon 1.0 AppIcon.qml

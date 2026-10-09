@@ -195,7 +195,9 @@ Rectangle {
 
             Text {
                 id: bodyText
-                text: notifData && notifData.body || ""
+                // Untrusted markup rendered through the Sanitize allowlist
+                // (b/i/u only) as StyledText — no images, links, or attrs.
+                text: Sanitize.formatBody(notifData && notifData.body || "")
                 color: theme.subtext0
                 font.pixelSize: theme.fontSize - 2
                 font.family: theme.font
@@ -205,7 +207,7 @@ Rectangle {
                 elide: Text.ElideRight
                 clip: true
                 visible: !!(notifData && notifData.body) && notifData.body.length > 0
-                textFormat: Text.PlainText
+                textFormat: Text.StyledText
 
                 MouseArea {
                     id: bodyHover
@@ -216,7 +218,7 @@ Rectangle {
 
                 ToolTip.visible: bodyHover.containsMouse && bodyText.truncated
                 ToolTip.delay: 500
-                ToolTip.text: bodyText.text
+                ToolTip.text: notifData && notifData.body || ""
             }
 
             // Action buttons
