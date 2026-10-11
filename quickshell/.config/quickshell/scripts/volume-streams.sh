@@ -59,11 +59,11 @@ first=true
 while IFS='|' read -r idx app_id app_name icon_name vol mute; do
     [ "$first" = false ] && echo -n ','
     first=false
-    esc_app=$(json_escape "$app_name"); esc_app_id=$(json_escape "${app_id:-$app_name}"); esc_icon=$(json_escape "${icon_name:-$app_id}")
+    esc_app=$(json_escape "$app_name"); esc_app_id=$(json_escape "${app_id:-$app_name}"); esc_icon=$(json_escape "$icon_name")
     echo -n "{\"id\":$idx,\"name\":\"$esc_app\",\"application\":\"$esc_app_id\",\"icon\":\"$esc_icon\",\"volume\":${vol:-0},\"muted\":$mute}"
 done < <(pactl list sink-inputs | awk '
-    BEGIN { idx=""; app_id=""; app_name=""; icon=""; vol=""; mute="false" }
-    /Sink Input #/ { match($0, /[0-9]+/); idx=substr($0, RSTART, RLENGTH); app_id=""; app_name=""; icon=""; vol=""; mute="false" }
+    BEGIN { idx=""; app_id=""; app_name=""; icon=""; vol=""; mute="false"; corked=0 }
+    /Sink Input #/ { match($0, /[0-9]+/); idx=substr($0, RSTART, RLENGTH); app_id=""; app_name=""; icon=""; vol=""; mute="false"; corked=0 }
     /application\.name = "/ {
         match($0, /"[^"]+"/);
         app_id=substr($0, RSTART+1, RLENGTH-2);
@@ -84,15 +84,17 @@ done < <(pactl list sink-inputs | awk '
     }
     /Volume:/ { match($0, /[0-9]+%/); vol=substr($0, RSTART, RLENGTH-1) }
     /Mute:/ { mute=($2=="yes" ? "true" : "false") }
+    /Corked:/ { if ($2 == "yes") corked=1 }
+    /pulse\.corked = "true"/ { corked=1 }
     /^$/ {
-        if (idx != "" && vol != "") {
+        if (idx != "" && vol != "" && !corked) {
             if (app_name == "" && app_id != "") app_name = app_id;
             print idx"|"app_id"|"app_name"|"icon"|"vol"|"mute
         }
-        idx=""; app_id=""; app_name=""; icon=""; vol=""; mute="false"
+        idx=""; app_id=""; app_name=""; icon=""; vol=""; mute="false"; corked=0
     }
     END {
-        if (idx != "" && vol != "") {
+        if (idx != "" && vol != "" && !corked) {
             if (app_name == "" && app_id != "") app_name = app_id;
             print idx"|"app_id"|"app_name"|"icon"|"vol"|"mute
         }

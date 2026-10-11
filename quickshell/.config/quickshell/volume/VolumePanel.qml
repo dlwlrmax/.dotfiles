@@ -20,6 +20,9 @@ Item {
     property var pendingCmd: []
     property bool pendingRefresh: false
 
+    property bool eeActive: false
+    property bool needsStatus: false
+
     Rectangle {
         anchors.fill: parent
         topLeftRadius: 0
@@ -262,6 +265,41 @@ Item {
             color: theme.surface0
         }
 
+        Item {
+            Layout.fillWidth: true
+            implicitHeight: eeRow.implicitHeight
+
+            RowLayout {
+                id: eeRow
+                anchors.fill: parent
+                spacing: 8
+
+                Text {
+                    text: "EasyEffects"
+                    color: theme.text
+                    font.pixelSize: theme.fontSize
+                    font.weight: Font.Medium
+                    font.family: theme.font
+                    Layout.fillWidth: true
+                }
+
+                Text {
+                    text: root.eeActive ? "ON" : "OFF"
+                    color: root.eeActive ? theme.green : theme.surface1
+                    font.pixelSize: theme.fontSize
+                    font.family: theme.font
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    if (!eeToggleProc.running) eeToggleProc.running = true;
+                }
+            }
+        }
+
         Text {
             text: "Applications" + (streamList.count > 0 ? " (" + streamList.count + ")" : "")
             color: theme.subtext1
@@ -457,13 +495,51 @@ Item {
         }
     }
 
+    Process {
+        id: eeStatusProc
+        // easyeffects -b 3 emits the global bypass status: 1 = bypassed (effects off), 2 = active (effects on)
+        command: ["easyeffects", "-b", "3"]
+        stdout: StdioCollector {
+            onStreamFinished: root.eeActive = (this.text.trim() === "2")
+        }
+        onRunningChanged: {
+            // If a status read was requested while this poll was in flight, run it now.
+            if (!running && root.needsStatus && root.active) {
+                root.needsStatus = false
+                eeStatusProc.running = true
+            }
+        }
+    }
+
+    Process {
+        id: eeToggleProc
+        command: ["easyeffects", "--bypass-toggle"]
+        onRunningChanged: {
+            if (!running) {
+                // Force a status refresh after toggle; if a poll is in flight, retry once it finishes.
+                root.needsStatus = true
+                if (!eeStatusProc.running) {
+                    root.needsStatus = false
+                    eeStatusProc.running = true
+                }
+            }
+        }
+    }
+
     Timer {
         interval: 1500
         running: root.active && !fetchProc.running
         repeat: true
         triggeredOnStart: true
+
+        // Poll EE status less often than streams (every ~3rd tick).
+        property int eeTick: 0
+
         onTriggered: {
-            if (!fetchProc.running) fetchProc.running = true;
+            if (root.active && !fetchProc.running) fetchProc.running = true;
+
+            eeTick = (eeTick + 1) % 3
+            if (eeTick === 0 && root.active && !eeStatusProc.running) eeStatusProc.running = true;
         }
     }
 }
