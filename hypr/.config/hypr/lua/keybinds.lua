@@ -109,9 +109,35 @@ for key, dir in pairs(pointer_scroll) do
   hl.bind(mainMod .. " + ALT + " .. key, hl.dsp.exec_cmd("ydotool mousemove --wheel -x 0 -y " .. dir), { repeating = true })
 end
 
--- Alt+Tab cycle
-hl.bind("ALT + Tab", hl.dsp.window.cycle_next())
-hl.bind("ALT + Tab", hl.dsp.window.bring_to_top())
+-- Alt+Tab MRU switcher (quickshell alttab/AltTab.qml). First press opens the
+-- switcher and enters the "alttab" submap; while Alt is held, Tab/Shift+Tab step
+-- through windows; releasing Alt focuses the selection and resets the submap.
+local function alttab_start(dir)
+  return function()
+    hl.dispatch(hl.dsp.global("quickshell:alttab" .. dir))
+    hl.dispatch(hl.dsp.submap("alttab"))
+  end
+end
+hl.bind("ALT + Tab", alttab_start("Next"))
+hl.bind("ALT + SHIFT + Tab", alttab_start("Prev"))
+
+hl.define_submap("alttab", function()
+  hl.bind("ALT + Tab", hl.dsp.global("quickshell:alttabNext"), { repeating = true })
+  hl.bind("ALT + SHIFT + Tab", hl.dsp.global("quickshell:alttabPrev"), { repeating = true })
+  hl.bind("ALT + Escape", function()
+    hl.dispatch(hl.dsp.global("quickshell:alttabCancel"))
+    hl.dispatch(hl.dsp.submap("reset"))
+  end)
+end)
+-- Alt release commits. Must live outside the submap: Alt was pressed in the
+-- default submap, and an in-submap release bind never fires for it. Universal +
+-- transparent + non_consuming so it matches from "alttab" and apps still see
+-- the Alt release.
+hl.bind("ALT + Alt_L", function()
+  if hl.get_current_submap() ~= "alttab" then return end
+  hl.dispatch(hl.dsp.global("quickshell:alttabCommit"))
+  hl.dispatch(hl.dsp.submap("reset"))
+end, { release = true, transparent = true, non_consuming = true, submap_universal = true })
 
 -- Monitor cycle
 hl.bind(mainMod .. " + Tab", hl.dsp.focus({ monitor = "+1" }))

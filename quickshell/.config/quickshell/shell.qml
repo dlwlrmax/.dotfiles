@@ -21,6 +21,7 @@ import qs.clipboard
 import qs.systemtray
 import qs.common
 import qs.osd
+import qs.alttab
 
 ShellRoot {
     id: shell
@@ -83,6 +84,9 @@ ShellRoot {
     }
 
     DataProviders { id: dp }
+
+    // Alt-Tab MRU switcher (driven by Hyprland global shortcuts + submap)
+    AltTab {}
 
     // Power menu toggle via IPC (replaces 1s file-polling timer)
     IpcHandler {
