@@ -269,6 +269,15 @@ Item {
             Layout.fillWidth: true
             implicitHeight: eeRow.implicitHeight
 
+            // Declared before the row so the repair button's MouseArea sits on top
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    if (!eeToggleProc.running) eeToggleProc.running = true;
+                }
+            }
+
             RowLayout {
                 id: eeRow
                 anchors.fill: parent
@@ -283,19 +292,28 @@ Item {
                     Layout.fillWidth: true
                 }
 
+                // Repair silent playback (stalled EE chain / sink resume glitch)
+                Text {
+                    text: repairProc.running ? "…" : "↻"
+                    color: repairProc.running ? theme.surface1 : theme.subtext0
+                    font.pixelSize: theme.fontSize + 1
+                    font.family: theme.font
+
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.margins: -4
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (!repairProc.running) repairProc.running = true;
+                        }
+                    }
+                }
+
                 Text {
                     text: root.eeActive ? "ON" : "OFF"
                     color: root.eeActive ? theme.green : theme.surface1
                     font.pixelSize: theme.fontSize
                     font.family: theme.font
-                }
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    if (!eeToggleProc.running) eeToggleProc.running = true;
                 }
             }
         }
@@ -507,6 +525,17 @@ Item {
             if (!running && root.needsStatus && root.active) {
                 root.needsStatus = false
                 eeStatusProc.running = true
+            }
+        }
+    }
+
+    Process {
+        id: repairProc
+        command: ["bash", theme.scriptDir + "/audio-repair.sh"]
+        onRunningChanged: {
+            if (!running) {
+                if (!fetchProc.running) fetchProc.running = true
+                if (!eeStatusProc.running) eeStatusProc.running = true
             }
         }
     }
