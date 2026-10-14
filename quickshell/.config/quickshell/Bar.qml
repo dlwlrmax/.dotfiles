@@ -39,7 +39,6 @@ Item {
     property var netDataSource: null
     property var weatherDataSource: null
     property var volumeDataSource: null
-    property var batteryDataSource: null
 
     DropShadow {
         anchors.fill: barRect

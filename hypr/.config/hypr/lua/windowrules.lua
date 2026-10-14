@@ -207,11 +207,16 @@ hl.window_rule({
 -- Gaming performance rules
 -- ──────────────────────────────────────────────
 local game_classes = "^(steam_app_.*)$"
+-- Per-machine game screen (lua/local.lua gameMonitor). Workspace 1 is pinned
+-- to the main monitor, so only force it when games stay on the main monitor;
+-- otherwise they open on the game monitor's active workspace.
+local game_monitor = overrides.gameMonitor or main_monitor
+local game_ws = (game_monitor == main_monitor) and 1 or nil
 hl.window_rule({ match = { content = "game", fullscreen = true }, confine_pointer = true })
 hl.window_rule({
   match = { class = game_classes },
-  workspace = 1,
-  monitor = main_monitor,
+  workspace = game_ws,
+  monitor = game_monitor,
   confine_pointer = true,
   immediate = true,
   fullscreen = true,
@@ -223,8 +228,8 @@ hl.window_rule({
 
 hl.window_rule({
   match = { class = "^(gamescope)$" },
-  workspace = 1,
-  monitor = main_monitor,
+  workspace = game_ws,
+  monitor = game_monitor,
   confine_pointer = true,
   immediate = true,
   fullscreen = true,

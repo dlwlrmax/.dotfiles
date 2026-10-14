@@ -21,8 +21,10 @@ hl.on("hyprland.start", function()
   -- ═══════════════════════════════════════════════════════════
   -- TIER 1: environment, auth, theming, input — load first
   -- ═══════════════════════════════════════════════════════════
+  -- Env export and portal restart are chained: exec_cmd runs commands
+  -- concurrently, and the portal must start with the exported env.
   launch(0,
-    "dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP",
+    "dbus-update-activation-environment --systemd --all && systemctl --user restart xdg-desktop-portal.service",
     "gnome-keyring-daemon --start --components=secrets",
     "systemctl --user start hyprpolkitagent",
     "fcitx5 -d",
@@ -31,13 +33,11 @@ hl.on("hyprland.start", function()
     "gsettings set org.gnome.desktop.interface color-scheme prefer-dark"
   )
 
-  -- ═══════════════════════════════════════════════════════════
-  -- TIER 2a: portal backend — register on D-Bus before Qt apps
-  -- ═══════════════════════════════════════════════════════════
-  launch(0,
-    "sh -c '[ -x /usr/libexec/xdg-desktop-portal-hyprland ] && exec /usr/libexec/xdg-desktop-portal-hyprland -r || exec /usr/lib/xdg-desktop-portal-hyprland -r'",
-    "systemctl --user restart xdg-desktop-portal.service"
-  )
+  -- (portal: xdg-desktop-portal-hyprland is D-Bus/systemd activated; the
+  -- frontend restart is chained to the env export above)
+
+  -- Hyprland plugins managed by hyprpm (hymission). -n: no notification.
+  launch(0, "hyprpm reload -n")
 
   -- ═══════════════════════════════════════════════════════════
   -- TIER 2b: core desktop — bar, wallpaper, notifications, etc.

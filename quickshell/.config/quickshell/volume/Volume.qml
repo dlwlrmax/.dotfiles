@@ -8,10 +8,8 @@ Item {
     id: root
     property Theme theme: Theme {}
     property var dataSource: null
-    property int _vol: 0
-    property bool _muted: false
-    readonly property int volumeLevel: dataSource ? dataSource.volumeLevel : _vol
-    readonly property bool muted: dataSource ? dataSource.muted : _muted
+    readonly property int volumeLevel: dataSource ? dataSource.volumeLevel : 0
+    readonly property bool muted: dataSource ? dataSource.muted : false
     signal togglePanel()
 
     property string iconColor: root.muted ? theme.surface1 : (root.volumeLevel > theme.volumeCriticalLevel ? theme.volumeCriticalColor : root.volumeLevel > theme.volumeWarnLevel ? theme.volumeWarnColor : root.volumeLevel > theme.volumeElevatedLevel ? theme.volumeElevatedColor : theme.volumeNormalColor)
@@ -29,29 +27,19 @@ Item {
     function handleVolumeWheel(wheel) {
         if (volCooldown.elapsedMs() < 100) return
         volCooldown.restart()
+        // wpctl -l 1.0 clamps at 100% server-side, so fast scrolling can't
+        // overshoot on a stale volumeLevel.
         if (wheel.angleDelta.y > 0) {
-            if (!root.dataSource) {
-                root._vol = Math.min(100, root._vol + 5)
-                root._muted = false
-            }
-            root._pendingCmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "+5%"]
+            root._pendingCmd = ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SINK@", "5%+"]
             volChangeProc.running = true
         } else if (wheel.angleDelta.y < 0) {
-            if (!root.dataSource) {
-                root._vol = Math.max(0, root._vol - 5)
-                root._muted = false
-            }
-            root._pendingCmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "-5%"]
+            root._pendingCmd = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%-"]
             volChangeProc.running = true
         }
     }
 
     function refreshState() {
-        if (root.dataSource) {
-            root.dataSource.refresh()
-        } else {
-            if (!volProc.running) volProc.running = true
-        }
+        if (root.dataSource) root.dataSource.refresh()
     }
 
     RowLayout {
@@ -76,10 +64,7 @@ Item {
             MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    if (!root.dataSource) root._muted = !root._muted
-                    toggleMuteProc.running = true
-                }
+                onClicked: toggleMuteProc.running = true
                 onWheel: wheel => root.handleVolumeWheel(wheel)
             }
         }
@@ -108,42 +93,6 @@ Item {
     }
 
     Process {
-        id: volProc
-        command: ["bash", theme.scriptDir + "/volume-status.sh"]
-        running: !root.dataSource
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (root.dataSource) return
-                var output = this.text.trim()
-                var parts = output.split(" ")
-                if (parts.length >= 2) {
-                    var vol = parseInt(parts[0])
-                    if (!isNaN(vol)) {
-                        if (vol > 100) {
-                            clampVolProc.running = true
-                            root._vol = 100
-                        } else {
-                            root._vol = vol
-                        }
-                    }
-                    root._muted = parts[1] === "true"
-                }
-            }
-        }
-    }
-
-    Timer {
-        interval: 500
-        running: !root.dataSource
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: {
-            if (!volProc.running) volProc.running = true
-        }
-    }
-
-    Process {
         id: toggleMuteProc
         command: ["pactl", "set-sink-mute", "@DEFAULT_SINK@", "toggle"]
         onRunningChanged: {
@@ -157,11 +106,6 @@ Item {
         onRunningChanged: {
             if (!running) root.refreshState()
         }
-    }
-
-    Process {
-        id: clampVolProc
-        command: ["pactl", "set-sink-volume", "@DEFAULT_SINK@", "100%"]
     }
 
     ElapsedTimer {

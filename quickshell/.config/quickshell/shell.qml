@@ -21,7 +21,7 @@ import qs.clipboard
 import qs.systemtray
 import qs.common
 import qs.osd
-import qs.alttab
+import qs.deps
 
 ShellRoot {
     id: shell
@@ -85,8 +85,8 @@ ShellRoot {
 
     DataProviders { id: dp }
 
-    // Alt-Tab MRU switcher (driven by Hyprland global shortcuts + submap)
-    AltTab {}
+    // Missing-package notifier (deps/deps.list)
+    DepsCheck {}
 
     // Power menu toggle via IPC (replaces 1s file-polling timer)
     IpcHandler {
@@ -181,7 +181,6 @@ ShellRoot {
                     netDataSource: dp.netData
                     weatherDataSource: dp.weatherData
                     volumeDataSource: dp.volumeData
-                    batteryDataSource: dp.batteryData
 
                     onToggleNotifPanel: {
                         g.closeOtherPanels("notif")

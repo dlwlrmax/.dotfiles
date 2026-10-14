@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Io
 import qs.common
 
 Item {
@@ -17,11 +16,7 @@ Item {
     signal togglePanel()
 
     function refresh() {
-        if (dataSource) {
-            dataSource.refresh()
-        } else {
-            weatherProc.running = true
-        }
+        if (dataSource) dataSource.refresh()
     }
 
     // Hard containment: layout squeeze must never paint over neighbors.
@@ -61,36 +56,5 @@ Item {
                 root.togglePanel()
             }
         }
-    }
-
-    Process {
-        id: weatherProc
-        command: ["bash", theme.scriptDir + "/weather.sh"]
-        running: !root.dataSource
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (root.dataSource) return
-                var output = this.text.trim();
-                if (!output) return;
-                const outputs = output.split(/\s+/);
-                if (outputs.length >= 2 && outputs[1] !== "--") {
-                    root.weatherIcon = outputs[0];
-                    root.weatherText = outputs[1]
-                } else if (outputs.length >= 1 && outputs[0]) {
-                    // Show fallback icon on load failure
-                    root.weatherIcon = "\uF0C2"
-                    root.weatherText = ""
-                }
-            }
-        }
-    }
-
-    Timer {
-        interval: 1800000
-        running: !root.dataSource
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: weatherProc.running = true
     }
 }

@@ -28,7 +28,6 @@ hl.env("SDL_IM_MODULE", "fcitx")
 hl.env("QT_QPA_PLATFORM", "wayland;xcb")
 hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
 hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")
-hl.env("QT_AUTO_SCREEN_SCALE_FACTOR", "1")
 
 -- GDK
 hl.env("GDK_SCALE", "1")
@@ -78,8 +77,9 @@ hl.config({
 
     blur = {
       enabled = true,
-      size = 3,
-      passes = 2,
+      -- 1 pass at size 5 looks close to 2x3 at half the GPU cost (iGPU).
+      size = 5,
+      passes = 1,
       xray = false,
       ignore_opacity = true,
       new_optimizations = true,
@@ -111,7 +111,7 @@ hl.config({
     kb_options = "",
     kb_rules = "",
     follow_mouse = 1,
-    repeat_rate = 20,
+    repeat_rate = 35,
     repeat_delay = 200,
     touchpad = {
       natural_scroll = false,
@@ -137,5 +137,15 @@ hl.config({
     direct_scanout = 2,
   },
 })
+
+-- Snappier than the defaults (speed is in 100 ms units).
+hl.curve("snappy", { type = "bezier", points = { { 0.05, 0.9 }, { 0.1, 1.05 } } })
+hl.curve("smooth", { type = "bezier", points = { { 0.25, 1 }, { 0.5, 1 } } })
+hl.animation({ leaf = "windows",    enabled = true, speed = 4, bezier = "snappy", style = "popin 80%" })
+hl.animation({ leaf = "windowsOut", enabled = true, speed = 3, bezier = "smooth", style = "popin 80%" })
+hl.animation({ leaf = "border",     enabled = true, speed = 6, bezier = "smooth" })
+hl.animation({ leaf = "fade",       enabled = true, speed = 3, bezier = "smooth" })
+hl.animation({ leaf = "workspaces", enabled = true, speed = 4, bezier = "smooth", style = "slide" })
+hl.animation({ leaf = "layers",     enabled = true, speed = 3, bezier = "smooth", style = "fade" })
 
 return M

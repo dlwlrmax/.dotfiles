@@ -19,7 +19,7 @@ hl.bind(mainModS .. " + M", hl.dsp.exec_cmd("hyprlock"))
 -- File manager
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(fileManager))
 
--- Float toggle + center (intentional duplicate bind: Hyprland dispatches both in sequence) 
+-- Float toggle + center (intentional duplicate bind: Hyprland dispatches both in sequence)
 hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + V", hl.dsp.window.center())
 
@@ -52,7 +52,7 @@ hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen({ mode = "maximized", action
 hl.bind(mainModS .. " + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
 
 -- Volume control (hardware media keys / rotary knob)
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"))
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+"))
 hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"))
 hl.bind("XF86AudioMute",       hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"))
 
@@ -109,38 +109,10 @@ for key, dir in pairs(pointer_scroll) do
   hl.bind(mainMod .. " + ALT + " .. key, hl.dsp.exec_cmd("ydotool mousemove --wheel -x 0 -y " .. dir), { repeating = true })
 end
 
--- Alt+Tab MRU switcher (quickshell alttab/AltTab.qml). First press opens the
--- switcher and enters the "alttab" submap; while Alt is held, Tab/Shift+Tab step
--- through windows; releasing Alt focuses the selection and resets the submap.
-local function alttab_start(dir)
-  return function()
-    hl.dispatch(hl.dsp.global("quickshell:alttab" .. dir))
-    hl.dispatch(hl.dsp.submap("alttab"))
-  end
-end
-hl.bind("ALT + Tab", alttab_start("Next"))
-hl.bind("ALT + SHIFT + Tab", alttab_start("Prev"))
-
-hl.define_submap("alttab", function()
-  hl.bind("ALT + Tab", hl.dsp.global("quickshell:alttabNext"), { repeating = true })
-  hl.bind("ALT + SHIFT + Tab", hl.dsp.global("quickshell:alttabPrev"), { repeating = true })
-  hl.bind("ALT + Escape", function()
-    hl.dispatch(hl.dsp.global("quickshell:alttabCancel"))
-    hl.dispatch(hl.dsp.submap("reset"))
-  end)
-end)
--- Alt release commits. Must live outside the submap: Alt was pressed in the
--- default submap, and an in-submap release bind never fires for it. Universal +
--- transparent + non_consuming so it matches from "alttab" and apps still see
--- the Alt release.
-hl.bind("ALT + Alt_L", function()
-  if hl.get_current_submap() ~= "alttab" then return end
-  hl.dispatch(hl.dsp.global("quickshell:alttabCommit"))
-  hl.dispatch(hl.dsp.submap("reset"))
-end, { release = true, transparent = true, non_consuming = true, submap_universal = true })
+-- Alt+Tab switcher: hymission (lua/hymission.lua).
 
 -- Monitor cycle
-hl.bind(mainMod .. " + Tab", hl.dsp.focus({ monitor = "+1" }))
+-- hl.bind(mainMod .. " + Tab", hl.dsp.focus({ monitor = "+1" }))
 
 -- Mouse binds for window drag/resize
 hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
@@ -151,3 +123,5 @@ hl.bind("ALT + Z", hl.dsp.exec_cmd("fcitx5-remote -t"))
 
 -- Clipboard via quickshell
 hl.bind("CTRL + semicolon", hl.dsp.exec_cmd("qs ipc call clipboard toggle"))
+
+-- Overview binds (ALT+TAB, SUPER+TAB/A/C) live in lua/hymission.lua.

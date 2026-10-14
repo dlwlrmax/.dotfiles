@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import qs.common
 
 Item {
@@ -16,20 +17,13 @@ Item {
         font.family: theme.font
         font.bold: true
 
-        Timer {
-            interval: 1000
-            running: true
-            repeat: true
-            triggeredOnStart: true
-            onTriggered: {
-                var d = new Date();
-                var hh = ("0" + d.getHours()).slice(-2);
-                var mm = ("0" + d.getMinutes()).slice(-2);
-                var dd = ("0" + d.getDate()).slice(-2);
-                var MM = ("0" + (d.getMonth() + 1)).slice(-2);
-                clock.text = hh + ":" + mm + " " + dd + "/" + MM;
-            }
-        }
+        // Ticks once a minute, aligned to the wall clock.
+        text: Qt.formatDateTime(sysClock.date, "hh:mm dd/MM")
+    }
+
+    SystemClock {
+        id: sysClock
+        precision: SystemClock.Minutes
     }
 
     MouseArea {

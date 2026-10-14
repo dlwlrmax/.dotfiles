@@ -15,40 +15,29 @@ for h in paru yay pamac; do
 done
 
 # ── system packages ───────────────────────────────────────────────
-PACMAN_PKGS=(
-    # shell
-    quickshell-git
-    # window manager
-    hyprlock
-    # audio
-    pipewire pipewire-pulse wireplumber
-    # network / dns
-    tailscale speedtest-cli
-    # scripting deps
-    jq curl gawk
-    # clipboard
-    cliphist wl-clipboard
-    # fonts
-    ttf-jetbrains-mono-nerd noto-fonts-emoji
-    # rust toolchain
-    rustup
-    # optional: KDE Connect
-    kdeconnect
-)
+# Package list lives in .config/quickshell/deps/deps.list (shared with the
+# runtime missing-package notifier). check-deps.sh --list applies the same
+# rules: pacman -T (provides count) and ~/.config/quickshell/deps-ignore.
+CHECK_DEPS="$(dirname "$(readlink -f "$0")")/.config/quickshell/scripts/check-deps.sh"
+if ! missing_list="$(bash "$CHECK_DEPS" --list)"; then
+    err "Could not read the package list ($CHECK_DEPS --list failed) — aborting"
+    exit 1
+fi
+MISSING_PKGS=()
+[ -n "$missing_list" ] && mapfile -t MISSING_PKGS < <(cut -f1 <<< "$missing_list")
 
-info "Installing system packages..."
-for pkg in "${PACMAN_PKGS[@]}"; do
-    if pacman -Q "$pkg" &>/dev/null; then
-        info "  $pkg — already installed"
+info "Installing system packages (deps/deps.list)..."
+if [ ${#MISSING_PKGS[@]} -eq 0 ]; then
+    info "  all packages already installed"
+fi
+for pkg in "${MISSING_PKGS[@]}"; do
+    warn "  $pkg — installing..."
+    if pacman -Si "$pkg" &>/dev/null; then
+        sudo pacman -S --noconfirm --needed "$pkg"
+    elif [ -n "$AUR" ]; then
+        "$AUR" -S --noconfirm --needed "$pkg"
     else
-        warn "  $pkg — installing..."
-        if pacman -Si "$pkg" &>/dev/null; then
-            sudo pacman -S --noconfirm --needed "$pkg"
-        elif [ -n "$AUR" ]; then
-            "$AUR" -S --noconfirm --needed "$pkg"
-        else
-            err "  $pkg — not in repos and no AUR helper found (install paru/yay manually)"
-        fi
+        err "  $pkg — not in repos and no AUR helper found (install paru/yay manually)"
     fi
 done
 

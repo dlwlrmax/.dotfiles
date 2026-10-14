@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Io
 import qs.common
 
 Item {
@@ -98,73 +97,6 @@ Item {
             if (mouse.button === Qt.LeftButton) {
                 root.togglePanel()
             }
-        }
-    }
-
-    Process {
-        id: cpuProc
-        command: ["bash", theme.scriptDir + "/cpu-usage.sh"]
-        running: !root.dataSource
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (root.dataSource) return
-                var output = this.text.trim();
-                var usage = parseInt(output);
-                if (!isNaN(usage)) {
-                    root.cpuUsage = usage;
-                }
-            }
-        }
-    }
-
-    Process {
-        id: memProc
-        command: ["bash", theme.scriptDir + "/mem-usage.sh"]
-        running: !root.dataSource
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (root.dataSource) return
-                var lines = this.text.trim().split("\n");
-                if (lines.length >= 1) {
-                    var ram = parseInt(lines[0]);
-                    if (!isNaN(ram)) root.ramUsage = ram;
-                }
-                if (lines.length >= 2) {
-                    var swap = parseInt(lines[1]);
-                    if (!isNaN(swap)) root.swapUsage = swap;
-                }
-            }
-        }
-    }
-
-    Process {
-        id: gpuProc
-        command: ["bash", theme.scriptDir + "/gpu-usage.sh"]
-        running: !root.dataSource
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (root.dataSource) return
-                var parts = this.text.trim().split(/\s+/);
-                if (parts.length >= 1) {
-                    var usage = parseInt(parts[0]);
-                    if (!isNaN(usage)) root.gpuUsage = usage;
-                }
-            }
-        }
-    }
-
-    Timer {
-        interval: 2000
-        running: !root.dataSource
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: {
-            cpuProc.running = true;
-            memProc.running = true;
-            gpuProc.running = true;
         }
     }
 }

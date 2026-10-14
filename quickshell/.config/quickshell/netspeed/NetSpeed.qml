@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Io
 import qs.common
 
 Item {
@@ -76,36 +75,5 @@ Item {
                 root.togglePanel()
             }
         }
-    }
-
-    Process {
-        id: netProc
-        command: ["bash", theme.scriptDir + "/netspeed.sh"]
-        running: !root.dataSource
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (root.dataSource) return
-                var output = this.text.trim();
-                if (!output) {
-                    root.dlText = "--"
-                    root.ulText = "--"
-                } else {
-                    var parts = output.split("|")
-                    if (parts.length >= 2) {
-                        root.dlText = parts[0] || "--"
-                        root.ulText = parts[1] || "--"
-                    }
-                }
-            }
-        }
-    }
-
-    Timer {
-        interval: 2000
-        running: !root.dataSource
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: netProc.running = true
     }
 }

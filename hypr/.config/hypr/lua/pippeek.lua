@@ -30,6 +30,8 @@ local ENTER_MS = 150  -- dwell on a PIP before peeking
 local LEAVE_MS = 300  -- dwell away before restoring
 local TOL      = 2    -- px tolerance for "still where we put it"
 local ARM_LEAVE_MS = 500 -- cursor-away dwell that releases a SUPER+S peek block
+local OVERVIEW_MAX_S  = 120 -- safety: forget a hymission overview we never saw close
+local OVERVIEW_ARM_MS = 250 -- ignore close events this soon after open (stale ones from the last close)
 
 -- Which windows count as a PIP. Remove an entry to opt that app out.
 local PIP_CLASSES = {
@@ -166,7 +168,7 @@ local function step(w, st, p, mod)
   if not st.original then st.original = cur end
   if not S.enabled then return end
 
-  if mod or S.arm_blocked then
+  if mod or S.arm_blocked or S.overview then
     st.hover_ticks, st.away_ticks = 0, 0
     return
   end
@@ -234,6 +236,26 @@ local function tick()
 
   for addr in pairs(S.wins) do
     if not seen[addr] then S.wins[addr] = nil end
+  end
+
+  -- Hymission overview open: previews are drawn over the real windows, so the
+  -- cursor "hovering" a PIP's real box means nothing. Hold the block until the
+  -- overview closes (see M.overview_open).
+  if S.overview then
+    local alt_released = false
+    if S.overview_kind == "switch" then
+      local ok, down = pcall(hl.is_key_down, "Alt_L")
+      alt_released = ok and not down
+    end
+    if alt_released or (S.overview_since and os.time() - S.overview_since > OVERVIEW_MAX_S) then
+      -- Switcher committed on Alt release (or we lost track): keep the block
+      -- until the cursor leaves, same as a seen close.
+      S.overview = false
+      S.arm_blocked, S.arm_away = true, 0
+    else
+      S.arm_away = 0
+      return
+    end
   end
 
   -- A SUPER+S focus cycle freezes peekage until the cursor has been away from
@@ -312,6 +334,43 @@ local function start_timer()
     S.idle = false
   end)
 end
+
+-- Called by the hymission overview binds (lua/hymission.lua) right before the
+-- overview opens. Hymission draws previews over the real windows and, on exit,
+-- warps the cursor onto the focused window, so both phases would look like a
+-- hover to the poll. Put PIPs home and block peeking until the overview closes
+-- (its exit refocuses -> window/workspace.active), then until the cursor has left
+-- every PIP for ARM_LEAVE_MS, same as SUPER+S.
+-- kind: "switch" for the Alt+Tab switcher (ends on Alt release), else "overview".
+function M.overview_open(kind)
+  M.block_until_leave()
+  S.overview = true
+  S.overview_kind = kind or "overview"
+  S.overview_since = os.time()
+  -- Close events right after open are leftovers from the previous close.
+  S.overview_token = (S.overview_token or 0) + 1
+  S.overview_armed = false
+  local token = S.overview_token
+  pcall(hl.timer, function()
+    if S.overview_token == token then S.overview_armed = true end
+  end, { timeout = OVERVIEW_ARM_MS, type = "oneshot" })
+end
+
+-- Explicit close (SUPER+CTRL+TAB). Also the end of every detected close:
+-- the exit warp may land on a PIP, so keep the block until the cursor leaves.
+function M.overview_close()
+  if not S.overview then return end
+  S.overview = false
+  S.arm_blocked, S.arm_away = true, 0
+end
+
+local function overview_closed()
+  if S.overview_armed then M.overview_close() end
+end
+-- Exit fires window.active and/or workspace.active (not always both); neither
+-- fires on open or while hovering previews.
+pcall(hl.on, "window.active", overview_closed)
+pcall(hl.on, "workspace.active", overview_closed)
 
 if not start_timer() then
   hl.on("hyprland.start", start_timer)

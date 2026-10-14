@@ -16,7 +16,6 @@ Item {
     property alias netData: netData
     property alias weatherData: weatherData
     property alias volumeData: volumeData
-    property alias batteryData: batteryData
 
     // Set by Hyprland's gaming profile (hypr lua/gaming.lua via `qs ipc call
     // gaming set`). While true: no popups, bar stat polls slowed down.
@@ -629,6 +628,7 @@ Item {
         }
 
         function tryPlaySound() {
+            if (root.gaming) return  // no chimes over game audio; history still records
             var now = Date.now()
             if (now - lastSoundTime < 1000) return
             lastSoundTime = now
@@ -892,45 +892,6 @@ Item {
             triggeredOnStart: true
             onTriggered: {
                 if (!volumeFetchProc.running) volumeFetchProc.running = true;
-            }
-        }
-    }
-
-    // ── Battery ─────────────────────────────────────────────
-
-    Item {
-        id: batteryData
-        property string batteryIcon: ""
-        property string batteryStatus: ""
-
-        Process {
-            id: batteryFetchProc
-            command: [theme.scriptDir + "/battery.sh"]
-
-            stdout: StdioCollector {
-                onStreamFinished: {
-                    var output = this.text.trim()
-                    if (!output) {
-                        batteryData.batteryIcon = ""
-                        batteryData.batteryStatus = ""
-                    } else {
-                        var parts = output.split("|")
-                        if (parts.length >= 3) {
-                            batteryData.batteryIcon = parts[0] || ""
-                            batteryData.batteryStatus = parts[2] || ""
-                        }
-                    }
-                }
-            }
-        }
-
-        Timer {
-            interval: 30000
-            running: true
-            repeat: true
-            triggeredOnStart: true
-            onTriggered: {
-                if (!batteryFetchProc.running) batteryFetchProc.running = true;
             }
         }
     }

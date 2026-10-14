@@ -1,0 +1,50 @@
+# Packages the desktop (quickshell + hypr config) needs. Single source for
+# both install.sh (installs every entry) and the runtime checker
+# (scripts/check-deps.sh, which skips `setup` entries).
+# Format: <package> <required|optional|setup> <what breaks without it>
+# Checked with `pacman -T`, so provides (e.g. pipewire-pulse -> pulse) count.
+# Silence entries per machine: one package name per line in
+# ~/.config/quickshell/deps-ignore
+
+# setup: installed by install.sh only (not runtime-checked)
+quickshell-git           setup     the shell itself
+rustup                   setup     builds sys-stats / net-stats
+
+# core: bar, notifications, audio
+libpulse                 required  volume widget + notification sound (pactl, paplay)
+pipewire-pulse           required  audio server the volume widget talks to
+wireplumber              required  volume keys (wpctl)
+libnotify                required  notify-send (scripts, this checker)
+jq                       required  script JSON parsing
+curl                     required  weather
+gawk                     required  script text parsing
+ttf-jetbrains-mono-nerd  required  bar font + icons
+noto-fonts-emoji         required  emoji in notifications
+
+# hyprland session
+hyprlock                 required  lock screen
+hypridle                 required  idle lock / screen off
+hyprpaper                required  wallpaper
+hyprpolkitagent          required  password prompts for apps
+xdg-desktop-portal-hyprland required  screen sharing, file pickers
+cliphist                 required  clipboard history panel
+wl-clipboard             required  clipboard copy/paste
+grim                     required  screenshot (SUPER+SHIFT+S)
+slurp                    required  screenshot region select
+swappy                   required  screenshot editor
+playerctl                required  media keys
+fcitx5                   required  input method (ALT+Z)
+ghostty                  required  terminal (SUPER+Return)
+dolphin                  required  file manager (SUPER+E)
+
+# optional features
+python-dbus              optional  KDE Connect panel (kdeconnect.sh)
+kdeconnect               optional  phone notifications + battery
+sqlite                   optional  WAL mode for the quickshell state DB
+tailscale                optional  network panel Tailscale status
+speedtest-cli            optional  network panel speed test
+easyeffects              optional  audio effects toggle
+blueman                  optional  Bluetooth tray applet
+wlrctl                   optional  keyboard mouse movement (SUPER+ALT+hjkl)
+ydotool                  optional  keyboard mouse scroll (SUPER+ALT+p/n)
+waypaper                 optional  wallpaper picker
