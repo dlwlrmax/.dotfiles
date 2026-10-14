@@ -19,9 +19,10 @@ hl.bind(mainModS .. " + M", hl.dsp.exec_cmd("hyprlock"))
 -- File manager
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(fileManager))
 
--- Float toggle + center (intentional duplicate bind: Hyprland dispatches both in sequence)
-hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
-hl.bind(mainMod .. " + V", hl.dsp.window.center())
+-- Float toggle; a newly floated window is sized into a sane range + centered
+-- (lua/floatsize.lua).
+local floatsize = require("lua/floatsize")
+hl.bind(mainMod .. " + V", floatsize.toggle_float)
 
 -- App launcher (quickshell)
 hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("qs ipc call launcher toggle"))
