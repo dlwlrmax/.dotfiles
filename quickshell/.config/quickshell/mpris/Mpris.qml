@@ -119,17 +119,13 @@ Item {
                 target: modelData
                 function onIsPlayingChanged() { root._refreshPlayer() }
                 function onPlaybackStateChanged() { root._refreshPlayer() }
+                // A player can start playing before its metadata lands.
+                function onTrackTitleChanged() { root._refreshPlayer() }
             }
 
             Component.onCompleted: { root._refreshPlayer() }
-            Component.onDestruction: { root._refreshPlayer() }
+            // Deferred: the dying player may still be in Mpris.players here.
+            Component.onDestruction: { Qt.callLater(root._refreshPlayer) }
         }
-    }
-
-    Timer {
-        interval: 3000
-        running: true
-        repeat: true
-        onTriggered: root._refreshPlayer()
     }
 }

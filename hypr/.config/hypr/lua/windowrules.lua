@@ -29,7 +29,6 @@ local float_apps = {
   "nemo",
   "org.qbittorrent.qBittorrent",
   "git-cola",
-  "steam",
   "org.kde.audiotube",
   "org.gnome.Nautilus",
   "blueman-manager",
@@ -117,39 +116,25 @@ hl.window_rule({
 local pip_monitor = overrides.secondMonitor or "HDMI-A-1"
 local main_monitor = overrides.mainMonitor or vars.mainMonitor
 
-hl.window_rule({
-  match = { class = "mpv" },
-  monitor = pip_monitor,
-  float = true,
-  pin = true,
-  move = pip_position,
-  size = pip_size,
-  no_blur = true,
-  focus_on_activate = false,
-})
-hl.window_rule({
-  match = { title = "(?i)picture.*picture" },
-  monitor = pip_monitor,
-  float = true,
-  pin = true,
-  move = pip_position,
-  size = pip_size,
-  dim_around = false,
-  no_blur = true,
-  no_shadow = true,
-})
-
-if not overrides.stremio_normal then
-  hl.window_rule({
-    match = { class = "^(stremio-enhanced|com.stremio.Stremio)$" },
+-- Shared PIP placement; `extra` adds per-app effects.
+local function pip_rule(match, extra)
+  local rule = {
+    match = match,
     monitor = pip_monitor,
     float = true,
     pin = true,
     move = pip_position,
     size = pip_size,
-    dim_around = false,
     no_blur = true,
-  })
+  }
+  for k, v in pairs(extra or {}) do rule[k] = v end
+  hl.window_rule(rule)
+end
+
+pip_rule({ class = "^(mpv)$" }, { focus_on_activate = false })
+pip_rule({ title = "(?i)picture.*picture" }, { dim_around = false, no_shadow = true })
+if not overrides.stremio_normal then
+  pip_rule({ class = "^(stremio-enhanced|com.stremio.Stremio)$" }, { dim_around = false })
 end
 
 -- Fullscreen border highlight
@@ -233,20 +218,23 @@ hl.window_rule({
   center = true,
   no_blur = true,
   no_shadow = true,
+  idle_inhibit = "fullscreen", -- controller-only play must not trigger lock/DPMS
 })
 
 hl.window_rule({
-  match = { class = "gamescope" },
+  match = { class = "^(gamescope)$" },
   workspace = 1,
   monitor = main_monitor,
   confine_pointer = true,
   immediate = true,
   fullscreen = true,
   center = true,
+  idle_inhibit = "fullscreen",
 })
 
+-- Steam client (not games: those are steam_app_*, handled above).
 hl.window_rule({
-  match = { class = "steam" },
+  match = { class = "^(steam)$" },
   fullscreen = false,
   float = true,
   confine_pointer = false,
@@ -255,7 +243,7 @@ hl.window_rule({
 })
 
 hl.window_rule({
-  match = { class = "steam", title = "Steam" },
+  match = { class = "^(steam)$", title = "Steam" },
   float = false,
 })
 

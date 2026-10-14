@@ -18,6 +18,11 @@ Item {
     property alias volumeData: volumeData
     property alias batteryData: batteryData
 
+    // Set by Hyprland's gaming profile (hypr lua/gaming.lua via `qs ipc call
+    // gaming set`). While true: no popups, bar stat polls slowed down.
+    property bool gaming: false
+    readonly property int statPollMs: gaming ? 10000 : 2000
+
     function cycleAudio() { volumeData.cycleSink() }
 
     // ── KDE Connect ─────────────────────────────────────────
@@ -104,13 +109,43 @@ Item {
             }
         }
 
+        // Safety-net poll only: kdeconnectd signals (below) drive updates.
         Timer {
             id: kdePollTimer
-            interval: 10000
+            interval: 30000
             running: true
             repeat: true
             triggeredOnStart: true
             onTriggered: kdeData.poll()
+        }
+
+        // Event-driven refresh: any kdeconnectd signal (notification posted/
+        // removed, battery, reachability) schedules one debounced fetch, so a
+        // burst of signals costs a single python3 run.
+        Process {
+            id: kdeSignalProc
+            command: ["dbus-monitor", "--session",
+                "type='signal',path_namespace='/modules/kdeconnect'"]
+            running: true
+            stdout: SplitParser {
+                onRead: data => {
+                    if (data.startsWith("signal") && data.includes("path=/modules/kdeconnect"))
+                        kdeSignalDebounce.restart()
+                }
+            }
+            onRunningChanged: if (!running) kdeSignalRestart.restart()
+        }
+
+        Timer {
+            id: kdeSignalDebounce
+            interval: 300
+            onTriggered: kdeData.refresh()
+        }
+
+        Timer {
+            id: kdeSignalRestart
+            interval: 5000
+            onTriggered: if (!kdeSignalProc.running) kdeSignalProc.running = true
         }
 
         function refresh() {
@@ -641,7 +676,7 @@ Item {
         }
 
         Timer {
-            interval: 2000
+            interval: root.statPollMs
             running: true
             repeat: true
             triggeredOnStart: true
@@ -680,7 +715,7 @@ Item {
         }
 
         Timer {
-            interval: 2000
+            interval: root.statPollMs
             running: true
             repeat: true
             triggeredOnStart: true
@@ -794,7 +829,7 @@ Item {
             command: [theme.scriptDir + "/audio-cycle.sh"]
             stdout: StdioCollector {
                 onStreamFinished: {
-                    // Script notifies itself; sync baseline so the 5s poll stays silent
+                    // Script notifies itself; sync baseline so the next poll stays silent
                     var sink = this.text.trim().split("\n").filter(function (l) { return l !== ""; }).pop() || "";
                     if (sink !== "") volumeData.defaultSink = sink;
                     volumeData._cycling = false;
@@ -849,8 +884,9 @@ Item {
             }
         }
 
+        // Safety net only (pactl subscribe above catches real changes).
         Timer {
-            interval: 5000
+            interval: 30000
             running: true
             repeat: true
             triggeredOnStart: true

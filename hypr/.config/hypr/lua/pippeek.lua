@@ -24,7 +24,8 @@ local M = {}
 
 local DEFAULT_PEEK_X = 1950 -- absolute screen x while peeked (live override: state.peek_x)
 local MARGIN   = 20   -- hover slack around each region
-local POLL_MS  = 100  -- poll period
+local POLL_MS  = 100  -- poll period while any PIP exists
+local IDLE_MS  = 1000 -- poll period with no PIP (window events wake it early)
 local ENTER_MS = 150  -- dwell on a PIP before peeking
 local LEAVE_MS = 300  -- dwell away before restoring
 local TOL      = 2    -- px tolerance for "still where we put it"
@@ -48,7 +49,7 @@ local BROWSER_CLASSES = {
 }
 
 local function is_pip(w)
-  if not w.floating then return false end
+  if not w or not w.floating then return false end
   local cls = w.class or ""
   if PIP_CLASSES[cls] then return true end
   -- Browser PIPs are pinned floats whose title follows the media title.
@@ -59,8 +60,16 @@ end
 -- Config reloads re-run this chunk: keep one shared state table and one timer.
 local S = _G.__hl_pippeek
 if not S then
-  S = { enabled = true, peek_x = DEFAULT_PEEK_X, wins = {}, arm_blocked = false, arm_away = 0, timer = nil }
+  S = { enabled = true, peek_x = DEFAULT_PEEK_X, wins = {}, arm_blocked = false, arm_away = 0, timer = nil, idle = false }
   _G.__hl_pippeek = S
+end
+
+-- Switch the poll between fast (PIP on screen) and idle rates.
+local function set_idle(idle)
+  if S.idle == idle or not S.timer then return end
+  if pcall(S.timer.set_timeout, S.timer, idle and IDLE_MS or POLL_MS) then
+    S.idle = idle
+  end
 end
 
 local function box(w)
@@ -190,38 +199,41 @@ local function step(w, st, p, mod)
 end
 
 local function tick()
-  local ok, wins = pcall(hl.get_windows)
+  -- Every PIP is floating: let the compositor skip tiled windows.
+  local ok, wins = pcall(hl.get_windows, { floating = true })
   if not (ok and wins) then return end
-  if #wins == 0 and next(S.wins) == nil then return end -- idle: nothing to poll for
+
+  local pips = {}
+  for i = 1, #wins do
+    if is_pip(wins[i]) then pips[#pips + 1] = wins[i] end
+  end
+
+  -- No PIP on screen: drop state, release the latch, slow the poll down.
+  if #pips == 0 then
+    if next(S.wins) ~= nil then S.wins = {} end
+    S.arm_blocked = false
+    set_idle(true)
+    return
+  end
+  set_idle(false)
 
   -- Read pointer and modifier state once per tick instead of once per PIP.
   local p = hl.get_cursor_pos()
   local mod = super_held()
 
   local seen = {}
-  local any_pip = false
-  for i = 1, #wins do
-    local w = wins[i]
-    if is_pip(w) then
-      any_pip = true
-      seen[w.address] = true
-      local st = S.wins[w.address]
-      if not st then
-        st = new_win(w.address, box(w))
-        S.wins[w.address] = st
-      end
-      step(w, st, p, mod)
+  for _, w in ipairs(pips) do
+    seen[w.address] = true
+    local st = S.wins[w.address]
+    if not st then
+      st = new_win(w.address, box(w))
+      S.wins[w.address] = st
     end
+    step(w, st, p, mod)
   end
 
   for addr in pairs(S.wins) do
     if not seen[addr] then S.wins[addr] = nil end
-  end
-
-  -- No PIP on screen: nothing can hold the latch.
-  if not any_pip then
-    S.arm_blocked = false
-    return
   end
 
   -- A SUPER+S focus cycle freezes peekage until the cursor has been away from
@@ -268,6 +280,8 @@ function M.toggle()
   return S.enabled
 end
 
+M.is_pip = is_pip
+
 function M.is_enabled()
   return S.enabled
 end
@@ -291,19 +305,23 @@ function M.block_until_leave()
   end
 end
 
-if not S.timer then
-  local ok = pcall(function()
+local function start_timer()
+  if S.timer then return true end
+  return pcall(function()
     S.timer = hl.timer(tick, { timeout = POLL_MS, type = "repeat" })
+    S.idle = false
   end)
-  if not ok then
-    hl.on("hyprland.start", function()
-      if not S.timer then
-        pcall(function()
-          S.timer = hl.timer(tick, { timeout = POLL_MS, type = "repeat" })
-        end)
-      end
-    end)
-  end
+end
+
+if not start_timer() then
+  hl.on("hyprland.start", start_timer)
+end
+
+-- A window can become a PIP on open, pin, or title/class change: snap the poll
+-- back to full rate so the idle period never delays a peek.
+local function wake() set_idle(false) end
+for _, ev in ipairs({ "window.open", "window.pin", "window.title", "window.class" }) do
+  pcall(hl.on, ev, wake)
 end
 
 return M

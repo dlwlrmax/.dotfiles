@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
-# Toggle gaming mode: disable animations, blur, and VFR for lower input lag
+# Manual gaming profile override. The profile normally switches on/off by
+# itself when a fullscreen game is focused (lua/gaming.lua); use this to force
+# it on (e.g. a windowed game) or hand control back to auto.
 # Usage: gamemode.sh on | off
 #
-# NOTE: Hyprland 0.56 rejects `hyprctl keyword` ("keyword can't work with
-# non-legacy parsers. Use eval."), so runtime config changes go through
-# hl.config(). The 0.56 option name for VFR is debug.vfr (not misc:no_vfr).
+# NOTE: Hyprland 0.56 rejects `hyprctl keyword`; runtime changes go through eval.
 
 set -euo pipefail
 
 case "${1:-}" in
   on)
-    hyprctl eval 'hl.config({ animations = { enabled = false }, decoration = { blur = { enabled = false } }, debug = { vfr = false } })' >/dev/null
-    notify-send -u low "Gamemode ON" "Animations disabled, VFR forced" || true
+    hyprctl eval 'require("lua/gaming").force(true)' >/dev/null
+    notify-send -u low "Gamemode ON" "Forced: animations, blur, shadows off" || true
     ;;
   off)
-    hyprctl eval 'hl.config({ animations = { enabled = true }, decoration = { blur = { enabled = true } }, debug = { vfr = true } })' >/dev/null
-    notify-send -u low "Gamemode OFF" "Animations restored" || true
+    hyprctl eval 'require("lua/gaming").force(nil)' >/dev/null
+    notify-send -u low "Gamemode AUTO" "Follows fullscreen games again" || true
     ;;
   *)
     echo "Usage: gamemode.sh on | off"

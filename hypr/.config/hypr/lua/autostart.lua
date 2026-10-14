@@ -57,15 +57,15 @@ hl.on("hyprland.start", function()
   -- ═══════════════════════════════════════════════════════════
   launch(2,
     "blueman-applet",
-    "nohup easyeffects --gapplication-service"
+    "easyeffects --gapplication-service"
   )
-  launch(3, "sh -c 'cliphist wipe'")
+  launch(3, "cliphist wipe")
 
   -- ═══════════════════════════════════════════════════════════
   -- TIER 4: user apps — deferred to keep desktop responsive
   -- ═══════════════════════════════════════════════════════════
   launch(5,  terminal)
-  launch(6,  "env MOZ_ENABLE_WAYLAND=1 zen-browser")
+  launch(6,  "zen-browser") -- MOZ_ENABLE_WAYLAND set globally in variables.lua
   launch(15, "google-chrome-stable --ozone-platform-hint=auto --enable-features=UseOzonePlatform --disable-features=WaylandWpColorManagerV1")
   launch(60, "ferdium")
   launch(120, "nextcloud --background")

@@ -37,14 +37,14 @@ hl.bind(mainMod .. " + CTRL + A", hl.dsp.exec_cmd("qs ipc call audio cycle"))
 -- Screenshot
 hl.bind(mainModS .. " + S", hl.dsp.exec_cmd('grim -g "$(slurp -d)" - | swappy -f -'))
 
--- Focus cycle (Stremio/mpv/prev). The PIP hover-peek guard (lua/pippeek.lua) runs
--- HERE, in the same key event, not inside stremio-focus.sh: that path is
--- exec_cmd -> bash -> hyprctl eval, and the 100 ms peek poll could fire a move in
--- the spawn gap. Synchronous guard = the poll can never see an unguarded tick.
-local pippeek = select(2, pcall(require, "lua/pippeek"))
+-- Focus cycle (Stremio/mpv/PiP/prev). PIP hover-peek guard and the focus change
+-- both run synchronously in this key event, so the peek poll can never see an
+-- unguarded tick between them.
+local pippeek = require("lua/pippeek")
+local mediafocus = require("lua/mediafocus")
 hl.bind(mainMod .. " + S", function()
-  if pippeek and pippeek.block_until_leave then pippeek.block_until_leave() end
-  hl.dispatch(hl.dsp.exec_cmd("$HOME/.config/hypr/scripts/stremio-focus.sh"))
+  pippeek.block_until_leave()
+  mediafocus.cycle()
 end)
 
 -- Fullscreen
@@ -150,4 +150,4 @@ hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
 hl.bind("ALT + Z", hl.dsp.exec_cmd("fcitx5-remote -t"))
 
 -- Clipboard via quickshell
-hl.bind("CTRL + semicolon", hl.dsp.exec_cmd("quickshell ipc call clipboard toggle"))
+hl.bind("CTRL + semicolon", hl.dsp.exec_cmd("qs ipc call clipboard toggle"))

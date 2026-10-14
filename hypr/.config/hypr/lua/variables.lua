@@ -6,9 +6,8 @@ M.terminal    = "ghostty"
 M.mainMod     = "SUPER"
 M.mainModS    = M.mainMod .. " + SHIFT"
 M.fileManager = "dolphin"
-M.mainMonitor   = "DP-2"       -- primary / center
+M.mainMonitor   = "DP-2"       -- primary / center (per-machine: lua/local.lua)
 M.secondMonitor = "HDMI-A-1"   -- secondary / left or right
-M.thirdMonitor  = "DP-1"       -- tertiary / portrait (set to nil if only 2 monitors)
 
 -- Env vars, general, decoration, input, misc, xwayland, cursor
 
@@ -46,14 +45,15 @@ hl.env("XCURSOR_SIZE", "20")
 hl.env("HYPRCURSOR_SIZE", "20")
 
 -- Default terminal
-hl.env("TERMINAL", "ghostty")
+hl.env("TERMINAL", M.terminal)
 
 -- Ozone / Electron
 hl.env("OZONE_PLATFORM", "wayland")
 hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
 
--- Gaming
-hl.env("SDL_VIDEODRIVER", "wayland")
+-- Gaming: SDL_VIDEODRIVER deliberately NOT set globally — forcing "wayland"
+-- breaks older SDL2/Proton titles. Opt in per game via Steam launch options:
+--   SDL_VIDEODRIVER=wayland %command%
 
 hl.config({
   general = {
@@ -129,6 +129,12 @@ hl.config({
 
   misc = {
     disable_splash_rendering = true,
+  },
+
+  -- Scan fullscreen games straight to the display (skips compositing).
+  -- 2 = only for windows tagged content-type "game", so desktop apps are unaffected.
+  render = {
+    direct_scanout = 2,
   },
 })
 

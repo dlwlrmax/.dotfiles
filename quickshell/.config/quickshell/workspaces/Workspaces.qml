@@ -1,6 +1,5 @@
 import Quickshell
 import Quickshell.Hyprland._Ipc
-import Quickshell.Io
 import QtQuick
 import qs.common
 
@@ -8,19 +7,6 @@ Row {
     property Theme theme: Theme {}
     required property var monitor
     spacing: 8
-
-    // Guard rapid workspace switching (prevents Process reuse race).
-    property bool _switching: false
-
-    Process {
-        id: wsSwitch
-    }
-
-    Timer {
-        id: wsGuardTimer
-        interval: 200
-        onTriggered: _switching = false
-    }
 
     Repeater {
         model: Hyprland.workspaces
@@ -62,16 +48,9 @@ Row {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                    if (_switching) return
                     var id = wsDelegate.modelData.id
                     if (!Number.isInteger(id)) return
-                    _switching = true
-                    wsSwitch.command = [
-                        "hyprctl", "eval",
-                        "hl.dispatch(hl.dsp.focus({ workspace = " + id + " }))"
-                    ];
-                    wsSwitch.startDetached();
-                    wsGuardTimer.restart()
+                    Hyprland.dispatch("hl.dsp.focus({ workspace = " + id + " })")
                 }
             }
         }

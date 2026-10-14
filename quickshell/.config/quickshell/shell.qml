@@ -143,6 +143,13 @@ ShellRoot {
         function cycle(): void { dp.cycleAudio() }
     }
 
+    // Driven by Hyprland's auto gaming profile (hypr lua/gaming.lua).
+    IpcHandler {
+        target: "gaming"
+        function set(on: bool): void { dp.gaming = on }
+        function get(): bool { return dp.gaming }
+    }
+
     Instantiator {
         model: Quickshell.screens
         delegate: Item {
@@ -257,7 +264,8 @@ ShellRoot {
                     anchors.horizontalCenter: parent.horizontalCenter
                     theme: Theme {}
                     notifTimes: dp.notifData.notifTimes
-                    dnd: dp.notifData.dnd
+                    // Gaming: no popups over the game; history still records them.
+                    dnd: dp.notifData.dnd || dp.gaming
                     dataSource: dp.notifData
                 }
 
