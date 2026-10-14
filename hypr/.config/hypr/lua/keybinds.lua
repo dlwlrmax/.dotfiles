@@ -116,7 +116,17 @@ end
 
 -- Mouse binds for window drag/resize
 hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
-hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
+-- SUPER + right-drag resize is DISABLED: on Hyprland 0.56.2 it segfaults the
+-- compositor (dsp_mouseResize stores a number upvalue, then reads it with
+-- Check::string -> lua_tostring NULL -> crash). Fixed upstream in 1c4fbb65
+-- (2026-10-02); re-enable after upgrading past 0.56.2:
+-- hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
+-- Meanwhile: drag a window border (general.resize_on_border), or:
+local resize_dirs = { h = { -40, 0 }, l = { 40, 0 }, k = { 0, -40 }, j = { 0, 40 } }
+for key, d in pairs(resize_dirs) do
+  hl.bind(mainMod .. " + CTRL + " .. key,
+    hl.dsp.window.resize({ x = d[1], y = d[2], relative = true }), { repeating = true })
+end
 
 -- Input Method toggle
 hl.bind("ALT + Z", hl.dsp.exec_cmd("fcitx5-remote -t"))
