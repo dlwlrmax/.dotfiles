@@ -8,7 +8,7 @@ local ws = {
   { pat = "^(Chromium)$", id = 2 },
   { pat = "^(Lark|Ferdium|ferdium)$", id = 3 },
   { pat = "^(Code|code-oss)$", id = 4 },
-  { pat = "[Dd][Bb]eaver|tabularis", id = 5 },
+  { pat = "tabularis", id = 5 }, -- DBeaver: see dbeaver-* rules below
   { pat = "^(Postman|yaak-app|bruno)$", id = 6 },
   { pat = "^(Spotify)$", id = 7 },
   { pat = "^(zen-beta|zen)$", id = 10 },
@@ -188,16 +188,38 @@ hl.window_rule({
   center = true,
 })
 
--- DBeaver popups. Inside `match`, `float = true` is a FILTER (only windows that
--- are already floating), not a property — so the tiled main window, which shares
--- class ^DBeaver$, is never touched. This rule only centers/dims DBeaver's own
--- floating dialogs.
--- Not achievable via rules: auto-floating only the dialogs. A title-based
--- main/dialog split (main = "^DBeaver\\s" + float = false) was tested in both
--- orders and never took effect; `floating` is rejected as a match key.
+-- DBeaver (class "DBeaver"). Rule regexes are RE2 FullMatch — the whole
+-- string must match — which is why an older `^DBeaver\\s` title split never
+-- took effect ("DBeaver 26.2.2" needs the trailing `.*`).
+-- Every DBeaver window goes to workspace 5 without switching there.
+-- The startup splash is a plain Java window (class "java", title "Dbeaver")
+-- that would otherwise tile on the current workspace for ~5s.
+hl.window_rule({
+  name = "dbeaver-splash",
+  match = { class = "java", initial_title = "Dbeaver" },
+  float = true,
+  workspace = "5 silent",
+})
+hl.window_rule({
+  name = "dbeaver-workspace",
+  match = { class = "DBeaver" },
+  workspace = "5 silent",
+})
+-- Main window: initial title "DBeaver <version>". Floats at a usable default
+-- size (DBeaver asks for a tiny one); after the first close lua/floatsize.lua
+-- restores wherever you last left it.
+hl.window_rule({
+  name = "dbeaver-main",
+  match = { class = "DBeaver", initial_title = "DBeaver \\d.*" },
+  float = true,
+  size = "(monitor_w*0.75) (monitor_h*0.8)",
+  center = true,
+})
+-- Dialogs only (not the main window): cap, dim behind, center. `float = true`
+-- in match is a filter (already-floating windows).
 hl.window_rule({
   name = "dbeaver-popups",
-  match = { class = "^DBeaver$", float = true },
+  match = { class = "DBeaver", float = true, initial_title = "negative:DBeaver \\d.*" },
   max_size = "1200 800",
   dim_around = true,
   center = true,
