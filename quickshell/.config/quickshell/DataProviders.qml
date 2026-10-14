@@ -446,6 +446,66 @@ Item {
             }
         }
 
+        // Chat apps relayed by KDE Connect (Zalo groups, ...) keep ONE
+        // notification per conversation on the phone and re-post it on every
+        // change: new messages appended, the oldest lines dropping off once
+        // Android's ~6-line window is full, and sometimes the exact same text
+        // again. Compare against recent notifications from the same app with
+        // the same title (< 1h):
+        //   identical body              -> "dup": drop it entirely
+        //   contains the old last line  -> "update": replace the old one
+        // Different emails under one "Gmail" title share no lines, so they stay.
+        function bodyLines(b) {
+            return (b || "").split(/<br\s*\/?>|\n/)
+                .map(function(l) { return l.trim() })
+                .filter(function(l) { return l !== "" })
+        }
+        function relation(oldBody, newBody) {
+            if (!oldBody || !newBody) return ""
+            if (oldBody === newBody) return "dup"
+            var ol = bodyLines(oldBody)
+            var last = ol.length ? ol[ol.length - 1] : ""
+            return last && newBody.indexOf(last) >= 0 ? "update" : ""
+        }
+
+        // -> { kind: "dup"|"update", id } for the newest related notification, or null.
+        function findRelated(notif) {
+            var body = notif.body || ""
+            if (!body) return null
+            var app = notif.appName || "", sum = notif.summary || ""
+            var now = Date.now() / 1000
+            var rel
+            // Live ones first: history reloads 400ms after a notification, so a
+            // burst (two updates in the same second) is only visible here.
+            var live = activeNotifs || []
+            for (var j = live.length - 1; j >= 0; j--) {
+                var n = live[j]
+                if (n && n._dbId !== undefined && n._dbId !== null
+                    && (n.appName || "") === app && (n.summary || "") === sum
+                    && (rel = relation(n.body, body)))
+                    return { kind: rel, id: n._dbId }
+            }
+            var rows = history || []   // newest first
+            for (var i = 0; i < rows.length; i++) {
+                var r = rows[i]
+                if (now - (r.timestamp || 0) >= 3600) break
+                if (r.appName === app && r.summary === sum && (rel = relation(r.body, body)))
+                    return { kind: rel, id: r.id }
+            }
+            return null
+        }
+
+        function replaceCumulative(prev) {
+            Db.deleteHistoryRow(prev.id)
+            var arr = activeNotifs
+            for (var i = 0; i < arr.length; i++) {
+                if (arr[i] && arr[i]._dbId === prev.id) {
+                    arr[i].dismiss()   // its closed handler drops it from activeNotifs
+                    break
+                }
+            }
+        }
+
         function handleNotification(notif) {
             if (dnd) return
             if (isContentless(notif)) return
@@ -470,6 +530,13 @@ Item {
                 notif.tracked = false
                 return
             }
+
+            var related = findRelated(notif)
+            if (related && related.kind === "dup") {
+                notif.tracked = false   // phone re-sent the same text: no popup/sound/row
+                return
+            }
+            if (related) replaceCumulative(related)
 
             notif.tracked = true
             addNotifTime(notif)
