@@ -1,2 +1,3 @@
 module qs.workspaces
 Workspaces 1.0 Workspaces.qml
+singleton WorkspaceAttention 1.0 WorkspaceAttention.qml
