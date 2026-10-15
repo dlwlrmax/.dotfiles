@@ -215,7 +215,10 @@ Rectangle {
                     Layout.fillWidth: true
                 }
                 Text {
-                    text: Sanitize.formatBody(root.latest ? (root.latest.summary || root.latest.body || "") : "")
+                    // No title: the header shows the body's newest line instead.
+                    text: !root.latest ? ""
+                        : root.latest.summary ? Sanitize.formatBody(root.latest.summary)
+                        : Sanitize.formatBodyTail(root.latest.body, 1)
                     color: theme.subtext0
                     font.pixelSize: theme.fontSize - 2
                     font.family: theme.font
@@ -263,11 +266,12 @@ Rectangle {
         Text {
             Layout.fillWidth: true
             visible: root.latest && root.latest.body && root.latest.summary
-            text: Sanitize.formatBody(root.latest ? (root.latest.body || "") : "")
+            // Newest lines of cumulative chat bodies, not the oldest.
+            text: Sanitize.formatBodyTail(root.latest ? root.latest.body : "", 2)
             color: theme.text
             font.pixelSize: theme.fontSize - 2
             font.family: theme.font
-            maximumLineCount: 2
+            maximumLineCount: 3
             elide: Text.ElideRight
             wrapMode: Text.WrapAtWordBoundaryOrAnywhere
             textFormat: Text.StyledText
@@ -357,7 +361,10 @@ Rectangle {
                         anchors.right: closeText.left
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.margins: 6
-                        text: Sanitize.formatBody(modelData.summary || modelData.body || "")
+                        // "Sender: newest line" (summary alone is often just the group/app name)
+                        text: modelData.summary && modelData.body
+                            ? Sanitize.formatBody(modelData.summary) + ": " + Sanitize.formatBodyTail(modelData.body, 1)
+                            : Sanitize.formatBody(modelData.summary) || Sanitize.formatBodyTail(modelData.body, 1)
                         color: theme.subtext0
                         font.pixelSize: theme.fontSize - 3
                         font.family: theme.font

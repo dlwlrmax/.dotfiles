@@ -204,7 +204,8 @@ Rectangle {
                 id: bodyText
                 // Untrusted markup rendered through the Sanitize allowlist
                 // (b/i/u only) as StyledText — no images, links, or attrs.
-                text: Sanitize.formatBody(notifData && notifData.body || "")
+                // Newest lines of cumulative chat bodies; the tooltip has the full text.
+                text: Sanitize.formatBodyTail(notifData && notifData.body || "", 3)
                 color: theme.subtext0
                 font.pixelSize: theme.fontSize - 2
                 font.family: theme.font
@@ -226,7 +227,7 @@ Rectangle {
                 BarTooltip {
                     target: bodyText
                     theme: root.theme
-                    hovered: bodyHover.containsMouse && bodyText.truncated
+                    hovered: bodyHover.containsMouse && (bodyText.truncated || bodyText.text.indexOf("\u2026 ") === 0)
                     delay: 500
                     text: Sanitize.formatBody(notifData && notifData.body || "")
                     textFormat: Text.StyledText

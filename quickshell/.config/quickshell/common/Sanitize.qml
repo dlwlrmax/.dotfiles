@@ -13,6 +13,19 @@ import QtQuick
 // NOTE: StyledText follows HTML whitespace rules, so a literal \n collapses
 // to a space — line breaks must be real <br> tags, never \n.
 QtObject {
+    // Last `n` lines of a multi-line body, sanitized like formatBody. Chat relays
+    // (KDE Connect: Zalo, WhatsApp…) send one cumulative body, oldest line first,
+    // so a head-truncated view hides the newest message. Cut lines become "… ".
+    function formatBodyTail(s, n) {
+        var lines = String(s || "").split(/<\s*\/?\s*(?:br|p)(?:\s[^<>]*)?\s*\/?\s*>|\n/i)
+            .map(function(l) { return l.trim() })
+            .filter(function(l) { return l !== "" })
+        if (lines.length <= n) return formatBody(lines.join("\n"))
+        var tail = lines.slice(lines.length - n)
+        tail[0] = "\u2026 " + tail[0]
+        return formatBody(tail.join("\n"))
+    }
+
     function formatBody(s) {
         var t = String(s || "")
         if (!t) return ""
