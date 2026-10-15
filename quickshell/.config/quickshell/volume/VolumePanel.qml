@@ -21,6 +21,9 @@ Item {
     property bool pendingRefresh: false
 
     property bool eeActive: false
+    property string eePreset: ""
+    property int eeToggleGen: 0
+    property int eePendingToggles: 0
     property bool needsStatus: false
 
     Rectangle {
@@ -274,6 +277,11 @@ Item {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
+                    // Flip immediately so the switch animates; queue the toggle so rapid clicks aren't dropped.
+                    // Bumping eeToggleGen invalidates any status read already in flight.
+                    root.eeActive = !root.eeActive;
+                    root.eeToggleGen++;
+                    root.eePendingToggles++;
                     if (!eeToggleProc.running) eeToggleProc.running = true;
                 }
             }
@@ -283,13 +291,27 @@ Item {
                 anchors.fill: parent
                 spacing: 8
 
-                Text {
-                    text: "EasyEffects"
-                    color: theme.text
-                    font.pixelSize: theme.fontSize
-                    font.weight: Font.Medium
-                    font.family: theme.font
+                ColumnLayout {
                     Layout.fillWidth: true
+                    spacing: 2
+
+                    Text {
+                        text: root.eePreset || "EasyEffects"
+                        color: theme.text
+                        font.pixelSize: theme.fontSize
+                        font.weight: Font.Medium
+                        font.family: theme.font
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                    }
+
+                    // Always shown so the row height doesn't jump when the preset name arrives
+                    Text {
+                        text: root.eePreset ? "EasyEffects" : "No preset loaded"
+                        color: theme.subtext0
+                        font.pixelSize: theme.fontSize - 2
+                        font.family: theme.font
+                    }
                 }
 
                 // Repair silent playback (stalled EE chain / sink resume glitch)
@@ -309,11 +331,23 @@ Item {
                     }
                 }
 
-                Text {
-                    text: root.eeActive ? "ON" : "OFF"
-                    color: root.eeActive ? theme.green : theme.surface1
-                    font.pixelSize: theme.fontSize
-                    font.family: theme.font
+                // Visual-only switch; the row's MouseArea handles the toggle
+                Rectangle {
+                    implicitWidth: 34
+                    implicitHeight: 18
+                    radius: height / 2
+                    color: root.eeActive ? theme.green : theme.surface0
+                    Behavior on color { ColorAnimation { duration: 150 } }
+
+                    Rectangle {
+                        width: parent.height - 4
+                        height: width
+                        radius: width / 2
+                        anchors.verticalCenter: parent.verticalCenter
+                        x: root.eeActive ? parent.width - width - 2 : 2
+                        color: root.eeActive ? theme.base : theme.subtext0
+                        Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                    }
                 }
             }
         }
@@ -513,19 +547,57 @@ Item {
         }
     }
 
+    // Returns the last stdout line matching re, ignoring stray log lines; null if none match.
+    function lastMatch(text, re) {
+        var lines = text.split("\n");
+        for (var i = lines.length - 1; i >= 0; i--) {
+            var l = lines[i].trim();
+            if (re.test(l)) return l;
+        }
+        return null;
+    }
+
+    function requestStatus() {
+        if (eeStatusProc.running) root.needsStatus = true;
+        else eeStatusProc.running = true;
+    }
+
+    function requestPreset() {
+        if (!eePresetProc.running) eePresetProc.running = true;
+    }
+
+    onActiveChanged: if (active) requestPreset()
+
     Process {
         id: eeStatusProc
         // easyeffects -b 3 emits the global bypass status: 1 = bypassed (effects off), 2 = active (effects on)
         command: ["easyeffects", "-b", "3"]
+        property int startGen: 0
         stdout: StdioCollector {
-            onStreamFinished: root.eeActive = (this.text.trim() === "2")
+            onStreamFinished: {
+                // Drop reads that started before a click or overlap a pending toggle; they report the old state.
+                if (eeStatusProc.startGen !== root.eeToggleGen || root.eePendingToggles > 0) return;
+                var s = root.lastMatch(this.text, /^[12]$/);
+                if (s !== null) root.eeActive = s === "2";
+            }
         }
         onRunningChanged: {
-            // If a status read was requested while this poll was in flight, run it now.
-            if (!running && root.needsStatus && root.active) {
+            if (running) {
+                startGen = root.eeToggleGen
+            } else if (root.needsStatus && root.active) {
+                // A status read was requested while this poll was in flight; run it now.
                 root.needsStatus = false
                 eeStatusProc.running = true
             }
+        }
+    }
+
+    Process {
+        id: eePresetProc
+        // Name of the last loaded output preset (empty if none). Changes rarely, so not polled.
+        command: ["easyeffects", "-a", "output"]
+        stdout: StdioCollector {
+            onStreamFinished: root.eePreset = root.lastMatch(this.text, /./) || ""
         }
     }
 
@@ -535,7 +607,8 @@ Item {
         onRunningChanged: {
             if (!running) {
                 if (!fetchProc.running) fetchProc.running = true
-                if (!eeStatusProc.running) eeStatusProc.running = true
+                root.requestStatus()
+                root.requestPreset()
             }
         }
     }
@@ -544,13 +617,16 @@ Item {
         id: eeToggleProc
         command: ["easyeffects", "--bypass-toggle"]
         onRunningChanged: {
-            if (!running) {
-                // Force a status refresh after toggle; if a poll is in flight, retry once it finishes.
-                root.needsStatus = true
-                if (!eeStatusProc.running) {
-                    root.needsStatus = false
-                    eeStatusProc.running = true
-                }
+            if (running) return
+            // Also invalidate polls that started while this toggle was still applying.
+            root.eeToggleGen++
+            root.eePendingToggles = Math.max(0, root.eePendingToggles - 1)
+            if (root.eePendingToggles > 0) {
+                // More clicks queued while this toggle ran.
+                eeToggleProc.running = true
+            } else {
+                root.requestStatus()
+                root.requestPreset()
             }
         }
     }
