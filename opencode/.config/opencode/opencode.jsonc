@@ -16,7 +16,7 @@
     }
   },
   "compaction": {
-    "prune": false
+    "prune": true
   },
   "mcp": {
     "laravel-boost": {
@@ -58,29 +58,17 @@
   "provider": {
     "opencode": {
       "options": {
-        "headers": {
-          "sleev-provider": "opencode",
-          "sleev-harness": "opencode"
-        },
-        "baseURL": "http://127.0.0.1:17321"
+        "headers": {}
       }
     },
     "opencode-go": {
       "options": {
-        "headers": {
-          "sleev-provider": "opencode-go",
-          "sleev-harness": "opencode"
-        },
-        "baseURL": "http://127.0.0.1:17321"
+        "headers": {}
       }
     },
     "openrouter": {
       "options": {
-        "headers": {
-          "sleev-provider": "openrouter",
-          "sleev-harness": "opencode"
-        },
-        "baseURL": "http://127.0.0.1:17321"
+        "headers": {}
       }
     }
   },
