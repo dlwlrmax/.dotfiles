@@ -6,6 +6,7 @@ import Quickshell.Hyprland._Ipc
 import Quickshell.Io
 import Quickshell.Services.Notifications
 import QtQuick
+import qs.common
 import qs.notification
 import qs.mpris
 import qs.volume
@@ -75,6 +76,26 @@ ShellRoot {
             { name: "tray", prop: "trayPanelOpen" }
         ]
 
+        // Open/close any panel by name on the focused monitor (IPC, keybinds, testing).
+        // Panels anchored to a bar widget fall back to the screen center when the
+        // widget position was never set by a click.
+        function togglePanelOnFocused(name) {
+            var entry = _panels.find(p => p.name === name)
+            if (!entry) return false
+            var mon = Hyprland.focusedMonitor?.name ?? ""
+            var scr = Quickshell.screens.find(sc => sc.name === mon) ?? Quickshell.screens[0]
+            var screenProp = "active" + name.charAt(0).toUpperCase() + name.slice(1) + "Screen"
+            var open = !(g[entry.prop] && g[screenProp] === scr)
+            closeOtherPanels(name)
+            g[entry.prop] = open
+            if (open) {
+                g[screenProp] = scr
+                var centerProp = name + "WidgetCenterX"
+                if (centerProp in g && !g[centerProp]) g[centerProp] = Math.round(scr.width / 2)
+            }
+            return true
+        }
+
         function closeOtherPanels(name) {
             var panels = _panels
             for (var i = 0; i < panels.length; i++) {
@@ -89,6 +110,42 @@ ShellRoot {
     DepsCheck {}
 
     // Power menu toggle via IPC (replaces 1s file-polling timer)
+    // A failed reload keeps the previous config running silently. Say so, with the
+    // root-cause line, so a typo doesn't go unnoticed. (This handler lives in the
+    // still-running old generation, which is the one that receives the signal.)
+    Connections {
+        target: Quickshell
+        function onReloadFailed(errorString) {
+            // Last line is the root cause ("caused by @file.qml[line:col]: ..."); the first
+            // is just "Failed to load configuration".
+            var lines = (errorString || "").split("\n").map(l => l.trim()).filter(l => l !== "")
+            var cause = (lines.length ? lines[lines.length - 1] : "unknown error").replace(/^caused by\s*/, "")
+            Quickshell.execDetached(["notify-send", "-u", "critical", "-a", "Quickshell",
+                "Config reload failed", cause + "\nStill running the previous config. Details: qs log"])
+        }
+    }
+
+    // qs ipc call panel toggle <name>   (notif, mpris, volume, weather, calendar,
+    //   sysUsage, power, battery, net, kde, launcher, clipboard, tray)
+    IpcHandler {
+        target: "panel"
+        function toggle(name: string): string {
+            return g.togglePanelOnFocused(name) ? "ok" : "unknown panel: " + name
+        }
+        function close(): void { g.closeOtherPanels("") }
+        function list(): string { return g._panels.map(p => p.name).join(" ") }
+    }
+
+    // qs ipc call media now    → "now playing" card for the current track (keybind-friendly)
+    IpcHandler {
+        target: "media"
+        function now(): string {
+            if (!MediaInfo.playing) return "nothing playing"
+            MediaInfo.trackStarted(MediaInfo.playing)
+            return "ok"
+        }
+    }
+
     IpcHandler {
         target: "power"
         function toggle(): void {
@@ -141,13 +198,25 @@ ShellRoot {
     IpcHandler {
         target: "audio"
         function cycle(): void { dp.cycleAudio() }
+        // Toggle the volume panel on the focused monitor.
+        function panel(): void { g.togglePanelOnFocused("volume") }
     }
 
     // Driven by Hyprland's auto gaming profile (hypr lua/gaming.lua).
     IpcHandler {
         target: "gaming"
-        function set(on: bool): void { dp.gaming = on }
+        function set(on: bool): void {
+            dp.gamingMonitor = on ? (Hyprland.focusedMonitor?.name ?? "") : ""
+            dp.gaming = on
+        }
         function get(): bool { return dp.gaming }
+        function monitor(): string { return ShellState.gamingMonitor }
+    }
+
+    Binding {
+        target: ShellState
+        property: "gamingMonitor"
+        value: dp.gaming ? (dp.gamingMonitor || "*") : ""
     }
 
     Instantiator {
@@ -254,6 +323,7 @@ ShellRoot {
                 implicitHeight: notifPopupItem.implicitHeight > 0 ? notifPopupItem.implicitHeight + 60 : 0
                 WlrLayershell.layer: WlrLayer.Overlay
                 WlrLayershell.namespace: "quickshell-notif-popup"
+                WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
                 WlrLayershell.margins.top: theme.barHeight
 
                 NotificationPopup {
@@ -263,8 +333,10 @@ ShellRoot {
                     anchors.horizontalCenter: parent.horizontalCenter
                     theme: Theme {}
                     notifTimes: dp.notifData.notifTimes
-                    // Gaming: no popups over the game; history still records them.
-                    dnd: dp.notifData.dnd || dp.gaming
+                    // Gaming: only critical popups over the game's monitor; other screens show
+                    // everything, and history still records everything.
+                    dnd: dp.notifData.dnd
+                    quiet: ShellState.quietOn(screenScope.screenData.name)
                     dataSource: dp.notifData
                 }
 
@@ -273,6 +345,34 @@ ShellRoot {
                     function onNewNotification(notif) {
                         notifPopupItem.onNotification(notif)
                     }
+                    function onNotificationUpdated(notif) {
+                        notifPopupItem.onNotificationUpdated(notif)
+                    }
+                }
+            }
+
+            // Track-change card, top-right under the bar. Hidden on the game's screen.
+            PanelWindow {
+                screen: screenScope.screenData
+                anchors.top: true
+                anchors.right: true
+                color: "transparent"
+                exclusionMode: ExclusionMode.Ignore
+                implicitWidth: trackToast.implicitWidth + 16
+                implicitHeight: trackToast.implicitHeight + 16
+                visible: trackToast.opacity > 0
+                WlrLayershell.layer: WlrLayer.Overlay
+                WlrLayershell.namespace: "quickshell-track"
+                WlrLayershell.margins.top: theme.barHeight
+                WlrLayershell.margins.right: 8
+
+                TrackToast {
+                    id: trackToast
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    anchors.topMargin: 8
+                    theme: screenScope.theme
+                    quiet: ShellState.quietOn(screenScope.screenData.name)
                 }
             }
 

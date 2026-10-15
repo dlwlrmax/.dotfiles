@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Services.Notifications
 import qs.notification
 import qs.common
 
@@ -9,6 +10,8 @@ Item {
     property Theme theme: Theme {}
     property var notifTimes: ({})
     property bool dnd: false
+    // Gaming quiet mode for this screen: only critical notifications pop up.
+    property bool quiet: false
     property int maxWidth: 400
     property int maxVisible: 2
     // Backing data source (notifData Item in shell.qml). Used to broadcast
@@ -44,7 +47,9 @@ Item {
             timestamp: notif.timestamp || (Date.now() / 1000),
             appIcon: notif.appIcon || "",
             desktopEntry: notif.desktopEntry || "",
-            expireTimeout: notif.expireTimeout || 0
+            expireTimeout: notif.expireTimeout || 0,
+            hasReply: !!notif.hasInlineReply,
+            replyPlaceholder: notif.inlineReplyPlaceholder || ""
         }
     }
 
@@ -101,6 +106,10 @@ Item {
                 onDismissed: Qt.callLater(function() { root.removeGroup(group.key) })
                 onDismissRequested: {
                     root.dismissGroup(group.key)
+                }
+                replyHandler: function(notifId, text) {
+                    return !!(root.dataSource && root.dataSource.sendReply
+                              && root.dataSource.sendReply(notifId, text))
                 }
                 onMessageDismissRequested: function(notifId) {
                     root.removeMessage(group.key, notifId)
@@ -163,8 +172,28 @@ Item {
         return null
     }
 
+    // Same notification id re-sent with new text: refresh its message in place and
+    // bring the group to the top. If its card is already gone, show it again.
+    function onNotificationUpdated(notif) {
+        if (root.dnd || !notif) return
+        if (root.quiet && notif.urgency !== NotificationUrgency.Critical) return
+        for (var i = 0; i < notificationModel.count; ++i) {
+            var row = notificationModel.get(i)
+            var group = row ? row.group : null
+            if (!group || !group.messages) continue
+            var rest = group.messages.filter(function(m) { return m && m.id !== notif.id })
+            if (rest.length === group.messages.length) continue
+            var messages = [root.snapshotNotif(notif)].concat(rest)
+            notificationModel.setProperty(i, "group", root.makeGroup(group.key, messages))
+            notificationModel.move(i, 0, 1)
+            return
+        }
+        root.onNotification(notif)
+    }
+
     function onNotification(notif) {
         if (root.dnd || !notif) return
+        if (root.quiet && notif.urgency !== NotificationUrgency.Critical) return
         if (!notif.tracked) return
 
         var key = root.appKey(notif)

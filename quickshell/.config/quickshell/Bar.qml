@@ -172,6 +172,29 @@ Item {
                     Layout.alignment: Qt.AlignVCenter
                 }
 
+                // Shown while the gaming profile is on, so missing popups aren't a mystery.
+                Text {
+                    id: gamingIndicator
+                    visible: ShellState.gamingMonitor !== ""
+                    text: "\uf11b"   // nf-fa-gamepad
+                    color: bar.theme.peach
+                    font.pixelSize: bar.theme.fontSize + 4
+                    font.family: bar.theme.font
+                    Layout.alignment: Qt.AlignVCenter
+
+                    HoverHandler { id: gamingHover }
+
+                    BarTooltip {
+                        target: gamingIndicator
+                        theme: bar.theme
+                        hovered: gamingHover.hovered
+                        ignoreQuiet: true
+                        text: "Gaming mode on"
+                              + (ShellState.gamingMonitor !== "*" ? " (" + ShellState.gamingMonitor + ")" : "")
+                              + "\nPopups hidden on the game's screen, except critical ones"
+                    }
+                }
+
                 Notification {
                     id: barNotif
                     theme: bar.theme

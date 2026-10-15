@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Services.Mpris
@@ -8,7 +7,8 @@ import qs.common
 Item {
     id: root
     property Theme theme: Theme {}
-    property var currentPlayer: null
+    // First player playing a titled track (paused/idle players hide the widget).
+    readonly property var currentPlayer: MediaInfo.playing
     property real maxWidth: 200
     signal togglePanel(int centerX)
 
@@ -18,6 +18,10 @@ Item {
     implicitWidth: row.implicitWidth
     implicitHeight: row.implicitHeight
     Layout.alignment: Qt.AlignVCenter
+
+    // Root bounds = visible area (clip: true). The label's own MouseArea can extend past
+    // a squeezed widget over its neighbors; gate the tooltip on this.
+    HoverHandler { id: rootHover }
 
     RowLayout {
         id: row
@@ -51,25 +55,108 @@ Item {
             elide: Text.ElideRight
             Layout.maximumWidth: root.maxWidth
             Layout.fillWidth: false
+        }
+    }
 
-            MouseArea {
-                id: labelHover
-                anchors.fill: parent
-                hoverEnabled: true
-                acceptedButtons: Qt.NoButton
-                cursorShape: Qt.PointingHandCursor
+    // Now-playing card: art, full title, artist/album, player, time.
+    BarTooltip {
+        id: labelTip
+        readonly property var p: root.currentPlayer
+        readonly property real len: MediaInfo.trackLength(p)
+        target: root
+        theme: root.theme
+        hovered: rootHover.hovered && !!p
+        delay: 600
+
+        // Position isn't pushed by MPRIS; poll it only while the card is open.
+        Timer {
+            interval: 1000
+            repeat: true
+            running: labelTip.open && !!labelTip.p && labelTip.p.isPlaying
+            onTriggered: labelTip.p.positionChanged()
+        }
+
+        RowLayout {
+            spacing: 12
+
+            Rectangle {
+                visible: !!(labelTip.p && labelTip.p.trackArtUrl)
+                Layout.preferredWidth: 64
+                Layout.preferredHeight: 64
+                Layout.alignment: Qt.AlignTop
+                radius: 8
+                color: root.theme.surface0
+                clip: true
+
+                Image {
+                    anchors.fill: parent
+                    source: labelTip.p ? (labelTip.p.trackArtUrl || "") : ""
+                    sourceSize: Qt.size(128, 128)
+                    fillMode: Image.PreserveAspectCrop
+                    asynchronous: true
+                }
             }
 
-            ToolTip.visible: labelHover.containsMouse && trackLabel.truncated
-            ToolTip.delay: 500
-            ToolTip.text: trackLabel.text
+            ColumnLayout {
+                spacing: 3
+                Layout.maximumWidth: 300
+
+                Text {
+                    text: labelTip.p ? (labelTip.p.trackTitle || "Unknown") : ""
+                    color: root.theme.text
+                    font.pixelSize: root.theme.fontSize
+                    font.weight: Font.Medium
+                    font.family: root.theme.font
+                    wrapMode: Text.Wrap
+                    maximumLineCount: 3
+                    elide: Text.ElideRight
+                    Layout.fillWidth: true
+                }
+                Text {
+                    readonly property string line: labelTip.p
+                        ? [labelTip.p.trackArtist, labelTip.p.trackAlbum].filter(x => !!x).join(" · ") : ""
+                    visible: line !== ""
+                    text: line
+                    color: root.theme.subtext0
+                    font.pixelSize: root.theme.fontSize - 1
+                    font.family: root.theme.font
+                    elide: Text.ElideRight
+                    Layout.fillWidth: true
+                }
+                Text {
+                    readonly property bool hasPos: !!labelTip.p && labelTip.p.positionSupported && labelTip.p.position > 0.5
+                    text: (labelTip.p ? (labelTip.p.identity || "") : "")
+                        + (hasPos ? "  ·  " + MediaInfo.formatTime(labelTip.p.position) + (labelTip.len > 1 ? " / " + MediaInfo.formatTime(labelTip.len) : "")
+                                  : (labelTip.len > 1 ? "  ·  " + MediaInfo.formatTime(labelTip.len) : ""))
+                    color: root.theme.surface1
+                    font.pixelSize: root.theme.fontSize - 2
+                    font.family: root.theme.font
+                }
+            }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.topMargin: 2
+            implicitHeight: 1
+            color: root.theme.surface0
+        }
+
+        Text {
+            text: "Click title: panel · Click icon: play/pause · Right: next · Middle/scroll: prev/next"
+            color: root.theme.surface1
+            font.pixelSize: root.theme.fontSize - 2
+            font.family: root.theme.font
         }
     }
 
     MouseArea {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
+        // Left: panel (on the label) / play-pause; right: next; middle: previous.
+        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
         onClicked: mouse => {
+            labelTip.suppressed = true
             if (!root.currentPlayer) return
             if (mouse.button === Qt.LeftButton) {
                 var labelPos = trackLabel.mapFromItem(root, mouse.x, mouse.y)
@@ -92,40 +179,6 @@ Item {
             } else if (wheel.angleDelta.y < 0) {
                 if (root.currentPlayer.canGoPrevious) root.currentPlayer.previous()
             }
-        }
-    }
-
-    function _refreshPlayer() {
-        // show only an actively playing player with real track info —
-        // paused/stopped/empty players (e.g. idle Chrome) hide entirely.
-        // UntypedObjectModel exposes `values`, not a QML-callable rowCount().
-        var players = Mpris.players.values || []
-        for (var i = 0; i < players.length; i++) {
-            var p = players[i]
-            if (p && p.isPlaying && (p.trackTitle)) {
-                root.currentPlayer = p
-                return
-            }
-        }
-        root.currentPlayer = null
-    }
-
-    Repeater {
-        model: Mpris.players
-        delegate: Item {
-            required property var modelData
-
-            Connections {
-                target: modelData
-                function onIsPlayingChanged() { root._refreshPlayer() }
-                function onPlaybackStateChanged() { root._refreshPlayer() }
-                // A player can start playing before its metadata lands.
-                function onTrackTitleChanged() { root._refreshPlayer() }
-            }
-
-            Component.onCompleted: { root._refreshPlayer() }
-            // Deferred: the dying player may still be in Mpris.players here.
-            Component.onDestruction: { Qt.callLater(root._refreshPlayer) }
         }
     }
 }

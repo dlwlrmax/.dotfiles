@@ -1,7 +1,8 @@
 import Quickshell
 import Quickshell.Hyprland._Ipc
+import Quickshell.Wayland
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Layouts
 import qs.common
 
 // Workspace buttons for one monitor.
@@ -10,7 +11,7 @@ import qs.common
 //   new window opened unseen       mauve   — cleared on visit / when it closes
 //   app wants attention (urgent)   peach   — cleared by Hyprland on focus
 // Left click: go there. Right click: send the focused window there (stay put).
-// Wheel: previous/next workspace on this monitor. Hover: window titles.
+// Wheel: previous/next workspace on this monitor. Hover: window previews.
 Row {
     id: root
     property Theme theme: Theme {}
@@ -68,13 +69,15 @@ Row {
                 }
                 return order.map(function(id) { return { appId: id, count: counts[id] } })
             }
-            // Only while hovered: window titles change constantly (browsers,
-            // terminals), and the short-circuit drops those dependencies otherwise.
-            readonly property string titles: {
-                if (!wsMouse.containsMouse) return ""
-                var tl = modelData.toplevels?.values ?? []
-                return tl.map(function(t) { return t.title || t.wayland?.appId || "?" }).join("\n")
-            }
+            // Toplevel objects, only while the tooltip is open: live previews must not run
+            // for a suppressed/quiet tooltip. The list only changes when windows open or
+            // close; each card binds its own title, so title churn doesn't rebuild cards.
+            readonly property var windows: wsTip.open ? (modelData.toplevels?.values ?? []) : []
+            readonly property string status: focusedWs ? "focused"
+                : current ? "shown, keyboard on other monitor"
+                : fresh ? "new window"
+                : urgent ? "needs attention"
+                : ""
 
             onCurrentChanged: if (current) WorkspaceAttention.clear(modelData.name)
 
@@ -141,6 +144,7 @@ Row {
                 onClicked: mouse => {
                     var id = wsDelegate.modelData.id
                     if (!Number.isInteger(id)) return
+                    wsTip.suppressed = true
                     if (mouse.button === Qt.RightButton)
                         Hyprland.dispatch("hl.dsp.window.move({ workspace = " + id + ", follow = false })")
                     else
@@ -149,9 +153,122 @@ Row {
                 onWheel: wheel => root.wheelStep(wheel.angleDelta.y)
             }
 
-            ToolTip.visible: wsMouse.containsMouse && wsDelegate.titles !== ""
-            ToolTip.delay: 600
-            ToolTip.text: wsDelegate.titles
+            BarTooltip {
+                id: wsTip
+                target: wsDelegate
+                theme: root.theme
+                hovered: wsMouse.containsMouse
+                delay: 500
+
+                RowLayout {
+                    spacing: 6
+                    Text {
+                        text: "Workspace " + wsDelegate.modelData.name
+                        color: theme.text
+                        font.pixelSize: theme.fontSize
+                        font.weight: Font.Medium
+                        font.family: theme.font
+                    }
+                    Text {
+                        visible: wsDelegate.status !== ""
+                        text: "· " + wsDelegate.status
+                        color: wsDelegate.focusedWs || wsDelegate.current ? theme.blue
+                             : wsDelegate.fresh ? theme.mauve
+                             : theme.red
+                        font.pixelSize: theme.fontSize - 1
+                        font.family: theme.font
+                    }
+                }
+
+                // One card per window: live preview + icon + title. Built only while
+                // hovered (windows is empty otherwise).
+                GridLayout {
+                    visible: wsDelegate.windows.length > 0
+                    columns: Math.min(3, Math.max(1, wsDelegate.windows.length))
+                    columnSpacing: 10
+                    rowSpacing: 10
+
+                    Repeater {
+                        model: wsDelegate.windows
+                        delegate: ColumnLayout {
+                            id: card
+                            required property var modelData   // HyprlandToplevel
+                            readonly property string appId: modelData.wayland?.appId || ""
+                            spacing: 4
+                            Layout.preferredWidth: 200
+                            Layout.alignment: Qt.AlignTop
+
+                            Rectangle {
+                                Layout.preferredWidth: 200
+                                Layout.preferredHeight: 120
+                                radius: 6
+                                color: theme.mantle
+                                clip: true
+
+                                ScreencopyView {
+                                    id: preview
+                                    anchors.centerIn: parent
+                                    captureSource: modelData.wayland ?? null
+                                    // A one-shot captureFrame() on creation fails ("no recording
+                                    // context is ready"); stream until the first frame lands, then
+                                    // stop, so each window costs one frame, not a live feed.
+                                    live: !hasContent
+                                    constraintSize: Qt.size(200, 120)
+                                }
+
+                                // Until (or unless) the snapshot arrives
+                                AppIcon {
+                                    anchors.centerIn: parent
+                                    visible: !preview.hasContent
+                                    appId: card.appId
+                                    size: 32
+                                }
+                            }
+
+                            RowLayout {
+                                spacing: 6
+                                Layout.maximumWidth: 200
+                                AppIcon {
+                                    appId: card.appId
+                                    size: 14
+                                    Layout.preferredWidth: 14
+                                    Layout.preferredHeight: 14
+                                }
+                                Text {
+                                    text: modelData.title || card.appId || "?"
+                                    color: theme.subtext0
+                                    font.pixelSize: theme.fontSize - 2
+                                    font.family: theme.font
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Text {
+                    visible: wsDelegate.windows.length === 0
+                    text: "No windows"
+                    color: theme.surface1
+                    font.pixelSize: theme.fontSize - 1
+                    font.family: theme.font
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.topMargin: 2
+                    implicitHeight: 1
+                    color: theme.surface0
+                }
+
+                Text {
+                    text: "Click: go · Right-click: move window here · Scroll: switch"
+                    color: theme.surface1
+                    font.pixelSize: theme.fontSize - 2
+                    font.family: theme.font
+                }
+            }
         }
     }
 }

@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
+import Quickshell.Services.Pipewire
 import qs.common
 
 Item {
@@ -12,18 +13,31 @@ Item {
 
     clip: true
     implicitWidth: 380
-    implicitHeight: 520
+    implicitHeight: 640
 
-    property var sinks: []
-    property var streams: []
+    // Live from Pipewire while the panel is open. Physical devices only: ALSA or a
+    // hardware bus (pci/usb/bluetooth); skips virtual ones (EasyEffects, null sinks).
+    function isPhysical(n) {
+        var p = n.properties || {}
+        return p["device.api"] === "alsa" || !!p["device.bus"]
+    }
+    readonly property var audioNodes: active ? Pipewire.nodes.values.filter(n => n.audio) : []
+    readonly property var sinks: audioNodes.filter(n => n.isSink && !n.isStream && isPhysical(n))
+    readonly property var sources: audioNodes.filter(n => !n.isSink && !n.isStream && isPhysical(n))
+    // Playback streams; paused (corked) ones are hidden like before.
+    readonly property var streams: audioNodes.filter(n => n.isSink && n.isStream
+        && (n.properties || {})["pulse.corked"] !== "true")
 
-    property var pendingCmd: []
-    property bool pendingRefresh: false
+    // Volume/mute/properties are only populated for tracked nodes.
+    PwObjectTracker { objects: root.audioNodes }
 
     property bool eeActive: false
     property string eePreset: ""
     property int eeToggleGen: 0
     property int eePendingToggles: 0
+    property var eePresets: []          // output preset names from `easyeffects -p`
+    property bool presetMenuOpen: false
+    property var pendingPresetCmd: []
     property bool needsStatus: false
 
     Rectangle {
@@ -93,162 +107,17 @@ Item {
         }
 
         ColumnLayout {
-            id: sinkList
             Layout.fillWidth: true
-            spacing: 6
+            spacing: 8
 
             Repeater {
                 model: root.sinks
-
-                delegate: ColumnLayout {
+                delegate: DeviceRow {
                     required property var modelData
-                    spacing: 6
-                    Layout.fillWidth: true
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 8
-
-                        Text {
-                            text: modelData.default ? "◉" : "○"
-                            color: modelData.default ? theme.mauve : theme.surface0
-                            font.pixelSize: theme.fontSize + 2
-
-                            MouseArea {
-                                anchors.fill: parent
-                                anchors.margins: -4
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    root.pendingCmd = ["pactl", "set-default-sink", modelData.name];
-                                    root.pendingRefresh = true;
-                                    pactlProc.running = true;
-                                }
-                            }
-                        }
-
-                        Text {
-                            text: modelData.description || modelData.name
-                            color: theme.text
-                            font.pixelSize: theme.fontSize
-                            font.weight: Font.Medium
-                            font.family: theme.font
-                            elide: Text.ElideRight
-                            Layout.fillWidth: true
-                        }
-
-                        Text {
-                            text: modelData.muted ? "" : ""
-                            color: modelData.muted ? theme.surface1 : theme.subtext0
-                            font.pixelSize: theme.fontSize
-
-                            MouseArea {
-                                anchors.fill: parent
-                                anchors.margins: -4
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    root.pendingCmd = ["pactl", "set-sink-mute", modelData.name, "toggle"];
-                                    root.pendingRefresh = true;
-                                    pactlProc.running = true;
-                                }
-                            }
-                        }
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 8
-
-                        Item {
-                            id: sinkSlider
-                            property real _dragVal: modelData ? modelData.volume / 100 : 0
-                            Layout.fillWidth: true
-                            implicitHeight: 6
-
-                            Binding on _dragVal {
-                                when: !sinkDragArea.dragging
-                                value: modelData ? modelData.volume / 100 : 0
-                            }
-
-                            function modelVol() {
-                                return modelData ? (modelData.volume / 100) : 0;
-                            }
-
-                            function clampVol(x) { return Math.max(0, Math.min(1, x)); }
-
-                            function commitVol() {
-                                var v = sinkSlider._dragVal;
-                                var vol = Math.round(v * 100);
-                                root.pendingCmd = ["pactl", "set-sink-volume", modelData.name, vol + "%"];
-                                root.pendingRefresh = true;
-                                pactlProc.running = true;
-                            }
-
-                            Rectangle {
-                                anchors.fill: parent
-                                radius: 3
-                                color: theme.surface0
-                            }
-
-                            Rectangle {
-                                anchors.left: parent.left
-                                anchors.top: parent.top
-                                anchors.bottom: parent.bottom
-                                radius: 3
-                                color: modelData && modelData.muted ? theme.surface1 : theme.mauve
-                                width: {
-                                    var rv = sinkDragArea.dragging ? sinkSlider._dragVal : sinkSlider.modelVol();
-                                    return parent.width * Math.min(1, rv);
-                                }
-                            }
-
-                            MouseArea {
-                                id: sinkDragArea
-                                anchors.fill: parent
-                                anchors.margins: -6
-                                cursorShape: Qt.PointingHandCursor
-                                property bool dragging: false
-
-                                onPressed: mouse => {
-                                    sinkSlider._dragVal = clampVol(mouse.x / parent.width)
-                                    dragging = true
-                                }
-
-                                onPositionChanged: mouse => {
-                                    if (dragging) {
-                                        sinkSlider._dragVal = clampVol(mouse.x / parent.width)
-                                        sinkDragTimer.restart()
-                                    }
-                                }
-
-                                onReleased: {
-                                    sinkDragTimer.stop()
-                                    if (dragging) sinkSlider.commitVol()
-                                    dragging = false
-                                }
-
-                                onClicked: mouse => {
-                                    sinkSlider._dragVal = clampVol(mouse.x / parent.width)
-                                    sinkSlider.commitVol()
-                                }
-                            }
-
-                            Timer {
-                                id: sinkDragTimer
-                                interval: 80
-                                repeat: false
-                                onTriggered: sinkSlider.commitVol()
-                            }
-                        }
-
-                        Text {
-                            text: (sinkDragArea.dragging ? Math.round(sinkSlider._dragVal * 100) : (modelData ? modelData.volume : 0)) + "%"
-                            color: modelData && modelData.muted ? theme.surface1 : theme.subtext0
-                            font.pixelSize: theme.fontSize - 1
-                            font.family: theme.font
-                            width: 40
-                            horizontalAlignment: Text.AlignRight
-                        }
-                    }
+                    theme: root.theme
+                    node: modelData
+                    isDefault: Pipewire.defaultAudioSink === modelData
+                    onMakeDefault: Pipewire.preferredDefaultAudioSink = modelData
                 }
             }
 
@@ -295,14 +164,53 @@ Item {
                     Layout.fillWidth: true
                     spacing: 2
 
-                    Text {
-                        text: root.eePreset || "EasyEffects"
-                        color: theme.text
-                        font.pixelSize: theme.fontSize
-                        font.weight: Font.Medium
-                        font.family: theme.font
-                        elide: Text.ElideRight
+                    // Click the name to pick a preset; the rest of the row toggles bypass.
+                    // fillWidth children let the column actually take the row's spare width;
+                    // without them a ColumnLayout caps itself at its preferred width.
+                    Item {
                         Layout.fillWidth: true
+                        implicitHeight: presetNameText.implicitHeight
+
+                        // Plain anchoring, not a layout: the name takes its natural width and
+                        // only elides when the arrow would otherwise run off the column.
+                        Text {
+                            id: presetNameText
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: Math.min(implicitWidth, parent.width - presetArrow.implicitWidth - 6)
+                            text: root.eePreset || "EasyEffects"
+                            color: presetNameMouse.containsMouse ? theme.mauve : theme.text
+                            font.pixelSize: theme.fontSize
+                            font.weight: Font.Medium
+                            font.family: theme.font
+                            elide: Text.ElideRight
+                        }
+
+                        Text {
+                            id: presetArrow
+                            anchors.left: presetNameText.right
+                            anchors.leftMargin: 6
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: root.presetMenuOpen ? "\uf106" : "\uf107"   // nf-fa-angle_up / angle_down
+                            color: presetNameMouse.containsMouse ? theme.mauve : theme.subtext0
+                            font.pixelSize: theme.fontSize
+                            font.family: theme.font
+                        }
+
+                        MouseArea {
+                            id: presetNameMouse
+                            anchors.left: presetNameText.left
+                            anchors.right: presetArrow.right
+                            anchors.top: presetNameText.top
+                            anchors.bottom: presetNameText.bottom
+                            anchors.margins: -4
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                root.presetMenuOpen = !root.presetMenuOpen
+                                if (root.presetMenuOpen && !eePresetListProc.running) eePresetListProc.running = true
+                            }
+                        }
                     }
 
                     // Always shown so the row height doesn't jump when the preset name arrives
@@ -311,6 +219,7 @@ Item {
                         color: theme.subtext0
                         font.pixelSize: theme.fontSize - 2
                         font.family: theme.font
+                        Layout.fillWidth: true
                     }
                 }
 
@@ -352,6 +261,121 @@ Item {
             }
         }
 
+        ColumnLayout {
+            Layout.fillWidth: true
+            visible: root.presetMenuOpen
+            spacing: 2
+
+            Repeater {
+                model: root.eePresets
+                delegate: Rectangle {
+                    required property string modelData
+                    readonly property bool isCurrent: modelData === root.eePreset
+                    Layout.fillWidth: true
+                    implicitHeight: presetLabel.implicitHeight + 10
+                    radius: 6
+                    color: presetItemMouse.containsMouse ? theme.surface0 : "transparent"
+
+                    Text {
+                        id: presetLabel
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.leftMargin: 8
+                        anchors.rightMargin: 8
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: (isCurrent ? "● " : "○ ") + modelData
+                        color: isCurrent ? theme.mauve : theme.subtext0
+                        font.pixelSize: theme.fontSize - 1
+                        font.family: theme.font
+                        elide: Text.ElideRight
+                    }
+
+                    MouseArea {
+                        id: presetItemMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            root.presetMenuOpen = false
+                            // Reloading the current preset would discard unsaved EE edits; skip it.
+                            if (isCurrent || eePresetLoadProc.running) return
+                            root.eePreset = modelData   // optimistic; re-read after load
+                            root.pendingPresetCmd = ["easyeffects", "-l", modelData]
+                            eePresetLoadProc.running = true
+                        }
+                    }
+                }
+            }
+
+            Text {
+                visible: root.eePresets.length === 0
+                text: eePresetListProc.running ? "Loading presets…" : "No output presets"
+                color: theme.surface1
+                font.pixelSize: theme.fontSize - 1
+                font.family: theme.font
+                Layout.leftMargin: 8
+            }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            height: 1
+            color: theme.surface0
+        }
+
+        Text {
+            text: "Input Device"
+            color: theme.subtext1
+            font.pixelSize: theme.fontSize - 1
+            font.weight: Font.Medium
+            font.family: theme.font
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 8
+
+            Repeater {
+                model: root.sources
+                delegate: DeviceRow {
+                    required property var modelData
+                    theme: root.theme
+                    node: modelData
+                    isInput: true
+                    fillColor: theme.blue
+                    isDefault: Pipewire.defaultAudioSource === modelData
+                    onMakeDefault: Pipewire.preferredDefaultAudioSource = modelData
+                }
+            }
+
+            // Default input is a virtual source (e.g. EasyEffects' mic chain), not a device above.
+            Text {
+                readonly property var src: Pipewire.defaultAudioSource
+                Layout.fillWidth: true
+                visible: !!src && root.sources.indexOf(src) < 0
+                text: src ? "Apps record from " + (src.description || src.name) : ""
+                color: theme.subtext0
+                font.pixelSize: theme.fontSize - 2
+                font.family: theme.font
+                elide: Text.ElideRight
+            }
+
+            Text {
+                Layout.fillWidth: true
+                visible: root.sources.length === 0
+                text: "No input devices"
+                color: theme.subtext0
+                font.pixelSize: theme.fontSize - 1
+                font.family: theme.font
+            }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            height: 1
+            color: theme.surface0
+        }
+
         Text {
             text: "Applications" + (streamList.count > 0 ? " (" + streamList.count + ")" : "")
             color: theme.subtext1
@@ -372,7 +396,12 @@ Item {
                 model: root.streams
 
                 delegate: ColumnLayout {
+                    id: streamRow
                     required property var modelData
+                    readonly property var props: modelData.properties || {}
+                    readonly property string appName: props["application.name"] || props["application.process.binary"] || ""
+                    readonly property string mediaName: props["media.name"] || ""
+                    readonly property bool muted: !!(modelData.audio && modelData.audio.muted)
                     spacing: 6
                     width: streamList.width
 
@@ -381,8 +410,8 @@ Item {
                         spacing: 8
 
                         AppIcon {
-                            appId: modelData.application || ""
-                            iconName: modelData.icon || ""
+                            appId: streamRow.appName
+                            iconName: streamRow.props["application.icon_name"] || ""
                             fallbackIcon: "audio-x-generic"
                             size: 22
                             Layout.preferredWidth: 22
@@ -390,120 +419,51 @@ Item {
                             Layout.alignment: Qt.AlignVCenter
                         }
 
-                        Text {
-                            text: modelData.name || modelData.application || "Unknown"
-                            color: theme.text
-                            font.pixelSize: theme.fontSize
-                            font.family: theme.font
-                            elide: Text.ElideRight
+                        ColumnLayout {
                             Layout.fillWidth: true
+                            spacing: 0
+
+                            Text {
+                                text: streamRow.appName || streamRow.mediaName || "Unknown"
+                                color: theme.text
+                                font.pixelSize: theme.fontSize
+                                font.family: theme.font
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
+
+                            // What it's playing (tab/track title), when it says more than the app name
+                            Text {
+                                visible: text !== "" && text !== streamRow.appName
+                                text: streamRow.mediaName
+                                color: theme.subtext0
+                                font.pixelSize: theme.fontSize - 2
+                                font.family: theme.font
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
                         }
 
                         Text {
-                            text: modelData.muted ? "" : ""
-                            color: modelData.muted ? theme.surface1 : theme.subtext0
+                            text: streamRow.muted ? "\ueee8" : "\uf028"
+                            color: streamRow.muted ? theme.surface1 : theme.subtext0
                             font.pixelSize: theme.fontSize
+                            font.family: theme.font
 
                             MouseArea {
                                 anchors.fill: parent
                                 anchors.margins: -4
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    root.pendingCmd = ["pactl", "set-sink-input-mute", String(modelData.id), "toggle"];
-                                    root.pendingRefresh = true;
-                                    pactlProc.running = true;
-                                }
+                                onClicked: if (streamRow.modelData.audio) streamRow.modelData.audio.muted = !streamRow.muted
                             }
                         }
                     }
 
-                    RowLayout {
+                    VolumeSlider {
                         Layout.fillWidth: true
-                        spacing: 8
-
-                        Item {
-                            id: streamSliderDelegate
-                            property real _val: modelData ? modelData.volume / 100 : 0
-                            Layout.fillWidth: true
-                            implicitHeight: 6
-
-                            Binding on _val {
-                                when: !streamDragArea.dragging
-                                value: modelData ? modelData.volume / 100 : 0
-                            }
-
-                            function clampVol(x) { return Math.max(0, Math.min(1, x)); }
-
-                            function commitVol() {
-                                var v = streamSliderDelegate._val;
-                                var vol = Math.round(v * 100);
-                                root.pendingCmd = ["pactl", "set-sink-input-volume", String(modelData.id), vol + "%"];
-                                root.pendingRefresh = true;
-                                pactlProc.running = true;
-                            }
-
-                            Rectangle {
-                                anchors.fill: parent
-                                radius: 3
-                                color: theme.surface0
-                            }
-
-                            Rectangle {
-                                anchors.left: parent.left
-                                anchors.top: parent.top
-                                anchors.bottom: parent.bottom
-                                radius: 3
-                                color: modelData && modelData.muted ? theme.surface1 : theme.volumeNormalColor
-                                width: parent.width * Math.min(1, streamSliderDelegate._val)
-                            }
-
-                            MouseArea {
-                                id: streamDragArea
-                                anchors.fill: parent
-                                anchors.margins: -6
-                                cursorShape: Qt.PointingHandCursor
-                                property bool dragging: false
-
-                                onPressed: mouse => {
-                                    streamSliderDelegate._val = clampVol(mouse.x / parent.width)
-                                    dragging = true
-                                }
-
-                                onPositionChanged: mouse => {
-                                    if (dragging) {
-                                        streamSliderDelegate._val = clampVol(mouse.x / parent.width)
-                                        streamDragTimer.restart()
-                                    }
-                                }
-
-                                onReleased: {
-                                    streamDragTimer.stop()
-                                    if (dragging) streamSliderDelegate.commitVol()
-                                    dragging = false
-                                }
-
-                                onClicked: mouse => {
-                                    streamSliderDelegate._val = clampVol(mouse.x / parent.width)
-                                    streamSliderDelegate.commitVol()
-                                }
-                            }
-
-                            Timer {
-                                id: streamDragTimer
-                                interval: 80
-                                repeat: false
-                                onTriggered: streamSliderDelegate.commitVol()
-                            }
-                        }
-
-                        Text {
-                            text: (streamDragArea.dragging ? Math.round(streamSliderDelegate._val * 100) : (modelData ? modelData.volume : 0)) + "%"
-                            color: modelData && modelData.muted ? theme.surface1 : theme.subtext0
-                            font.pixelSize: theme.fontSize - 1
-                            font.family: theme.font
-                            width: 40
-                            horizontalAlignment: Text.AlignRight
-                        }
+                        theme: root.theme
+                        node: streamRow.modelData
+                        fillColor: theme.volumeNormalColor
                     }
                 }
 
@@ -514,34 +474,6 @@ Item {
                     color: theme.subtext0
                     font.pixelSize: theme.fontSize
                     font.family: theme.font
-                }
-            }
-        }
-    }
-
-    Process {
-        id: pactlProc
-        command: root.pendingCmd
-        onRunningChanged: {
-            if (!running && root.pendingRefresh) {
-                root.pendingRefresh = false
-                if (!fetchProc.running) fetchProc.running = true
-            }
-        }
-    }
-
-    Process {
-        id: fetchProc
-        command: ["bash", theme.scriptDir + "/volume-streams.sh"]
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    var data = JSON.parse(this.text);
-                    root.sinks = data.sinks || [];
-                    root.streams = data.streams || [];
-                } catch (e) {
-                    console.log("Failed to parse volume streams:", e);
                 }
             }
         }
@@ -566,7 +498,35 @@ Item {
         if (!eePresetProc.running) eePresetProc.running = true;
     }
 
-    onActiveChanged: if (active) requestPreset()
+    onActiveChanged: {
+        if (active) requestPreset()
+        else presetMenuOpen = false
+    }
+
+    Process {
+        id: eePresetListProc
+        // Output: "Output presets:" then "N<TAB>name" lines, a blank line, then the input section.
+        command: ["easyeffects", "-p"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var out = [], inOutput = false
+                this.text.split("\n").forEach(l => {
+                    var t = l.trim()
+                    if (/^Output presets:/i.test(t)) { inOutput = true; return }
+                    if (/presets/i.test(t) && !/^\s*\d+\t/.test(l)) { inOutput = false; return }
+                    var m = l.match(/^\s*\d+\t(.+)$/)
+                    if (inOutput && m) out.push(m[1].trim())
+                })
+                root.eePresets = out
+            }
+        }
+    }
+
+    Process {
+        id: eePresetLoadProc
+        command: root.pendingPresetCmd
+        onRunningChanged: if (!running) root.requestPreset()
+    }
 
     Process {
         id: eeStatusProc
@@ -606,7 +566,6 @@ Item {
         command: ["bash", theme.scriptDir + "/audio-repair.sh"]
         onRunningChanged: {
             if (!running) {
-                if (!fetchProc.running) fetchProc.running = true
                 root.requestStatus()
                 root.requestPreset()
             }
@@ -631,20 +590,12 @@ Item {
         }
     }
 
+    // Devices/streams are live from Pipewire; only EasyEffects state is polled.
     Timer {
-        interval: 1500
-        running: root.active && !fetchProc.running
+        interval: 4500
+        running: root.active
         repeat: true
         triggeredOnStart: true
-
-        // Poll EE status less often than streams (every ~3rd tick).
-        property int eeTick: 0
-
-        onTriggered: {
-            if (root.active && !fetchProc.running) fetchProc.running = true;
-
-            eeTick = (eeTick + 1) % 3
-            if (eeTick === 0 && root.active && !eeStatusProc.running) eeStatusProc.running = true;
-        }
+        onTriggered: if (!eeStatusProc.running) eeStatusProc.running = true
     }
 }

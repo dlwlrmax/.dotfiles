@@ -2,7 +2,6 @@ import Quickshell
 import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 import qs.common
 
 MouseArea {
@@ -48,12 +47,29 @@ MouseArea {
     hoverEnabled: true
 
     onClicked: {
+        tip.suppressed = true
         idleInhibitor.enabled = !idleInhibitor.enabled
     }
 
-    ToolTip {
-        visible: parent.containsMouse
-        text: idleInhibitor.enabled ? "Idle inhibitor on" : "Idle inhibitor off"
-        delay: 2500
+    BarTooltip {
+        id: tip
+        target: root
+        theme: root.theme
+        hovered: root.containsMouse
+        delay: 800
+
+        Text {
+            text: idleInhibitor.enabled ? "Idle inhibitor on" : "Idle inhibitor off"
+            color: idleInhibitor.enabled ? root.theme.green : root.theme.text
+            font.pixelSize: root.theme.fontSize - 1
+            font.weight: Font.Medium
+            font.family: root.theme.font
+        }
+        Text {
+            text: idleInhibitor.enabled ? "Screen won't lock or sleep" : "Screen locks and sleeps normally"
+            color: root.theme.subtext0
+            font.pixelSize: root.theme.fontSize - 2
+            font.family: root.theme.font
+        }
     }
 }

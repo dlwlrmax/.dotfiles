@@ -2,6 +2,7 @@
 // Extracted from shell.qml. Property aliases let the outer scope bind to each source.
 import Quickshell
 import Quickshell.Io
+import Quickshell.Services.Pipewire
 import Quickshell.Services.Notifications
 import QtQuick
 import qs.common
@@ -18,8 +19,12 @@ Item {
     property alias volumeData: volumeData
 
     // Set by Hyprland's gaming profile (hypr lua/gaming.lua via `qs ipc call
-    // gaming set`). While true: no popups, bar stat polls slowed down.
+    // gaming set`). While true: no popups on the game's monitor (chimes still
+    // play), bar stat polls slowed down.
     property bool gaming: false
+    // Monitor focused when gaming turned on = the game's monitor (the profile only
+    // engages while the fullscreen game is the active window).
+    property string gamingMonitor: ""
     readonly property int statPollMs: gaming ? 10000 : 2000
 
     function cycleAudio() { volumeData.cycleSink() }
@@ -231,6 +236,7 @@ Item {
     NotificationServer {
         id: notifServer
         actionsSupported: true
+        inlineReplySupported: true
         bodyMarkupSupported: true
         imageSupported: true
 
@@ -286,6 +292,8 @@ Item {
         property int lastSoundTime: 0
         property int startupTime: Date.now()
         signal newNotification(var notif)
+        // A tracked notification was replaced in place (same id, new text).
+        signal notificationUpdated(var notif)
         signal dismissPopup(var notifId)
 
         Component.onCompleted: loadSaved()
@@ -298,6 +306,19 @@ Item {
         // actually shrinks for apps that never emit CloseNotification on their
         // own. dismiss() is idempotent, so it is safe when the server already
         // auto-expired the entry. DB state (read/history) is untouched here.
+        // Popups only keep snapshots; find the live object to reply through.
+        function sendReply(notifId, text) {
+            var arr = activeNotifs
+            for (var i = 0; i < arr.length; i++) {
+                var n = arr[i]
+                if (n && n.id === notifId && n.hasInlineReply) {
+                    n.sendInlineReply(text)
+                    return true
+                }
+            }
+            return false
+        }
+
         function requestDismissPopup(notifId) {
             var arr = activeNotifs
             for (var i = 0; i < arr.length; i++) {
@@ -545,6 +566,7 @@ Item {
             count = activeNotifs.length
             tryPlaySound()
             newNotification(notif)
+            watchReplacement(notif)
             // Debounce: bursts of notifications otherwise reload the whole
             // history table per message. markRead/delete paths still call
             // refreshHistory() synchronously for immediate UX.
@@ -561,6 +583,38 @@ Item {
                     }
                 }
             })
+        }
+
+        // Apps (KDE Connect chat relays, ...) often re-send a notification with the
+        // same id (replaces_id). The server updates the live object in place and no
+        // new notification signal fires, so popups/history would keep the old text.
+        function watchReplacement(notif) {
+            var last = (notif.summary || "") + "\u0000" + (notif.body || "")
+            // One function object per notif: Qt.callLater collapses summary+body
+            // changes from the same replacement into a single update.
+            var apply = function() {
+                if (!notif.tracked) return
+                var now = (notif.summary || "") + "\u0000" + (notif.body || "")
+                if (now === last) return
+                last = now
+                handleReplaced(notif)
+            }
+            notif.summaryChanged.connect(function() { Qt.callLater(apply) })
+            notif.bodyChanged.connect(function() { Qt.callLater(apply) })
+        }
+
+        function handleReplaced(notif) {
+            // History: the old row is superseded; record the new text as a fresh row.
+            if (notif._dbId !== undefined && notif._dbId !== null) Db.deleteHistoryRow(notif._dbId)
+            addNotifTime(notif)
+            historyRefreshTimer.restart()
+            // Same text already shown by another app (Ferdium vs KDE Connect relay):
+            // keep the history current, but no second chime/popup.
+            var mirror = isMirror(notif)
+            if (!mirror) rememberMirror(notif)
+            if (dnd || mirror) return
+            tryPlaySound()
+            notificationUpdated(notif)
         }
 
         function flushPending() {
@@ -695,7 +749,6 @@ Item {
         }
 
         function tryPlaySound() {
-            if (root.gaming) return  // no chimes over game audio; history still records
             var now = Date.now()
             if (now - lastSoundTime < 1000) return
             lastSoundTime = now
@@ -833,21 +886,31 @@ Item {
     }
 
     // ── Volume ──────────────────────────────────────────────
+    // Live from Pipewire: no polling, no pactl processes.
 
     Item {
         id: volumeData
-        property int volumeLevel: 0
-        property bool muted: false
+        readonly property var sink: Pipewire.defaultAudioSink
+        readonly property int volumeLevel: sink && sink.audio ? Math.round(sink.audio.volume * 100) : 0
+        readonly property bool muted: sink && sink.audio ? sink.audio.muted : false
+        // Last known default sink name. Only updated with non-empty names so a
+        // transient null during a switch doesn't look like a change.
         property string defaultSink: ""
         property var _notifyCmd: []
         property var _pendingNotifyCmd: []
-        // True while an explicit cycleSink() is in flight. Suppresses the poll's
+        // True while an explicit cycleSink() is in flight. Suppresses the
         // sink-change notify so a cycle never produces two popups (the script
         // already notifies itself once).
         property bool _cycling: false
 
-        function refresh() {
-            if (!volumeFetchProc.running) volumeFetchProc.running = true;
+        function toggleMute() {
+            if (sink && sink.audio) sink.audio.muted = !sink.audio.muted
+        }
+
+        // 5% notches; see VolumeStep.target for snapping/capping.
+        function stepVolume(steps) {
+            if (!sink || !sink.audio) return
+            sink.audio.volume = VolumeStep.target(sink.audio.volume, steps)
         }
 
         function cycleSink() {
@@ -857,37 +920,74 @@ Item {
             }
         }
 
-        Process {
-            id: volumeFetchProc
-            command: [theme.scriptDir + "/volume-status.sh"]
+        // Audio params (volume/mute) are only populated for tracked nodes.
+        PwObjectTracker { objects: [volumeData.sink] }
 
+        onSinkChanged: {
+            var name = sink ? sink.name : ""
+            if (name === "") return
+            // Notify on external switches too (panel/hotkey/Bluetooth).
+            // Cycle path notifies itself.
+            if (_eeSink !== "" && name !== _eeSink) eeBypassSwitch(_eeSink, name)
+            _eeSink = name
+            if (defaultSink !== "" && name !== defaultSink && !_cycling) {
+                var notifyCmd = [theme.scriptDir + "/audio-notify.sh", name]
+                if (!switchNotifyProc.running) {
+                    _notifyCmd = notifyCmd
+                    switchNotifyProc.running = true
+                } else {
+                    _pendingNotifyCmd = notifyCmd
+                }
+            }
+            defaultSink = name
+        }
+
+        // EasyEffects on/off is global; remember it per output device. On a switch,
+        // read the state in use (it belongs to the output we're leaving), save it,
+        // and apply what was saved for the new output (if anything).
+        property var _eeBySink: {
+            var row = Db.cacheGet("ee_bypass_by_sink")
+            try { return row ? JSON.parse(row.json) : {} } catch (e) { return {} }
+        }
+        property string _eeLeaving: ""
+        property string _eeSink: ""        // output the EE state currently belongs to
+        property var _eePending: null      // { from, to } queued while a switch runs
+
+        function eeBypassSwitch(fromSink, toSink) {
+            if (eeSwitchProc.running) {
+                // A→B still running, then B→C (→D…): run one B→(latest) afterwards.
+                if (_eePending) _eePending.to = toSink
+                else _eePending = { from: fromSink, to: toSink }
+                return
+            }
+            _eeLeaving = fromSink
+            eeSwitchProc.wanted = _eeBySink[toSink] || ""
+            eeSwitchProc.running = true
+        }
+
+        Process {
+            id: eeSwitchProc
+            property string wanted: ""   // "1" = bypassed (effects off), "2" = effects on, "" = leave as is
+            command: ["sh", "-c",
+                "pgrep -x easyeffects >/dev/null || exit 0; "
+                + "echo \"cur=$(easyeffects -b 3 | grep -E '^[12]$' | tail -1)\"; "
+                + "[ -n \"$1\" ] && easyeffects -b \"$1\"; true",
+                "sh", wanted]
             stdout: StdioCollector {
                 onStreamFinished: {
-                    var output = this.text.trim();
-                    var parts = output.split(" ");
-                    if (parts.length >= 2) {
-                        var vol = parseInt(parts[0]);
-                        if (!isNaN(vol)) volumeData.volumeLevel = vol;
-                        volumeData.muted = parts[1] === "true";
-                    }
-                    if (parts.length >= 3) {
-                        var sink = parts[2];
-                        // Notify on external switches too (panel/hotkey/Bluetooth).
-                        // Cycle path notifies itself immediately; poll catches the rest.
-                        if (volumeData.defaultSink !== "" && sink !== ""
-                            && sink !== volumeData.defaultSink && sink !== "none"
-                            && !volumeData._cycling) {
-                            var notifyCmd = [theme.scriptDir + "/audio-notify.sh", sink];
-                            if (!switchNotifyProc.running) {
-                                volumeData._notifyCmd = notifyCmd;
-                                switchNotifyProc.running = true;
-                            } else {
-                                volumeData._pendingNotifyCmd = notifyCmd;
-                            }
-                        }
-                        if (sink !== "") volumeData.defaultSink = sink;
-                    }
+                    var m = (this.text || "").match(/cur=([12])/)
+                    if (!m || volumeData._eeLeaving === "") return
+                    var map = Object.assign({}, volumeData._eeBySink)
+                    map[volumeData._eeLeaving] = m[1]
+                    volumeData._eeBySink = map
+                    Db.cachePut("ee_bypass_by_sink", JSON.stringify(map))
                 }
+            }
+            onRunningChanged: {
+                if (running || !volumeData._eePending) return
+                var next = volumeData._eePending
+                volumeData._eePending = null
+                if (next.from !== next.to) volumeData.eeBypassSwitch(next.from, next.to)
             }
         }
 
@@ -896,20 +996,22 @@ Item {
             command: [theme.scriptDir + "/audio-cycle.sh"]
             stdout: StdioCollector {
                 onStreamFinished: {
-                    // Script notifies itself; sync baseline so the next poll stays silent
+                    // Script notifies itself; sync baseline so the sink change stays silent
                     var sink = this.text.trim().split("\n").filter(function (l) { return l !== ""; }).pop() || "";
                     if (sink !== "") volumeData.defaultSink = sink;
-                    volumeData._cycling = false;
                 }
             }
             onRunningChanged: {
-                if (!running) {
-                    // Stream handler normally ran already and synced the
-                    // baseline; only clear the gate here if there was no output.
-                    if (volumeData._cycling) volumeData._cycling = false;
-                    volumeData.refresh();
-                }
+                // Pipewire may report the new default slightly after the script exits;
+                // hold the gate briefly so that late change doesn't notify twice.
+                if (!running) cycleGateTimer.restart()
             }
+        }
+
+        Timer {
+            id: cycleGateTimer
+            interval: 500
+            onTriggered: volumeData._cycling = false
         }
 
         Process {
@@ -921,44 +1023,6 @@ Item {
                     volumeData._pendingNotifyCmd = [];
                     running = true;
                 }
-            }
-        }
-
-        // Event-driven refresh for external changes (volume knob, hotkeys, apps).
-        // Poll below stays as safety net only.
-        Process {
-            id: volumeSubscribeProc
-            command: ["stdbuf", "-oL", "pactl", "subscribe"]
-            running: true
-
-            stdout: SplitParser {
-                onRead: data => {
-                    if (data.includes("on sink") || data.includes("on server"))
-                        volumeData.refresh();
-                }
-            }
-
-            onRunningChanged: {
-                if (!running) subscribeRestartTimer.restart();
-            }
-        }
-
-        Timer {
-            id: subscribeRestartTimer
-            interval: 1000
-            onTriggered: {
-                if (!volumeSubscribeProc.running) volumeSubscribeProc.running = true;
-            }
-        }
-
-        // Safety net only (pactl subscribe above catches real changes).
-        Timer {
-            interval: 30000
-            running: true
-            repeat: true
-            triggeredOnStart: true
-            onTriggered: {
-                if (!volumeFetchProc.running) volumeFetchProc.running = true;
             }
         }
     }

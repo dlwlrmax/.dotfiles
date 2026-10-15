@@ -41,8 +41,16 @@ Item {
             seen.push(id)
             out.push(p)
         }
-        root.playerModel = out
+        // Players emit dataChanged on every state/metadata update. Reassigning an
+        // identical list would make the Repeater rebuild every delegate (tooltips,
+        // sliders, animations); only swap when membership/order changed.
+        var cur = root.playerModel
+        var same = cur.length === out.length
+        for (var k = 0; same && k < out.length; k++) same = cur[k] === out[k]
+        if (!same) root.playerModel = out
     }
+
+    // Durations (incl. remembered/yt-dlp fallbacks) come from MediaInfo.trackLength.
     Component.onCompleted: root._rebuildPlayers()
     Connections {
         target: Mpris.players
@@ -137,6 +145,7 @@ Item {
                     delegate: ColumnLayout {
                         required property var modelData
                         required property int index
+                        readonly property real trackLen: MediaInfo.trackLength(modelData)
                         spacing: 8
                         Layout.fillWidth: true
 
@@ -238,9 +247,21 @@ Item {
                                         cursorShape: Qt.PointingHandCursor
                                     }
 
-                                    ToolTip.visible: titleHover.containsMouse && trackTitleText.truncated
-                                    ToolTip.delay: 500
-                                    ToolTip.text: trackTitleText.text
+                                    BarTooltip {
+                                        id: titleTip
+                                        target: trackTitleText
+                                        theme: root.theme
+                                        // Separate window: doesn't follow scrolling or the panel's
+                                        // fade, so it closes on both.
+                                        hovered: root.active && titleHover.containsMouse && trackTitleText.truncated
+
+                                        Connections {
+                                            target: playerScroll.contentItem
+                                            function onContentYChanged() { titleTip.suppressed = true }
+                                        }
+                                        delay: 500
+                                        text: trackTitleText.text
+                                    }
                                 }
 
                                 Text {
@@ -261,29 +282,45 @@ Item {
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: 6
-                            visible: modelData.positionSupported && modelData.lengthSupported && modelData.length > 1
+                            visible: modelData.positionSupported && trackLen > 1
 
                             Text {
-                                text: formatTime(modelData.position)
+                                // A playing track stuck at 0 means the player doesn't report position.
+                                text: modelData.isPlaying && !(modelData.position > 0.5) ? "--:--" : MediaInfo.formatTime(modelData.position)
                                 color: theme.subtext0
                                 font.pixelSize: theme.fontSize - 2
                             }
 
                             Rectangle {
+                                id: progressTrack
                                 Layout.fillWidth: true
                                 height: 4
                                 radius: 2
                                 color: theme.surface0
+
+                                // Click or drag to seek, when the player allows it.
+                                MouseArea {
+                                    anchors.fill: parent
+                                    anchors.topMargin: -6
+                                    anchors.bottomMargin: -6
+                                    enabled: modelData.canSeek && trackLen > 1
+                                    cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                    function seekTo(x) {
+                                        var r = Math.max(0, Math.min(1, x / progressTrack.width))
+                                        modelData.position = r * trackLen
+                                    }
+                                    onPressed: mouse => seekTo(mouse.x)
+                                    onPositionChanged: mouse => { if (pressed) seekTo(mouse.x) }
+                                }
 
                                 Rectangle {
                                     height: 4
                                     radius: 2
                                     color: theme.mauve
                                     width: {
-                                        if (!modelData.positionSupported || !modelData.lengthSupported) return 0
-                                        if (!(modelData.length > 0)) return 0
+                                        if (!modelData.positionSupported || !(trackLen > 0)) return 0
                                         if (!(modelData.position > 0)) return 0
-                                        var r = modelData.position / modelData.length
+                                        var r = modelData.position / trackLen
                                         if (r < 0) r = 0
                                         if (r > 1) r = 1
                                         return r * parent.width
@@ -292,26 +329,25 @@ Item {
                             }
 
                             Text {
-                                text: formatTime(modelData.length)
+                                text: MediaInfo.formatTime(trackLen)
                                 color: theme.subtext0
                                 font.pixelSize: theme.fontSize - 2
                             }
                         }
 
                         // Fallback row for players (Zen/Firefox) that expose a
-                        // live position but no mpris:length, so the full time
-                        // row above stays hidden. Indeterminate bar + elapsed
-                        // time + LIVE tag; never renders "--:--".
+                        // live position but no mpris:length (and none remembered
+                        // for this track): elapsed time + indeterminate bar.
                         RowLayout {
                             id: liveRow
                             Layout.fillWidth: true
                             spacing: 6
                             visible: modelData.isPlaying && modelData.positionSupported
                                 && modelData.position > 0.5
-                                && !(modelData.lengthSupported && modelData.length > 1)
+                                && !(trackLen > 1)
 
                             Text {
-                                text: formatTime(modelData.position)
+                                text: MediaInfo.formatTime(modelData.position)
                                 color: theme.subtext0
                                 font.pixelSize: theme.fontSize - 2
                             }
@@ -342,10 +378,11 @@ Item {
                                 }
                             }
 
+                            // Duration unknown (player didn't send one), not necessarily a livestream.
                             Text {
-                                text: "LIVE"
-                                color: theme.subtext0
-                                font.pixelSize: theme.fontSize - 3
+                                text: "--:--"
+                                color: theme.surface1
+                                font.pixelSize: theme.fontSize - 2
                             }
                         }
 
@@ -551,15 +588,6 @@ Item {
         }
     }
 
-    // m:ss formatter. Guards NaN/negative (unsupported position) so the row,
-    // which is only visible with real support, never shows a bogus value.
-    function formatTime(seconds) {
-        if (seconds === undefined || seconds === null || isNaN(seconds) || seconds < 0) return "--:--"
-        var totalSec = Math.floor(seconds)
-        var min = Math.floor(totalSec / 60)
-        var sec = totalSec % 60
-        return min + ":" + (sec < 10 ? "0" : "") + sec
-    }
 
     // Poll live positions only when the panel is open AND at least one player
     // exposes a usable time source: a real length, or (fallback) a live
@@ -567,7 +595,7 @@ Item {
     Timer {
         interval: 1000
         running: root.active && root.playerModel.some(function(p) {
-            return p && ((p.lengthSupported && p.length > 1)
+            return p && (MediaInfo.trackLength(p) > 1
                 || (p.isPlaying && p.positionSupported))
         })
         repeat: true

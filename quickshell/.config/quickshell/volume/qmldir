@@ -1,3 +1,5 @@
 module qs.volume
 Volume 1.0 Volume.qml
 VolumePanel 1.0 VolumePanel.qml
+VolumeSlider 1.0 VolumeSlider.qml
+DeviceRow 1.0 DeviceRow.qml

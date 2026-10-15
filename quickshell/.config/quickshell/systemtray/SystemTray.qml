@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 import Quickshell
 import Quickshell.Services.SystemTray
 import qs.common
@@ -51,14 +50,19 @@ RowLayout {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: trayContainer.toggleOverflow()
+            onClicked: {
+                overflowTip.suppressed = true
+                trayContainer.toggleOverflow()
+            }
         }
 
-        ToolTip {
-            visible: overflowMouse.containsMouse
-            text: "Show " + trayContainer.hiddenCount + " hidden icons"
-            delay: 1000
-            font.pixelSize: 10
+        BarTooltip {
+            id: overflowTip
+            target: overflowBtn
+            theme: trayContainer.theme
+            hovered: overflowMouse.containsMouse
+            delay: 600
+            text: "Show " + trayContainer.hiddenCount + " hidden icon" + (trayContainer.hiddenCount === 1 ? "" : "s")
         }
     }
 }

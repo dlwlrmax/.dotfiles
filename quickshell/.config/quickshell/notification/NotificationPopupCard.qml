@@ -25,6 +25,9 @@ Rectangle {
     signal dismissed()
     signal dismissRequested()
     signal messageDismissRequested(var notifId)
+    // function(notifId, text) -> bool; set by the popup. false = notification is gone.
+    property var replyHandler: null
+    property bool _replyFailed: false
 
     color: theme.color
     radius: 12
@@ -49,6 +52,7 @@ Rectangle {
 
     function resetTimer() {
         if (_dismissed) return
+        if (replyField.activeFocus) return   // typing: stay up; focus loss restarts it
         _dismissing = false
         progressValue = 1.0
         dismissTimer.stop()
@@ -269,6 +273,71 @@ Rectangle {
             textFormat: Text.StyledText
         }
 
+        // Inline reply (apps that support it, e.g. chats relayed by KDE Connect).
+        // Typing pauses auto-dismiss; Enter sends, Esc gives up.
+        TextField {
+            id: replyField
+            visible: !!(root.latest && root.latest.hasReply)
+            Layout.fillWidth: true
+            placeholderText: root.latest && root.latest.replyPlaceholder ? root.latest.replyPlaceholder : "Reply…"
+            color: theme.text
+            placeholderTextColor: theme.surface1
+            font.pixelSize: theme.fontSize - 2
+            font.family: theme.font
+            leftPadding: 8
+            rightPadding: 8
+            background: Rectangle {
+                radius: 6
+                color: theme.surface0
+                border.color: root._replyFailed ? theme.red : replyField.activeFocus ? theme.blue : "transparent"
+                border.width: 1
+            }
+
+            onActiveFocusChanged: {
+                if (root._dismissed || root._dismissing || !root.autoDismiss) return
+                if (activeFocus) {
+                    root.stopTimers()
+                    root._hoverPaused = true
+                    return
+                }
+                // Focus left: start a fresh countdown. If the cursor is still on the card,
+                // hold it paused like a hover would; leaving the card resumes it.
+                root.resetTimer()
+                if (hoverArea.containsMouse) {
+                    dismissTimer.stop()
+                    root._hoverElapsedBeforePause = 0
+                    root._hoverPaused = true
+                } else {
+                    root._hoverPaused = false
+                }
+            }
+            onTextChanged: root._replyFailed = false
+            onAccepted: {
+                var t = text.trim()
+                if (t === "" || !root.latest) return
+                var ok = root.replyHandler ? root.replyHandler(root.latest.id, t) : false
+                if (!ok) {
+                    // Keep the draft so it can be copied elsewhere.
+                    root._replyFailed = true
+                    return
+                }
+                text = ""
+                focus = false
+                root.requestDismiss()
+            }
+            Keys.onEscapePressed: { text = ""; focus = false }
+        }
+
+        Text {
+            visible: root._replyFailed
+            text: "Couldn't send: the notification is gone. Reply in the app."
+            color: theme.red
+            font.pixelSize: theme.fontSize - 3
+            font.family: theme.font
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+        }
+
         ColumnLayout {
             visible: root.expanded
             Layout.fillWidth: true
@@ -344,6 +413,7 @@ Rectangle {
         z: 999
         onContainsMouseChanged: {
             if (root._dismissed || root._dismissing || !root.autoDismiss) return
+            if (replyField.activeFocus) return
             root._hoverPaused = containsMouse
             if (containsMouse) {
                 root._hoverElapsedBeforePause = root.dismissTimeoutMs * (1 - root.progressValue)

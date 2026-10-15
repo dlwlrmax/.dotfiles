@@ -1,7 +1,8 @@
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Layouts
 import Quickshell
 import Quickshell.Services.SystemTray
+import qs.common
 
 // Shared tray icon delegate. Used inline in bar row + overflow popup grid.
 Rectangle {
@@ -76,6 +77,7 @@ Rectangle {
         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
         hoverEnabled: true
         onClicked: mouse => {
+            trayTip.suppressed = true
             if (mouse.button === Qt.LeftButton) {
                 trayIcon.modelData.activate()
                 trayIcon.activated()
@@ -96,16 +98,34 @@ Rectangle {
             trayIcon.modelData.scroll(wheel.angleDelta.y, false)
         }
 
-        ToolTip {
-            visible: trayMouse.containsMouse && (trayIcon.modelData.tooltipTitle !== "" || trayIcon.modelData.title !== "")
-            text: {
-                let title = trayIcon.modelData.tooltipTitle !== "" ? trayIcon.modelData.tooltipTitle : trayIcon.modelData.title
-                if (trayIcon.modelData.tooltipDescription !== "")
-                    return title + "\n" + trayIcon.modelData.tooltipDescription
-                return title
-            }
-            delay: 1000
-            font.pixelSize: 10
+    }
+
+    BarTooltip {
+        id: trayTip
+        readonly property string title: trayIcon.modelData.tooltipTitle !== "" ? trayIcon.modelData.tooltipTitle : trayIcon.modelData.title
+        target: trayIcon
+        hovered: trayMouse.containsMouse && title !== ""
+        delay: 600
+
+        Text {
+            text: trayTip.title
+            color: trayTip.theme.text
+            font.pixelSize: trayTip.theme.fontSize - 1
+            font.weight: Font.Medium
+            font.family: trayTip.theme.font
+            wrapMode: Text.Wrap
+            Layout.maximumWidth: 320
+        }
+        Text {
+            // SNI descriptions may carry markup; render as plain text.
+            visible: text !== ""
+            text: trayIcon.modelData.tooltipDescription
+            textFormat: Text.PlainText
+            color: trayTip.theme.subtext0
+            font.pixelSize: trayTip.theme.fontSize - 2
+            font.family: trayTip.theme.font
+            wrapMode: Text.Wrap
+            Layout.maximumWidth: 320
         }
     }
 }

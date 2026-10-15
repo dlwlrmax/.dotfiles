@@ -5,3 +5,8 @@ Theme 1.0 Theme.qml
 IconMap 1.0 IconMap.qml
 AppIcon 1.0 AppIcon.qml
 Separator 1.0 Separator.qml
+BarTooltip 1.0 BarTooltip.qml
+singleton ShellState 1.0 ShellState.qml
+singleton MediaInfo 1.0 MediaInfo.qml
+WheelSteps 1.0 WheelSteps.qml
+singleton VolumeStep 1.0 VolumeStep.qml

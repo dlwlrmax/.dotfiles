@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import qs.common
@@ -135,9 +134,13 @@ Rectangle {
                         acceptedButtons: Qt.NoButton
                     }
 
-                    ToolTip.visible: appNameHover.containsMouse && appNameText.truncated
-                    ToolTip.delay: 500
-                    ToolTip.text: appNameText.text
+                    BarTooltip {
+                        target: appNameText
+                        theme: root.theme
+                        hovered: appNameHover.containsMouse && appNameText.truncated
+                        delay: 500
+                        text: appNameText.text
+                    }
                 }
 
                 Text {
@@ -188,9 +191,13 @@ Rectangle {
                     acceptedButtons: Qt.NoButton
                 }
 
-                ToolTip.visible: summaryHover.containsMouse && summaryText.truncated
-                ToolTip.delay: 500
-                ToolTip.text: summaryText.text
+                BarTooltip {
+                    target: summaryText
+                    theme: root.theme
+                    hovered: summaryHover.containsMouse && summaryText.truncated
+                    delay: 500
+                    text: summaryText.text
+                }
             }
 
             Text {
@@ -216,9 +223,14 @@ Rectangle {
                     acceptedButtons: Qt.NoButton
                 }
 
-                ToolTip.visible: bodyHover.containsMouse && bodyText.truncated
-                ToolTip.delay: 500
-                ToolTip.text: notifData && notifData.body || ""
+                BarTooltip {
+                    target: bodyText
+                    theme: root.theme
+                    hovered: bodyHover.containsMouse && bodyText.truncated
+                    delay: 500
+                    text: Sanitize.formatBody(notifData && notifData.body || "")
+                    textFormat: Text.StyledText
+                }
             }
 
             // Action buttons
