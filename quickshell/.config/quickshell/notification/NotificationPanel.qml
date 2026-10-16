@@ -45,10 +45,10 @@ Item {
     clip: true
     implicitWidth: 360
     // Content height (14px margins + header + 10 spacing + 1px rule + 10 spacing + list),
-    // capped to the screen under the bar; the list scrolls beyond that.
+    // capped at 640px (or the screen under the bar, if smaller); the list scrolls beyond that.
     readonly property real maxHeight: {
         var scr = root.QsWindow.window ? root.QsWindow.window.screen : null
-        return scr ? scr.height - theme.barHeight - 24 : 800
+        return Math.min(640, scr ? scr.height - theme.barHeight - 24 : 640)
     }
     implicitHeight: Math.min(maxHeight, 14 + panelHeader.implicitHeight + 10 + 1 + 10 + contentCol.implicitHeight + 14)
 
