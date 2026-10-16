@@ -18,7 +18,8 @@ Rectangle {
     border.color: theme.surface0
     border.width: 1
     opacity: root.read ? 0.55 : 1.0
-    height: content.implicitHeight + 20
+    // implicitHeight so parent layouts follow size changes (see NotificationPopupCard).
+    implicitHeight: content.implicitHeight + 20
         + (actionFlow.visible ? actionFlow.implicitHeight + 6 : 0)
 
     function getNotifTime(id) {
@@ -178,60 +179,23 @@ Rectangle {
                 font.family: theme.font
                 Layout.fillWidth: true
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                maximumLineCount: 2
-                elide: Text.ElideRight
-                clip: true
                 visible: !!(notifData && notifData.summary) && notifData.summary.length > 0
                 textFormat: Text.PlainText
-
-                MouseArea {
-                    id: summaryHover
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    acceptedButtons: Qt.NoButton
-                }
-
-                BarTooltip {
-                    target: summaryText
-                    theme: root.theme
-                    hovered: summaryHover.containsMouse && summaryText.truncated
-                    delay: 500
-                    text: summaryText.text
-                }
             }
 
+            // Whole body, no line cap: the card grows to fit.
             Text {
                 id: bodyText
                 // Untrusted markup rendered through the Sanitize allowlist
                 // (b/i/u only) as StyledText — no images, links, or attrs.
-                // Newest lines of cumulative chat bodies; the tooltip has the full text.
-                text: Sanitize.formatBodyTail(notifData && notifData.body || "", 3)
+                text: Sanitize.formatBody(notifData && notifData.body || "")
                 color: theme.subtext0
                 font.pixelSize: theme.fontSize - 2
                 font.family: theme.font
                 Layout.fillWidth: true
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                maximumLineCount: 3
-                elide: Text.ElideRight
-                clip: true
                 visible: !!(notifData && notifData.body) && notifData.body.length > 0
                 textFormat: Text.StyledText
-
-                MouseArea {
-                    id: bodyHover
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    acceptedButtons: Qt.NoButton
-                }
-
-                BarTooltip {
-                    target: bodyText
-                    theme: root.theme
-                    hovered: bodyHover.containsMouse && (bodyText.truncated || bodyText.text.indexOf("\u2026 ") === 0)
-                    delay: 500
-                    text: Sanitize.formatBody(notifData && notifData.body || "")
-                    textFormat: Text.StyledText
-                }
             }
 
             // Action buttons

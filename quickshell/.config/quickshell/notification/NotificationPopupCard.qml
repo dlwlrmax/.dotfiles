@@ -35,7 +35,10 @@ Rectangle {
     border.width: 1
     clip: true
     width: 400
-    height: cardLayout.implicitHeight + 20
+    // implicitHeight, not height: the popup's ColumnLayout (and the window sized from it)
+    // only follows implicit sizes. With a plain height, a card that grows (newer, longer
+    // message in the group, expanded list, reply box) got cut off at its first size.
+    implicitHeight: cardLayout.implicitHeight + 20
 
     function formatTime(unixEpoch) {
         if (!unixEpoch) return ""
@@ -215,15 +218,13 @@ Rectangle {
                     Layout.fillWidth: true
                 }
                 Text {
-                    // No title: the header shows the body's newest line instead.
-                    text: !root.latest ? ""
-                        : root.latest.summary ? Sanitize.formatBody(root.latest.summary)
-                        : Sanitize.formatBodyTail(root.latest.body, 1)
+                    // Full title; with no title the body below shows everything.
+                    text: root.latest && root.latest.summary ? Sanitize.formatBody(root.latest.summary) : ""
+                    visible: text !== ""
                     color: theme.subtext0
                     font.pixelSize: theme.fontSize - 2
                     font.family: theme.font
-                    elide: Text.ElideRight
-                    maximumLineCount: 1
+                    wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                     Layout.fillWidth: true
                     textFormat: Text.StyledText
                 }
@@ -265,14 +266,13 @@ Rectangle {
 
         Text {
             Layout.fillWidth: true
-            visible: root.latest && root.latest.body && root.latest.summary
-            // Newest lines of cumulative chat bodies, not the oldest.
-            text: Sanitize.formatBodyTail(root.latest ? root.latest.body : "", 2)
+            visible: !!(root.latest && root.latest.body)
+            // Whole body: the card grows to fit (no line cap), so cumulative chat
+            // bodies show every line including the newest.
+            text: Sanitize.formatBody(root.latest ? root.latest.body : "")
             color: theme.text
             font.pixelSize: theme.fontSize - 2
             font.family: theme.font
-            maximumLineCount: 3
-            elide: Text.ElideRight
             wrapMode: Text.WrapAtWordBoundaryOrAnywhere
             textFormat: Text.StyledText
         }
@@ -361,15 +361,14 @@ Rectangle {
                         anchors.right: closeText.left
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.margins: 6
-                        // "Sender: newest line" (summary alone is often just the group/app name)
+                        // "Title: full body" (title alone is often just the group/app name)
                         text: modelData.summary && modelData.body
-                            ? Sanitize.formatBody(modelData.summary) + ": " + Sanitize.formatBodyTail(modelData.body, 1)
-                            : Sanitize.formatBody(modelData.summary) || Sanitize.formatBodyTail(modelData.body, 1)
+                            ? Sanitize.formatBody(modelData.summary) + ": " + Sanitize.formatBody(modelData.body)
+                            : Sanitize.formatBody(modelData.summary || modelData.body)
                         color: theme.subtext0
                         font.pixelSize: theme.fontSize - 3
                         font.family: theme.font
-                        maximumLineCount: 2
-                        elide: Text.ElideRight
+                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                         textFormat: Text.StyledText
                     }
                     Text {
