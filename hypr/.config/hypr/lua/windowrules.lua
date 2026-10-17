@@ -248,6 +248,11 @@ hl.window_rule({
   idle_inhibit = "fullscreen", -- controller-only play must not trigger lock/DPMS
 })
 
+-- Enshrouded (Steam AppID 1203620): in-game camera wheel-zoom feels too fast at
+-- the default input:scroll_factor=1.0. Override the scroll factor for this window
+-- ONLY — global scroll_factor stays 1.0, so all other apps are unaffected.
+hl.window_rule({ match = { class = "^(steam_app_1203620)$" }, scroll_mouse = 0.4 })
+
 hl.window_rule({
   match = { class = "^(gamescope)$" },
   workspace = game_ws,
