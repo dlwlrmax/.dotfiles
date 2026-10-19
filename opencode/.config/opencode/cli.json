@@ -1,27 +1,57 @@
 {
   "$schema": "https://opencode.ai/v2/cli.json",
   "theme": {
-    "name": "catppuccin-macchiato"
+    "name": "catppuccin-macchiato",
+    "mode": "dark"
   },
   "diffs": {
-    "wrap": "word"
+    "wrap": "word",
+    "view": "auto"
   },
   "session": {
     "sidebar": "auto",
-    "scrollbar": false,
+    "scrollbar": true,
     "thinking": "hide",
-    "new_location": "inherit"
+    "new_location": "launch",
+    "markdown": "rendered",
+    "grouping": "auto",
+    "verbosity": "high",
+    "image_preview": true,
+    "permissions": "prompt"
   },
   "tabs": {
-    "scope": "global"
+    "scope": "cwd",
+    "indicators": "status",
+    "mode": "on",
+    "layout": "horizontal"
   },
   "animations": true,
   "keybinds": {
     "agent.cycle": "tab",
     "agent.cycle.reverse": "shift+tab",
+    "session.tab.next": {
+      "key": "alt+l",
+      "preventDefault": true,
+      "fallthrough": false
+    },
+    "session.tab.previous": {
+      "key": "alt+h",
+      "preventDefault": true,
+      "fallthrough": false
+    },
     "session.tab.select.1": "alt+1,<leader>1",
     "session.tab.select.2": "alt+2,<leader>2",
     "session.tab.select.3": "alt+3,<leader>3",
     "session.tab.select.4": "alt+4,<leader>4"
+  },
+  "leader": {
+    "timeout": 2250
+  },
+  "prompt": {
+    "image_preview": true
+  },
+  "attention": {
+    "notifications": true,
+    "sound": true
   }
 }

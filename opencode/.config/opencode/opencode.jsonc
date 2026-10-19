@@ -3,7 +3,7 @@
     "oh-my-opencode-slim"
   ],
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode/mimo-v2.6-flash-free",
+  "model": "opencode/deepseek-v4.1-flash-free",
   // "default_agent": "OpenCoder",
   // "agents": {
   //   "OpenCoder": {
@@ -19,24 +19,10 @@
     "prune": true
   },
   "mcp": {
-    "laravel-boost": {
-      "type": "local",
-      "command": ["lerd", "php", "artisan", "boost:mcp"]
-    },
     "playwright": {
       "type": "local",
-      "command": ["npx", "@playwright/mcp@latest", "--headless"]
-    },
-    "mysql": {
-      "type": "local",
-      "command": ["npx", "-y", "@easy-mcps/mysql-mcp-server"],
-      "environment": {
-        "MYSQL_HOST": "{env:MYSQL_HOST}",
-        "MYSQL_PORT": "{env:MYSQL_PORT}",
-        "MYSQL_USER": "{env:MYSQL_USER}",
-        "MYSQL_PASSWORD": "{env:MYSQL_PASSWORD}",
-        "MYSQL_DATABASE": "erp_langmaster"
-      }
+      "command": ["npx", "@playwright/mcp@latest", "--headless"],
+      "enabled": false
     },
     "figma": {
       "type": "local",
@@ -44,7 +30,7 @@
       "environment": {
         "FIGMA_API_KEY": "{env:FIGMA_API_KEY}"
       },
-      "enabled": true,
+      "enabled": false,
       "timeout": 15000
     },
     "context7": {
@@ -62,11 +48,6 @@
       }
     },
     "opencode-go": {
-      "options": {
-        "headers": {}
-      }
-    },
-    "openrouter": {
       "options": {
         "headers": {}
       }
