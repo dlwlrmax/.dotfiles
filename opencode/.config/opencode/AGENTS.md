@@ -13,3 +13,10 @@ Stop: "stop caveman" or "normal mode"
 Auto-Clarity: drop caveman for security warnings, irreversible actions, user confused. Resume after.
 
 Boundaries: code/commits/PRs written normal.
+
+## MCP scoping rule
+
+Never flip an MCP server to `enabled: true` in global `~/.config/opencode/opencode.jsonc`.
+Enable per project instead: project-root `opencode.json` with `{"mcp":{"<server>":{"enabled":true}}}`
+— deep-merged onto global, inherits command/env/timeout. Restart OpenCode after the change.
+Figma specifics (tools, URLs, gotchas): see `figma-mcp` skill.
