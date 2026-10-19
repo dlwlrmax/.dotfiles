@@ -62,8 +62,16 @@ Rectangle {
         progressAnim.stop()
         if (autoDismiss && dismissTimeoutMs > 0) {
             dismissTimer.interval = dismissTimeoutMs
-            dismissTimer.start()
             progressAnim.restart()
+            // Cursor on the card (new message arrived mid-hover): hold the fresh
+            // countdown paused; leaving the card resumes it from full.
+            if (hoverArea.containsMouse) {
+                _hoverElapsedBeforePause = 0
+                _hoverPaused = true
+                hoverSafety.restart()
+            } else {
+                dismissTimer.start()
+            }
         }
     }
 
@@ -247,7 +255,8 @@ Rectangle {
             }
 
             Text {
-                text: root.formatTime(root.notifTimes[root.latest && root.latest.id])
+                text: root.formatTime(root.latest
+                    ? (root.notifTimes[root.latest.id] || root.latest.timestamp) : 0)
                 color: theme.white
                 font.pixelSize: theme.fontSize - 3
                 font.family: theme.font
@@ -259,6 +268,7 @@ Rectangle {
                 MouseArea {
                     anchors.fill: parent
                     anchors.margins: -6
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: root.requestDismiss()
                 }
             }
@@ -343,7 +353,7 @@ Rectangle {
         }
 
         ColumnLayout {
-            visible: root.expanded
+            visible: root.expanded && (root.groupData.count || 0) > 1
             Layout.fillWidth: true
             spacing: 4
 
@@ -381,6 +391,7 @@ Rectangle {
                         MouseArea {
                             anchors.fill: parent
                             anchors.margins: -4
+                            cursorShape: Qt.PointingHandCursor
                             onClicked: root.messageDismissRequested(modelData.id)
                         }
                     }
@@ -408,7 +419,8 @@ Rectangle {
         id: toggleArea
         anchors.fill: parent
         z: -1
-        onClicked: root.expanded = !root.expanded
+        cursorShape: (root.groupData.count || 0) > 1 ? Qt.PointingHandCursor : Qt.ArrowCursor
+        onClicked: if ((root.groupData.count || 0) > 1) root.expanded = !root.expanded
     }
 
     MouseArea {

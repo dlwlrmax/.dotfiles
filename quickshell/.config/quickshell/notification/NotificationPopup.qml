@@ -154,8 +154,14 @@ Item {
         }
     }
 
+    // Same normalization as NotificationPanel.notificationGroupKey: sender
+    // casing/whitespace ("Telegram" vs "telegram") must not split one app.
     function appKey(notif) {
-        return notif.desktopEntry || notif.appName || notif.appIcon || "unknown"
+        var de = (notif.desktopEntry || "").trim().toLowerCase()
+        if (de) return de
+        var app = (notif.appName || "").trim().toLowerCase()
+        if (app) return app
+        return notif.appIcon || "unknown"
     }
 
     function cardForNotification(notifId) {

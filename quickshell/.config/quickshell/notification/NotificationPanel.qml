@@ -178,6 +178,9 @@ Item {
                                     anchors.margins: -4
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: {
+                                        var live = root.reversedNotifs
+                                        for (var i = 0; i < live.length; ++i)
+                                            if (live[i].dismiss) live[i].dismiss()
                                         if (root.dataSource && root.dataSource.markAllRead)
                                             root.dataSource.markAllRead()
                                     }
@@ -429,9 +432,11 @@ Item {
                             theme: root.theme
                             notifData: modelData
                             notifTimes: root.notifTimes
-                            onMarkRead: function() {
-                                if (root.dataSource) root.dataSource.markRead(modelData._dbId)
-                            }
+                            unread: true
+                            // Live entries stay under Unread while active, so both
+                            // read-click and × retire them (see retireLive).
+                            onDismissRequest: function() { root.retireLive(modelData) }
+                            onMarkRead: function() { root.retireLive(modelData) }
                         }
                     }
                 }
@@ -487,17 +492,19 @@ Item {
         root.expandedGroups = next
     }
 
+    // Clear = done: mark the backing row read so it drops into Read once its
+    // live entry is gone, instead of resurfacing as Unread.
+    function retireLive(notif) {
+        if (!notif) return
+        var dbId = notif._dbId
+        if (dbId !== undefined && dbId !== null && root.dataSource)
+            root.dataSource.markRead(dbId)
+        if (notif.dismiss) notif.dismiss()
+    }
+
     function clearGroup(key) {
         var notifs = root.reversedNotifs
-        for (var i = 0; i < notifs.length; ++i) {
-            if (root.notificationGroupKey(notifs[i]) === key && notifs[i].dismiss) {
-                // Clear = done: mark the backing row read so it drops into Read
-                // once its live entry is gone, instead of resurfacing as Unread.
-                var dbId = notifs[i]._dbId
-                if (dbId !== undefined && dbId !== null && root.dataSource)
-                    root.dataSource.markRead(dbId)
-                notifs[i].dismiss()
-            }
-        }
+        for (var i = 0; i < notifs.length; ++i)
+            if (root.notificationGroupKey(notifs[i]) === key) root.retireLive(notifs[i])
     }
 }
