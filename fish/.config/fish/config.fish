@@ -76,7 +76,8 @@ if status is-interactive
 
     # Functions
     function connect --description "sesh connect via fzf"
-        sesh connect (sesh list --icons | grep -v -E '(opencode|qwen)' | fzf --height 40% --border --prompt='Select session: ')
+        set -l selection (sesh list --icons | grep -v -E '(opencode|qwen)' | fzf --ansi --no-sort --height 40% --border --prompt='Select session: ')
+        test -n "$selection"; and sesh connect $selection
     end
 
     function llog --description "tail today's laravel log"
