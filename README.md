@@ -44,7 +44,7 @@ Personal dotfiles for Arch Linux with Hyprland (Wayland). Managed with GNU Stow.
 
 ```bash
 # Base
-sudo pacman -S stow git base-devel cmake
+sudo pacman -S stow git base-devel cmake curl jq
 
 # AUR helper
 sudo pacman -S --needed git base-devel
@@ -52,21 +52,23 @@ git clone https://aur.archlinux.org/paru.git /tmp/paru
 cd /tmp/paru && makepkg -si
 
 # Hyprland + ecosystem
-paru -S hyprland swaybg waybar-hyprland swaync qt6-wayland \
+paru -S hyprland swaybg waybar swaync qt6-wayland \
   xdg-desktop-portal-hyprland xdg-desktop-portal-gtk \
-  grim slurp wl-clipboard nwg-look nwg-displays
+  grim slurp wl-clipboard nwg-look nwg-displays dunst
 
 # Terminal
-paru -S kitty ghostty alacritty tmux zellij fish fisher
+paru -S kitty ghostty alacritty wezterm tmux zellij fish
+# fisher is not installed via pacman here; bootstrap.sh sets it up
+# (or follow the Fish Shell section below).
 
 # Shell tools
 paru -S fzf fd ripgrep bat eza zoxide btop fastfetch
 
 # Neovim
-paru -S neovim python3.10-venv
+paru -S neovim
 
 # Media / files
-paru -S mpv mpv-mpris yazi gitui
+paru -S mpv mpv-mpris yazi gitui lazygit
 
 # Dev
 paru -S go php nodejs docker docker-compose traefik
@@ -83,12 +85,34 @@ paru -S gtk3 gtk4 qt6ct
 ```bash
 git clone https://github.com/kienct/.dotfiles ~/.dotfiles
 cd ~/.dotfiles
+```
 
+### Bootstrap
+
+```bash
+./bootstrap.sh --all
+```
+
+Installs the Dependencies block above in two layers — `--essential` (base, fish,
+editor, core CLI) and `--optional` (desktop, media, dev, theming) — with AUR
+names `sesh-bin`, `webtorrent-cli`, and `stremio`. It also stows the configs and
+sets up fisher with the plugins listed below.
+Run `./bootstrap.sh --help` for profiles (`--essential`, `--optional`, `--all`)
+and flags (`--dry-run`, `-y`, `--no-stow`, `--no-fisher`).
+
+Note: the root `install.sh` is a separate third-party OpenCode component
+installer, unrelated to this bootstrap script.
+
+### Manual stow
+
+```bash
 # Stow configs (use only what you need)
 stow -t ~ fish hypr waybar rofi swaync          # core desktop
 stow -t ~ kitty ghostty tmux nvim yazi gitui    # terminal + dev
 stow -t ~ gtk-3.0 gtk-4.0 qt6ct                # theming
-stow -t ~ docker-config traefik portainer       # containers
+stow -t ~ portainer                             # containers
+# docker-config is not stowed (it would create ~/base);
+# run it via the docker-setup alias instead.
 ```
 
 For configs that target paths outside `~/.config`, use explicit target:
