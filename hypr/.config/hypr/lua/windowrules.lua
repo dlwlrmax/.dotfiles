@@ -58,7 +58,7 @@ hl.window_rule({
   workspace = 1,
 })
 hl.window_rule({
-  match = { class = "^(steam|net.lutris.Lutris)$" },
+  match = { class = "^(steam|net.lutris.Lutris)$", title = "negative:^notificationtoasts.*$" },
   workspace = 4,
   center = true,
 })
@@ -264,9 +264,10 @@ hl.window_rule({
   idle_inhibit = "fullscreen",
 })
 
--- Steam client (not games: those are steam_app_*, handled above).
+-- Steam client (not games: those are steam_app_*, handled above; not toasts:
+-- those are placed corner-wise by the "steam-toast" rule below).
 hl.window_rule({
-  match = { class = "^(steam)$" },
+  match = { class = "^(steam)$", title = "negative:^notificationtoasts.*$" },
   fullscreen = false,
   float = true,
   confine_pointer = false,
@@ -277,6 +278,19 @@ hl.window_rule({
 hl.window_rule({
   match = { class = "^(steam)$", title = "Steam" },
   float = false,
+})
+
+-- Steam toast notifications (title: notificationtoasts_<n>_desktop): float,
+-- stay on current workspace, never centered, no focus steal. Corner placement
+-- happens in lua/floatsize.lua (window.open) — the static `move` rule effect
+-- does not fire for these windows.
+-- NOTE: title patterns are RE2 FullMatch — anchor the end explicitly.
+hl.window_rule({
+  name = "steam-toast",
+  match = { class = "^(steam)$", title = "^notificationtoasts.*$" },
+  float = true,
+  center = false,
+  no_focus = true,
 })
 
 -- ──────────────────────────────────────────────

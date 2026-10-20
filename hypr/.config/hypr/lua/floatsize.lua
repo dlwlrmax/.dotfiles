@@ -51,10 +51,18 @@ if not S then
   _G.__hl_floatsize = S
 end
 
+-- Steam toasts are placed by the "steam-toast" window rule (screen corner);
+-- never remember/restore/cascade them, or geometry memory would re-center them.
+local function is_toast(w)
+  return w.class == "steam"
+    and tostring(w.title or w.initial_title or ""):find("^notificationtoasts") ~= nil
+end
+
 local function skip(w)
   return not w or not w.floating or w.pinned
     or (w.fullscreen or 0) ~= 0
     or pippeek.is_pip(w)
+    or is_toast(w)
 end
 
 local function get(addr)
@@ -323,7 +331,29 @@ local function recheck(addr)
     width, height)
 end
 
+-- Steam toast: bottom-right of the work area, 10px margins. Static window-rule
+-- `move` never fires for these, so position them from window.open instead;
+-- re-run after RECHECK_MS in case the client resizes after mapping.
+local TOAST_PAD = 10
+local function place_toast(w)
+  if not (w.monitor and w.size) then return end
+  local a = work_area(w.monitor)
+  hl.dispatch(hl.dsp.window.move({
+    x = a.x + a.w - w.size.x - TOAST_PAD,
+    y = a.y + a.h - w.size.y - TOAST_PAD,
+    window = sel(w),
+  }))
+end
+
 local function place(w, grow)
+  if is_toast(w) then
+    place_toast(w)
+    pcall(hl.timer, function()
+      local t = get(w.address)
+      if t then place_toast(t) end
+    end, { timeout = RECHECK_MS, type = "oneshot" })
+    return
+  end
   if skip(w) then return end
   local addr = w.address
   if not restore(w) then fit(w, grow) end
