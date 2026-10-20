@@ -10,10 +10,20 @@ pnpm-lock.yaml
 *.pem
 .tmp
 __pycache__/
-fish/.config/fish/completions/
-fish/.config/fish/conf.d/
-fish/.config/fish/functions/
+# fish: ignore vendored plugin files, track hand-written config
+fish/.config/fish/completions/*
+!fish/.config/fish/completions/lerd.fish
+fish/.config/fish/conf.d/*
+!fish/.config/fish/conf.d/lerd.fish
+!fish/.config/fish/conf.d/oh-my-opencode-slim.fish
+!fish/.config/fish/conf.d/fish_frozen_theme.fish
+fish/.config/fish/functions/*
+!fish/.config/fish/functions/y.fish
+!fish/.config/fish/functions/fish_user_key_bindings.fish
+!fish/.config/fish/functions/fish_greeting.fish
+fish/.config/fish/functions/tide/
 fish/.config/fish/themes/
+fish/.config/fish/secrets.local.fish
 fish_variables*
 *.bak
 *.bak.*

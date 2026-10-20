@@ -6,16 +6,18 @@ if status is-interactive
     set -g fish_cursor_visual underscore
     set -g fish_cursor_replace_one underscore blink
 
-    # History / autosuggestion / fish 4 features
+    # History / autosuggestion
     set -g fish_history_size 100000
     set -g fish_autosuggestion_enabled 1
-    set -g fish_features qmark-noglob,regex-easyesc,ampersand-nobg-in-token
     set -g fish_greeting ""
 
-    # Env
+    # Env (LANG only when the parent shell did not set one)
     set -gx EDITOR nvim
-    set -gx LANG en_US.UTF-8
-    set -gx OPENCODE_ENABLE_EXA 1
+    test -z "$LANG"; and set -gx LANG en_US.UTF-8
+    # OPENCODE_ENABLE_EXA lives in conf.d/oh-my-opencode-slim.fish
+
+    # Secrets: never committed, see .gitignore
+    test -f $HOME/.config/fish/secrets.local.fish; and source $HOME/.config/fish/secrets.local.fish
 
     # FZF - env + bindings
     set -gx FZF_DEFAULT_OPTS '--height 90% --tmux center,90% --layout reverse --border --margin=1 --padding=1'
@@ -24,7 +26,7 @@ if status is-interactive
     --preview 'bat -n --color=always {}'
     --bind 'ctrl-/:change-preview-window(down|hidden|)'"
     set -gx FZF_CTRL_R_OPTS "
-    --bind 'ctrl-y:execute-silent(echo -n {2..} | xclip -selection clipboard)+abort'
+    --bind 'ctrl-y:execute-silent(printf %s {3..} | (wl-copy 2>/dev/null; or xclip -selection clipboard 2>/dev/null; or xsel --clipboard --input 2>/dev/null; or cat >/dev/null))+abort'
     --color header:italic
     --header 'Press CTRL-Y to copy command into clipboard'"
     set -gx FZF_ALT_C_OPTS "
@@ -54,22 +56,17 @@ if status is-interactive
     set -gx PHPBREW_RC_ENABLE 1
     set -gx COREPACK_ENABLE_AUTO_PIN 0
 
-    # MySQL MCP
-    set -gx MYSQL_HOST "192.168.3.213"
-    set -gx MYSQL_PORT "3306"
-    set -gx MYSQL_USER "dev"
-    set -gx MYSQL_PASSWORD "LangTech@123"
-
     # Aliases - keep simple, use abbr for git
     abbr -a gs git status
     abbr -a gc git commit
     abbr -a ga git add
+    abbr -a cn connect
     alias ls "eza -G --color=auto --icons=auto"
     alias lgit "lazygit"
-    alias gopen "~/git.sh"
     alias async "~/.dotfiles/scripts/async.sh"
     alias cmsg "~/.dotfiles/scripts/generate-commit-msg.sh"
-    alias aicm "git add . && cmsg"
+    # tracked files only: prevents staging .env / secrets before the AI reads the diff
+    alias aicm "git add -u && cmsg"
     alias check-packages "~/.local/bin/check-packages"
     alias docker-setup "~/.dotfiles/docker-config/base/setup-docker.sh"
     alias reload-browser "~/.dotfiles/scripts/reload-browser.sh"
@@ -77,48 +74,37 @@ if status is-interactive
     alias wtm "webtorrent --mpv -d 10000 -u 1000 -o ~/Downloads/webtorrent"
     alias wt "webtorrent --mpv -o ~/Downloads/webtorrent"
 
-    # Functions - dedup connect/cn
+    # Functions
     function connect --description "sesh connect via fzf"
-        sesh connect (sesh list | grep -v -E '(opencode|qwen)' | fzf --height 40% --border --prompt='Select session: ')
-    end
-    function cn --description "alias for connect"
-        connect
+        sesh connect (sesh list --icons | grep -v -E '(opencode|qwen)' | fzf --height 40% --border --prompt='Select session: ')
     end
 
-    function llog --description "tail laravel log for today"
+    function llog --description "tail today's laravel log"
         set -l today (date +%Y-%m-%d)
-        if test -f "storage/logs/$today.log"
-            bat --style=full --paging=auto --pager="less +F" "storage/logs/$today.log"
-        else if test -f "storage/logs/laravel-$today.log"
-            bat --style=full --paging=auto --pager="less +F" "storage/logs/laravel-$today.log"
-        else
-            bat --style=full --paging=auto --pager="less +F" "storage/logs/laravel.log"
+        for f in "storage/logs/$today.log" "storage/logs/laravel-$today.log" storage/logs/laravel.log
+            if test -f $f
+                bat --style=full --paging=auto --pager="less +F" $f
+                return
+            end
         end
+        echo "no laravel log found in "(pwd) >&2
+        return 1
     end
 
     function laravel-tail --description "tail -f laravel log"
         set -l today (date +%Y-%m-%d)
-        if test -f "storage/logs/laravel-$today.log"
-            tail -f "storage/logs/laravel-$today.log"
-        else
-            tail -f "storage/logs/laravel.log"
+        for f in "storage/logs/laravel-$today.log" storage/logs/laravel.log
+            if test -f $f
+                tail -f $f
+                return
+            end
         end
+        echo "no laravel log found in "(pwd) >&2
+        return 1
     end
 
     # zoxide - lazy init
     if command -v zoxide >/dev/null
         zoxide init fish | source
-    end
-
-    # macchina - run once per session, not every shell
-    if type -q macchina; and not set -q _macchina_ran
-        macchina
-        set -g _macchina_ran 1
-    end
-
-    # sesh auto-connect - only if truly standalone (no tmux, no existing sesh session)
-    if test -z "$TMUX"; and test -z "$SESH_SESSION"; and status is-interactive
-        # uncomment to enable auto-connect
-        # sesh connect ~/.dotfiles
     end
 end

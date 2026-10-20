@@ -130,9 +130,11 @@
       },
       "explorer": {
         "model": [
+          "opencode/minimax-m3.1-flash-free",
           "opencode/nemotron-3.5-lightning-free",
           "openrouter/nvidia/nemotron-3.5-lightning:free"
         ],
+        "variant": "low",
         "temperature": 0.2,
         "skills": [],
         "mcps": []
