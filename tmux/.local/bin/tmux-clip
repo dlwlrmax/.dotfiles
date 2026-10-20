@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Clipboard sink for tmux copy-pipe: Wayland -> X11 -> macOS -> tmux buffer.
+set -uo pipefail
+
+if [ -n "${WAYLAND_DISPLAY:-}" ] && command -v wl-copy >/dev/null 2>&1; then
+  exec wl-copy
+elif [ -n "${DISPLAY:-}" ] && command -v xclip >/dev/null 2>&1; then
+  exec xclip -selection clipboard
+elif [ -n "${DISPLAY:-}" ] && command -v xsel >/dev/null 2>&1; then
+  exec xsel --clipboard --input
+elif command -v pbcopy >/dev/null 2>&1; then
+  exec pbcopy
+fi
+
+# No clipboard tool available (e.g. plain SSH): fall back to the tmux paste buffer.
+exec tmux set-buffer -- "$(cat)"

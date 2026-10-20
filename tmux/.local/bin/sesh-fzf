@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Interactive session picker (sesh + fzf-tmux). Bound to prefix + w / prefix + C-s.
+set -uo pipefail
+
+FILTER='(opencode|qwen)'
+
+# shellcheck disable=SC2016
+sesh connect "$(
+  sesh list --icons | grep -v -E "$FILTER" | fzf-tmux -p 85%,85% --no-border \
+    --ansi \
+    --list-border \
+    --no-sort --prompt "⚡  " \
+    --color "list-border:6,input-border:3,preview-border:4,header-bg:-1,header-border:6" \
+    --input-border \
+    --header-border \
+    --bind "tab:down,btab:up" \
+    --bind "ctrl-c:abort" \
+    --bind "ctrl-a:change-prompt(⚡  )+reload(sesh list --icons | grep -v -E '$FILTER')" \
+    --bind "ctrl-t:change-prompt(  )+reload(sesh list -t --icons | grep -v -E '$FILTER')" \
+    --bind "ctrl-g:change-prompt(⚙️  )+reload(sesh list -c --icons | grep -v -E '$FILTER')" \
+    --bind "ctrl-x:change-prompt(  )+reload(sesh list -z --icons | grep -v -E '$FILTER')" \
+    --bind "ctrl-f:change-prompt(  )+reload(fd -H -d 2 -t d -E .Trash . ~)" \
+    --bind "ctrl-d:execute(tmux kill-session -t {2..})+change-prompt(⚡  )+reload(sesh list --icons | grep -v -E '$FILTER')" \
+    --preview-window "right:70%" \
+    --preview "sesh preview {}" \
+)"
