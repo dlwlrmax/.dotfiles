@@ -62,9 +62,9 @@ hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"))
 hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"))
 hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"))
 
--- Focus movement: mainMod + h/j/l (k intentionally omitted)
-local focus_dirs = { h = "left", l = "right", j = "down" }
-for key, dir in pairs(focus_dirs) do
+-- Focus movement: mainMod + h/j/k/l
+local directions = { h = "left", l = "right", k = "up", j = "down" }
+for key, dir in pairs(directions) do
   hl.bind(mainMod .. " + " .. key, hl.dsp.focus({ direction = dir }))
   hl.bind(mainMod .. " + " .. key, hl.dsp.window.bring_to_top())
 end
@@ -77,8 +77,7 @@ hl.bind(mainModS .. " + n", hl.dsp.focus({ workspace = "m+1" }))
 hl.bind(mainModS .. " + p", hl.dsp.focus({ workspace = "m-1" }))
 
 -- Window movement: mainModS + h/j/k/l
-local move_dirs = { h = "left", l = "right", k = "up", j = "down" }
-for key, dir in pairs(move_dirs) do
+for key, dir in pairs(directions) do
   hl.bind(mainModS .. " + " .. key, hl.dsp.window.move({ direction = dir }))
 end
 
