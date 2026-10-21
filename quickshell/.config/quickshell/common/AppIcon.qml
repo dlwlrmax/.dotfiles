@@ -35,8 +35,8 @@ Item {
         anchors.centerIn: parent
         visible: (!_canTryIcon || img.status === Image.Error) && fallbackGlyph.length > 0
         text: fallbackGlyph
-        color: "#cdd6f4"
-        font.family: "JetBrainsMono Nerd Font Mono"
+        color: ThemeStore.text
+        font.family: ThemeStore.font
         font.pixelSize: Math.round(size * 0.9)
     }
 

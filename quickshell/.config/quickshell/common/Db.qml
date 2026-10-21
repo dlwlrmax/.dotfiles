@@ -71,6 +71,7 @@ QtObject {
                 + "key TEXT PRIMARY KEY, value TEXT)")
         })
         _migrateReadColumn()
+        _migrateAppActions()
         _ready = true
         _ensureWal()
         return _db
@@ -97,6 +98,17 @@ QtObject {
             _db.transaction(function(tx) {
                 tx.executeSql("UPDATE notifications SET read=1")
             })
+        }
+    }
+
+    // Desktop-entry actions ("New window", ...) as a JSON string; added once.
+    function _migrateAppActions() {
+        try {
+            _db.transaction(function(tx) {
+                tx.executeSql("ALTER TABLE apps ADD COLUMN actions TEXT DEFAULT '[]'")
+            })
+        } catch (e) {
+            // Column already exists.
         }
     }
 
@@ -148,7 +160,7 @@ QtObject {
             var rs = tx.executeSql("INSERT INTO notifications "
                 + "(appName,summary,body,urgency,appIcon,desktopEntry,expireTimeout,actions,timestamp,read) "
                 + "VALUES (?,?,?,?,?,?,?,?,?,?)",
-                [e.appName || "", e.summary || "", e.body || "", e.urgency || 1,
+                [e.appName || "", e.summary || "", e.body || "", e.urgency ?? 1,
                  e.appIcon || "", e.desktopEntry || "", e.expireTimeout || 0,
                  actions, e.timestamp || 0, 0])
             id = rs.insertId
@@ -175,7 +187,7 @@ QtObject {
                     appName: r.appName || "",
                     summary: r.summary || "",
                     body: r.body || "",
-                    urgency: r.urgency || 1,
+                    urgency: r.urgency ?? 1,
                     appIcon: r.appIcon || "",
                     desktopEntry: r.desktopEntry || "",
                     expireTimeout: r.expireTimeout || 0,
@@ -212,7 +224,7 @@ QtObject {
                     appName: r.appName || "",
                     summary: r.summary || "",
                     body: r.body || "",
-                    urgency: r.urgency || 1,
+                    urgency: r.urgency ?? 1,
                     appIcon: r.appIcon || "",
                     desktopEntry: r.desktopEntry || "",
                     expireTimeout: r.expireTimeout || 0,
@@ -298,11 +310,11 @@ QtObject {
             for (var i = 0; i < list.length; i++) {
                 var e = list[i]
                 tx.executeSql("INSERT OR REPLACE INTO apps "
-                    + "(id,name,generic_name,icon,comment,exec_,categories,keywords,no_display,terminal) "
-                    + "VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    + "(id,name,generic_name,icon,comment,exec_,categories,keywords,no_display,terminal,actions) "
+                    + "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                     [e.id || "", e.name || "", e.genericName || "", e.icon || "",
                      e.comment || "", e.exec || "", e.categories || "", e.keywords || "",
-                     e.noDisplay ? 1 : 0, e.terminal ? 1 : 0])
+                     e.noDisplay ? 1 : 0, e.terminal ? 1 : 0, JSON.stringify(e.actions || [])])
             }
         })
     }
@@ -312,7 +324,7 @@ QtObject {
         var out = []
         _db.readTransaction(function(tx) {
             var rs = tx.executeSql("SELECT id,name,generic_name,icon,comment,exec_,"
-                + "categories,keywords,no_display,terminal FROM apps")
+                + "categories,keywords,no_display,terminal,actions FROM apps")
             for (var i = 0; i < rs.rows.length; i++) {
                 var r = rs.rows.item(i)
                 out.push({
@@ -325,7 +337,8 @@ QtObject {
                     categories: r.categories || "",
                     keywords: r.keywords || "",
                     noDisplay: !!r.no_display,
-                    terminal: !!r.terminal
+                    terminal: !!r.terminal,
+                    actions: (function () { try { return JSON.parse(r.actions || "[]") } catch (e) { return [] } })()
                 })
             }
         })
@@ -414,7 +427,7 @@ QtObject {
                             tx.executeSql("INSERT INTO notifications "
                                 + "(appName,summary,body,urgency,appIcon,desktopEntry,expireTimeout,actions,timestamp,read) "
                                 + "VALUES (?,?,?,?,?,?,?,?,?,?)",
-                                [d.appName || "", d.summary || "", d.body || "", d.urgency || 1,
+                                [d.appName || "", d.summary || "", d.body || "", d.urgency ?? 1,
                                  d.appIcon || "", d.desktopEntry || "", d.expireTimeout || 0,
                                  JSON.stringify(d.actions || []), d.timestamp || 0, 1])
                         }

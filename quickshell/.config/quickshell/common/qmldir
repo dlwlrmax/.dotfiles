@@ -2,6 +2,8 @@ module qs.common
 singleton Db 1.0 Db.qml
 singleton Sanitize 1.0 Sanitize.qml
 Theme 1.0 Theme.qml
+singleton ThemeStore 1.0 ThemeStore.qml
+PanelBackground 1.0 PanelBackground.qml
 IconMap 1.0 IconMap.qml
 AppIcon 1.0 AppIcon.qml
 Separator 1.0 Separator.qml
@@ -10,3 +12,15 @@ singleton ShellState 1.0 ShellState.qml
 singleton MediaInfo 1.0 MediaInfo.qml
 WheelSteps 1.0 WheelSteps.qml
 singleton VolumeStep 1.0 VolumeStep.qml
+IconButton 1.0 IconButton.qml
+Badge 1.0 Badge.qml
+SectionCard 1.0 SectionCard.qml
+singleton Glyphs 1.0 Glyphs.qml
+PanelHeader 1.0 PanelHeader.qml
+Capsule 1.0 Capsule.qml
+MiniMeter 1.0 MiniMeter.qml
+Sparkline 1.0 Sparkline.qml
+PickerPanel 1.0 PickerPanel.qml
+singleton Panels 1.0 Panels.qml
+singleton Prefs 1.0 Prefs.qml
+singleton ShellPalette 1.0 ShellPalette.qml

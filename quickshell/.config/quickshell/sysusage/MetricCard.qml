@@ -12,11 +12,16 @@ Item {
     property int minVal: 0
     property int maxVal: 0
     property string subText: ""
-    property string subColor: ""
+    property color subColor: "transparent"
     property bool subVisible: true
-    property string lineClr: ""
-    property string fillClr: ""
+    property color lineClr: "transparent"
+    readonly property color fillClr: Qt.alpha(lineClr, 0.15)
     property bool hasData: false
+
+    // Y axis auto-scales so a quiet metric still shows shape: never below
+    // minScale, otherwise the window max rounded up to the next 25%.
+    property int minScale: 50
+    readonly property int scaleMax: Math.min(100, Math.max(minScale, Math.ceil(maxVal / 25) * 25))
 
     Layout.fillWidth: true
     Layout.fillHeight: true
@@ -34,29 +39,38 @@ Item {
         ctx.clearRect(0, 0, w, h)
 
         var padR = 6  // right padding for terminal dot clearance
-        var padB = 4  // bottom padding
-        var padT = 4  // top padding
+        var padB = 3  // bottom padding
+        var padT = 3  // top padding
         var plotW = w - padR
         var plotH = h - padT - padB
         var baseY = h - padB
+        var scale = card.scaleMax
 
-        // grid lines (25%, 50%, 75%)
-        ctx.strokeStyle = card.theme.surface0
+        function yOf(v) { return baseY - Math.min(v / scale, 1) * plotH }
+
+        // grid lines (25%, 50%, 75% of the current scale)
+        ctx.strokeStyle = card.theme.surface1
+        ctx.globalAlpha = 0.5
         ctx.lineWidth = 0.5
-        for (var g = 25; g <= 75; g += 25) {
-            var gy = baseY - (g / 100) * plotH
+        for (var g = 1; g <= 3; g++) {
+            var gy = baseY - (g / 4) * plotH
             ctx.beginPath()
             ctx.moveTo(0, gy)
             ctx.lineTo(w, gy)
             ctx.stroke()
         }
+        ctx.globalAlpha = 1
+
+        // scale label (top-left, dim)
+        ctx.fillStyle = card.theme.overlay0
+        ctx.font = (card.theme.fontSizeMin) + "px '" + card.theme.font + "'"
+        ctx.textBaseline = "top"
+        ctx.fillText(scale + "%", 2, 1)
 
         if (n === 1) {
-            var sx = plotW / 2
-            var sy = baseY - (hist[0] / 100) * plotH
             ctx.fillStyle = canvas.lineClr
             ctx.beginPath()
-            ctx.arc(sx, sy, 2.5, 0, 2 * Math.PI)
+            ctx.arc(plotW / 2, yOf(hist[0]), 2.5, 0, 2 * Math.PI)
             ctx.fill()
             return
         }
@@ -66,9 +80,9 @@ Item {
         // ── filled area ──
         ctx.beginPath()
         ctx.moveTo(0, baseY)
-        ctx.lineTo(0, baseY - (hist[0] / 100) * plotH)
+        ctx.lineTo(0, yOf(hist[0]))
         for (var i = 1; i < n; i++)
-            ctx.lineTo(i * stepX, baseY - (hist[i] / 100) * plotH)
+            ctx.lineTo(i * stepX, yOf(hist[i]))
         ctx.lineTo((n - 1) * stepX, baseY)
         ctx.closePath()
         ctx.fillStyle = canvas.fillClr
@@ -76,78 +90,77 @@ Item {
 
         // ── line ──
         ctx.beginPath()
-        ctx.moveTo(0, baseY - (hist[0] / 100) * plotH)
+        ctx.moveTo(0, yOf(hist[0]))
         for (var j = 1; j < n; j++)
-            ctx.lineTo(j * stepX, baseY - (hist[j] / 100) * plotH)
+            ctx.lineTo(j * stepX, yOf(hist[j]))
         ctx.strokeStyle = canvas.lineClr
         ctx.lineWidth = 1.5
         ctx.lineJoin = "round"
         ctx.stroke()
 
         // ── terminal dot ──
-        var lx = (n - 1) * stepX
-        var ly = baseY - (hist[n - 1] / 100) * plotH
         ctx.fillStyle = canvas.lineClr
         ctx.beginPath()
-        ctx.arc(lx, ly, 2.5, 0, 2 * Math.PI)
+        ctx.arc((n - 1) * stepX, yOf(hist[n - 1]), 2.5, 0, 2 * Math.PI)
         ctx.fill()
     }
 
-    RowLayout {
+    Rectangle {
         anchors.fill: parent
+        radius: theme.radiusLg
+        color: Qt.alpha(card.theme.surface0, 0.45)
+    }
+
+    ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: 8
         spacing: 4
 
-        Text {
-            text: card.label
-            color: card.lineClr
-            font.pixelSize: card.theme.fontSize - 1
-            font.bold: true
-            font.family: card.theme.font
-            Layout.preferredWidth: 24
-            verticalAlignment: Text.AlignVCenter
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 6
+
+            Text {
+                text: card.label
+                color: card.theme.subtext1
+                font.pixelSize: card.theme.fontSize - 1
+                font.bold: true
+                font.family: card.theme.font
+            }
+
+            Text {
+                text: card.hasData ? card.minVal + "–" + card.maxVal + "%" : ""
+                color: card.theme.subtext0
+                font.pixelSize: card.theme.fontSizeMin
+                font.family: card.theme.font
+            }
+
+            Item { Layout.fillWidth: true }
+
+            Text {
+                text: card.subText
+                color: card.subColor
+                font.pixelSize: card.theme.fontSizeMin
+                font.family: card.theme.font
+                visible: card.subVisible
+            }
+
+            Text {
+                text: card.pct + "%"
+                color: card.lineClr
+                font.pixelSize: card.theme.fontSize + 2
+                font.bold: true
+                font.family: card.theme.font
+            }
         }
 
         Canvas {
             id: spark
             Layout.fillWidth: true
             Layout.fillHeight: true
-            property string lineClr: card.lineClr
-            property string fillClr: card.fillClr
+            property color lineClr: card.lineClr
+            property color fillClr: card.fillClr
             onPaint: card.drawSparkline(this, card.history)
-        }
-
-        ColumnLayout {
-            Layout.preferredWidth: 54
-            spacing: 1
-
-            Text {
-                text: card.pct + "%"
-                color: card.lineClr
-                font.pixelSize: card.theme.fontSize + 1
-                font.bold: true
-                font.family: card.theme.font
-                horizontalAlignment: Text.AlignRight
-                Layout.alignment: Qt.AlignRight
-            }
-
-            Text {
-                text: card.hasData ? "L" + card.minVal + " H" + card.maxVal : "—"
-                color: card.theme.subtext0
-                font.pixelSize: card.theme.fontSize - 2
-                font.family: card.theme.font
-                horizontalAlignment: Text.AlignRight
-                Layout.alignment: Qt.AlignRight
-            }
-
-            Text {
-                text: card.subText
-                color: card.subColor
-                font.pixelSize: card.theme.fontSize - 2
-                font.family: card.theme.font
-                horizontalAlignment: Text.AlignRight
-                Layout.alignment: Qt.AlignRight
-                visible: card.subVisible
-            }
         }
     }
 }

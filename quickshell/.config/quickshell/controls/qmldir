@@ -1,0 +1,4 @@
+module qs.controls
+ControlsWidget 1.0 ControlsWidget.qml
+QuickTiles 1.0 QuickTiles.qml
+Tile 1.0 Tile.qml

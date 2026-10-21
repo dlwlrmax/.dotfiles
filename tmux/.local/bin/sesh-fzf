@@ -4,6 +4,16 @@ set -uo pipefail
 
 FILTER='(opencode|qwen)'
 
+# run-shell gets tmux's PATH, which may lack user/go/brew bin dirs on other machines
+export PATH="$HOME/.local/bin:$HOME/go/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+
+for cmd in sesh fzf fzf-tmux; do
+  command -v "$cmd" >/dev/null 2>&1 || {
+    tmux display-message "sesh-fzf: '$cmd' not found in PATH"
+    exit 1
+  }
+done
+
 selection="$(
   sesh list --icons | grep -v -E "$FILTER" | fzf-tmux -p 85%,85% --no-border \
     --ansi \

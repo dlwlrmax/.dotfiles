@@ -48,3 +48,7 @@ blueman                  optional  Bluetooth tray applet
 wlrctl                   optional  keyboard mouse movement (SUPER+ALT+hjkl)
 ydotool                  optional  keyboard mouse scroll (SUPER+ALT+p/n)
 waypaper                 optional  wallpaper picker
+python-pillow            optional  wallpaper theme (scripts/palette.py)
+python-numpy             optional  wallpaper theme (scripts/palette.py)
+imagemagick              optional  wallpaper panel thumbnails
+zenity                   optional  KDE Connect "Send file" picker

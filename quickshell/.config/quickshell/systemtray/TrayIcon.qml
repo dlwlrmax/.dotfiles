@@ -78,7 +78,11 @@ Rectangle {
         hoverEnabled: true
         onClicked: mouse => {
             trayTip.suppressed = true
-            if (mouse.button === Qt.LeftButton) {
+            if (mouse.button === Qt.LeftButton && trayIcon.modelData.onlyMenu && trayIcon.modelData.hasMenu) {
+                // Menu-only items do nothing on activate(): left click opens the menu instead.
+                menuAnchor.anchor.updateAnchor()
+                menuAnchor.open()
+            } else if (mouse.button === Qt.LeftButton) {
                 trayIcon.modelData.activate()
                 trayIcon.activated()
             } else if (mouse.button === Qt.MiddleButton) {

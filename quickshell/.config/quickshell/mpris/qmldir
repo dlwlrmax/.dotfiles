@@ -2,3 +2,4 @@ module qs.mpris
 Mpris 1.0 Mpris.qml
 MprisPanel 1.0 MprisPanel.qml
 TrackToast 1.0 TrackToast.qml
+PlayerCard 1.0 PlayerCard.qml

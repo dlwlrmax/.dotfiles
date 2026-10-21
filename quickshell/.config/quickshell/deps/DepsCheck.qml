@@ -10,7 +10,7 @@ import qs.common
 
 Item {
     id: root
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     // Let the notification server and the rest of the session settle first.
     property int startDelayMs: 15000
 

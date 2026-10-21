@@ -6,7 +6,7 @@ import qs.common
 
 Rectangle {
     id: root
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     property var groupData: ({})
     property var notifTimes: ({})
     property bool expanded: false
@@ -29,8 +29,8 @@ Rectangle {
     property var replyHandler: null
     property bool _replyFailed: false
 
-    color: theme.color
-    radius: 12
+    color: theme.panelColor
+    radius: theme.radiusXl
     border.color: theme.surface0
     border.width: 1
     clip: true
@@ -190,27 +190,9 @@ Rectangle {
             Layout.fillWidth: true
             spacing: 10
 
-            Rectangle {
-                width: 36
-                height: 36
-                radius: 18
-                color: theme.surface1
-
-                AppIcon {
-                    id: notifIcon
-                    anchors.centerIn: parent
-                    appId: root.latest && root.latest.desktopEntry || ""
-                    iconName: root.latest && root.latest.appIcon || ""
-                    size: 24
-                    hideOnMissing: true
-                }
-                Text {
-                    anchors.centerIn: parent
-                    text: "\uF0E0"
-                    color: theme.subtext0
-                    font.pixelSize: 16
-                    visible: !notifIcon.iconFound
-                }
+            NotifIcon {
+                theme: root.theme
+                notif: root.latest
             }
 
             ColumnLayout {
@@ -221,7 +203,7 @@ Rectangle {
                     color: theme.text
                     font.pixelSize: theme.fontSize
                     font.bold: true
-                    font.family: theme.font
+                    font.family: theme.fontUi
                     elide: Text.ElideRight
                     Layout.fillWidth: true
                 }
@@ -230,8 +212,8 @@ Rectangle {
                     text: root.latest && root.latest.summary ? Sanitize.formatBody(root.latest.summary) : ""
                     visible: text !== ""
                     color: theme.subtext0
-                    font.pixelSize: theme.fontSize - 2
-                    font.family: theme.font
+                    font.pixelSize: theme.fontSizeMin
+                    font.family: theme.fontUi
                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                     Layout.fillWidth: true
                     textFormat: Text.StyledText
@@ -245,11 +227,12 @@ Rectangle {
                 radius: 11
                 color: theme.surface1
                 Text {
+                    font.family: theme.font
                     id: countText
                     anchors.centerIn: parent
                     text: root.groupData.count || 0
                     color: theme.blue
-                    font.pixelSize: theme.fontSize - 2
+                    font.pixelSize: theme.fontSizeMin
                     font.bold: true
                 }
             }
@@ -257,12 +240,13 @@ Rectangle {
             Text {
                 text: root.formatTime(root.latest
                     ? (root.notifTimes[root.latest.id] || root.latest.timestamp) : 0)
-                color: theme.white
-                font.pixelSize: theme.fontSize - 3
+                color: theme.onAccent
+                font.pixelSize: theme.fontSizeMin
                 font.family: theme.font
             }
             Text {
-                text: "\u00D7"
+                font.family: theme.font
+                text: Glyphs.close
                 color: theme.subtext0
                 font.pixelSize: theme.fontSize + 2
                 MouseArea {
@@ -281,8 +265,8 @@ Rectangle {
             // bodies show every line including the newest.
             text: Sanitize.formatBody(root.latest ? root.latest.body : "")
             color: theme.text
-            font.pixelSize: theme.fontSize - 2
-            font.family: theme.font
+            font.pixelSize: theme.fontSizeMin
+            font.family: theme.fontUi
             wrapMode: Text.WrapAtWordBoundaryOrAnywhere
             textFormat: Text.StyledText
         }
@@ -296,12 +280,12 @@ Rectangle {
             placeholderText: root.latest && root.latest.replyPlaceholder ? root.latest.replyPlaceholder : "Reply…"
             color: theme.text
             placeholderTextColor: theme.surface1
-            font.pixelSize: theme.fontSize - 2
+            font.pixelSize: theme.fontSizeMin
             font.family: theme.font
             leftPadding: 8
             rightPadding: 8
             background: Rectangle {
-                radius: 6
+                radius: theme.radiusMd
                 color: theme.surface0
                 border.color: root._replyFailed ? theme.red : replyField.activeFocus ? theme.blue : "transparent"
                 border.width: 1
@@ -346,8 +330,8 @@ Rectangle {
             visible: root._replyFailed
             text: "Couldn't send: the notification is gone. Reply in the app."
             color: theme.red
-            font.pixelSize: theme.fontSize - 3
-            font.family: theme.font
+            font.pixelSize: theme.fontSizeMin
+            font.family: theme.fontUi
             Layout.fillWidth: true
             wrapMode: Text.Wrap
         }
@@ -376,17 +360,18 @@ Rectangle {
                             ? Sanitize.formatBody(modelData.summary) + ": " + Sanitize.formatBody(modelData.body)
                             : Sanitize.formatBody(modelData.summary || modelData.body)
                         color: theme.subtext0
-                        font.pixelSize: theme.fontSize - 3
-                        font.family: theme.font
+                        font.pixelSize: theme.fontSizeMin
+                        font.family: theme.fontUi
                         wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                         textFormat: Text.StyledText
                     }
                     Text {
+                        font.family: theme.font
                         id: closeText
                         anchors.right: parent.right
                         anchors.rightMargin: 6
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "\u00D7"
+                        text: Glyphs.close
                         color: theme.subtext0
                         MouseArea {
                             anchors.fill: parent
@@ -403,7 +388,7 @@ Rectangle {
             Layout.fillWidth: true
             height: 3
             radius: 1.5
-            color: Qt.rgba(0, 0, 0, 0.2)
+            color: theme.trackOverlay
             Rectangle {
                 anchors.left: parent.left
                 anchors.top: parent.top

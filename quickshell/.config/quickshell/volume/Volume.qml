@@ -6,15 +6,15 @@ import qs.common
 
 Item {
     id: root
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     property var dataSource: null
     readonly property int volumeLevel: dataSource ? dataSource.volumeLevel : 0
     readonly property bool muted: dataSource ? dataSource.muted : false
     signal togglePanel()
 
-    property string iconColor: root.muted ? theme.surface1 : (root.volumeLevel > theme.volumeCriticalLevel ? theme.volumeCriticalColor : root.volumeLevel > theme.volumeWarnLevel ? theme.volumeWarnColor : root.volumeLevel > theme.volumeElevatedLevel ? theme.volumeElevatedColor : theme.volumeNormalColor)
-    property string iconText: root.muted ? "" : (root.volumeLevel > 70 ? "" : root.volumeLevel > 30 ? "" : "")
-    property string textColor: root.muted ? theme.surface1 : theme.text
+    readonly property color iconColor: theme.volumeColor(volumeLevel, muted)
+    readonly property string iconText: theme.volumeGlyph(volumeLevel, muted)
+    readonly property color textColor: root.muted ? theme.surface1 : theme.text
 
     WheelSteps { id: wheelSteps }
 
@@ -52,8 +52,8 @@ Item {
         // Labeled lines so stray log output from easyeffects can't shift values.
         command: ["sh", "-c",
             "if pgrep -x easyeffects >/dev/null; then "
-            + "echo \"ee=$(easyeffects -b 3 | grep -E '^[12]$' | tail -1)\"; "
-            + "echo \"preset=$(easyeffects -a output | grep . | tail -1)\"; fi"]
+            + "echo \"ee=$(timeout 4 easyeffects -b 3 | grep -E '^[12]$' | tail -1)\"; "
+            + "echo \"preset=$(timeout 4 easyeffects -a output | grep . | tail -1)\"; fi"]
         stdout: StdioCollector {
             onStreamFinished: {
                 var kv = {}
@@ -85,7 +85,7 @@ Item {
 
         Text {
             text: root.muted ? "Muted · " + root.volumeLevel + "%" : "Volume " + root.volumeLevel + "%"
-            color: root.muted ? root.theme.surface1 : root.theme.subtext0
+            color: root.muted ? root.theme.overlay0 : root.theme.subtext0
             font.pixelSize: root.theme.fontSize - 1
             font.family: root.theme.font
         }
@@ -104,7 +104,7 @@ Item {
             Text {
                 text: "EasyEffects" + (root.tipPreset ? " · " + root.tipPreset : "")
                       + (root.tipEeState === "2" ? "" : " (off)")
-                color: root.tipEeState === "2" ? root.theme.subtext0 : root.theme.surface1
+                color: root.tipEeState === "2" ? root.theme.subtext0 : root.theme.overlay0
                 font.pixelSize: root.theme.fontSize - 1
                 font.family: root.theme.font
                 elide: Text.ElideRight
@@ -121,7 +121,7 @@ Item {
 
         Text {
             text: "Click icon: mute · Click %: panel · Middle-click: next output · Scroll: volume"
-            color: root.theme.surface1
+            color: root.theme.overlay0
             font.pixelSize: root.theme.fontSize - 2
             font.family: root.theme.font
         }
@@ -134,15 +134,19 @@ Item {
 
         Item {
             id: iconWrapper
-            implicitWidth: iconLabel.implicitWidth
+            // Fixed minimum width: the speaker glyphs differ in width, so the
+            // number next to it would jump as the level crosses 30/70.
+            implicitWidth: Math.max(iconLabel.implicitWidth, 24)
             implicitHeight: iconLabel.implicitHeight
             Layout.alignment: Qt.AlignVCenter
 
             Text {
+                font.family: root.theme.font
                 id: iconLabel
+                anchors.centerIn: parent
                 text: root.iconText
                 color: root.iconColor
-                font.pixelSize: root.theme.fontSize + 5
+                font.pixelSize: root.theme.fontSize + 8
                 font.weight: Font.Medium
             }
 
@@ -166,6 +170,7 @@ Item {
             Layout.alignment: Qt.AlignVCenter
 
             Text {
+                font.family: root.theme.font
                 id: numberText
                 text: root.volumeLevel + "%"
                 color: root.textColor

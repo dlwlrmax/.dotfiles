@@ -3,7 +3,7 @@ import QtQuick.Layouts
 
 Rectangle {
     id: root
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
 
     color: theme.surface1
     width: 1

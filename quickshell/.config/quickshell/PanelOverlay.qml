@@ -5,7 +5,6 @@ import QtQuick
 PanelWindow {
     id: root
 
-    required property var screen
     required property bool active
     signal closeRequested()
 
@@ -17,8 +16,9 @@ PanelWindow {
     property bool keyboardFocus: true
 
     default property alias content: wrapper.data
+    // Item that gets key events first (set by PanelHost to the loaded panel).
+    property Item keyTarget: null
 
-    screen: root.screen
     anchors.top: true
     anchors.left: true
     anchors.right: true
@@ -45,6 +45,8 @@ PanelWindow {
         opacity: 0
         focus: true
         clip: true
+        // Content gets first look at keys (e.g. calendar arrows); Escape stays here.
+        Keys.forwardTo: root.keyTarget ? [root.keyTarget] : (children.length > 0 ? [children[0]] : [])
         Keys.onEscapePressed: root.closeRequested()
 
         // Never collapse to 0x0: content that has not reported an implicit size
@@ -65,10 +67,13 @@ PanelWindow {
             when: root.position === PanelOverlay.Position.TopRight
         }
 
+        // TopCenter: centred on `centerOffset` from the screen centre (a bar widget),
+        // kept fully on-screen.
         Binding {
-            target: wrapper.anchors
-            property: "horizontalCenterOffset"
-            value: root.centerOffset
+            target: wrapper
+            property: "x"
+            value: Math.max(8, Math.min(root.width - wrapper.width - 8,
+                                        root.width / 2 + root.centerOffset - wrapper.width / 2))
             when: root.position === PanelOverlay.Position.TopCenter
         }
 
@@ -78,7 +83,6 @@ PanelWindow {
                     wrapper.anchors.right = parent.right
                     break
                 case PanelOverlay.Position.TopCenter:
-                    wrapper.anchors.horizontalCenter = parent.horizontalCenter
                     break
                 case PanelOverlay.Position.Center:
                     wrapper.anchors.centerIn = parent

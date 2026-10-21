@@ -4,7 +4,7 @@ import qs.common
 
 Item {
     id: root
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     property var dataSource: null
     property int notifCount: 0
     property bool dnd: dataSource ? dataSource.dnd : false
@@ -27,7 +27,7 @@ Item {
 
     // Hard containment: layout squeeze must never paint over neighbors.
     clip: true
-    implicitWidth: Math.max(iconText.implicitWidth + 6, badge.width + 2)
+    implicitWidth: iconText.implicitWidth + 6
     implicitHeight: iconText.implicitHeight + 4
 
     Text {
@@ -35,40 +35,41 @@ Item {
         anchors.centerIn: parent
         anchors.verticalCenterOffset: 2
         text: root.dnd ? "\uF09B" : "\uF0F3"
-        color: root.notifCount > 0 ? theme.white : theme.surface1
+        color: root.notifCount > 0 ? theme.onAccent : theme.overlay0
         font.pixelSize: theme.fontSize + 8
         font.weight: Font.Medium
         font.family: theme.font
     }
 
+    // Unread marker: a small dot; the count is in the tooltip.
     Rectangle {
         id: badge
         visible: root.notifCount > 0
         anchors.top: parent.top
         anchors.right: parent.right
-        anchors.topMargin: 1
-        anchors.rightMargin: 1
-        // True circle like KDE Connect: square with radius = diameter/2.
-        // Clamp diameter to 18 so wide "9+" text stays circular.
-        readonly property int diameter: Math.min(18, Math.max(14, badgeText.implicitWidth + 8))
-        width: badge.diameter
-        height: badge.diameter
-        radius: badge.diameter / 2
+        anchors.topMargin: 2
+        anchors.rightMargin: 2
+        width: 8
+        height: 8
+        radius: 4
         color: theme.red
+        border.width: 1
+        border.color: theme.capsuleColor
+    }
 
-        Text {
-            id: badgeText
-            anchors.centerIn: parent
-            text: root.notifCount > 9 ? "9+" : root.notifCount
-            color: theme.white
-            font.pixelSize: 9
-            font.bold: true
-            font.family: theme.font
-        }
+    BarTooltip {
+        target: root
+        theme: root.theme
+        hovered: hoverArea.containsMouse
+        text: (root.notifCount > 0 ? root.notifCount + " unread" : "No unread notifications")
+              + (root.dnd ? "\nDo not disturb on" : "")
+              + "\nRight-click toggles do not disturb"
     }
 
     MouseArea {
+        id: hoverArea
         anchors.fill: parent
+        hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: Qt.PointingHandCursor
         onClicked: mouse => {

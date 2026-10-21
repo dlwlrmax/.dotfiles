@@ -11,7 +11,7 @@ import QtQuick.Layouts
 Item {
     id: tip
     required property Item target
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     property bool hovered: false
     // Caller sets on click so the tooltip doesn't cover the action; cleared on hover exit.
     property bool suppressed: false

@@ -6,7 +6,7 @@ import qs.common
 // Drag or click to set, scroll to step 5%. Writes go straight to Pipewire.
 Item {
     id: s
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     property var node: null              // PwNode; must be tracked by a PwObjectTracker
     property color fillColor: theme.mauve
 
@@ -82,7 +82,7 @@ Item {
         Text {
             id: label
             text: Math.round(s.shown * 100) + "%"
-            color: s.muted ? s.theme.surface1 : s.theme.subtext0
+            color: s.muted ? s.theme.overlay0 : s.theme.subtext0
             font.pixelSize: s.theme.fontSize - 1
             font.family: s.theme.font
             horizontalAlignment: Text.AlignRight

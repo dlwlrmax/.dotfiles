@@ -2,7 +2,6 @@ import Quickshell
 import Quickshell.Hyprland._Ipc
 import QtQuick
 import QtQuick.Layouts
-import Qt5Compat.GraphicalEffects
 import qs.common
 import qs.workspaces
 import qs.windowtitle
@@ -17,21 +16,14 @@ import qs.idleinhibitor
 import qs.kdeconnect
 import qs.notification
 import qs.systemtray
+import qs.controls
 
 Item {
     id: bar
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     required property var monitor
-    signal toggleNotifPanel()
-    signal toggleMprisPanel(int centerX)
-    signal toggleVolumePanel()
-    signal toggleWeatherPanel()
-    signal toggleCalendarPanel()
-    signal toggleSysUsagePanel()
-    signal toggleNetPanel()
-    signal toggleKdePanel(int centerX)
-    signal toggleBatteryPanel(int centerX)
-    signal toggleTrayPanel()
+    // name: Panels name; centerX: window-space x of the clicked widget (0 = unknown)
+    signal togglePanel(string name, int centerX)
     property alias weatherWidget: barWeather
     property var kdeDataSource: null
     property var notifDataSource: null
@@ -39,22 +31,22 @@ Item {
     property var netDataSource: null
     property var weatherDataSource: null
     property var volumeDataSource: null
+    property var batteryDataSource: null
+    property var healthDataSource: null
+    // CPU/RAM/net stats only on the primary screen; secondary bars stay quiet.
+    property bool showStats: true
 
-    DropShadow {
-        anchors.fill: barRect
-        source: barRect
-        horizontalOffset: 0
-        verticalOffset: 3
-        radius: 5
-        samples: 6
-        color: "#30000000"
+    // Window-space x of an item's centre (bars span the full screen width),
+    // used to anchor panels under the widget that opened them.
+    function centerOf(item) {
+        return item.mapToItem(null, item.width / 2, 0).x
     }
 
     Rectangle {
         id: barRect
         anchors.fill: parent
-        color: Qt.rgba(30 / 255, 30 / 255, 46 / 255, 0.6)
-        radius: 12
+        color: theme.barColor
+        radius: theme.radiusXl
 
         RowLayout {
             id: leftSection
@@ -78,7 +70,7 @@ Item {
         Clock {
             id: centerClock
             anchors.centerIn: parent
-            onTogglePanel: bar.toggleCalendarPanel()
+            onTogglePanel: bar.togglePanel("calendar", bar.centerOf(centerClock))
         }
 
         RowLayout {
@@ -87,7 +79,7 @@ Item {
             anchors.rightMargin: 12
             anchors.verticalCenter: parent.verticalCenter
             width: Math.min(implicitWidth, parent.width / 2 - centerClock.width / 2 - 32)
-            spacing: 12
+            spacing: 8
             clip: true
             property real mprisMaxWidth: {
                 let used = 0
@@ -111,52 +103,55 @@ Item {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 60
                 maxWidth: rightSection.mprisMaxWidth
-                onTogglePanel: centerX => bar.toggleMprisPanel(centerX)
+                onTogglePanel: centerX => bar.togglePanel("mpris", centerX)
             }
 
-            Separator {
+            // ── system: CPU/GPU/RAM + network (primary screen only) ──
+            Capsule {
                 theme: bar.theme
-                Layout.alignment: Qt.AlignVCenter
-                visible: mpris.visible
+                visible: bar.showStats
+
+                Cpu {
+                    theme: bar.theme
+                    Layout.alignment: Qt.AlignVCenter
+                    dataSource: bar.cpuDataSource
+                    onTogglePanel: bar.togglePanel("sysUsage", bar.centerOf(this))
+                }
+
+                Separator {
+                    theme: bar.theme
+                    Layout.alignment: Qt.AlignVCenter
+                }
+
+                NetSpeed {
+                    theme: bar.theme
+                    Layout.alignment: Qt.AlignVCenter
+                    dataSource: bar.netDataSource
+                    onTogglePanel: bar.togglePanel("net", bar.centerOf(this))
+                }
             }
 
-            Cpu {
+            // ── status: weather, audio, phone, idle, gaming, notifications ──
+            Capsule {
                 theme: bar.theme
-                Layout.alignment: Qt.AlignVCenter
-                dataSource: bar.cpuDataSource
-                onTogglePanel: bar.toggleSysUsagePanel()
-            }
-
-            NetSpeed {
-                theme: bar.theme
-                Layout.alignment: Qt.AlignVCenter
-                dataSource: bar.netDataSource
-                onTogglePanel: bar.toggleNetPanel()
-            }
-
-            Separator {
-                theme: bar.theme
-                Layout.alignment: Qt.AlignVCenter
-            }
-
-            RowLayout {
-                id: rightGroup
-                spacing: 7
-                Layout.alignment: Qt.AlignVCenter
+                spacing: 10
 
                 Weather {
                     id: barWeather
+                    visible: Prefs.show("weather")
                     theme: bar.theme
                     Layout.alignment: Qt.AlignVCenter
                     dataSource: bar.weatherDataSource
-                    onTogglePanel: bar.toggleWeatherPanel()
+                    onTogglePanel: bar.togglePanel("weather", bar.centerOf(barWeather))
                 }
 
                 Volume {
+                    id: volumeWidget
+                    visible: Prefs.show("volume")
                     theme: bar.theme
                     Layout.alignment: Qt.AlignVCenter
                     dataSource: bar.volumeDataSource
-                    onTogglePanel: bar.toggleVolumePanel()
+                    onTogglePanel: bar.togglePanel("volume", bar.centerOf(volumeWidget))
                 }
 
                 KDEConnect {
@@ -164,10 +159,18 @@ Item {
                     theme: bar.theme
                     dataSource: bar.kdeDataSource
                     Layout.alignment: Qt.AlignVCenter
-                    onTogglePanel: centerX => bar.toggleKdePanel(centerX)
+                    onTogglePanel: centerX => bar.togglePanel("kde", centerX)
+                }
+
+                Battery {
+                    id: batteryWidget
+                    theme: bar.theme
+                    dataSource: bar.batteryDataSource
+                    onTogglePanel: centerX => bar.togglePanel("battery", centerX)
                 }
 
                 IdleInhibitorWidget {
+                    visible: Prefs.show("idle")
                     theme: bar.theme
                     Layout.alignment: Qt.AlignVCenter
                 }
@@ -200,19 +203,30 @@ Item {
                     theme: bar.theme
                     dataSource: bar.notifDataSource
                     Layout.alignment: Qt.AlignVCenter
-                    onTogglePanel: bar.toggleNotifPanel()
+                    onTogglePanel: bar.togglePanel("notif", bar.centerOf(barNotif))
+                }
+
+                ControlsWidget {
+                    id: controlsWidget
+                    visible: Prefs.show("controls")
+                    issueCount: bar.healthDataSource ? bar.healthDataSource.count : 0
+                    hasErrors: !!bar.healthDataSource && bar.healthDataSource.hasErrors
+                    theme: bar.theme
+                    onTogglePanel: bar.togglePanel("settings", bar.centerOf(controlsWidget))
                 }
             }
 
-            Separator {
+            // ── tray ──
+            Capsule {
                 theme: bar.theme
-                Layout.alignment: Qt.AlignVCenter
-            }
+                visible: Prefs.show("tray")
 
-            SystemTray {
-                Layout.alignment: Qt.AlignVCenter
-                theme: bar.theme
-                onToggleOverflow: bar.toggleTrayPanel()
+                SystemTray {
+                    id: trayWidget
+                    Layout.alignment: Qt.AlignVCenter
+                    theme: bar.theme
+                    onToggleOverflow: bar.togglePanel("tray", bar.centerOf(trayWidget))
+                }
             }
         }
     }

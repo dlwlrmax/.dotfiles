@@ -1,0 +1,10 @@
+module qs.providers
+KdeData 1.0 KdeData.qml
+NotifData 1.0 NotifData.qml
+CpuData 1.0 CpuData.qml
+NetData 1.0 NetData.qml
+WeatherData 1.0 WeatherData.qml
+VolumeData 1.0 VolumeData.qml
+BatteryData 1.0 BatteryData.qml
+HealthData 1.0 HealthData.qml
+WallpaperData 1.0 WallpaperData.qml

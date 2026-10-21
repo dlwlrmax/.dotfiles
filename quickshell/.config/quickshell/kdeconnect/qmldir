@@ -1,3 +1,7 @@
 module qs.kdeconnect
 KDEConnect 1.0 KDEConnect.qml
 KDEConnectPanel 1.0 KDEConnectPanel.qml
+DeviceCard 1.0 DeviceCard.qml
+PhoneNotification 1.0 PhoneNotification.qml
+AppAvatar 1.0 AppAvatar.qml
+KdeActions 1.0 KdeActions.qml

@@ -27,8 +27,13 @@ import json
 import os
 import subprocess
 import sys
+import time
 
-import dbus
+try:
+    import dbus
+except ImportError:
+    print('{"daemon":false,"devices":[],"anyConnected":false}')
+    sys.exit(0)
 
 BUS_NAME = "org.kde.kdeconnect"
 BASE = "/modules/kdeconnect"
@@ -179,6 +184,53 @@ def read_connectivity(bus, dev_path):
     return signal, net
 
 
+def persist_icon(app, src):
+    """Copy the phone-supplied app icon (kdeconnectd keeps it in /tmp) to a
+    persistent per-app file so it survives reboots; returns the stable path."""
+    if not src or not os.path.isfile(src):
+        return ""
+    name = "".join(ch if ch.isalnum() else "_" for ch in app.lower()) or "app"
+    dest_dir = os.path.join(cache_dir(), "icons")
+    dest = os.path.join(dest_dir, name + ".png")
+    try:
+        os.makedirs(dest_dir, exist_ok=True)
+        if not os.path.exists(dest) or os.path.getmtime(src) > os.path.getmtime(dest):
+            with open(src, "rb") as fi, open(dest + ".tmp", "wb") as fo:
+                fo.write(fi.read())
+            os.replace(dest + ".tmp", dest)
+    except OSError:
+        return src
+    return dest
+
+
+def seen_times(dev_id, nids):
+    """First-seen epoch per notification id (kdeconnectd exposes no timestamp).
+
+    Persisted per device so a notification keeps its arrival time across polls;
+    ids that disappeared are dropped. Accurate to the signal-driven refresh."""
+    path = os.path.join(cache_dir(), "seen_%s.json" % dev_id)
+    first_run = not os.path.exists(path)
+    try:
+        with open(path, "r") as fh:
+            seen = json.load(fh)
+        if not isinstance(seen, dict):
+            seen = {}
+    except Exception:
+        seen = {}
+    # On the very first run everything already present has an unknown arrival
+    # time (0 -> the panel shows no time) rather than a misleading "now".
+    now = 0 if first_run else int(time.time())
+    current = {nid: seen.get(nid, now) for nid in nids}
+    if current != seen or first_run:
+        try:
+            os.makedirs(cache_dir(), exist_ok=True)
+            with open(path, "w") as fh:
+                json.dump(current, fh)
+        except OSError:
+            pass
+    return current
+
+
 def read_notifications(bus, dev_id, filt):
     notif_path = "%s/devices/%s/notifications" % (BASE, dev_id)
     try:
@@ -195,6 +247,7 @@ def read_notifications(bus, dev_id, filt):
         nids.sort(reverse=True)
 
     out = []
+    times = seen_times(dev_id, nids)
     for nid in nids:
         try:
             d = props(bus, "%s/%s" % (notif_path, nid),
@@ -210,11 +263,17 @@ def read_notifications(bus, dev_id, filt):
         body = clean(d.get("text", "")) or clean(d.get("ticker", "")) \
             or clean(d.get("title", ""))
 
+        title = clean(d.get("title", ""))
+        icon = persist_icon(app, clean(d.get("iconPath", ""))) if as_bool(d.get("hasIcon", False)) else ""
+
         out.append({
             "id": nid,
             "deviceId": str(dev_id),
             "appName": app,
+            "title": title if title != body else "",
             "body": body,
+            "time": times.get(nid, 0),
+            "iconPath": icon,
             "dismissable": as_bool(d.get("dismissable", False)),
             "silent": as_bool(d.get("silent", False)),
             "replyId": clean(d.get("replyId", "")),
@@ -229,8 +288,10 @@ def collect():
         bus.get_object(BUS_NAME, BASE, introspect=False),
         "org.kde.kdeconnect.daemon",
     )
+    # Every known device: paired ones (even when unreachable) and nearby
+    # unpaired ones, so the panel can offer Pair / Reconnect.
     try:
-        ids = [str(x) for x in daemon.devices(False, True)]
+        ids = [str(x) for x in daemon.devices(False, False)]
     except Exception:
         try:
             ids = [str(x) for x in daemon.devices()]
@@ -247,20 +308,25 @@ def collect():
             dev_props = props(bus, dev_path, "org.kde.kdeconnect.device")
         except Exception:
             continue
-        if "isPaired" in dev_props and not as_bool(dev_props.get("isPaired")):
-            continue
-
+        paired = as_bool(dev_props.get("isPaired", True))
         reachable = as_bool(dev_props.get("isReachable", False))
-        if reachable:
+        if not paired and not reachable:
+            continue
+        if reachable and paired:
             any_connected = True
 
-        battery, charging = read_battery(bus, dev_id, dev_path)
-        signal, network = read_connectivity(bus, dev_path)
-        notifications = read_notifications(bus, dev_id, filt)
+        if paired:
+            battery, charging = read_battery(bus, dev_id, dev_path)
+            signal, network = read_connectivity(bus, dev_path)
+            notifications = read_notifications(bus, dev_id, filt)
+        else:
+            battery, charging, signal, network, notifications = None, False, None, "", []
 
         devices_out.append({
             "id": str(dev_id),
             "name": clean(dev_props.get("name", "")),
+            "type": clean(dev_props.get("type", "")),
+            "paired": paired,
             "battery": battery,
             "charging": charging,
             "reachable": reachable,
@@ -270,7 +336,7 @@ def collect():
             "notifications": notifications,
         })
 
-    return {"devices": devices_out, "anyConnected": any_connected}
+    return {"daemon": True, "devices": devices_out, "anyConnected": any_connected}
 
 
 def notif_iface(bus, dev_id, nid):
@@ -328,7 +394,7 @@ def main():
     try:
         print(json.dumps(collect(), ensure_ascii=False, separators=(",", ":")))
     except Exception:
-        print('{"devices":[],"anyConnected":false}')
+        print('{"daemon":false,"devices":[],"anyConnected":false}')
 
 
 main()

@@ -24,6 +24,16 @@ json_escape() {
   printf '%s' "$s"
 }
 
+# True when a ';'-separated list shares an entry with the current desktop(s)
+desktop_in_list() {
+  local list=";$1;" d
+  IFS=':' read -ra cur <<< "${XDG_CURRENT_DESKTOP:-}"
+  for d in "${cur[@]}"; do
+    [[ -n "$d" && "$list" == *";$d;"* ]] && return 0
+  done
+  return 1
+}
+
 # Collect all .desktop files from XDG dirs
 # User dirs first so they override system (first occurrence wins)
 DIRS=()
@@ -51,7 +61,7 @@ compute_fingerprint() {
   local dir
   for dir in "${DESKTOP_DIRS[@]}"; do
     find -L "$dir" -maxdepth 1 -name '*.desktop' -type f -printf '%T@ %p\n' 2>/dev/null
-  done | sort | sha256sum | cut -d' ' -f1
+  done | sort | sha256sum | cut -d' ' -f1 | sed 's/$/-v2/'
 }
 
 # Fingerprint mode: used by the launcher to cheaply detect changes.
@@ -85,10 +95,26 @@ for base in "${DIRS[@]}"; do
     keywords=""
     noDisplay="false"
     terminal="false"
+    hidden="false"
+    onlyShowIn=""
+    notShowIn=""
+    tryExec=""
+    actionIds=""
+    section="main"
+    declare -A actName=() actExec=()
 
-    while IFS= read -r line; do
-      # Bash-only stop at the first [Desktop Action ...] group (no sed fork).
-      if [[ "$line" == "[Desktop Action"* ]]; then break; fi
+    [[ -r "$file" ]] || continue
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      # Section headers: the main [Desktop Entry] group, then [Desktop Action X] groups
+      # (we keep their Name/Exec for the launcher's action menu); anything else is skipped.
+      if [[ "$line" == "["* ]]; then
+        if [[ "$line" == "[Desktop Entry]"* ]]; then section="main"
+        elif [[ "$line" == "[Desktop Action "*"]"* ]]; then
+          section="${line#\[Desktop Action }"; section="${section%%]*}"
+        else section="skip"; fi
+        continue
+      fi
+      [[ "$section" == "skip" ]] && continue
       [[ "$line" == *=* ]] || continue
       key="${line%%=*}"
       val="${line#*=}"
@@ -103,6 +129,13 @@ for base in "${DIRS[@]}"; do
         tag="${key#*[}"; tag="${tag%]}"
         [[ "$tag" == "$LOCALE_TAG" || "$tag" == "${LOCALE_TAG%%_*}" ]] || continue
       fi
+      if [[ "$section" != "main" ]]; then
+        case "$base" in
+          Name) actName[$section]="$val" ;;
+          Exec) actExec[$section]="$val" ;;
+        esac
+        continue
+      fi
       case "$base" in
         Name)          name="$val" ;;
         GenericName)   generic="$val" ;;
@@ -113,11 +146,33 @@ for base in "${DIRS[@]}"; do
         Keywords)      keywords="$val" ;;
         NoDisplay)     noDisplay="$val" ;;
         Terminal)      terminal="$val" ;;
+        Hidden)        hidden="$val" ;;
+        OnlyShowIn)    onlyShowIn="$val" ;;
+        NotShowIn)     notShowIn="$val" ;;
+        TryExec)       tryExec="$val" ;;
+        Actions)       actionIds="$val" ;;
       esac
     done < "$file"
 
     # normalize booleans to JSON true/false (empty or unset -> false)
     case "${noDisplay,,}" in true) noDisplay=true ;; *) noDisplay=false ;; esac
+    # Not meant for this session: Hidden, other desktops' OnlyShowIn, our NotShowIn,
+    # or a TryExec that isn't installed.
+    [[ "${hidden,,}" == true ]] && noDisplay=true
+    if [[ -n "$onlyShowIn" ]] && ! desktop_in_list "$onlyShowIn"; then noDisplay=true; fi
+    if [[ -n "$notShowIn" ]] && desktop_in_list "$notShowIn"; then noDisplay=true; fi
+    if [[ -n "$tryExec" ]]; then
+      if [[ "$tryExec" == /* ]]; then [[ -x "$tryExec" ]] || noDisplay=true
+      else command -v "$tryExec" >/dev/null 2>&1 || noDisplay=true; fi
+    fi
+
+    # desktop actions -> JSON array
+    actions=""
+    IFS=';' read -ra aids <<< "$actionIds"
+    for aid in "${aids[@]}"; do
+      [[ -n "$aid" && -n "${actExec[$aid]:-}" ]] || continue
+      actions+="${actions:+,}{\"id\":\"$(json_escape "$aid")\",\"name\":\"$(json_escape "${actName[$aid]:-$aid}")\",\"exec\":\"$(json_escape "${actExec[$aid]}")\"}"
+    done
     case "${terminal,,}" in  true) terminal=true ;; *) terminal=false ;; esac
 
     # escape for JSON
@@ -129,7 +184,7 @@ for base in "${DIRS[@]}"; do
     categories="$(json_escape "$categories")"
     keywords="$(json_escape "$keywords")"
 
-    entries+=("{\"id\":\"$(json_escape "$id")\",\"name\":\"$name\",\"genericName\":\"$generic\",\"icon\":\"$icon\",\"comment\":\"$comment\",\"exec\":\"$exec\",\"categories\":\"$categories\",\"keywords\":\"$keywords\",\"noDisplay\":$noDisplay,\"terminal\":$terminal}")
+    entries+=("{\"id\":\"$(json_escape "$id")\",\"name\":\"$name\",\"genericName\":\"$generic\",\"icon\":\"$icon\",\"comment\":\"$comment\",\"exec\":\"$exec\",\"categories\":\"$categories\",\"keywords\":\"$keywords\",\"noDisplay\":$noDisplay,\"terminal\":$terminal,\"actions\":[$actions]}")
   done < <(find -L "$dir" -maxdepth 1 -name '*.desktop' -type f -print0 2>/dev/null)
 done
 

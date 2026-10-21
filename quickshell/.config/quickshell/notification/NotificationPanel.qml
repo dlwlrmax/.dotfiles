@@ -3,18 +3,25 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import qs.common
+import "../common/ListSync.js" as Sync
 
 Item {
     id: root
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     property bool active: false
     property var dataSource: null
     property var notifTimes: ({})
     property bool dnd: !!(dataSource && dataSource.dnd)
 
     // Live (currently active) notifications — kept as their own section.
+    // KDE Connect relays phone notifications, which the KDE Connect panel also
+    // lists. Hide them here to avoid seeing each one twice (the bell dot still
+    // counts them).
+    property bool showPhone: true
+    function phoneFilter(n) { return root.showPhone || (n.appName || "") !== "KDE Connect" }
+
     property var reversedNotifs: dataSource && dataSource.activeNotifs
-        ? dataSource.activeNotifs.slice().reverse() : []
+        ? dataSource.activeNotifs.slice().reverse().filter(root.phoneFilter) : []
     property var groupedNotifs: root.groupNotifications(root.reversedNotifs)
 
     // DB row ids backing the live notifications, so history can skip them and
@@ -30,7 +37,7 @@ Item {
         return m
     }
 
-    property var historyAll: dataSource && dataSource.history ? dataSource.history : []
+    property var historyAll: dataSource && dataSource.history ? dataSource.history.filter(root.phoneFilter) : []
     property var historyRows: root.historyAll.filter(function(r) {
         return !(r.id !== undefined && root.liveIds[r.id])
     })
@@ -42,8 +49,32 @@ Item {
 
     signal close()
 
+    // Card lists are ListModels of keys, updated in place: a click or an incoming notification
+    // only touches the cards that changed, so the others keep their expanded state.
+    ListModel { id: groupModel }
+    ListModel { id: unreadModel }
+    ListModel { id: readModel }
+    property var historyById: ({})
+    property var groupByKey: ({})
+
+    function syncLists() {
+        var h = {}, g = {}, i
+        for (i = 0; i < historyRows.length; i++) h[historyRows[i].id] = historyRows[i]
+        for (i = 0; i < groupedNotifs.length; i++) g[groupedNotifs[i].key] = groupedNotifs[i]
+        historyById = h          // maps first: delegates re-read their row from them
+        groupByKey = g
+        Sync.sync(groupModel, groupedNotifs.map(function (x) { return String(x.key) }))
+        Sync.sync(unreadModel, unreadRows.map(function (r) { return String(r.id) }))
+        Sync.sync(readModel, readRows.map(function (r) { return String(r.id) }))
+    }
+
+    onGroupedNotifsChanged: syncLists()
+    onUnreadRowsChanged: syncLists()
+    onReadRowsChanged: syncLists()
+    Component.onCompleted: syncLists()
+
     clip: true
-    implicitWidth: 360
+    implicitWidth: theme.panelWidthS
     // Content height (14px margins + header + 10 spacing + 1px rule + 10 spacing + list),
     // capped at 640px (or the screen under the bar, if smaller); the list scrolls beyond that.
     readonly property real maxHeight: {
@@ -52,23 +83,8 @@ Item {
     }
     implicitHeight: Math.min(maxHeight, 14 + panelHeader.implicitHeight + 10 + 1 + 10 + contentCol.implicitHeight + 14)
 
-    Rectangle {
+    PanelBackground {
         anchors.fill: parent
-        topLeftRadius: 0
-        topRightRadius: 0
-        bottomLeftRadius: 16
-        bottomRightRadius: 16
-        color: theme.color
-        border.color: theme.surface0
-        border.width: 2
-
-        Rectangle {
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 2
-            color: theme.color
-        }
     }
 
     ColumnLayout {
@@ -76,56 +92,31 @@ Item {
         anchors.margins: 14
         spacing: 10
 
-        RowLayout {
+        PanelHeader {
             id: panelHeader
-            Layout.fillWidth: true
-            spacing: 8
+            theme: root.theme
+            title: "Notifications" + (root.totalCount > 0 ? " (" + root.totalCount + ")" : "")
+            onClose: root.close()
 
-            Text {
-                text: "Notifications" + (root.totalCount > 0
-                    ? " (" + root.totalCount + ")" : "")
-                color: theme.text
-                font.pixelSize: theme.fontSize + 1
-                font.bold: true
-                font.family: theme.font
-                Layout.fillWidth: true
+            Badge {
+                theme: root.theme
+                text: "Phone"
+                clr: root.showPhone ? theme.mauve : theme.subtext0
+                solid: root.showPhone
+                clickable: true
+                onClicked: root.showPhone = !root.showPhone
             }
 
-            Text {
-                text: "Clear All"
-                color: theme.blue
-                font.pixelSize: theme.fontSize - 1
-                font.family: theme.font
-
-                MouseArea {
-                    anchors.fill: parent
-                    anchors.margins: -4
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        if (root.dataSource && root.dataSource.clearAll)
-                            root.dataSource.clearAll()
-                    }
+            Badge {
+                theme: root.theme
+                text: "Clear all"
+                clr: theme.blue
+                clickable: true
+                onClicked: {
+                    if (root.dataSource && root.dataSource.clearAll)
+                        root.dataSource.clearAll()
                 }
             }
-
-            Text {
-                text: "×"
-                color: theme.subtext0
-                font.pixelSize: theme.fontSize + 4
-
-                MouseArea {
-                    anchors.fill: parent
-                    anchors.margins: -4
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.close()
-                }
-            }
-        }
-
-        Rectangle {
-            Layout.fillWidth: true
-            height: 1
-            color: theme.surface0
         }
 
         Item {
@@ -199,13 +190,13 @@ Item {
                         // Live notifications — grouped by app, with dismiss,
                         // action buttons, and urgency styling.
                         Repeater {
-                            model: root.groupedNotifs
+                            model: groupModel
                             delegate: activeGroupDelegate
                         }
 
                         // Unread history rows below the live ones.
                         Repeater {
-                            model: root.unreadRows
+                            model: unreadModel
                             delegate: historyCardDelegate
                         }
                     }
@@ -257,7 +248,7 @@ Item {
                         }
 
                         Repeater {
-                            model: root.readRows
+                            model: readModel
                             delegate: historyCardDelegate
                         }
                     }
@@ -281,7 +272,7 @@ Item {
                             && root.dnd
                         text: "Do Not Disturb is on"
                         color: theme.yellow
-                        font.pixelSize: theme.fontSize - 2
+                        font.pixelSize: theme.fontSizeMin
                         font.family: theme.font
                         Layout.alignment: Qt.AlignHCenter
                     }
@@ -295,7 +286,8 @@ Item {
     Component {
         id: historyCardDelegate
         NotificationCard {
-            required property var modelData
+            required property string k
+            readonly property var modelData: root.historyById[k] || ({})
             Layout.fillWidth: true
             width: contentCol.width
             theme: root.theme
@@ -318,7 +310,8 @@ Item {
     Component {
         id: activeGroupDelegate
         Item {
-            required property var modelData
+            required property string k
+            readonly property var modelData: root.groupByKey[k] || ({ messages: [], key: k })
             width: contentCol.width
             implicitHeight: agCol.implicitHeight
             height: implicitHeight
@@ -331,8 +324,8 @@ Item {
 
                 Rectangle {
                     Layout.fillWidth: true
-                    implicitHeight: 42
-                    radius: 8
+                    implicitHeight: modelData.expanded ? 42 : 52
+                    radius: theme.radiusLg
                     color: root.theme.surface1
                     border.color: root.theme.surface0
                     border.width: 1
@@ -357,7 +350,7 @@ Item {
                             width: 28
                             height: 28
                             radius: 14
-                            color: root.theme.color
+                            color: root.theme.panelColor
                             AppIcon {
                                 anchors.centerIn: parent
                                 appId: modelData.latest && modelData.latest.desktopEntry || ""
@@ -367,33 +360,57 @@ Item {
                             }
                         }
 
-                        Text {
+                        ColumnLayout {
                             Layout.fillWidth: true
-                            text: modelData.appName || "Unknown"
-                            color: root.theme.text
-                            font.pixelSize: root.theme.fontSize
-                            font.bold: true
-                            font.family: root.theme.font
-                            elide: Text.ElideRight
+                            spacing: 0
+
+                            Text {
+                                Layout.fillWidth: true
+                                text: modelData.appName || "Unknown"
+                                color: root.theme.text
+                                font.pixelSize: root.theme.fontSize
+                                font.bold: true
+                                font.family: root.theme.fontUi
+                                elide: Text.ElideRight
+                            }
+
+                            // One-line preview of the latest message while collapsed.
+                            Text {
+                                Layout.fillWidth: true
+                                visible: !modelData.expanded && text !== ""
+                                text: {
+                                    var n = modelData.latest
+                                    if (!n) return ""
+                                    var t = n.summary || ""
+                                    var b = (n.body || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim()
+                                    return t && b ? t + " — " + b : (t || b)
+                                }
+                                color: root.theme.subtext0
+                                font.pixelSize: root.theme.fontSizeMin
+                                font.family: root.theme.fontUi
+                                elide: Text.ElideRight
+                            }
                         }
 
                         Rectangle {
                             implicitWidth: countText.implicitWidth + 12
                             implicitHeight: 22
                             radius: 11
-                            color: root.theme.color
+                            color: root.theme.panelColor
                             Text {
+                                font.family: theme.font
                                 id: countText
                                 anchors.centerIn: parent
                                 text: modelData.messages.length
                                 color: root.theme.blue
-                                font.pixelSize: root.theme.fontSize - 2
+                                font.pixelSize: root.theme.fontSizeMin
                                 font.bold: true
                             }
                         }
 
                         Text {
-                            text: modelData.expanded ? "▾" : "▸"
+                            font.family: theme.font
+                            text: modelData.expanded ? Glyphs.down : Glyphs.next
                             color: root.theme.subtext0
                             font.pixelSize: root.theme.fontSize
                         }
@@ -401,7 +418,7 @@ Item {
                         Text {
                             text: "Clear"
                             color: root.theme.blue
-                            font.pixelSize: root.theme.fontSize - 2
+                            font.pixelSize: root.theme.fontSizeMin
                             font.family: root.theme.font
                             MouseArea {
                                 anchors.fill: parent

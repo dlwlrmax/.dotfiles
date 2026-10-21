@@ -6,7 +6,7 @@ import qs.common
 // One output or input device: default radio, name, mute, volume slider.
 ColumnLayout {
     id: row
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     required property var node           // PwNode (tracked)
     property bool isDefault: false
     property bool isInput: false
@@ -23,8 +23,9 @@ ColumnLayout {
         spacing: 8
 
         Text {
+            font.family: row.theme.font
             text: row.isDefault ? "◉" : "○"
-            color: row.isDefault ? row.fillColor : row.theme.surface1
+            color: row.isDefault ? row.fillColor : row.theme.overlay0
             font.pixelSize: row.theme.fontSize + 2
 
             MouseArea {
@@ -40,7 +41,7 @@ ColumnLayout {
             color: row.theme.text
             font.pixelSize: row.theme.fontSize
             font.weight: Font.Medium
-            font.family: row.theme.font
+            font.family: row.theme.fontUi
             elide: Text.ElideRight
             Layout.fillWidth: true
         }
@@ -50,7 +51,7 @@ ColumnLayout {
             // nf-md-microphone_off / microphone (U+F036D / U+F036C as surrogate pairs)
             text: row.isInput ? (row.muted ? "\udb80\udf6d" : "\udb80\udf6c")
                               : (row.muted ? "" : "")
-            color: row.muted ? row.theme.surface1 : row.theme.subtext0
+            color: row.muted ? row.theme.overlay0 : row.theme.subtext0
             font.pixelSize: row.theme.fontSize
             font.family: row.theme.font
 

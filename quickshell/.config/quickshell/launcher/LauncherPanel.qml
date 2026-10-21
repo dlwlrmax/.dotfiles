@@ -1,40 +1,78 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import qs.common
+import "LauncherLogic.js" as L
 
+// App launcher on top of PickerPanel. Search apps (accent-insensitive, recency +
+// frequency ranked), open an app's desktop actions with → / Tab, and use the
+// quick prefixes:  =  calculator   >  run a command   ?  web search   @  windows.
 Item {
     id: root
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     property bool active: false
     signal close()
     signal appLaunched()
 
-    implicitWidth: 620
-    implicitHeight: 500
-    focus: true
+    implicitWidth: picker.implicitWidth
+    implicitHeight: picker.implicitHeight
 
-    property string query: ""
     property var allEntries: []
-    property var filteredEntries: []
-    property int selectedIndex: 0
-    property bool searchMode: false  // false = normal (navigate), true = insert (type)
     property var recentApps: []
-    property var _recentMap: ({})  // id → timestamp for O(1) lookup
-    property bool _suppressFilter: false
-    property string _pendingFingerprint: ""  // hash captured by --fingerprint for the next full refresh
-    property int loadTries: 0  // bounded retries while the app list is still empty
+    property var _recentMap: ({})          // id -> last launch (epoch s)
+    property var _counts: ({})             // id -> launch count
+    property var _windows: []              // hyprctl clients, for the @ mode
+    property var actionsFor: null
+    property string terminal: ""
+    property string _pendingFingerprint: ""
+    property int loadTries: 0
+    readonly property int maxResults: 120
 
-    // ── load .desktop entries (SQLite cache + fingerprint refresh) ──
+    // ── text folding: lower-case, accents stripped, length preserved so match
+    // positions map straight back onto the original string ──
+
+    function fold(s) { return L.fold(s) }
+
+    function escapeHtml(str) {
+        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    }
+
+    // Name with the matched part highlighted: the contiguous substring when there
+    // is one, otherwise the fuzzy letters.
+    function highlightHtml(name, fq) {
+        if (!fq) return escapeHtml(name)
+        var fname = fold(name), marks = {}
+        var at = fname.indexOf(fq)
+        if (at >= 0) {
+            for (var k = 0; k < fq.length; k++) marks[at + k] = true
+        } else {
+            var ni = 0
+            for (var i = 0; i < fq.length; i++) {
+                var idx = fname.indexOf(fq.charAt(i), ni)
+                if (idx < 0) return escapeHtml(name)
+                marks[idx] = true
+                ni = idx + 1
+            }
+        }
+        var out = "", open = false
+        for (var p = 0; p < name.length; p++) {
+            var on = !!marks[p]
+            if (on && !open) { out += "<span style='color:" + theme.peach + ";font-weight:bold'>"; open = true }
+            if (!on && open) { out += "</span>"; open = false }
+            out += escapeHtml(name.charAt(p))
+        }
+        return out + (open ? "</span>" : "")
+    }
+
+    // ── entries (SQLite snapshot first, then a cheap fingerprint check) ──
 
     function _applyEntries(list) {
         var next = []
         for (var i = 0; i < list.length; i++) {
             var e = list[i]
             if (e.noDisplay) continue
-            next.push({
+            var entry = {
                 id: e.id,
                 name: e.name || e.id,
                 genericName: e.genericName || "",
@@ -43,15 +81,21 @@ Item {
                 categories: e.categories || "",
                 keywords: e.keywords || "",
                 comment: e.comment || "",
-                terminal: e.terminal
-            })
+                terminal: e.terminal,
+                actions: e.actions || []
+            }
+            entry.fname = fold(entry.name)
+            entry.fgeneric = fold(entry.genericName)
+            entry.fkeywords = fold(entry.keywords)
+            entry.fcomment = fold(entry.comment)
+            entry.fcategories = fold(entry.categories)
+            next.push(entry)
         }
         root.allEntries = next
-        root.applyFilter()
+        root.rebuild()
     }
 
     function loadEntries() {
-        // Paint the DB snapshot instantly, then verify freshness cheaply.
         var cached = Db.loadApps()
         if (cached.length > 0) root._applyEntries(cached)
         if (!fpProc.running) fpProc.running = true
@@ -92,648 +136,383 @@ Item {
         }
     }
 
-    // Only poll while this panel's screen is the active one, so closed panels
-    // (and screens the panel was never opened on) never hit the DB/script.
-    // loadTimer gives up after 30 tries (~60s) if the app list stays empty.
+    // Retry (bounded) while the app list is still empty; refresh while open.
     Timer {
-        id: loadTimer
         interval: 2000
         repeat: true
         running: root.active && root.allEntries.length === 0 && root.loadTries < 30
-        onTriggered: {
-            root.loadTries++
-            root.loadEntries()
-        }
+        onTriggered: { root.loadTries++; root.loadEntries() }
     }
 
     Timer {
-        id: refreshTimer
         interval: 300000
         repeat: true
         running: root.active
-        onTriggered: loadEntries()
+        onTriggered: root.loadEntries()
     }
 
-    // ── recent apps ──
+    // ── terminal for Terminal=true apps and `>` runs ──
+
+    Process {
+        id: termProc
+        command: ["bash", "-c", 'for t in "$TERMINAL" ghostty kitty alacritty foot xterm; do [ -n "$t" ] && command -v "$t" >/dev/null 2>&1 && { echo "$t"; exit 0; }; done']
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: root.terminal = this.text.trim()
+        }
+    }
+
+    // argv wrapped so `argv` runs inside a terminal window (kitty takes the command bare).
+    function inTerminal(argv) {
+        var t = root.terminal
+        if (!t) return argv
+        var base = t.split("/").pop()
+        return base === "kitty" ? [t].concat(argv) : [t, "-e"].concat(argv)
+    }
+
+    // ── recents + frequency ──
 
     function loadRecent() {
         root.recentApps = Db.loadRecents()
         root._buildRecentMap()
-        root.applyFilter()
+        var row = Db.cacheGet("launchcounts")
+        if (row) { try { root._counts = JSON.parse(row.json) } catch (e) {} }
     }
 
     function _buildRecentMap() {
         var m = ({})
-        for (var i = 0; i < root.recentApps.length; i++) {
-            m[root.recentApps[i].id] = root.recentApps[i].time
-        }
+        for (var i = 0; i < root.recentApps.length; i++) m[root.recentApps[i].id] = root.recentApps[i].time
         root._recentMap = m
     }
 
-    function _getRecencyBoost(id) {
+    function _recencyBoost(id) {
         var t = root._recentMap[id]
         if (t === undefined) return 0
-        var now = Math.floor(Date.now() / 1000)
-        var diff = now - t
-        if (diff < 3600) return 1000
-        if (diff < 14400) return 600
-        if (diff < 86400) return 300
-        if (diff < 604800) return 100
-        return 20
+        var diff = Math.floor(Date.now() / 1000) - t
+        if (diff < 3600) return 400
+        if (diff < 14400) return 250
+        if (diff < 86400) return 150
+        if (diff < 604800) return 60
+        return 10
+    }
+
+    // Launch count, log-scaled so a favourite doesn't bury an exact match.
+    function _frequencyBoost(id) {
+        var c = root._counts[id] || 0
+        return Math.min(240, Math.round(Math.log(c + 1) / Math.LN2 * 45))
     }
 
     function markRecent(entryId) {
         var now = Math.floor(Date.now() / 1000)
         for (var i = 0; i < root.recentApps.length; i++) {
-            if (root.recentApps[i].id === entryId) {
-                root.recentApps.splice(i, 1)
-                break
-            }
+            if (root.recentApps[i].id === entryId) { root.recentApps.splice(i, 1); break }
         }
         root.recentApps.unshift({ id: entryId, time: now })
         while (root.recentApps.length > 30) root.recentApps.pop()
         root._buildRecentMap()
         Db.markRecent(entryId, now)
+        var c = Object.assign({}, root._counts)
+        c[entryId] = (c[entryId] || 0) + 1
+        root._counts = c
+        Db.cachePut("launchcounts", JSON.stringify(c))
     }
 
-    // ── filter / match ──
+    // ── matching ──
 
-    function _fuzzyMatch(text, ql) {
+    function _fuzzyPos(text, q) {
         var ni = 0
-        for (var i = 0; i < ql.length; i++) {
-            var idx = text.indexOf(ql[i], ni)
+        for (var i = 0; i < q.length; i++) {
+            var idx = text.indexOf(q.charAt(i), ni)
             if (idx === -1) return -1
             ni = idx + 1
         }
-        return ni - ql.length  // position of first matched char
+        return ni - q.length
     }
 
-    function scoreEntry(entry, q) {
-        if (!q) return 1
-        var ql = q.toLowerCase()
-        var name = (entry.name || "").toLowerCase()
-
-        // exact match → highest
-        if (name === ql) return 1000 + root._getRecencyBoost(entry.id)
-
-        // prefix match
-        if (name.indexOf(ql) === 0) return 500 + root._getRecencyBoost(entry.id)
-
-        // substring match in name
-        if (name.indexOf(ql) !== -1) return 100 + root._getRecencyBoost(entry.id)
-
-        // fuzzy sequential match in name (all chars in order, gaps allowed)
-        var firstPos = root._fuzzyMatch(name, ql)
-        if (firstPos !== -1) {
-            var score = 30 + Math.max(0, 10 - firstPos)
-            return score + root._getRecencyBoost(entry.id)
-        }
-
-        // generic/keywords/comment substring match (low priority, no recency)
-        var generic = (entry.genericName || "").toLowerCase()
-        var keywords = (entry.keywords || "").toLowerCase()
-        var comment = (entry.comment || "").toLowerCase()
-        if (generic.indexOf(ql) !== -1 || keywords.indexOf(ql) !== -1 || comment.indexOf(ql) !== -1) {
-            return 2
-        }
-
-        return 0
+    function _wordPrefix(text, q) {
+        return text.indexOf(" " + q) !== -1 || text.indexOf("-" + q) !== -1
     }
 
-    function applyFilter() {
-        var q = query.trim()
-        if (!q) {
-            // Recent apps first, then rest alphabetically
-            var recent = []
-            var rest = []
-            for (var i = 0; i < root.allEntries.length; i++) {
-                var e = root.allEntries[i]
-                if (root._recentMap[e.id] !== undefined)
-                    recent.push(e)
-                else
-                    rest.push(e)
+    // {score, reason}: reason is "" for name matches, else what matched.
+    function scoreEntry(e, fq) {
+        var name = e.fname, s = 0, reason = ""
+        if (name === fq) s = 1000
+        else if (name.indexOf(fq) === 0) s = 500
+        else if (_wordPrefix(name, fq)) s = 300
+        else if (name.indexOf(fq) !== -1) s = 100
+        else if (fq.length >= 2 && _fuzzyPos(name, fq) !== -1) s = 30 + Math.max(0, 10 - _fuzzyPos(name, fq))
+        else if (e.fkeywords.indexOf(fq) !== -1) { s = 60; reason = "keyword" }
+        else if (e.fgeneric.indexOf(fq) !== -1) { s = 50; reason = "generic" }
+        else if (e.fcomment.indexOf(fq) !== -1) { s = 20; reason = "comment" }
+        else if (e.fcategories.indexOf(fq) !== -1) { s = 10; reason = "category" }
+        if (s === 0) return { score: 0, reason: "" }
+        return { score: s + root._recencyBoost(e.id) + root._frequencyBoost(e.id), reason: reason }
+    }
+
+    function appRow(e, fq, reason) {
+        var sub = e.genericName || e.comment
+        if (reason === "keyword") sub = "keyword · " + (e.keywords.split(";")[0] || "") + (sub ? " · " + sub : "")
+        else if (reason === "category") sub = e.categories.split(";")[0] + (sub ? " · " + sub : "")
+        return {
+            kind: "app", entry: e,
+            title: e.name,
+            titleHtml: fq ? highlightHtml(e.name, fq) : "",
+            subtitle: sub,
+            icon: { appId: e.id, name: e.icon, fallbackGlyph: "\udb81\udd6c" },
+            tag: e.actions.length > 0 ? "\u203a" : (e.terminal ? "term" : "")
+        }
+    }
+
+    // ── calculator ──
+
+    function calc(src) { return L.calc(src) }
+
+    function formatNumber(n) { return L.formatNumber(n) }
+
+    function calcRow(expr) {
+        var r = calc(expr)
+        if (r === null) return null
+        var txt = formatNumber(r)
+        return { kind: "calc", value: txt, title: "= " + txt, subtitle: expr.trim() + "  ·  ↵ copy result",
+                 glyph: "\uf1ec", glyphClr: theme.green }
+    }
+
+    // ── windows (@) ──
+
+    function loadWindows() {
+        if (!winProc.running) winProc.running = true
+    }
+
+    Process {
+        id: winProc
+        command: ["hyprctl", "clients", "-j"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    root._windows = JSON.parse(this.text).filter(function (c) { return c.mapped && c.title !== "" })
+                } catch (e) { root._windows = [] }
+                root.rebuild()
             }
-            recent.sort(function(a, b) {
-                return root._recentMap[b.id] - root._recentMap[a.id]
-            })
-            rest.sort(function(a, b) {
-                return (a.name || "").localeCompare(b.name || "")
-            })
-            filteredEntries = recent.concat(rest).slice(0, 50)
-            selectedIndex = 0
+        }
+    }
+
+    // ── rows ──
+
+    function isUrl(q) { return L.isUrl(q) }
+
+    function webRows(q) {
+        var rows = []
+        if (isUrl(q)) {
+            var url = /^https?:\/\//i.test(q) ? q : "https://" + q
+            rows.push({ kind: "url", url: url, title: "Open " + url, subtitle: "in the default browser",
+                        glyph: "\uf0ac", glyphClr: theme.blue })
+        }
+        rows.push({ kind: "web", url: "https://duckduckgo.com/?q=" + encodeURIComponent(q),
+                    title: "Search the web for \u201c" + q + "\u201d", subtitle: "DuckDuckGo",
+                    glyph: "\uf002", glyphClr: theme.blue })
+        return rows
+    }
+
+    function actionRows() {
+        var e = root.actionsFor
+        var rows = [{ kind: "app", entry: e, title: "Launch " + e.name,
+                      icon: { appId: e.id, name: e.icon, fallbackGlyph: "\udb81\udd6c" }, subtitle: "default" }]
+        for (var i = 0; i < e.actions.length; i++) {
+            var a = e.actions[i]
+            rows.push({ kind: "action", entry: e, action: a, title: a.name, subtitle: e.name,
+                        glyph: "\uf054", glyphClr: theme.subtext0 })
+        }
+        return rows
+    }
+
+    function rebuild() {
+        if (root.actionsFor) { picker.rows = actionRows(); return }
+        var q = picker.query
+        var trimmed = q.trim()
+
+        if (trimmed.charAt(0) === "=") {
+            var cr = calcRow(trimmed.slice(1))
+            picker.rows = cr ? [cr] : []
+            picker.emptyText = trimmed.length > 1 ? "can't calculate that" : "type an expression, e.g. =(12+8)*3"
             return
         }
+        if (trimmed.charAt(0) === ">") {
+            var cmd = trimmed.slice(1).trim()
+            picker.rows = cmd ? [{ kind: "cmd", cmd: cmd, title: "Run  " + cmd, subtitle: "↵ run · ⇧↵ run in a terminal",
+                                   glyph: "\uf120", glyphClr: theme.peach }] : []
+            picker.emptyText = "type a command to run"
+            return
+        }
+        if (trimmed.charAt(0) === "?") {
+            var wq = trimmed.slice(1).trim()
+            picker.rows = wq ? webRows(wq) : []
+            picker.emptyText = "type what to search for"
+            return
+        }
+        if (trimmed.charAt(0) === "@") {
+            var wf = fold(trimmed.slice(1).trim())
+            var wrows = []
+            for (var w = 0; w < root._windows.length; w++) {
+                var c = root._windows[w]
+                var hay = fold(c.title + " " + c["class"])
+                if (wf && hay.indexOf(wf) === -1) continue
+                wrows.push({ kind: "window", address: c.address, title: c.title,
+                             subtitle: c["class"] + " · workspace " + (c.workspace ? c.workspace.name : "?"),
+                             icon: { appId: c["class"], name: c["class"], fallbackGlyph: "\uf2d0" } })
+            }
+            picker.rows = wrows
+            picker.emptyText = root._windows.length === 0 ? "loading windows…" : "no matching windows"
+            return
+        }
+
+        picker.emptyText = root.allEntries.length === 0 ? "loading apps…" : "no matches"
+        var rows = []
+        if (!trimmed) {
+            var recent = [], rest = []
+            for (var i = 0; i < root.allEntries.length; i++) {
+                var e = root.allEntries[i]
+                if (root._recentMap[e.id] !== undefined) recent.push(e); else rest.push(e)
+            }
+            recent.sort(function (a, b) { return root._recentMap[b.id] - root._recentMap[a.id] })
+            rest.sort(function (a, b) { return a.name.localeCompare(b.name) })
+            if (recent.length > 0) {
+                rows.push({ isHeader: true, label: "Recent" })
+                recent.slice(0, 8).forEach(function (e2) { rows.push(appRow(e2, "", "")) })
+                rest = rest.concat(recent.slice(8))
+            }
+            rows.push({ isHeader: true, label: "Apps" })
+            rest.slice(0, root.maxResults).forEach(function (e3) { rows.push(appRow(e3, "", "")) })
+            picker.rows = rows
+            picker.status = root.allEntries.length + " apps"
+            return
+        }
+
+        var fq = fold(trimmed)
         var scored = []
-        for (var i = 0; i < allEntries.length; i++) {
-            var s = scoreEntry(allEntries[i], q)
-            if (s > 0) scored.push({ entry: allEntries[i], score: s })
+        for (var j = 0; j < root.allEntries.length; j++) {
+            var r = scoreEntry(root.allEntries[j], fq)
+            if (r.score > 0) scored.push({ entry: root.allEntries[j], score: r.score, reason: r.reason })
         }
         scored.sort(function (a, b) { return b.score - a.score })
-        filteredEntries = scored.slice(0, 50).map(function (x) { return x.entry })
-        selectedIndex = 0
+        var total = scored.length
+        scored.slice(0, root.maxResults).forEach(function (x) { rows.push(appRow(x.entry, fq, x.reason)) })
+
+        // Arithmetic typed without "=": offer the result first.
+        if (/^[\d\s().,+\-*\/%^]+$/.test(trimmed) && /\d\s*[+\-*\/%^]\s*[\d(]/.test(trimmed)) {
+            var auto = calcRow(trimmed)
+            if (auto) rows.unshift(auto)
+        }
+        // Nothing found (or it looks like a URL): fall back to the web.
+        if (rows.length === 0 || isUrl(trimmed)) rows = rows.concat(webRows(trimmed))
+
+        picker.rows = rows
+        picker.status = total > root.maxResults ? root.maxResults + " of " + total : (total > 0 ? total + "" : "")
     }
 
-    // Parse a freedesktop.org Exec= string into an argv array without invoking
-    // a shell. Respects single/double quotes and backslash escapes, expands %%
-    // to %, drops URL/file/other field codes, and substitutes %c (app name) /
-    // %k (desktop file path) when available, otherwise drops them.
-    function parseXdgExec(exec, entry) {
-        var argv = []
-        if (!exec) return argv
-        var i = 0
-        var n = exec.length
-        var arg = ""
-        var hasArg = false
-        var inSingle = false
-        var inDouble = false
+    // ── launching ──
 
-        function flush() {
-            if (hasArg) {
-                argv.push(arg)
-                arg = ""
-                hasArg = false
-            }
-        }
+        // Parse a freedesktop.org Exec= string into an argv array without invoking
+    function parseXdgExec(exec, entry) { return L.parseXdgExec(exec, entry) }
 
-        while (i < n) {
-            var c = exec.charAt(i)
 
-            if (inSingle) {
-                if (c === "'") {
-                    inSingle = false
-                } else {
-                    arg += c
-                }
-                hasArg = true
-                i++
-                continue
-            }
-
-            if (inDouble) {
-                if (c === "\\" && i + 1 < n) {
-                    arg += exec.charAt(i + 1)
-                    hasArg = true
-                    i += 2
-                    continue
-                }
-                if (c === '"') {
-                    inDouble = false
-                } else {
-                    arg += c
-                }
-                hasArg = true
-                i++
-                continue
-            }
-
-            if (c === "\\" && i + 1 < n) {
-                arg += exec.charAt(i + 1)
-                hasArg = true
-                i += 2
-                continue
-            }
-
-            if (c === "'") {
-                inSingle = true
-                hasArg = true
-                i++
-                continue
-            }
-
-            if (c === '"') {
-                inDouble = true
-                hasArg = true
-                i++
-                continue
-            }
-
-            if (c === " " || c === "\t" || c === "\n") {
-                flush()
-                i++
-                continue
-            }
-
-            if (c === "%") {
-                var code = exec.charAt(i + 1)
-                if (code === "%") {
-                    arg += "%"
-                    hasArg = true
-                } else if (code === "c") {
-                    if (entry && entry.name) {
-                        arg += entry.name
-                        hasArg = true
-                    }
-                } else if (code === "f" || code === "F" || code === "u" || code === "U"
-                        || code === "d" || code === "D" || code === "n" || code === "N"
-                        || code === "i" || code === "v" || code === "m" || code === "k") {
-                    // Field codes with no local substitution: drop.
-                } else {
-                    arg += c
-                    hasArg = true
-                    i++
-                    continue
-                }
-                i += 2
-                continue
-            }
-
-            arg += c
-            hasArg = true
-            i++
-        }
-        flush()
-        return argv
+    function _exec(argv) {
+        if (argv.length === 0) return
+        Quickshell.execDetached({ command: argv, workingDirectory: Quickshell.env("HOME") })
     }
 
     function launch(entry) {
         if (!entry) return
         var argv = parseXdgExec(entry.exec || "", entry)
         if (argv.length === 0) return
-        if (entry.terminal) argv = ["foot", "-e"].concat(argv)
+        if (entry.terminal) argv = inTerminal(argv)
         root.markRecent(entry.id)
-        Quickshell.execDetached({
-            command: argv,
-            workingDirectory: Quickshell.env("HOME")
-        })
+        _exec(argv)
         appLaunched()
         close()
     }
 
-    function moveSelection(delta) {
-        if (filteredEntries.length === 0) return
-        var n = filteredEntries.length
-        selectedIndex = ((selectedIndex + delta) % n + n) % n
-        list.positionViewAtIndex(selectedIndex, ListView.Contain)
+    function launchAction(entry, action) {
+        var argv = parseXdgExec(action.exec || "", entry)
+        if (argv.length === 0) return
+        if (entry.terminal) argv = inTerminal(argv)
+        root.markRecent(entry.id)
+        _exec(argv)
+        appLaunched()
+        close()
     }
 
-    function escapeHtml(str) {
-        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    }
-
-    function highlightText(text, query, hlColor) {
-        if (!query || !text) return escapeHtml(text || "")
-        var lower = text.toLowerCase()
-        var ql = query.toLowerCase()
-        var result = ""
-        var ni = 0
-        for (var i = 0; i < ql.length; i++) {
-            var idx = lower.indexOf(ql[i], ni)
-            if (idx < 0) continue
-            if (idx > ni) result += escapeHtml(text.substring(ni, idx))
-            result += "<span style='color:" + hlColor + ";font-weight:bold'>" + escapeHtml(text[idx]) + "</span>"
-            ni = idx + 1
-        }
-        if (ni < text.length) result += escapeHtml(text.substring(ni))
-        return result
-    }
-
-    function reset() {
-        query = ""
-        selectedIndex = 0
-    }
-
-    onSearchModeChanged: {
-        searchField.focus = root.searchMode
-        if (root.searchMode) {
-            searchField.selectAll()
-            searchField.forceActiveFocus()
-        } else {
-            root.forceActiveFocus()
+    function activate(row, alt) {
+        switch (row.kind) {
+        case "app":    launch(row.entry); break
+        case "action": launchAction(row.entry, row.action); break
+        case "calc":
+            _exec(["wl-copy", row.value]); close(); break
+        case "cmd":
+            _exec(alt ? inTerminal(["bash", "-c", row.cmd + "; echo; read -rp 'Press Enter to close… '"])
+                      : ["bash", "-c", row.cmd])
+            close(); break
+        case "web":
+        case "url":
+            _exec(["xdg-open", row.url]); close(); break
+        case "window":
+            _exec(["hyprctl", "dispatch", "hl.dsp.focus({ window = \"address:" + row.address + "\" })"])
+            close(); break
         }
     }
 
-    Keys.onPressed: function(event) {
-        // Esc always closes (both modes)
-        if (event.key === Qt.Key_Escape) {
-            event.accepted = true
-            close()
-            return
-        }
-
-        if (root.searchMode) {
-            // ── INSERT MODE: only ↑↓ P/N and ↵ reach here (text goes to TextField) ──
-            if (event.key === Qt.Key_Up || ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_P)) {
-                event.accepted = true; moveSelection(-1); return
-            }
-            if (event.key === Qt.Key_Down || ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_N)) {
-                event.accepted = true; moveSelection(1); return
-            }
-            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                event.accepted = true
-                if (filteredEntries.length > 0) launch(filteredEntries[selectedIndex])
-                return
-            }
-            return
-        }
-
-        // ── NORMAL MODE ──
-        if (event.key === Qt.Key_J || ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_N)) {
-            event.accepted = true; moveSelection(1); return
-        }
-        if (event.key === Qt.Key_K || ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_P)) {
-            event.accepted = true; moveSelection(-1); return
-        }
-
-        event.accepted = true
-        switch (event.key) {
-            case Qt.Key_Down: moveSelection(1); break
-            case Qt.Key_Up: moveSelection(-1); break
-            case Qt.Key_Slash:
-            case Qt.Key_I: root.searchMode = true; break
-            case Qt.Key_Return:
-            case Qt.Key_Enter:
-                if (filteredEntries.length > 0) launch(filteredEntries[selectedIndex])
-                break
-            default:
-                var ch = event.text
-                if (ch.length > 0 && ch.charCodeAt(0) >= 32) {
-                    root.searchMode = true
-                    query = ch
-                    applyFilter()
-                } else {
-                    event.accepted = false
-                }
-        }
+    function openActions(row) {
+        if (row.kind !== "app" || !row.entry || row.entry.actions.length === 0) return
+        root.actionsFor = row.entry
+        picker.canGoBack = true
+        picker.reset()
+        picker.query = ""
+        rebuild()
     }
 
-    onQueryChanged: { if (!root._suppressFilter) applyFilter() }
+    function back() {
+        root.actionsFor = null
+        picker.canGoBack = false
+        picker.reset()
+        picker.query = ""
+        rebuild()
+    }
 
     onActiveChanged: {
-        if (active) {
-            query = ""
-            selectedIndex = 0
-            root.searchMode = true  // start in insert mode
-            root.loadTries = 0      // allow a fresh bounded retry window
-            loadEntries()
-            Qt.callLater(function () {
-                searchField.forceActiveFocus()
-                searchField.focus = true
-            })
-        }
+        if (!active) return
+        actionsFor = null
+        picker.canGoBack = false
+        picker.reset()
+        picker.query = ""
+        picker.searchMode = true
+        loadTries = 0
+        loadRecent()
+        loadEntries()
+        rebuild()
+        Qt.callLater(function () { picker.focusSearch() })
     }
 
     Component.onCompleted: loadRecent()
 
-    // ── UI ──
-
-    Rectangle {
+    PickerPanel {
+        id: picker
         anchors.fill: parent
-        radius: 12
-        color: theme.color
-        border.color: theme.surface0
-        border.width: 1
+        theme: root.theme
+        active: root.active
+        modal: true
+        placeholder: "Search apps…   (= calc · > run · ? web · @ windows)"
+        iconSize: 28
+        rowHeight: 48
+        hints: root.actionsFor ? "↵ run · ← back · esc back"
+             : searchMode ? "↑↓ move · ↵ launch · → actions · = > ? @ modes · esc close"
+                          : "j/k move · / search · ↵ launch · esc close"
 
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 12
-            spacing: 10
-
-            // search field
-            Rectangle {
-                Layout.fillWidth: true
-                implicitHeight: 44
-                radius: 8
-                color: theme.mantle
-                border.color: root.searchMode ? theme.green : theme.lavender
-                border.width: root.searchMode ? 1 : 2
-
-                TextField {
-                    id: searchField
-                    anchors.fill: parent
-                    anchors.rightMargin: 14
-                    anchors.leftMargin: 14
-                    verticalAlignment: TextInput.AlignVCenter
-                    background: Item {}
-                    color: theme.text
-                    font.pixelSize: theme.fontSize + 3
-                    font.family: theme.font
-                    placeholderText: root.searchMode ? "Search apps…" : "press / to search"
-                    placeholderTextColor: theme.surface1
-                    text: root.query
-                    onTextChanged: root.query = text
-                    selectByMouse: true
-                    readOnly: !root.searchMode
-                    focus: root.searchMode
-
-                    property bool _lastWasJ: false
-
-                    Timer { id: jjReset; interval: 250; onTriggered: searchField._lastWasJ = false }
-
-                    Keys.onPressed: function(event) {
-                        var ctrl = event.modifiers & Qt.ControlModifier
-
-                        // Enter/Return → launch selected
-                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                            event.accepted = true
-                            if (root.filteredEntries.length > 0)
-                                root.launch(root.filteredEntries[root.selectedIndex])
-                            return
-                        }
-
-                        // Ctrl+P/N → nav up/down
-                        if (ctrl && event.key === Qt.Key_P) {
-                            event.accepted = true; root.moveSelection(-1); return
-                        }
-                        if (ctrl && event.key === Qt.Key_N) {
-                            event.accepted = true; root.moveSelection(1); return
-                        }
-
-                        // Ctrl+C → normal mode
-                        if (ctrl && event.key === Qt.Key_C) {
-                            event.accepted = true
-                            root.searchMode = false
-                            return
-                        }
-
-                        // Ctrl+A → cursor to start
-                        if (ctrl && event.key === Qt.Key_A) {
-                            event.accepted = true
-                            cursorPosition = 0
-                            return
-                        }
-
-                        // Ctrl+E → cursor to end
-                        if (ctrl && event.key === Qt.Key_E) {
-                            event.accepted = true
-                            cursorPosition = text.length
-                            return
-                        }
-
-                        // Ctrl+W → delete word backward
-                        if (ctrl && event.key === Qt.Key_W) {
-                            event.accepted = true
-                            var pos = cursorPosition
-                            var txt = text
-                            if (pos === 0) return
-                            if (selectionStart !== selectionEnd) {
-                                remove(selectionStart, selectionEnd)
-                                return
-                            }
-                            var end = pos
-                            while (end > 0 && txt[end - 1] === ' ') end--
-                            var start = end
-                            while (start > 0 && txt[start - 1] !== ' ') start--
-                            remove(start, pos)
-                            return
-                        }
-
-                        // jj (quick) → normal mode, pop last j
-                        if (root.searchMode && event.key === Qt.Key_J) {
-                            if (_lastWasJ) {
-                                _lastWasJ = false
-                                jjReset.stop()
-                                root._suppressFilter = true
-                                root.query = root.query.slice(0, -1)
-                                root._suppressFilter = false
-                                root.searchMode = false
-                                root.applyFilter()
-                                event.accepted = true
-                                return
-                            }
-                            _lastWasJ = true
-                            jjReset.restart()
-                            return  // let TextField type the first j
-                        }
-
-                        _lastWasJ = false
-                    }
-                }
-            }
-
-            // results list
-            Item {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-
-                ListView {
-                    id: list
-                    anchors.fill: parent
-                    clip: true
-                    spacing: 6
-                    model: root.filteredEntries
-                    currentIndex: root.selectedIndex
-                    highlightFollowsCurrentItem: true
-                    boundsBehavior: Flickable.StopAtBounds
-                    visible: root.filteredEntries.length > 0
-
-                    delegate: Item {
-                        id: row
-                        required property var modelData
-                        required property int index
-                        width: list.width
-                        height: 42
-
-                        Rectangle {
-                            anchors.fill: parent
-                            anchors.margins: 2
-                            radius: 6
-                            color: row.index === root.selectedIndex ? theme.surface0 : "transparent"
-                        }
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 12
-                            anchors.rightMargin: 12
-                            spacing: 12
-
-                            AppIcon {
-                                appId: row.modelData.id
-                                iconName: row.modelData.icon || ""
-                                fallbackGlyph: "󰅬"
-                                size: 20
-                                Layout.preferredWidth: 20
-                                Layout.preferredHeight: 20
-                                fallbackIcon: "application-x-executable"
-                            }
-
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 0
-                                Text {
-                                    id: nameText
-                                    textFormat: Text.RichText
-                                    text: root.highlightText(row.modelData.name, root.query, root.theme.peach)
-                                    color: theme.text
-                                    font.pixelSize: theme.fontSize + 1
-                                    font.family: theme.font
-                                    elide: Text.ElideRight
-                                    Layout.fillWidth: true
-                                }
-                                Text {
-                                    visible: row.modelData.genericName.length > 0
-                                    text: row.modelData.genericName
-                                    color: theme.subtext0
-                                    font.pixelSize: theme.fontSize - 1
-                                    font.family: theme.font
-                                    elide: Text.ElideRight
-                                    Layout.fillWidth: true
-                                }
-                            }
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onEntered: root.selectedIndex = row.index
-                            onClicked: root.launch(row.modelData)
-                        }
-                    }
-                }
-
-                Text {
-                    anchors.centerIn: parent
-                    visible: root.filteredEntries.length === 0
-                    text: root.allEntries.length === 0 ? "loading apps…" :
-                         root.query.length > 0 ? "no matches" : "type to search"
-                    color: theme.surface1
-                    font.pixelSize: theme.fontSize
-                    font.family: theme.font
-                }
-            }
-
-            // footer — mode badge + hints
-            RowLayout {
-                Layout.fillWidth: true
-
-                // mode badge
-                Rectangle {
-                    width: 26
-                    height: 20
-                    radius: 4
-                    color: root.searchMode ? theme.green : theme.lavender
-                    Layout.leftMargin: 4
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: root.searchMode ? "I" : "N"
-                        color: theme.base
-                        font.bold: true
-                        font.pixelSize: 11
-                        font.family: theme.font
-                    }
-                }
-
-                Text {
-                    text: root.searchMode ? "INSERT" : "NORMAL"
-                    color: root.searchMode ? theme.green : theme.lavender
-                    font.pixelSize: theme.fontSize - 1
-                    font.family: theme.font
-                    font.bold: true
-                    Layout.leftMargin: 6
-                }
-
-                Item { Layout.fillWidth: true }
-
-                Text {
-                    text: root.searchMode
-                        ? "↑↓ nav · ↵ launch · esc exit"
-                        : "j/k nav · / search · ↵ launch · esc close"
-                    color: theme.surface1
-                    font.pixelSize: theme.fontSize - 1
-                    font.family: theme.font
-                    horizontalAlignment: Text.AlignRight
-                }
-            }
+        onQueryChanged: {
+            if (!root.actionsFor && picker.query.trim().charAt(0) === "@") root.loadWindows()
+            root.rebuild()
         }
+        onActivated: (row, alt) => root.activate(row, alt)
+        onSecondary: row => root.openActions(row)
+        onBackRequested: root.back()
+        onCloseRequested: root.close()
     }
 }

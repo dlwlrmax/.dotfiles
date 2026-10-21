@@ -8,6 +8,14 @@ resolve_geo() {
     GEO_LAT=""; GEO_LON=""; GEO_CITY=""; GEO_COUNTRY=""
     [ -z "$location" ] && return 1
 
+    # "lat,lon[,City[,Country]]" (written by the panel's location search) skips
+    # geocoding entirely, so ambiguous names ("Springfield") resolve exactly.
+    if [[ "$location" =~ ^(-?[0-9]+(\.[0-9]+)?),[[:space:]]*(-?[0-9]+(\.[0-9]+)?)(,[[:space:]]*([^,]*))?(,[[:space:]]*(.*))?$ ]]; then
+        GEO_LAT="${BASH_REMATCH[1]}"; GEO_LON="${BASH_REMATCH[3]}"
+        GEO_CITY="${BASH_REMATCH[6]:-$GEO_LAT,$GEO_LON}"; GEO_COUNTRY="${BASH_REMATCH[8]:-}"
+        return 0
+    fi
+
     local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/quickshell/weather"
     local cache_key
     cache_key=$(printf '%s' "$location" | sha256sum | cut -d' ' -f1)
@@ -21,7 +29,7 @@ resolve_geo() {
     local enc
     enc=$(jq -rn --arg v "$location" '$v|@uri')
     local geo
-    geo=$(curl -s --max-time 5 "https://geocoding-api.open-meteo.com/v1/search?name=${enc}&count=1&language=en&format=json")
+    geo=$(curl -fsS --max-time 6 --retry 1 --retry-delay 1 "https://geocoding-api.open-meteo.com/v1/search?name=${enc}&count=1&language=en&format=json")
 
     GEO_LAT=$(echo "$geo" | jq -r '.results[0].latitude // empty')
     GEO_LON=$(echo "$geo" | jq -r '.results[0].longitude // empty')

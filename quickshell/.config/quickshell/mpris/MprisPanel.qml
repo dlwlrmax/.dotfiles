@@ -8,7 +8,7 @@ import qs.common
 
 Item {
     id: root
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     property bool active: false
     property int maxListHeight: 420
     signal close()
@@ -63,27 +63,11 @@ Item {
     }
 
     clip: true
-    implicitWidth: 360
+    implicitWidth: theme.panelWidthS
     implicitHeight: (root.playerModel.length > 0 ? Math.min(playerList.implicitHeight, root.maxListHeight) : 60) + header.implicitHeight + 40
 
-    Rectangle {
+    PanelBackground {
         anchors.fill: parent
-        topLeftRadius: 0
-        topRightRadius: 0
-        bottomLeftRadius: 16
-        bottomRightRadius: 16
-        color: theme.color
-        border.color: theme.surface0
-        border.width: 2
-
-        // mask top border
-        Rectangle {
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 2
-            color: theme.color
-        }
     }
 
     ColumnLayout {
@@ -91,38 +75,11 @@ Item {
         anchors.margins: 14
         spacing: 10
 
-        RowLayout {
+        PanelHeader {
             id: header
-            Layout.fillWidth: true
-            spacing: 8
-
-            Text {
-                text: "Media" + (root.playerModel.length > 0 ? " (" + root.playerModel.length + ")" : "")
-                color: theme.text
-                font.pixelSize: theme.fontSize + 1
-                font.bold: true
-                font.family: theme.font
-                Layout.fillWidth: true
-            }
-
-            Text {
-                text: "×"
-                color: theme.subtext0
-                font.pixelSize: theme.fontSize + 4
-
-                MouseArea {
-                    anchors.fill: parent
-                    anchors.margins: -4
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.close()
-                }
-            }
-        }
-
-        Rectangle {
-            Layout.fillWidth: true
-            height: 1
-            color: theme.surface0
+            theme: root.theme
+            title: "Media" + (root.playerModel.length > 0 ? " (" + root.playerModel.length + ")" : "")
+            onClose: root.close()
         }
 
         ScrollView {
@@ -137,385 +94,18 @@ Item {
             ColumnLayout {
                 id: playerList
                 width: playerScroll.availableWidth
-                spacing: 12
+                spacing: 10
 
                 Repeater {
                     model: root.playerModel
 
-                    delegate: ColumnLayout {
+                    PlayerCard {
                         required property var modelData
-                        required property int index
-                        readonly property real trackLen: MediaInfo.trackLength(modelData)
-                        spacing: 8
-                        Layout.fillWidth: true
-
-                        Rectangle {
-                            Layout.fillWidth: true
-                            color: theme.surface0
-                            height: 1
-                            visible: index > 0
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 10
-
-                            Rectangle {
-                                width: 48
-                                height: 48
-                                radius: 6
-                                color: theme.surface0
-
-                                Image {
-                                    anchors.fill: parent
-                                    anchors.margins: 2
-                                    source: modelData.trackArtUrl || ""
-                                    sourceSize.width: 44
-                                    sourceSize.height: 44
-                                    fillMode: Image.PreserveAspectFit
-                                    visible: modelData.trackArtUrl !== ""
-                                }
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "♪"
-                                    color: theme.subtext0
-                                    font.pixelSize: 20
-                                    visible: !(modelData.trackArtUrl !== "")
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        if (typeof modelData.raise === "function" && modelData.canRaise) {
-                                            modelData.raise()
-                                        } else {
-                                            root.focusPlayer(modelData)
-                                        }
-                                    }
-                                }
-                            }
-
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 2
-
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 4
-
-                                    Text {
-                                        text: {
-                                            if (modelData.playbackState === MprisPlaybackState.Playing) return "●"
-                                            if (modelData.playbackState === MprisPlaybackState.Paused) return "❚❚"
-                                            return ""
-                                        }
-                                        color: modelData.playbackState === MprisPlaybackState.Playing ? theme.green : theme.subtext0
-                                        font.pixelSize: theme.fontSize - 3
-                                    }
-
-                                    Text {
-                                        text: modelData.identity || "Unknown Player"
-                                        color: theme.subtext1
-                                        font.pixelSize: theme.fontSize - 1
-                                        font.weight: Font.Medium
-                                        elide: Text.ElideRight
-                                        Layout.fillWidth: true
-                                    }
-                                }
-
-                                Text {
-                                    id: trackTitleText
-                                    text: {
-                                        var artist = modelData.trackArtist
-                                        var title = modelData.trackTitle
-                                        if (artist && title) return artist + " - " + title
-                                        return title || "Unknown Title"
-                                    }
-                                    color: theme.text
-                                    font.pixelSize: theme.fontSize
-                                    font.bold: true
-                                    elide: Text.ElideRight
-                                    Layout.fillWidth: true
-
-                                    MouseArea {
-                                        id: titleHover
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        acceptedButtons: Qt.NoButton
-                                        cursorShape: Qt.PointingHandCursor
-                                    }
-
-                                    BarTooltip {
-                                        id: titleTip
-                                        target: trackTitleText
-                                        theme: root.theme
-                                        // Separate window: doesn't follow scrolling or the panel's
-                                        // fade, so it closes on both.
-                                        hovered: root.active && titleHover.containsMouse && trackTitleText.truncated
-
-                                        Connections {
-                                            target: playerScroll.contentItem
-                                            function onContentYChanged() { titleTip.suppressed = true }
-                                        }
-                                        delay: 500
-                                        text: trackTitleText.text
-                                    }
-                                }
-
-                                Text {
-                                    text: modelData.trackAlbum || ""
-                                    color: theme.subtext0
-                                    font.pixelSize: theme.fontSize - 1
-                                    elide: Text.ElideRight
-                                    Layout.fillWidth: true
-                                    visible: modelData.trackAlbum !== ""
-                                }
-                            }
-                        }
-
-                        // Playtime row: only meaningful when the player exposes
-                        // BOTH a live position and a real length. Zen/Firefox
-                        // report a frozen Position 0 with no mpris:length, so the
-                        // whole row stays hidden there instead of showing "--:--".
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 6
-                            visible: modelData.positionSupported && trackLen > 1
-
-                            Text {
-                                // A playing track stuck at 0 means the player doesn't report position.
-                                text: modelData.isPlaying && !(modelData.position > 0.5) ? "--:--" : MediaInfo.formatTime(modelData.position)
-                                color: theme.subtext0
-                                font.pixelSize: theme.fontSize - 2
-                            }
-
-                            Rectangle {
-                                id: progressTrack
-                                Layout.fillWidth: true
-                                height: 4
-                                radius: 2
-                                color: theme.surface0
-
-                                // Click or drag to seek, when the player allows it.
-                                MouseArea {
-                                    anchors.fill: parent
-                                    anchors.topMargin: -6
-                                    anchors.bottomMargin: -6
-                                    enabled: modelData.canSeek && trackLen > 1
-                                    cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                    function seekTo(x) {
-                                        var r = Math.max(0, Math.min(1, x / progressTrack.width))
-                                        modelData.position = r * trackLen
-                                    }
-                                    onPressed: mouse => seekTo(mouse.x)
-                                    onPositionChanged: mouse => { if (pressed) seekTo(mouse.x) }
-                                }
-
-                                Rectangle {
-                                    height: 4
-                                    radius: 2
-                                    color: theme.mauve
-                                    width: {
-                                        if (!modelData.positionSupported || !(trackLen > 0)) return 0
-                                        if (!(modelData.position > 0)) return 0
-                                        var r = modelData.position / trackLen
-                                        if (r < 0) r = 0
-                                        if (r > 1) r = 1
-                                        return r * parent.width
-                                    }
-                                }
-                            }
-
-                            Text {
-                                text: MediaInfo.formatTime(trackLen)
-                                color: theme.subtext0
-                                font.pixelSize: theme.fontSize - 2
-                            }
-                        }
-
-                        // Fallback row for players (Zen/Firefox) that expose a
-                        // live position but no mpris:length (and none remembered
-                        // for this track): elapsed time + indeterminate bar.
-                        RowLayout {
-                            id: liveRow
-                            Layout.fillWidth: true
-                            spacing: 6
-                            visible: modelData.isPlaying && modelData.positionSupported
-                                && modelData.position > 0.5
-                                && !(trackLen > 1)
-
-                            Text {
-                                text: MediaInfo.formatTime(modelData.position)
-                                color: theme.subtext0
-                                font.pixelSize: theme.fontSize - 2
-                            }
-
-                            Rectangle {
-                                id: liveTrack
-                                Layout.fillWidth: true
-                                height: 4
-                                radius: 2
-                                color: theme.surface0
-                                clip: true
-
-                                Rectangle {
-                                    id: liveFill
-                                    width: 40
-                                    height: 4
-                                    radius: 2
-                                    color: theme.green
-                                    x: -width
-
-                                    NumberAnimation on x {
-                                        from: -liveFill.width
-                                        to: liveTrack.width
-                                        duration: 1200
-                                        loops: Animation.Infinite
-                                        running: liveRow.visible
-                                    }
-                                }
-                            }
-
-                            // Duration unknown (player didn't send one), not necessarily a livestream.
-                            Text {
-                                text: "--:--"
-                                color: theme.surface1
-                                font.pixelSize: theme.fontSize - 2
-                            }
-                        }
-
-                        RowLayout {
-                            Layout.alignment: Qt.AlignHCenter
-                            Layout.fillWidth: true
-                            spacing: 16
-
-                            Text {
-                                text: "󰒮"
-                                color: modelData.shuffle ? theme.mauve : theme.surface1
-                                font.pixelSize: theme.fontSize + 2
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    anchors.margins: -6
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        if (modelData.shuffleSupported) modelData.shuffle = !modelData.shuffle
-                                    }
-                                }
-                            }
-
-                            Text {
-                                text: "󰒭"
-                                color: theme.subtext0
-                                font.pixelSize: theme.fontSize + 5
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    anchors.margins: -6
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        if (modelData.canGoPrevious) modelData.previous()
-                                    }
-                                }
-                            }
-
-                            Text {
-                                text: modelData.isPlaying ? "" : ""
-                                color: theme.text
-                                font.pixelSize: theme.fontSize + 6
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    anchors.margins: -6
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        if (modelData.canTogglePlaying) modelData.togglePlaying()
-                                    }
-                                }
-                            }
-
-                            Text {
-                                text: "󰒧"
-                                color: theme.subtext0
-                                font.pixelSize: theme.fontSize + 5
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    anchors.margins: -6
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        if (modelData.canGoNext) modelData.next()
-                                    }
-                                }
-                            }
-
-                            Text {
-                                text: {
-                                    if (modelData.loopState === 0) return "󰓦"
-                                    if (modelData.loopState === 1) return "󰓩"
-                                    return "󰓧"
-                                }
-                                color: modelData.loopState !== 0 ? theme.mauve : theme.surface1
-                                font.pixelSize: theme.fontSize + 2
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    anchors.margins: -6
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        if (modelData.loopSupported) {
-                                            modelData.loopState = (modelData.loopState + 1) % 3
-                                        }
-                                    }
-                                }
-                            }
-
-                            Text {
-                                text: "󰕾"
-                                color: theme.subtext0
-                                font.pixelSize: theme.fontSize
-                                visible: modelData.volumeSupported
-                                Layout.preferredWidth: 18
-                                horizontalAlignment: Text.AlignHCenter
-                            }
-
-                            Slider {
-                                id: volumeSlider
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 16
-                                visible: modelData.volumeSupported
-                                from: 0
-                                to: 1
-                                value: modelData.volume
-                                onMoved: modelData.volume = value
-
-                                background: Rectangle {
-                                    x: volumeSlider.leftPadding
-                                    y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
-                                    width: volumeSlider.availableWidth
-                                    height: 4
-                                    radius: 2
-                                    color: theme.surface0
-
-                                    Rectangle {
-                                        width: volumeSlider.visualPosition * parent.width
-                                        height: parent.height
-                                        radius: parent.radius
-                                        color: theme.green
-                                    }
-                                }
-
-                                handle: Rectangle {
-                                    x: volumeSlider.leftPadding + volumeSlider.visualPosition * (volumeSlider.availableWidth - width)
-                                    y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
-                                    width: 8
-                                    height: 8
-                                    radius: 4
-                                    color: theme.green
-                                }
-                            }
+                        theme: root.theme
+                        player: modelData
+                        onFocusRequested: {
+                            if (typeof modelData.raise === "function" && modelData.canRaise) modelData.raise()
+                            else root.focusPlayer(modelData)
                         }
                     }
                 }
@@ -534,12 +124,15 @@ Item {
                 text: "No media players"
                 color: theme.subtext0
                 font.pixelSize: theme.fontSize
-                font.family: theme.font
+                font.family: theme.fontUi
             }
 
-            Button {
+            Badge {
                 Layout.alignment: Qt.AlignHCenter
+                theme: root.theme
                 text: "Open browser"
+                clr: theme.blue
+                clickable: true
                 onClicked: defaultBrowserProc.running = true
             }
         }
@@ -588,6 +181,14 @@ Item {
         }
     }
 
+
+    // Players change title/state without the model changing; re-filter while the panel is open.
+    Timer {
+        interval: 2000
+        running: root.active
+        repeat: true
+        onTriggered: root._rebuildPlayers()
+    }
 
     // Poll live positions only when the panel is open AND at least one player
     // exposes a usable time source: a real length, or (fallback) a live

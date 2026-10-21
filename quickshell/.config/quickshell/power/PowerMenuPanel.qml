@@ -6,7 +6,7 @@ import qs.common
 
 Item {
     id: root
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     property bool active: false
     signal close()
 
@@ -16,6 +16,7 @@ Item {
     property string holdAction: ""
     property real holdProgress: 0
     property string holdKey: ""
+    property bool canHibernate: false
 
     focus: true
     activeFocusOnTab: true
@@ -34,16 +35,28 @@ Item {
     }
 
     onActiveChanged: {
-        if (active) root.forceActiveFocus()
+        if (active) {
+            root.forceActiveFocus()
+            if (!hibernateCheck.running) hibernateCheck.running = true
+        }
+    }
+
+    // Hibernate needs swap + a resume setup; only offer it when logind says it works.
+    Process {
+        id: hibernateCheck
+        command: ["bash", "-c", "busctl call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager CanHibernate | grep -q '\"yes\"' && echo yes"]
+        stdout: StdioCollector {
+            onStreamFinished: root.canHibernate = this.text.trim() === "yes"
+        }
     }
 
     Keys.onPressed: {
         if (event.isAutoRepeat || holdAction) return
         var key = event.text.toUpperCase()
-        var map = { "L": "lock", "R": "reboot", "S": "shutdown", "O": "logout" }
+        var map = { "L": "lock", "Z": "suspend", "H": "hibernate", "R": "reboot", "S": "shutdown", "O": "logout" }
         var act = map[key]
-        if (!act) return
-        if (act === "lock") {
+        if (!act || (act === "hibernate" && !canHibernate)) return
+        if (act === "lock" || act === "suspend") {
             pendingAction = act
             actionProc.running = true
         } else {
@@ -84,15 +97,16 @@ Item {
     }
 
     clip: true
-    implicitWidth: 260
-    implicitHeight: 320
+    implicitWidth: 300
+    implicitHeight: 410
 
+    // Centered overlay (not attached to the bar): rounded on all sides.
     Rectangle {
         anchors.fill: parent
-        radius: 16
-        color: theme.color
-        border.color: theme.surface0
-        border.width: 2
+        radius: theme.panelRadius
+        color: theme.panelColorSolid
+        border.color: theme.surface1
+        border.width: 1
     }
 
     ColumnLayout {
@@ -100,41 +114,13 @@ Item {
         anchors.margins: 14
         spacing: 10
 
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 8
-
-            Text {
-                text: confirming ? "Confirm" : (holdAction ? "Hold " + holdKey + "..." : "Power Menu")
-                color: confirming ? theme.red : (holdAction ? theme.peach : theme.text)
-                font.pixelSize: theme.fontSize + 1
-                font.bold: true
-                font.family: theme.font
-                Layout.fillWidth: true
-            }
-
-            Text {
-                text: holdAction ? Math.round(holdProgress * 100) + "%" : "×"
-                color: holdAction ? theme.subtext0 : theme.subtext0
-                font.pixelSize: theme.fontSize + (holdAction ? 0 : 4)
-
-                MouseArea {
-                    anchors.fill: parent
-                    anchors.margins: -4
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        if (confirming) {
-                            confirming = false
-                            pendingAction = ""
-                        } else if (holdAction) {
-                            holdAction = ""
-                            holdKey = ""
-                            holdProgress = 0
-                        } else {
-                            root.close()
-                        }
-                    }
-                }
+        PanelHeader {
+            theme: root.theme
+            title: confirming ? "Confirm" : (holdAction ? "Hold " + holdKey + "\u2026 " + Math.round(holdProgress * 100) + "%" : "Power")
+            onClose: {
+                if (confirming) { confirming = false; pendingAction = "" }
+                else if (holdAction) { holdAction = ""; holdKey = ""; holdProgress = 0 }
+                else root.close()
             }
         }
 
@@ -153,7 +139,7 @@ Item {
             Text {
                 Layout.fillWidth: true
                 text: {
-                    var labels = { reboot: "reboot", shutdown: "shut down", logout: "log out" }
+                    var labels = { reboot: "reboot", shutdown: "shut down", logout: "log out", hibernate: "hibernate" }
                     return "Are you sure you want\nto " + (labels[pendingAction] || pendingAction) + "?"
                 }
                 color: theme.subtext1
@@ -170,7 +156,7 @@ Item {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 36
-                    radius: 8
+                    radius: theme.radiusLg
                     color: theme.surface0
 
                     Text {
@@ -195,7 +181,7 @@ Item {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 36
-                    radius: 8
+                    radius: theme.radiusLg
                     color: theme.red
 
                     Text {
@@ -229,17 +215,19 @@ Item {
 
             Repeater {
                 model: [
-                    { icon: "\uF023", label: "Lock",     key: "L", action: "lock",     color: theme.lavender },
-                    { icon: "\uF021", label: "Reboot",   key: "R", action: "reboot",   color: theme.peach },
-                    { icon: "\uF011", label: "Shutdown", key: "S", action: "shutdown", color: theme.red },
-                    { icon: "\uF08B", label: "Logout",   key: "O", action: "logout",   color: theme.mauve }
-                ]
+                    { icon: "\uF023", label: "Lock",      key: "L", action: "lock",      sub: "Lock the screen",          color: theme.lavender },
+                    { icon: "\uF186", label: "Sleep",     key: "Z", action: "suspend",   sub: "Suspend to RAM",           color: theme.sapphire },
+                    { icon: "\uF2DC", label: "Hibernate", key: "H", action: "hibernate", sub: "Save to disk and power off", color: theme.blue },
+                    { icon: "\uF08B", label: "Log out",   key: "O", action: "logout",    sub: "End this session",         color: theme.mauve },
+                    { icon: "\uF021", label: "Reboot",    key: "R", action: "reboot",    sub: "Restart the computer",     color: theme.peach },
+                    { icon: "\uF011", label: "Shut down", key: "S", action: "shutdown",  sub: "Power off",                color: theme.red }
+                ].filter(function (t) { return t.action !== "hibernate" || root.canHibernate })
 
                 delegate: Rectangle {
                     id: btn
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 70
-                    radius: 12
+                    Layout.preferredHeight: 74
+                    radius: theme.radiusXl
                     color: theme.surface0
 
                     property bool isHolding: root.holdKey === modelData.key
@@ -269,11 +257,19 @@ Item {
 
                         Text {
                             Layout.alignment: Qt.AlignHCenter
-                            text: "[" + modelData.key + "] " + modelData.label
+                            text: modelData.label + "  " + modelData.key
                             color: isHolding ? modelData.color : theme.text
                             font.pixelSize: theme.fontSize - 1
-                            font.family: theme.font
+                            font.family: theme.fontUi
                             font.weight: isHolding ? Font.Bold : Font.Medium
+                        }
+
+                        Text {
+                            Layout.alignment: Qt.AlignHCenter
+                            text: modelData.sub
+                            color: theme.overlay0
+                            font.pixelSize: theme.fontSizeMin - 1
+                            font.family: theme.fontUi
                         }
                     }
 
@@ -281,9 +277,7 @@ Item {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            if (modelData.action === "reboot" ||
-                                modelData.action === "shutdown" ||
-                                modelData.action === "logout") {
+                            if (modelData.action !== "lock" && modelData.action !== "suspend") {
                                 pendingAction = modelData.action
                                 confirming = true
                             } else {

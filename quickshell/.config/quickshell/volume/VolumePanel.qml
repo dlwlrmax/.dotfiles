@@ -7,12 +7,12 @@ import qs.common
 
 Item {
     id: root
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     property bool active: false
     signal close()
 
     clip: true
-    implicitWidth: 380
+    implicitWidth: theme.panelWidthM
     implicitHeight: 640
 
     // Live from Pipewire while the panel is open. Physical devices only: ALSA or a
@@ -40,23 +40,8 @@ Item {
     property var pendingPresetCmd: []
     property bool needsStatus: false
 
-    Rectangle {
+    PanelBackground {
         anchors.fill: parent
-        topLeftRadius: 0
-        topRightRadius: 0
-        bottomLeftRadius: 16
-        bottomRightRadius: 16
-        color: theme.color
-        border.color: theme.surface0
-        border.width: 2
-
-        Rectangle {
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 2
-            color: theme.color
-        }
     }
 
     ColumnLayout {
@@ -64,416 +49,367 @@ Item {
         anchors.margins: 14
         spacing: 10
 
-        RowLayout {
-            id: header
-            Layout.fillWidth: true
-            spacing: 8
+        PanelHeader {
+            theme: root.theme
+            title: "Volume Control"
+            onClose: root.close()
+        }
 
-            Text {
-                text: "Volume Control"
-                color: theme.text
-                font.pixelSize: theme.fontSize + 1
-                font.bold: true
-                font.family: theme.font
+        SectionCard {
+            theme: root.theme
+            title: "Output Device"
+
+    ColumnLayout {
                 Layout.fillWidth: true
-            }
-
-            Text {
-                text: "×"
-                color: theme.subtext0
-                font.pixelSize: theme.fontSize + 4
-
-                MouseArea {
-                    anchors.fill: parent
-                    anchors.margins: -4
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.close()
-                }
-            }
-        }
-
-        Rectangle {
-            Layout.fillWidth: true
-            height: 1
-            color: theme.surface0
-        }
-
-        Text {
-            text: "Output Device"
-            color: theme.subtext1
-            font.pixelSize: theme.fontSize - 1
-            font.weight: Font.Medium
-            font.family: theme.font
-        }
-
-        ColumnLayout {
-            Layout.fillWidth: true
-            spacing: 8
-
-            Repeater {
-                model: root.sinks
-                delegate: DeviceRow {
-                    required property var modelData
-                    theme: root.theme
-                    node: modelData
-                    isDefault: Pipewire.defaultAudioSink === modelData
-                    onMakeDefault: Pipewire.preferredDefaultAudioSink = modelData
-                }
-            }
-
-            Text {
-                Layout.fillWidth: true
-                visible: root.sinks.length === 0
-                text: "No output devices"
-                color: theme.subtext0
-                font.pixelSize: theme.fontSize - 1
-                font.family: theme.font
-            }
-        }
-
-        Rectangle {
-            Layout.fillWidth: true
-            height: 1
-            color: theme.surface0
-        }
-
-        Item {
-            Layout.fillWidth: true
-            implicitHeight: eeRow.implicitHeight
-
-            // Declared before the row so the repair button's MouseArea sits on top
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    // Flip immediately so the switch animates; queue the toggle so rapid clicks aren't dropped.
-                    // Bumping eeToggleGen invalidates any status read already in flight.
-                    root.eeActive = !root.eeActive;
-                    root.eeToggleGen++;
-                    root.eePendingToggles++;
-                    if (!eeToggleProc.running) eeToggleProc.running = true;
-                }
-            }
-
-            RowLayout {
-                id: eeRow
-                anchors.fill: parent
                 spacing: 8
 
-                ColumnLayout {
+                Repeater {
+                    model: root.sinks
+                    delegate: DeviceRow {
+                        required property var modelData
+                        theme: root.theme
+                        node: modelData
+                        isDefault: Pipewire.defaultAudioSink === modelData
+                        onMakeDefault: Pipewire.preferredDefaultAudioSink = modelData
+                    }
+                }
+
+                Text {
                     Layout.fillWidth: true
-                    spacing: 2
+                    visible: root.sinks.length === 0
+                    text: "No output devices"
+                    color: theme.subtext0
+                    font.pixelSize: theme.fontSize - 1
+                    font.family: theme.font
+                }
+            }
+        }
 
-                    // Click the name to pick a preset; the rest of the row toggles bypass.
-                    // fillWidth children let the column actually take the row's spare width;
-                    // without them a ColumnLayout caps itself at its preferred width.
-                    Item {
+        SectionCard {
+            theme: root.theme
+            title: "Effects"
+
+            Item {
+                Layout.fillWidth: true
+                implicitHeight: eeRow.implicitHeight
+
+                // Declared before the row so the repair button's MouseArea sits on top
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        // Flip immediately so the switch animates; queue the toggle so rapid clicks aren't dropped.
+                        // Bumping eeToggleGen invalidates any status read already in flight.
+                        root.eeActive = !root.eeActive;
+                        root.eeToggleGen++;
+                        root.eePendingToggles++;
+                        if (!eeToggleProc.running) eeToggleProc.running = true;
+                    }
+                }
+
+                RowLayout {
+                    id: eeRow
+                    anchors.fill: parent
+                    spacing: 8
+
+                    ColumnLayout {
                         Layout.fillWidth: true
-                        implicitHeight: presetNameText.implicitHeight
+                        spacing: 2
 
-                        // Plain anchoring, not a layout: the name takes its natural width and
-                        // only elides when the arrow would otherwise run off the column.
+                        // Click the name to pick a preset; the rest of the row toggles bypass.
+                        // fillWidth children let the column actually take the row's spare width;
+                        // without them a ColumnLayout caps itself at its preferred width.
+                        Item {
+                            Layout.fillWidth: true
+                            implicitHeight: presetNameText.implicitHeight
+
+                            // Plain anchoring, not a layout: the name takes its natural width and
+                            // only elides when the arrow would otherwise run off the column.
+                            Text {
+                                id: presetNameText
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: Math.min(implicitWidth, parent.width - presetArrow.implicitWidth - 6)
+                                text: root.eePreset || "EasyEffects"
+                                color: presetNameMouse.containsMouse ? theme.mauve : theme.text
+                                font.pixelSize: theme.fontSize
+                                font.weight: Font.Medium
+                                font.family: theme.font
+                                elide: Text.ElideRight
+                            }
+
+                            Text {
+                                id: presetArrow
+                                anchors.left: presetNameText.right
+                                anchors.leftMargin: 6
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: root.presetMenuOpen ? "\uf106" : "\uf107"   // nf-fa-angle_up / angle_down
+                                color: presetNameMouse.containsMouse ? theme.mauve : theme.subtext0
+                                font.pixelSize: theme.fontSize
+                                font.family: theme.font
+                            }
+
+                            MouseArea {
+                                id: presetNameMouse
+                                anchors.left: presetNameText.left
+                                anchors.right: presetArrow.right
+                                anchors.top: presetNameText.top
+                                anchors.bottom: presetNameText.bottom
+                                anchors.margins: -4
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    root.presetMenuOpen = !root.presetMenuOpen
+                                    if (root.presetMenuOpen && !eePresetListProc.running) eePresetListProc.running = true
+                                }
+                            }
+                        }
+
+                        // Always shown so the row height doesn't jump when the preset name arrives
                         Text {
-                            id: presetNameText
-                            anchors.left: parent.left
+                            text: root.eePreset ? "EasyEffects" : "No preset loaded"
+                            color: theme.subtext0
+                            font.pixelSize: theme.fontSizeMin
+                            font.family: theme.font
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    // Repair silent playback (stalled EE chain / sink resume glitch)
+                    Text {
+                        text: repairProc.running ? "…" : "↻"
+                        color: repairProc.running ? theme.overlay0 : theme.subtext0
+                        font.pixelSize: theme.fontSize + 1
+                        font.family: theme.font
+
+                        MouseArea {
+                            anchors.fill: parent
+                            anchors.margins: -4
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (!repairProc.running) repairProc.running = true;
+                            }
+                        }
+                    }
+
+                    // Visual-only switch; the row's MouseArea handles the toggle
+                    Rectangle {
+                        implicitWidth: 34
+                        implicitHeight: 18
+                        radius: height / 2
+                        color: root.eeActive ? theme.green : theme.surface0
+                        Behavior on color { ColorAnimation { duration: 150 } }
+
+                        Rectangle {
+                            width: parent.height - 4
+                            height: width
+                            radius: width / 2
                             anchors.verticalCenter: parent.verticalCenter
-                            width: Math.min(implicitWidth, parent.width - presetArrow.implicitWidth - 6)
-                            text: root.eePreset || "EasyEffects"
-                            color: presetNameMouse.containsMouse ? theme.mauve : theme.text
-                            font.pixelSize: theme.fontSize
-                            font.weight: Font.Medium
+                            x: root.eeActive ? parent.width - width - 2 : 2
+                            color: root.eeActive ? theme.base : theme.subtext0
+                            Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                        }
+                    }
+                }
+            }
+
+    ColumnLayout {
+                Layout.fillWidth: true
+                visible: root.presetMenuOpen
+                spacing: 2
+
+                Repeater {
+                    model: root.eePresets
+                    delegate: Rectangle {
+                        required property string modelData
+                        readonly property bool isCurrent: modelData === root.eePreset
+                        Layout.fillWidth: true
+                        implicitHeight: presetLabel.implicitHeight + 10
+                        radius: theme.radiusMd
+                        color: presetItemMouse.containsMouse ? theme.surface0 : "transparent"
+
+                        Text {
+                            id: presetLabel
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.leftMargin: 8
+                            anchors.rightMargin: 8
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: (isCurrent ? "● " : "○ ") + modelData
+                            color: isCurrent ? theme.mauve : theme.subtext0
+                            font.pixelSize: theme.fontSize - 1
                             font.family: theme.font
                             elide: Text.ElideRight
                         }
 
-                        Text {
-                            id: presetArrow
-                            anchors.left: presetNameText.right
-                            anchors.leftMargin: 6
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: root.presetMenuOpen ? "\uf106" : "\uf107"   // nf-fa-angle_up / angle_down
-                            color: presetNameMouse.containsMouse ? theme.mauve : theme.subtext0
-                            font.pixelSize: theme.fontSize
-                            font.family: theme.font
-                        }
-
                         MouseArea {
-                            id: presetNameMouse
-                            anchors.left: presetNameText.left
-                            anchors.right: presetArrow.right
-                            anchors.top: presetNameText.top
-                            anchors.bottom: presetNameText.bottom
-                            anchors.margins: -4
+                            id: presetItemMouse
+                            anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                root.presetMenuOpen = !root.presetMenuOpen
-                                if (root.presetMenuOpen && !eePresetListProc.running) eePresetListProc.running = true
+                                root.presetMenuOpen = false
+                                // Reloading the current preset would discard unsaved EE edits; skip it.
+                                if (isCurrent || eePresetLoadProc.running) return
+                                root.eePreset = modelData   // optimistic; re-read after load
+                                root.pendingPresetCmd = ["easyeffects", "-l", modelData]
+                                eePresetLoadProc.running = true
                             }
                         }
                     }
-
-                    // Always shown so the row height doesn't jump when the preset name arrives
-                    Text {
-                        text: root.eePreset ? "EasyEffects" : "No preset loaded"
-                        color: theme.subtext0
-                        font.pixelSize: theme.fontSize - 2
-                        font.family: theme.font
-                        Layout.fillWidth: true
-                    }
                 }
 
-                // Repair silent playback (stalled EE chain / sink resume glitch)
                 Text {
-                    text: repairProc.running ? "…" : "↻"
-                    color: repairProc.running ? theme.surface1 : theme.subtext0
-                    font.pixelSize: theme.fontSize + 1
+                    visible: root.eePresets.length === 0
+                    text: eePresetListProc.running ? "Loading presets…" : "No output presets"
+                    color: theme.overlay0
+                    font.pixelSize: theme.fontSize - 1
                     font.family: theme.font
-
-                    MouseArea {
-                        anchors.fill: parent
-                        anchors.margins: -4
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (!repairProc.running) repairProc.running = true;
-                        }
-                    }
-                }
-
-                // Visual-only switch; the row's MouseArea handles the toggle
-                Rectangle {
-                    implicitWidth: 34
-                    implicitHeight: 18
-                    radius: height / 2
-                    color: root.eeActive ? theme.green : theme.surface0
-                    Behavior on color { ColorAnimation { duration: 150 } }
-
-                    Rectangle {
-                        width: parent.height - 4
-                        height: width
-                        radius: width / 2
-                        anchors.verticalCenter: parent.verticalCenter
-                        x: root.eeActive ? parent.width - width - 2 : 2
-                        color: root.eeActive ? theme.base : theme.subtext0
-                        Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
-                    }
+                    Layout.leftMargin: 8
                 }
             }
         }
 
-        ColumnLayout {
-            Layout.fillWidth: true
-            visible: root.presetMenuOpen
-            spacing: 2
+        SectionCard {
+            theme: root.theme
+            title: "Input Device"
 
-            Repeater {
-                model: root.eePresets
-                delegate: Rectangle {
-                    required property string modelData
-                    readonly property bool isCurrent: modelData === root.eePreset
+    ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Repeater {
+                    model: root.sources
+                    delegate: DeviceRow {
+                        required property var modelData
+                        theme: root.theme
+                        node: modelData
+                        isInput: true
+                        fillColor: theme.blue
+                        isDefault: Pipewire.defaultAudioSource === modelData
+                        onMakeDefault: Pipewire.preferredDefaultAudioSource = modelData
+                    }
+                }
+
+                // Default input is a virtual source (e.g. EasyEffects' mic chain), not a device above.
+                Text {
+                    readonly property var src: Pipewire.defaultAudioSource
                     Layout.fillWidth: true
-                    implicitHeight: presetLabel.implicitHeight + 10
-                    radius: 6
-                    color: presetItemMouse.containsMouse ? theme.surface0 : "transparent"
+                    visible: !!src && root.sources.indexOf(src) < 0
+                    text: src ? "Apps record from " + (src.description || src.name) : ""
+                    color: theme.subtext0
+                    font.pixelSize: theme.fontSizeMin
+                    font.family: theme.font
+                    elide: Text.ElideRight
+                }
 
-                    Text {
-                        id: presetLabel
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.leftMargin: 8
-                        anchors.rightMargin: 8
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: (isCurrent ? "● " : "○ ") + modelData
-                        color: isCurrent ? theme.mauve : theme.subtext0
-                        font.pixelSize: theme.fontSize - 1
-                        font.family: theme.font
-                        elide: Text.ElideRight
-                    }
-
-                    MouseArea {
-                        id: presetItemMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            root.presetMenuOpen = false
-                            // Reloading the current preset would discard unsaved EE edits; skip it.
-                            if (isCurrent || eePresetLoadProc.running) return
-                            root.eePreset = modelData   // optimistic; re-read after load
-                            root.pendingPresetCmd = ["easyeffects", "-l", modelData]
-                            eePresetLoadProc.running = true
-                        }
-                    }
+                Text {
+                    Layout.fillWidth: true
+                    visible: root.sources.length === 0
+                    text: "No input devices"
+                    color: theme.subtext0
+                    font.pixelSize: theme.fontSize - 1
+                    font.family: theme.font
                 }
             }
-
-            Text {
-                visible: root.eePresets.length === 0
-                text: eePresetListProc.running ? "Loading presets…" : "No output presets"
-                color: theme.surface1
-                font.pixelSize: theme.fontSize - 1
-                font.family: theme.font
-                Layout.leftMargin: 8
-            }
         }
 
-        Rectangle {
-            Layout.fillWidth: true
-            height: 1
-            color: theme.surface0
-        }
-
-        Text {
-            text: "Input Device"
-            color: theme.subtext1
-            font.pixelSize: theme.fontSize - 1
-            font.weight: Font.Medium
-            font.family: theme.font
-        }
-
-        ColumnLayout {
-            Layout.fillWidth: true
-            spacing: 8
-
-            Repeater {
-                model: root.sources
-                delegate: DeviceRow {
-                    required property var modelData
-                    theme: root.theme
-                    node: modelData
-                    isInput: true
-                    fillColor: theme.blue
-                    isDefault: Pipewire.defaultAudioSource === modelData
-                    onMakeDefault: Pipewire.preferredDefaultAudioSource = modelData
-                }
-            }
-
-            // Default input is a virtual source (e.g. EasyEffects' mic chain), not a device above.
-            Text {
-                readonly property var src: Pipewire.defaultAudioSource
-                Layout.fillWidth: true
-                visible: !!src && root.sources.indexOf(src) < 0
-                text: src ? "Apps record from " + (src.description || src.name) : ""
-                color: theme.subtext0
-                font.pixelSize: theme.fontSize - 2
-                font.family: theme.font
-                elide: Text.ElideRight
-            }
-
-            Text {
-                Layout.fillWidth: true
-                visible: root.sources.length === 0
-                text: "No input devices"
-                color: theme.subtext0
-                font.pixelSize: theme.fontSize - 1
-                font.family: theme.font
-            }
-        }
-
-        Rectangle {
-            Layout.fillWidth: true
-            height: 1
-            color: theme.surface0
-        }
-
-        Text {
-            text: "Applications" + (streamList.count > 0 ? " (" + streamList.count + ")" : "")
-            color: theme.subtext1
-            font.pixelSize: theme.fontSize - 1
-            font.weight: Font.Medium
-            font.family: theme.font
-        }
-
-        Item {
-            Layout.fillWidth: true
+        SectionCard {
+            theme: root.theme
+            title: "Applications" + (streamList.count > 0 ? " (" + streamList.count + ")" : "")
             Layout.fillHeight: true
 
-            ListView {
-                id: streamList
-                anchors.fill: parent
-                spacing: 8
-                clip: true
-                model: root.streams
+    Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
 
-                delegate: ColumnLayout {
-                    id: streamRow
-                    required property var modelData
-                    readonly property var props: modelData.properties || {}
-                    readonly property string appName: props["application.name"] || props["application.process.binary"] || ""
-                    readonly property string mediaName: props["media.name"] || ""
-                    readonly property bool muted: !!(modelData.audio && modelData.audio.muted)
-                    spacing: 6
-                    width: streamList.width
+                ListView {
+                    id: streamList
+                    anchors.fill: parent
+                    spacing: 8
+                    clip: true
+                    model: root.streams
 
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 8
+                    delegate: ColumnLayout {
+                        id: streamRow
+                        required property var modelData
+                        readonly property var props: modelData.properties || {}
+                        readonly property string appName: props["application.name"] || props["application.process.binary"] || ""
+                        readonly property string mediaName: props["media.name"] || ""
+                        readonly property bool muted: !!(modelData.audio && modelData.audio.muted)
+                        spacing: 6
+                        width: streamList.width
 
-                        AppIcon {
-                            appId: streamRow.appName
-                            iconName: streamRow.props["application.icon_name"] || ""
-                            fallbackIcon: "audio-x-generic"
-                            size: 22
-                            Layout.preferredWidth: 22
-                            Layout.preferredHeight: 22
-                            Layout.alignment: Qt.AlignVCenter
-                        }
-
-                        ColumnLayout {
+                        RowLayout {
                             Layout.fillWidth: true
-                            spacing: 0
+                            spacing: 8
+
+                            AppIcon {
+                                appId: streamRow.appName
+                                iconName: streamRow.props["application.icon_name"] || ""
+                                fallbackIcon: "audio-x-generic"
+                                size: 22
+                                Layout.preferredWidth: 22
+                                Layout.preferredHeight: 22
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 0
+
+                                Text {
+                                    text: streamRow.appName || streamRow.mediaName || "Unknown"
+                                    color: theme.text
+                                    font.pixelSize: theme.fontSize
+                                    font.family: theme.fontUi
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+
+                                // What it's playing (tab/track title), when it says more than the app name
+                                Text {
+                                    visible: text !== "" && text !== streamRow.appName
+                                    text: streamRow.mediaName
+                                    color: theme.subtext0
+                                    font.pixelSize: theme.fontSizeMin
+                                    font.family: theme.fontUi
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+                            }
 
                             Text {
-                                text: streamRow.appName || streamRow.mediaName || "Unknown"
-                                color: theme.text
+                                text: streamRow.muted ? "\ueee8" : "\uf028"
+                                color: streamRow.muted ? theme.overlay0 : theme.subtext0
                                 font.pixelSize: theme.fontSize
                                 font.family: theme.font
-                                elide: Text.ElideRight
-                                Layout.fillWidth: true
-                            }
 
-                            // What it's playing (tab/track title), when it says more than the app name
-                            Text {
-                                visible: text !== "" && text !== streamRow.appName
-                                text: streamRow.mediaName
-                                color: theme.subtext0
-                                font.pixelSize: theme.fontSize - 2
-                                font.family: theme.font
-                                elide: Text.ElideRight
-                                Layout.fillWidth: true
+                                MouseArea {
+                                    anchors.fill: parent
+                                    anchors.margins: -4
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: if (streamRow.modelData.audio) streamRow.modelData.audio.muted = !streamRow.muted
+                                }
                             }
                         }
 
-                        Text {
-                            text: streamRow.muted ? "\ueee8" : "\uf028"
-                            color: streamRow.muted ? theme.surface1 : theme.subtext0
-                            font.pixelSize: theme.fontSize
-                            font.family: theme.font
-
-                            MouseArea {
-                                anchors.fill: parent
-                                anchors.margins: -4
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: if (streamRow.modelData.audio) streamRow.modelData.audio.muted = !streamRow.muted
-                            }
+                        VolumeSlider {
+                            Layout.fillWidth: true
+                            theme: root.theme
+                            node: streamRow.modelData
+                            fillColor: theme.volumeNormalColor
                         }
                     }
 
-                    VolumeSlider {
-                        Layout.fillWidth: true
-                        theme: root.theme
-                        node: streamRow.modelData
-                        fillColor: theme.volumeNormalColor
+                    Text {
+                        anchors.centerIn: parent
+                        visible: streamList.count === 0
+                        text: "No active streams"
+                        color: theme.subtext0
+                        font.pixelSize: theme.fontSize
+                        font.family: theme.font
                     }
-                }
-
-                Text {
-                    anchors.centerIn: parent
-                    visible: streamList.count === 0
-                    text: "No active streams"
-                    color: theme.subtext0
-                    font.pixelSize: theme.fontSize
-                    font.family: theme.font
                 }
             }
         }

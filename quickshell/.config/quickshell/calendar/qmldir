@@ -1,2 +1,4 @@
 module qs.calendar
 CalendarPanel 1.0 CalendarPanel.qml
+MonthView 1.0 MonthView.qml
+DayCell 1.0 DayCell.qml

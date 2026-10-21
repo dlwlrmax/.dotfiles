@@ -6,7 +6,7 @@ import qs.common
 
 Item {
     id: root
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     // First player playing a titled track (paused/idle players hide the widget).
     readonly property var currentPlayer: MediaInfo.playing
     property real maxWidth: 200
@@ -14,7 +14,7 @@ Item {
 
     // Hard containment: layout squeeze must never paint over neighbors.
     clip: true
-    visible: currentPlayer !== null
+    visible: currentPlayer !== null && Prefs.show("mpris")
     implicitWidth: row.implicitWidth
     implicitHeight: row.implicitHeight
     Layout.alignment: Qt.AlignVCenter
@@ -84,7 +84,7 @@ Item {
                 Layout.preferredWidth: 64
                 Layout.preferredHeight: 64
                 Layout.alignment: Qt.AlignTop
-                radius: 8
+                radius: theme.radiusLg
                 color: root.theme.surface0
                 clip: true
 
@@ -128,7 +128,7 @@ Item {
                     text: (labelTip.p ? (labelTip.p.identity || "") : "")
                         + (hasPos ? "  ·  " + MediaInfo.formatTime(labelTip.p.position) + (labelTip.len > 1 ? " / " + MediaInfo.formatTime(labelTip.len) : "")
                                   : (labelTip.len > 1 ? "  ·  " + MediaInfo.formatTime(labelTip.len) : ""))
-                    color: root.theme.surface1
+                    color: root.theme.overlay0
                     font.pixelSize: root.theme.fontSize - 2
                     font.family: root.theme.font
                 }
@@ -143,8 +143,8 @@ Item {
         }
 
         Text {
-            text: "Click title: panel · Click icon: play/pause · Right: next · Middle/scroll: prev/next"
-            color: root.theme.surface1
+            text: "Click title: panel · icon: play/pause · Right: next · Middle: prev · Scroll: volume"
+            color: root.theme.overlay0
             font.pixelSize: root.theme.fontSize - 2
             font.family: root.theme.font
         }
@@ -172,12 +172,17 @@ Item {
                 if (root.currentPlayer.canGoPrevious) root.currentPlayer.previous()
             }
         }
+        // Wheel: player volume (5% per notch) when it has one, else previous/next.
         onWheel: wheel => {
-            if (!root.currentPlayer) return
-            if (wheel.angleDelta.y > 0) {
-                if (root.currentPlayer.canGoNext) root.currentPlayer.next()
+            var p = root.currentPlayer
+            if (!p) return
+            if (p.volumeSupported) {
+                var v = Math.max(0, Math.min(1, p.volume + (wheel.angleDelta.y > 0 ? 0.05 : -0.05)))
+                p.volume = v
+            } else if (wheel.angleDelta.y > 0) {
+                if (p.canGoNext) p.next()
             } else if (wheel.angleDelta.y < 0) {
-                if (root.currentPlayer.canGoPrevious) root.currentPlayer.previous()
+                if (p.canGoPrevious) p.previous()
             }
         }
     }

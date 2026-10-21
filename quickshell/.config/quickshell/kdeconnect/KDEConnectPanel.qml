@@ -2,641 +2,136 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import Quickshell
-import Quickshell.Io
 import qs.common
 
 Item {
     id: root
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     property bool active: false
     property var dataSource: null  // shared KDEConnectData instance
     signal close()
 
     property var devices: dataSource ? dataSource.devices : []
+    readonly property bool daemonUp: dataSource ? dataSource.daemonUp : true
 
-    // Battery accent shared with the bar widget thresholds (see KDEConnect.qml).
-    function batteryColor(b) {
-        if (b === null || b === undefined || b < 0) return theme.text
-        if (b < 20) return theme.red
-        if (b < 50) return theme.yellow
-        return theme.green
+    // Capped like the notification panel: content height up to the screen under the bar.
+    readonly property real maxHeight: {
+        var scr = root.QsWindow.window ? root.QsWindow.window.screen : null
+        return Math.min(640, scr ? scr.height - theme.barHeight - 24 : 640)
     }
 
     clip: true
-    implicitWidth: 340
-    implicitHeight: 400
+    implicitWidth: theme.panelWidthS
+    implicitHeight: Math.min(maxHeight, content.implicitHeight + 2 * theme.panelMargin)
 
-    Rectangle {
+    PanelBackground {
         anchors.fill: parent
-        topLeftRadius: 0
-        topRightRadius: 0
-        bottomLeftRadius: 16
-        bottomRightRadius: 16
-        color: theme.color
-        border.color: theme.surface0
-        border.width: 2
+    }
 
-        Rectangle {
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 2
-            color: theme.color
-        }
+    KdeActions {
+        id: actions
+        theme: root.theme
+        dataSource: root.dataSource
     }
 
     Flickable {
         id: scrollView
         anchors.fill: parent
-        anchors.margins: 14
+        anchors.margins: theme.panelMargin
         contentWidth: width
-        contentHeight: contentColumn.implicitHeight
+        contentHeight: content.implicitHeight
         boundsBehavior: Flickable.StopAtBounds
         clip: true
 
-        ScrollBar.vertical: ScrollBar {
-            policy: ScrollBar.AsNeeded
-        }
+        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
         ColumnLayout {
-            id: contentColumn
+            id: content
             width: scrollView.width
             spacing: 10
 
-            // Header
-            RowLayout {
+            PanelHeader {
+                theme: root.theme
+                title: "KDE Connect"
+                onClose: root.close()
+
+                Badge {
+                    theme: root.theme
+                    text: Glyphs.refresh + " Search"
+                    clr: theme.blue
+                    clickable: true
+                    visible: root.daemonUp
+                    onClicked: actions.refreshDevices()
+                }
+            }
+
+            // Last action result (ping sent, reply failed, ...).
+            Badge {
+                visible: actions.status !== ""
+                theme: root.theme
+                text: actions.status
+                clr: actions.statusOk ? theme.green : theme.red
+                Layout.maximumWidth: content.width
+            }
+
+            // kdeconnectd not on the session bus.
+            ColumnLayout {
                 Layout.fillWidth: true
+                visible: !root.daemonUp
                 spacing: 8
 
                 Text {
-                    text: "KDE Connect"
+                    text: "KDE Connect isn't running"
                     color: theme.text
-                    font.pixelSize: theme.fontSize + 1
-                    font.bold: true
-                    font.family: theme.font
+                    font.pixelSize: theme.fontSize
+                    font.family: theme.fontUi
+                }
+
+                Badge {
+                    theme: root.theme
+                    text: "Start KDE Connect"
+                    clr: theme.blue
+                    solid: true
+                    pixelSize: theme.fontSize - 1
+                    implicitHeight: 26
+                    clickable: true
+                    onClicked: actions.startDaemon()
+                }
+            }
+
+            // Daemon up, nothing paired or in range.
+            ColumnLayout {
+                Layout.fillWidth: true
+                visible: root.daemonUp && root.devices.length === 0
+                spacing: 8
+
+                Text {
+                    text: "No devices found"
+                    color: theme.text
+                    font.pixelSize: theme.fontSize
+                    font.family: theme.fontUi
+                }
+
+                Text {
                     Layout.fillWidth: true
-                }
-
-                Rectangle {
-                    implicitWidth: 28
-                    implicitHeight: 28
-                    color: "transparent"
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "×"
-                        color: theme.subtext0
-                        font.pixelSize: theme.fontSize + 4
-                        font.family: theme.font
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.close()
-                    }
+                    text: "Open KDE Connect on the phone (same network) and press Search."
+                    color: theme.subtext0
+                    font.pixelSize: theme.fontSizeMin
+                    font.family: theme.fontUi
+                    wrapMode: Text.WordWrap
                 }
             }
 
-            Rectangle {
-                Layout.fillWidth: true
-                height: 1
-                color: theme.surface0
-            }
-
-            // No devices state
-            Text {
-                Layout.fillWidth: true
-                visible: root.devices.length === 0
-                text: "No devices connected"
-                color: theme.subtext0
-                font.pixelSize: theme.fontSize
-                font.family: theme.font
-                horizontalAlignment: Text.AlignHCenter
-            }
-
-            // Device cards
             Repeater {
                 model: root.devices
 
-                delegate: ColumnLayout {
+                DeviceCard {
                     required property var modelData
-                    Layout.fillWidth: true
-                    spacing: 8
-
-                    // Computed once per device instead of calling .some() every frame.
-                    property bool hasDismissable: {
-                        var ns = modelData && modelData.notifications
-                                 ? modelData.notifications : []
-                        for (var i = 0; i < ns.length; i++)
-                            if (ns[i].dismissable) return true
-                        return false
-                    }
-
-                    // Device card
-                    Rectangle {
-                        Layout.fillWidth: true
-                        implicitHeight: 70
-                        radius: 10
-                        color: theme.surface0
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.margins: 10
-                            spacing: 10
-
-                            Text {
-                                text: ""
-                                color: theme.text
-                                font.pixelSize: theme.fontSize + 12
-                                font.family: theme.font
-                            }
-
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 2
-
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 8
-
-                                    Text {
-                                        text: modelData ? modelData.name || "Unknown" : "Unknown"
-                                        color: theme.text
-                                        font.pixelSize: theme.fontSize
-                                        font.weight: Font.Medium
-                                        font.family: theme.font
-                                        elide: Text.ElideRight
-                                        Layout.fillWidth: true
-                                    }
-
-                                    Text {
-                                        text: modelData && modelData.battery !== null && modelData.battery >= 0
-                                              ? modelData.battery + "%" : ""
-                                        color: root.batteryColor(modelData ? modelData.battery : null)
-                                        font.pixelSize: theme.fontSize
-                                        font.weight: Font.Bold
-                                        font.family: theme.font
-                                    }
-                                }
-
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    implicitHeight: 6
-                                    radius: 3
-                                    color: theme.surface1
-                                    visible: modelData && modelData.battery !== null && modelData.battery >= 0
-
-                                    Rectangle {
-                                        anchors.left: parent.left
-                                        anchors.top: parent.top
-                                        anchors.bottom: parent.bottom
-                                        radius: 3
-                                        color: root.batteryColor(modelData ? modelData.battery : null)
-                                        width: parent.width * Math.min(1, Math.max(0,
-                                            (modelData ? modelData.battery : 0) / 100))
-                                    }
-                                }
-
-
-
-                                Text {
-                                    text: {
-                                        if (!modelData) return "Disconnected"
-                                        var parts = []
-                                        if (modelData.reachable) parts.push("Connected")
-                                        else parts.push("Not reachable")
-                                        if (modelData.charging) parts.push("Charging")
-                                        if (modelData.networkType) parts.push(modelData.networkType)
-                                        if (modelData.signal !== null && modelData.signal >= 0) {
-                                            parts.push(Math.round(modelData.signal * 25) + "%")
-                                        }
-                                        return parts.join(" · ")
-                                    }
-                                    color: theme.subtext0
-                                    font.pixelSize: theme.fontSize - 2
-                                    font.family: theme.font
-                                }
-                            }
-
-                            // Action buttons
-                            ColumnLayout {
-                                spacing: 4
-                                Layout.alignment: Qt.AlignVCenter
-
-                                Rectangle {
-                                    implicitWidth: 28
-                                    implicitHeight: 28
-                                    radius: 8
-                                    color: theme.surface1
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "󰀘"
-                                        color: theme.text
-                                        font.pixelSize: theme.fontSize + 2
-                                        font.family: theme.font
-                                    }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            if (modelData && modelData.id)
-                                                findProc.find(modelData.id)
-                                        }
-                                    }
-                                }
-
-                            }
-                        }
-                    }
-
-                    // Notifications section
-                    Rectangle {
-                        Layout.fillWidth: true
-                        height: 1
-                        color: theme.surface0
-                        visible: modelData && modelData.notifCount > 0
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        visible: modelData && modelData.notifCount > 0
-                        spacing: 8
-
-                        Text {
-                            text: "Notifications"
-                            color: theme.text
-                            font.pixelSize: theme.fontSize
-                            font.weight: Font.Medium
-                            font.family: theme.font
-                            Layout.fillWidth: true
-                        }
-
-                        Text {
-                            text: modelData ? modelData.notifCount + "" : ""
-                            color: theme.subtext0
-                            font.pixelSize: theme.fontSize - 1
-                            font.family: theme.font
-                            verticalAlignment: Text.AlignVCenter
-                        }
-
-                        Text {
-                            visible: hasDismissable
-                            text: "Clear"
-                            color: theme.blue
-                            font.pixelSize: theme.fontSize - 1
-                            font.family: theme.font
-
-                            MouseArea {
-                                anchors.fill: parent
-                                anchors.margins: -6
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    var devId = modelData.id || ((modelData.notifications || [])[0] || {}).deviceId || ""
-                                    if (!devId) return
-                                    if (root.dataSource && root.dataSource.clearOptimistic)
-                                        root.dataSource.clearOptimistic(devId)
-                                    dismissProc.dismissAll(devId)
-                                }
-                            }
-                        }
-                    }
-
-                    Repeater {
-                        model: modelData && modelData.notifications ? modelData.notifications : []
-
-                        delegate: Rectangle {
-                            id: notifDelegate
-                            required property var modelData
-                            Layout.fillWidth: true
-                            implicitHeight: topRow.implicitHeight + 16
-                                + (replyArea.visible ? replyArea.implicitHeight + 8 : 0)
-                            radius: 8
-                            color: theme.mantle
-
-                            property bool replying: false
-                            property string replyText: ""
-                            property bool expanded: false
-
-                            ColumnLayout {
-                                anchors.fill: parent
-                                anchors.margins: 8
-                                spacing: 6
-
-                                RowLayout {
-                                    id: topRow
-                                    Layout.fillWidth: true
-                                    spacing: 8
-
-                                    // App icon placeholder
-                                    Rectangle {
-                                        implicitWidth: 28
-                                        implicitHeight: 28
-                                        radius: 6
-                                        color: theme.surface1
-
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: ""
-                                            color: theme.text
-                                            font.pixelSize: theme.fontSize + 2
-                                            font.family: theme.font
-                                        }
-                                    }
-
-                                    ColumnLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 1
-
-                                        Text {
-                                            text: modelData ? modelData.appName || "App" : "App"
-                                            color: theme.subtext1
-                                            font.pixelSize: theme.fontSize - 2
-                                            font.family: theme.font
-                                        }
-
-                                        Text {
-                                            visible: modelData && (modelData.silent === true || modelData.dismissable === false)
-                                            text: modelData && modelData.dismissable === false ? "Ongoing" : "Silent"
-                                            color: theme.subtext0
-                                            font.pixelSize: theme.fontSize - 3
-                                            font.family: theme.font
-                                        }
-
-                                        Text {
-                                            text: modelData ? modelData.body || "" : ""
-                                            color: theme.text
-                                            font.pixelSize: theme.fontSize - 1
-                                            font.family: theme.font
-                                            elide: Text.ElideRight
-                                            maximumLineCount: expanded ? 10 : 1
-                                            Layout.fillWidth: true
-                                            wrapMode: expanded ? Text.Wrap : Text.NoWrap
-
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                cursorShape: Qt.PointingHandCursor
-                                                onClicked: notifDelegate.expanded =
-                                                    !notifDelegate.expanded
-                                            }
-                                        }
-                                    }
-
-                                    // Reply button
-                                    Rectangle {
-                                        implicitWidth: replyBtnText.implicitWidth + 12
-                                        implicitHeight: 22
-                                        radius: 6
-                                        color: theme.surface1
-                                        visible: modelData && modelData.replyId
-
-                                        Text {
-                                            id: replyBtnText
-                                            anchors.centerIn: parent
-                                            text: "↩ Reply"
-                                            color: theme.blue
-                                            font.pixelSize: theme.fontSize - 2
-                                            font.family: theme.font
-                                        }
-
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                notifDelegate.replying =
-                                                    !notifDelegate.replying
-                                            }
-                                        }
-                                    }
-
-                                    // Dismiss button (28px hit area, visual ✕ unchanged)
-                                    Rectangle {
-                                        implicitWidth: 28
-                                        implicitHeight: 28
-                                        radius: 6
-                                        color: "transparent"
-                                        visible: modelData && modelData.dismissable
-
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: "✕"
-                                            color: dismissTap.pressed ? theme.text : theme.subtext0
-                                            font.pixelSize: theme.fontSize
-                                            font.family: theme.font
-                                        }
-
-                                        MouseArea {
-                                            id: dismissTap
-                                            anchors.fill: parent
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                var devId = modelData.deviceId || ""
-                                                var notifId = modelData.id || ""
-                                                if (!devId || !notifId) return
-                                                if (root.dataSource && root.dataSource.dismissOptimistic)
-                                                    root.dataSource.dismissOptimistic(devId, notifId)
-                                                dismissProc.dismiss(devId, notifId)
-                                            }
-                                        }
-                                    }
-                                }
-
-                                // Reply input row
-                                RowLayout {
-                                    id: replyArea
-                                    Layout.fillWidth: true
-                                    Layout.leftMargin: 36
-                                    spacing: 6
-                                    visible: notifDelegate.replying
-
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        implicitHeight: 28
-                                        radius: 6
-                                        color: theme.surface1
-
-                                        TextInput {
-                                            id: replyInput
-                                            anchors.fill: parent
-                                            anchors.margins: 6
-                                            color: theme.text
-                                            font.pixelSize: theme.fontSize - 1
-                                            font.family: theme.font
-                                            clip: true
-                                            maximumLength: 500
-                                            verticalAlignment: TextInput.AlignVCenter
-
-                                            Text {
-                                                anchors.verticalCenter: parent.verticalCenter
-                                                text: "Type a reply..."
-                                                color: theme.subtext0
-                                                font.pixelSize: theme.fontSize - 1
-                                                font.family: theme.font
-                                                visible: !parent.text.length
-                                            }
-
-                                            Keys.onReturnPressed: {
-                                                if (parent.text.length > 0)
-                                                    sendReply()
-                                            }
-                                        }
-                                    }
-
-                                    Rectangle {
-                                        implicitWidth: sendText.implicitWidth + 14
-                                        implicitHeight: 28
-                                        radius: 6
-                                        color: theme.blue
-
-                                        Text {
-                                            id: sendText
-                                            anchors.centerIn: parent
-                                            text: "Send"
-                                            color: theme.white
-                                            font.pixelSize: theme.fontSize - 1
-                                            font.bold: true
-                                            font.family: theme.font
-                                        }
-
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                if (replyInput.text.length > 0)
-                                                    sendReply()
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            function sendReply() {
-                                var devId = modelData.deviceId || ""
-                                var nid = modelData.id || ""
-                                var msg = replyInput.text.trim().slice(0, 500)
-                                if (devId && nid && msg) {
-                                    replyProc.sendReply(devId, nid, msg)
-                                    replying = false
-                                    replyInput.text = ""
-                                }
-                            }
-                        }
-                    }
+                    theme: root.theme
+                    device: modelData
+                    actions: actions
                 }
             }
         }
     }
-
-    // Process: find phone
-    Process {
-        id: findProc
-        command: []
-
-        function find(devId) {
-            command = ["kdeconnect-cli", "-d", devId, "--ring"]
-            running = true
-        }
-    }
-
-
-    // Process: dismiss notification (queued, refreshes shared data on finish)
-    Process {
-        id: dismissProc
-        property string deviceId: ""
-        property string notifId: ""
-        property var queue: []
-        command: []
-
-        function dismiss(devId, nid) {
-            if (running) {
-                queue = queue.concat([{devId: devId, nid: nid}])
-                return
-            }
-            deviceId = devId
-            notifId = nid
-            command = ["bash", theme.scriptDir + "/kdeconnect.sh",
-                "dismiss", devId, nid]
-            running = true
-        }
-
-        // Single-shot batch clear: one process, survives panel close window.
-        function dismissAll(devId) {
-            if (running) {
-                queue = queue.concat([{devId: devId, nid: "__all__"}])
-                return
-            }
-            deviceId = devId
-            notifId = "__all__"
-            command = ["bash", theme.scriptDir + "/kdeconnect.sh",
-                "dismiss-all", devId]
-            running = true
-        }
-
-        function refreshSource() {
-            if (root.dataSource && root.dataSource.refresh)
-                root.dataSource.refresh()
-        }
-
-        onRunningChanged: {
-            if (!running) {
-                if (queue.length > 0) {
-                    var next = queue[0]
-                    queue = queue.slice(1)
-                    deviceId = next.devId
-                    notifId = next.nid
-                    if (next.nid === "__all__")
-                        command = ["bash", theme.scriptDir + "/kdeconnect.sh",
-                            "dismiss-all", next.devId]
-                    else
-                        command = ["bash", theme.scriptDir + "/kdeconnect.sh",
-                            "dismiss", next.devId, next.nid]
-                    running = true
-                } else {
-                    // Stamp optimistic removal for the just-finished item before
-                    // forcing a fetch: the daemon may not have applied the dismiss
-                    // yet, and a premature fetch would cachePut a snapshot that
-                    // still contains it (replayed until the next poll).
-                    if (root.dataSource) {
-                        if (notifId === "__all__") {
-                            if (root.dataSource.clearOptimistic)
-                                root.dataSource.clearOptimistic(deviceId)
-                        } else if (root.dataSource.dismissOptimistic) {
-                            root.dataSource.dismissOptimistic(deviceId, notifId)
-                        }
-                    }
-                    refreshSource()
-                }
-            }
-        }
-    }
-
-    // Process: send reply
-    Process {
-        id: replyProc
-        property string deviceId: ""
-        property string notifId: ""
-        property string message: ""
-        property bool busy: false
-        command: []
-
-        function sendReply(devId, nid, msg) {
-            if (busy) return
-            busy = true
-            deviceId = devId
-            notifId = nid
-            message = msg
-            command = ["dbus-send", "--print-reply", "--dest=org.kde.kdeconnect",
-                "/modules/kdeconnect/devices/" + devId + "/notifications/" + nid,
-                "org.kde.kdeconnect.device.notifications.notification.sendReply",
-                "string:" + msg]
-            running = true
-        }
-
-        onRunningChanged: {
-            if (!running) busy = false
-        }
-    }
-
 }

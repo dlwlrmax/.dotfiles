@@ -14,7 +14,7 @@ import qs.common
 // Wheel: previous/next workspace on this monitor. Hover: window previews.
 Row {
     id: root
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     required property var monitor
     spacing: 8
 
@@ -105,7 +105,7 @@ Row {
 
                 Text {
                     text: "[ " + wsDelegate.modelData.name + " ]"
-                    color: wsDelegate.urgent || wsDelegate.fresh ? theme.crust : theme.white
+                    color: wsDelegate.urgent || wsDelegate.fresh ? theme.crust : theme.onAccent
                     font.pixelSize: theme.fontSize
                     font.bold: true
                     font.family: theme.font
@@ -126,7 +126,7 @@ Row {
                             visible: modelData.count > 1
                             text: modelData.count
                             anchors.bottom: parent.bottom
-                            color: wsDelegate.urgent || wsDelegate.fresh ? theme.crust : theme.white
+                            color: wsDelegate.urgent || wsDelegate.fresh ? theme.crust : theme.onAccent
                             font.pixelSize: theme.fontSize - 3
                             font.bold: true
                             font.family: theme.font
@@ -201,7 +201,7 @@ Row {
                             Rectangle {
                                 Layout.preferredWidth: 200
                                 Layout.preferredHeight: 120
-                                radius: 6
+                                radius: theme.radiusMd
                                 color: theme.mantle
                                 clip: true
 
@@ -250,7 +250,7 @@ Row {
                 Text {
                     visible: wsDelegate.windows.length === 0
                     text: "No windows"
-                    color: theme.surface1
+                    color: theme.overlay0
                     font.pixelSize: theme.fontSize - 1
                     font.family: theme.font
                 }
@@ -264,7 +264,7 @@ Row {
 
                 Text {
                     text: "Click: go · Right-click: move window here · Scroll: switch"
-                    color: theme.surface1
+                    color: theme.overlay0
                     font.pixelSize: theme.fontSize - 2
                     font.family: theme.font
                 }

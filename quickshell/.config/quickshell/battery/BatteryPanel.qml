@@ -1,77 +1,39 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Io
 import qs.common
 
 Item {
     id: root
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     property bool active: false
+    property var dataSource: null      // DataProviders.batteryData
     signal close()
 
-    property var devices: []
+    readonly property var devices: dataSource ? dataSource.devices : []
 
     clip: true
-    implicitWidth: 340
-    implicitHeight: 300
+    implicitWidth: theme.panelWidthS
+    implicitHeight: content.implicitHeight + 2 * theme.panelMargin
 
-    Rectangle {
+    onActiveChanged: if (active && dataSource) dataSource.refresh()
+
+    PanelBackground {
         anchors.fill: parent
-        topLeftRadius: 0
-        topRightRadius: 0
-        bottomLeftRadius: 16
-        bottomRightRadius: 16
-        color: theme.color
-        border.color: theme.surface0
-        border.width: 2
-
-        Rectangle {
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 2
-            color: theme.color
-        }
     }
 
     ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: 14
+        id: content
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.margins: theme.panelMargin
         spacing: 10
 
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 8
-
-            Text {
-                text: "Battery Devices"
-                color: theme.text
-                font.pixelSize: theme.fontSize + 1
-                font.bold: true
-                font.family: theme.font
-                Layout.fillWidth: true
-            }
-
-            Text {
-                text: "×"
-                color: theme.subtext0
-                font.pixelSize: theme.fontSize + 4
-                font.family: theme.font
-
-                MouseArea {
-                    anchors.fill: parent
-                    anchors.margins: -4
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.close()
-                }
-            }
-        }
-
-        Rectangle {
-            Layout.fillWidth: true
-            height: 1
-            color: theme.surface0
+        PanelHeader {
+            theme: root.theme
+            title: "Batteries"
+            onClose: root.close()
         }
 
         Text {
@@ -80,172 +42,143 @@ Item {
             text: "No battery devices found"
             color: theme.subtext0
             font.pixelSize: theme.fontSize
-            font.family: theme.font
+            font.family: theme.fontUi
         }
 
-        ColumnLayout {
-            id: deviceList
-            Layout.fillWidth: true
-            spacing: 10
-            visible: root.devices.length > 0
+        Repeater {
+            model: root.devices
 
-            Repeater {
-                model: root.devices
+            delegate: Rectangle {
+                id: card
+                required property var modelData
+                readonly property var d: modelData
+                readonly property bool numeric: typeof d.capacity === "number"
+                readonly property int pct: root.dataSource.level(d)
+                readonly property bool charging: d.status === "Charging"
+                readonly property bool low: root.dataSource.isLow(d)
+                readonly property color clr: charging || d.capacity_level === "Full" ? theme.green
+                                           : low ? (pct <= 10 || d.capacity_level === "Critical" ? theme.red : theme.peach)
+                                           : pct < 50 ? theme.yellow : theme.green
+                readonly property int minutes: root.dataSource.minutesLeft(d)
+                readonly property var samples: (root.dataSource.history[d.name] || []).map(function (x) { return x.c })
 
-                delegate: Rectangle {
-                    required property var modelData
-                    Layout.fillWidth: true
-                    implicitHeight: 60
-                    radius: 10
-                    color: theme.surface0
+                Layout.fillWidth: true
+                implicitHeight: col.implicitHeight + 20
+                radius: theme.radiusLg
+                color: Qt.alpha(theme.surface0, 0.45)
 
-                    property string icon: {
-                        if (modelData.status === "Charging") return "󰂄"
-                        var cap = modelData.capacity
-                        var lvl = modelData.capacity_level
-                        if (lvl === "Full") return ""
-                        if (lvl === "Critical") return ""
-                        if (typeof cap === "number") {
-                            if (cap >= 95) return ""
-                            if (cap >= 75) return ""
-                            if (cap >= 50) return ""
-                            if (cap >= 25) return ""
-                            return ""
-                        }
-                        if (lvl === "Normal") return ""
-                        if (lvl === "Low") return ""
-                        return ""
-                    }
-
-                    property string levelText: {
-                        var cap = modelData.capacity
-                        var lvl = modelData.capacity_level
-                        if (typeof cap === "number") return cap + "%"
-                        if (lvl) return lvl
-                        return "?"
-                    }
-
-                    property string barColor: {
-                        if (modelData.status === "Charging") return theme.green
-                        var cap = modelData.capacity
-                        var lvl = modelData.capacity_level
-                        if (lvl === "Full") return theme.green
-                        if (lvl === "Critical") return theme.red
-                        if (lvl === "Low") return theme.peach
-                        if (typeof cap === "number") {
-                            if (cap >= 50) return theme.green
-                            if (cap >= 25) return theme.yellow
-                            return theme.red
-                        }
-                        if (lvl === "Normal") return theme.green
-                        return theme.subtext0
-                    }
-
-                    property real barWidth: {
-                        var cap = modelData.capacity
-                        var lvl = modelData.capacity_level
-                        if (typeof cap === "number") return cap / 100
-                        if (lvl === "Full") return 1.0
-                        if (lvl === "Normal") return 0.66
-                        if (lvl === "Low") return 0.33
-                        if (lvl === "Critical") return 0.1
-                        return 0.5
-                    }
+                ColumnLayout {
+                    id: col
+                    anchors.fill: parent
+                    anchors.margins: 10
+                    spacing: 8
 
                     RowLayout {
-                        anchors.fill: parent
-                        anchors.margins: 10
+                        Layout.fillWidth: true
                         spacing: 10
 
                         Text {
-                            text: icon
-                            color: barColor
-                            font.pixelSize: theme.fontSize + 10
+                            text: card.charging ? "󰂄" : card.pct <= 10 ? "󰁺" : card.pct <= 30 ? "󰁼"
+                                  : card.pct <= 60 ? "󰁾" : "󰂀"
+                            color: card.clr
+                            font.pixelSize: theme.fontSize + 12
                             font.family: theme.font
                         }
 
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: 4
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: 8
-
-                                Text {
-                                    text: modelData.model || modelData.name || "Battery"
-                                    color: theme.text
-                                    font.pixelSize: theme.fontSize
-                                    font.weight: Font.Medium
-                                    font.family: theme.font
-                                    elide: Text.ElideRight
-                                    Layout.fillWidth: true
-                                }
-
-                                Text {
-                                    text: levelText
-                                    color: barColor
-                                    font.pixelSize: theme.fontSize
-                                    font.weight: Font.Bold
-                                    font.family: theme.font
-                                }
-                            }
-
-                            Rectangle {
-                                Layout.fillWidth: true
-                                implicitHeight: 6
-                                radius: 3
-                                color: Qt.darker(theme.surface0, 1.2)
-
-                                Rectangle {
-                                    anchors.left: parent.left
-                                    anchors.top: parent.top
-                                    anchors.bottom: parent.bottom
-                                    radius: 3
-                                    color: barColor
-                                    width: parent.width * Math.min(1, barWidth)
-                                }
-                            }
+                            spacing: 1
 
                             Text {
-                                text: {
-                                    var parts = []
-                                    if (modelData.manufacturer) parts.push(modelData.manufacturer)
-                                    parts.push(modelData.status || "Unknown")
-                                    return parts.join(" · ")
+                                Layout.fillWidth: true
+                                text: root.dataSource.label(card.d)
+                                color: theme.text
+                                font.pixelSize: theme.fontSize
+                                font.weight: Font.Medium
+                                font.family: theme.fontUi
+                                elide: Text.ElideRight
+                            }
+
+                            RowLayout {
+                                spacing: 6
+
+                                Badge {
+                                    theme: root.theme
+                                    text: card.d.status || "Unknown"
+                                    clr: card.charging ? theme.green : card.low ? theme.peach : theme.subtext0
                                 }
-                                color: theme.subtext0
-                                font.pixelSize: theme.fontSize - 2
-                                font.family: theme.font
+
+                                Text {
+                                    visible: !!card.d.manufacturer
+                                    text: card.d.manufacturer || ""
+                                    color: theme.overlay0
+                                    font.pixelSize: theme.fontSizeMin
+                                    font.family: theme.fontUi
+                                }
                             }
                         }
+
+                        Text {
+                            text: card.numeric ? card.pct + "%" : (card.d.capacity_level || "?")
+                            color: card.clr
+                            font.pixelSize: theme.fontSize + 3
+                            font.bold: true
+                            font.family: theme.font
+                        }
+                    }
+
+                    // level bar (the OS reports only a coarse level for some devices)
+                    Rectangle {
+                        Layout.fillWidth: true
+                        implicitHeight: 6
+                        radius: 3
+                        color: theme.trackColor
+
+                        Rectangle {
+                            height: parent.height
+                            radius: 3
+                            color: card.clr
+                            width: parent.width * Math.min(1, card.pct / 100)
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        visible: card.numeric
+
+                        Text {
+                            text: card.minutes >= 0 ? "~" + root.dataSource.fmtMinutes(card.minutes) + " left"
+                                  : card.charging ? "charging" : "estimating…"
+                            color: theme.subtext0
+                            font.pixelSize: theme.fontSizeMin
+                            font.family: theme.fontUi
+                            Layout.fillWidth: true
+                        }
+
+                        Sparkline {
+                            values: card.samples
+                            tick: root.dataSource.historyTick
+                            slots: root.dataSource.maxSamples
+                            clr: card.clr
+                            implicitWidth: 90
+                            implicitHeight: 22
+                            Layout.preferredWidth: 90
+                            Layout.preferredHeight: 22
+                        }
+                    }
+
+                    Text {
+                        visible: !card.numeric
+                        Layout.fillWidth: true
+                        text: "This device reports a coarse level only, so there is no percentage or estimate."
+                        color: theme.overlay0
+                        font.pixelSize: theme.fontSizeMin
+                        font.family: theme.fontUi
+                        wrapMode: Text.WordWrap
                     }
                 }
             }
         }
-    }
-
-    Process {
-        id: fetchProc
-        command: ["bash", theme.scriptDir + "/battery-all.sh"]
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    var data = JSON.parse(this.text)
-                    root.devices = data.devices || []
-                } catch (e) {
-                    console.log("Failed to parse battery devices:", e)
-                }
-            }
-        }
-    }
-
-    Timer {
-        interval: 5000
-        running: root.active && !fetchProc.running
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: fetchProc.running = true
     }
 }

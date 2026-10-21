@@ -5,22 +5,23 @@ import qs.common
 
 Rectangle {
     id: root
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     property var notifData: ({})
     property var notifTimes: ({})
     property bool read: false
     property bool unread: false
+    // Long bodies show 4 lines until expanded ("Show more").
+    property bool bodyExpanded: false
     property var onDismissRequest: null
     property var onMarkRead: null
 
-    color: theme.color
-    radius: 12
+    color: theme.panelColor
+    radius: theme.radiusXl
     border.color: theme.surface0
     border.width: 1
     opacity: root.read ? 0.55 : 1.0
     // implicitHeight so parent layouts follow size changes (see NotificationPopupCard).
-    implicitHeight: content.implicitHeight + 20
-        + (actionFlow.visible ? actionFlow.implicitHeight + 6 : 0)
+    implicitHeight: content.implicitHeight + 20   // content already includes the action buttons
 
     function getNotifTime(id) {
         var t = notifTimes[id]
@@ -76,29 +77,10 @@ Rectangle {
         anchors.leftMargin: 26
         spacing: 10
 
-        Rectangle {
-            width: 36
-            height: 36
-            radius: 18
-            color: theme.surface1
+        NotifIcon {
+            theme: root.theme
+            notif: root.notifData
             Layout.alignment: Qt.AlignVCenter
-
-            AppIcon {
-                id: notifIcon
-                anchors.centerIn: parent
-                appId: notifData && notifData.desktopEntry || ""
-                iconName: notifData && notifData.appIcon || ""
-                size: 24
-                hideOnMissing: true
-            }
-
-            Text {
-                anchors.centerIn: parent
-                text: "\uF0E0"
-                color: theme.subtext0
-                font.pixelSize: 16
-                visible: !notifIcon.iconFound
-            }
         }
 
         ColumnLayout {
@@ -112,7 +94,7 @@ Rectangle {
                 Rectangle {
                     width: 8
                     height: 8
-                    radius: 4
+                    radius: theme.radiusSm
                     color: theme.blue
                     visible: root.unread
                     Layout.alignment: Qt.AlignVCenter
@@ -124,7 +106,7 @@ Rectangle {
                     color: theme.text
                     font.pixelSize: theme.fontSize
                     font.bold: true
-                    font.family: theme.font
+                    font.family: theme.fontUi
                     Layout.fillWidth: true
                     elide: Text.ElideRight
 
@@ -146,14 +128,14 @@ Rectangle {
 
                 Text {
                     text: root.formatTime(root.getNotifTime(notifData && notifData.id))
-                    color: theme.white
-                    font.pixelSize: theme.fontSize - 3
+                    color: theme.onAccent
+                    font.pixelSize: theme.fontSizeMin
                     font.family: theme.font
                     Layout.alignment: Qt.AlignVCenter
                 }
 
                 Text {
-                    text: "\u00D7"
+                    text: Glyphs.close
                     color: theme.subtext0
                     font.pixelSize: theme.fontSize + 2
                     font.family: theme.font
@@ -176,26 +158,43 @@ Rectangle {
                 text: notifData && notifData.summary || ""
                 color: theme.text
                 font.pixelSize: theme.fontSize
-                font.family: theme.font
+                font.family: theme.fontUi
                 Layout.fillWidth: true
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                 visible: !!(notifData && notifData.summary) && notifData.summary.length > 0
                 textFormat: Text.PlainText
             }
 
-            // Whole body, no line cap: the card grows to fit.
+            // Capped to 4 lines unless expanded; short bodies are unaffected.
             Text {
                 id: bodyText
                 // Untrusted markup rendered through the Sanitize allowlist
                 // (b/i/u only) as StyledText — no images, links, or attrs.
                 text: Sanitize.formatBody(notifData && notifData.body || "")
                 color: theme.subtext0
-                font.pixelSize: theme.fontSize - 2
-                font.family: theme.font
+                font.pixelSize: theme.fontSizeMin
+                font.family: theme.fontUi
                 Layout.fillWidth: true
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                maximumLineCount: root.bodyExpanded ? 1000 : 4
+                elide: Text.ElideRight
                 visible: !!(notifData && notifData.body) && notifData.body.length > 0
                 textFormat: Text.StyledText
+            }
+
+            Text {
+                visible: bodyText.visible && (bodyText.truncated || root.bodyExpanded)
+                text: root.bodyExpanded ? "Show less" : "Show more"
+                color: theme.blue
+                font.pixelSize: theme.fontSizeMin
+                font.family: theme.fontUi
+
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -4
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.bodyExpanded = !root.bodyExpanded
+                }
             }
 
             // Action buttons
@@ -213,7 +212,7 @@ Rectangle {
                         required property int index
                         implicitWidth: actLabel.implicitWidth + 14
                         implicitHeight: 24
-                        radius: 6
+                        radius: theme.radiusMd
                         color: hovered ? theme.surface0 : theme.surface1
 
                         property bool hovered: false
@@ -223,7 +222,7 @@ Rectangle {
                             anchors.centerIn: parent
                             text: root.actionLabel(notifData && notifData.actions ? notifData.actions[index] : null)
                             color: theme.blue
-                            font.pixelSize: theme.fontSize - 2
+                            font.pixelSize: theme.fontSizeMin
                             font.family: theme.font
                         }
 

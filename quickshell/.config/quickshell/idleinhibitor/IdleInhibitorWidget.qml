@@ -6,7 +6,7 @@ import qs.common
 
 MouseArea {
     id: root
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     width: row.implicitWidth
     implicitHeight: row.implicitHeight
     Layout.alignment: Qt.AlignVCenter
@@ -14,15 +14,15 @@ MouseArea {
     RowLayout {
         id: row
         anchors.centerIn: parent
-        anchors.verticalCenterOffset: 2
+        anchors.verticalCenterOffset: 0
         spacing: 0
 
         Text {
             id: icon
             text: idleInhibitor.enabled ? "󰈈" : ""
             font.family: root.theme.font
-            font.pixelSize: root.theme.fontSize + 8
-            color: idleInhibitor.enabled ? root.theme.green : root.theme.red
+            font.pixelSize: root.theme.fontSize + 9
+            color: idleInhibitor.enabled ? root.theme.green : root.theme.overlay1
             Layout.alignment: Qt.AlignVCenter
         }
     }
@@ -39,7 +39,7 @@ MouseArea {
 
     IdleInhibitor {
         id: idleInhibitor
-        enabled: false
+        enabled: ShellState.idleInhibit
         window: inhibitWindow
     }
 
@@ -48,7 +48,7 @@ MouseArea {
 
     onClicked: {
         tip.suppressed = true
-        idleInhibitor.enabled = !idleInhibitor.enabled
+        ShellState.idleInhibit = !ShellState.idleInhibit
     }
 
     BarTooltip {

@@ -9,6 +9,9 @@ case "$1" in
     suspend)
         systemctl suspend
         ;;
+    hibernate)
+        systemctl hibernate
+        ;;
     reboot)
         systemctl reboot
         ;;
@@ -19,7 +22,7 @@ case "$1" in
         hyprctl dispatch exit
         ;;
     *)
-        echo "Usage: $0 {lock|suspend|reboot|shutdown|logout}" >&2
+        echo "Usage: $0 {lock|suspend|hibernate|reboot|shutdown|logout}" >&2
         exit 1
         ;;
 esac

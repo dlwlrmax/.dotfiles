@@ -7,7 +7,7 @@ import qs.common
 
 Item {
     id: root
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     property var notifTimes: ({})
     property bool dnd: false
     // Gaming quiet mode for this screen: only critical notifications pop up.

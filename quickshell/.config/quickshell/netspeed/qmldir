@@ -1,3 +1,4 @@
 module qs.netspeed
 NetSpeed 1.0 NetSpeed.qml
 NetPanel 1.0 NetPanel.qml
+RateGraph 1.0 RateGraph.qml

@@ -1,78 +1,71 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Io
 import qs.common
 
+// Bar indicator for a battery that needs attention (low or charging): the lowest
+// such device's glyph and percentage. Hidden while everything is fine.
 Item {
     id: root
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     property var dataSource: null
-    property string batteryIcon: dataSource ? dataSource.batteryIcon : ""
-    property string batteryStatus: dataSource ? dataSource.batteryStatus : ""
     signal togglePanel(int centerX)
 
-    property string iconColor: {
-        if (!batteryStatus) return theme.subtext0
-        if (batteryStatus === "Charging") return theme.green
-        if (batteryStatus === "Full") return theme.green
-        if (batteryStatus === "Discharging") return theme.peach
-        return theme.subtext0
+    readonly property var dev: dataSource ? dataSource.attention : null
+    readonly property bool charging: !!dev && dev.status === "Charging"
+    readonly property int pct: dev ? dataSource.level(dev) : 0
+    readonly property color clr: !dev ? theme.subtext0 : charging ? theme.green
+                                : pct <= 10 ? theme.red : pct <= 20 ? theme.peach : theme.yellow
+
+    function glyph() {
+        if (charging) return "󰂄"
+        return pct <= 10 ? "󰁺" : pct <= 30 ? "󰁼" : pct <= 60 ? "󰁾" : "󰂀"
     }
 
     // Hard containment: layout squeeze must never paint over neighbors.
     clip: true
-    implicitWidth: batteryIcon ? iconText.implicitWidth : 0
-    implicitHeight: iconText.implicitHeight
+    visible: !!dev && Prefs.show("battery")
+    implicitWidth: row.implicitWidth
+    implicitHeight: row.implicitHeight
     Layout.alignment: Qt.AlignVCenter
 
-    Text {
-        id: iconText
-        visible: batteryIcon !== ""
-        text: batteryIcon || ""
-        color: root.iconColor
-        font.pixelSize: root.theme.fontSize + 10
-        font.weight: Font.Medium
-        font.family: theme.font
+    RowLayout {
+        id: row
+        spacing: 3
 
-        MouseArea {
-            anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-                var globalPos = root.mapToItem(null, 0, 0)
-                root.togglePanel(globalPos.x + root.width / 2)
-            }
+        Text {
+            text: root.glyph()
+            color: root.clr
+            font.pixelSize: theme.fontSize + 8
+            font.family: theme.font
+        }
+
+        Text {
+            text: typeof (root.dev ? root.dev.capacity : null) === "number" ? root.pct + "%" : (root.dev ? root.dev.capacity_level : "")
+            color: root.clr
+            font.pixelSize: theme.fontSize - 1
+            font.weight: Font.Medium
+            font.family: theme.font
         }
     }
 
-    Process {
-        id: battProc
-        command: ["bash", theme.scriptDir + "/battery.sh"]
-        running: !root.dataSource
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (root.dataSource) return
-                var output = this.text.trim()
-                if (!output) {
-                    root.batteryIcon = ""
-                    root.batteryStatus = ""
-                } else {
-                    var parts = output.split("|")
-                    if (parts.length >= 3) {
-                        root.batteryIcon = parts[0] || ""
-                        root.batteryStatus = parts[2] || ""
-                    }
-                }
-            }
-        }
+    BarTooltip {
+        target: root
+        theme: root.theme
+        hovered: ma.containsMouse && !!root.dev
+        text: root.dev ? root.dataSource.label(root.dev) + "\n" + (root.charging ? "Charging" : "Low battery")
+                         + (root.dataSource.minutesLeft(root.dev) >= 0 ? "\n~" + root.dataSource.fmtMinutes(root.dataSource.minutesLeft(root.dev)) + " left" : "")
+                       : ""
     }
 
-    Timer {
-        interval: 30000
-        running: !root.dataSource
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: battProc.running = true
+    MouseArea {
+        id: ma
+        anchors.fill: parent
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: {
+            var p = root.mapToItem(null, 0, 0)
+            root.togglePanel(p.x + root.width / 2)
+        }
     }
 }

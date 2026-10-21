@@ -6,7 +6,7 @@ import qs.common
 // Fades in, holds, fades out; hover keeps it up, click dismisses.
 Item {
     id: root
-    property Theme theme: Theme {}
+    property Theme theme: ThemeStore
     property bool quiet: false            // gaming quiet mode for this screen
     property int holdMs: 3500
 
@@ -46,7 +46,7 @@ Item {
         id: card
         implicitWidth: row.implicitWidth + 24
         implicitHeight: row.implicitHeight + 20
-        radius: 12
+        radius: theme.radiusXl
         color: root.theme.base
         border.color: root.theme.surface0
         border.width: 1
@@ -62,7 +62,7 @@ Item {
             Rectangle {
                 Layout.preferredWidth: 52
                 Layout.preferredHeight: 52
-                radius: 8
+                radius: theme.radiusLg
                 color: root.theme.surface0
                 clip: true
 
@@ -91,7 +91,7 @@ Item {
                 Text {
                     text: "  " + (root.player || "Now playing")   // nf-fa-play
                     color: root.theme.mauve
-                    font.pixelSize: root.theme.fontSize - 2
+                    font.pixelSize: root.theme.fontSizeMin
                     font.family: root.theme.font
                 }
                 Text {
@@ -99,7 +99,7 @@ Item {
                     color: root.theme.text
                     font.pixelSize: root.theme.fontSize
                     font.weight: Font.Medium
-                    font.family: root.theme.font
+                    font.family: root.theme.fontUi
                     elide: Text.ElideRight
                     Layout.fillWidth: true
                 }
@@ -108,7 +108,7 @@ Item {
                     text: root.subtitle
                     color: root.theme.subtext0
                     font.pixelSize: root.theme.fontSize - 1
-                    font.family: root.theme.font
+                    font.family: root.theme.fontUi
                     elide: Text.ElideRight
                     Layout.fillWidth: true
                 }

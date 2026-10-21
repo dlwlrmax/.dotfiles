@@ -22,6 +22,8 @@ for d in /sys/class/power_supply/*/; do
     [ -f "$d/model_name" ] && model=$(cat "$d/model_name" 2>/dev/null)
     [ -f "$d/manufacturer" ] && mfr=$(cat "$d/manufacturer" 2>/dev/null)
 
+    esc() { local s="${1//\\/\\\\}"; s="${s//\"/\\\"}"; printf '%s' "$s"; }
+    model=$(esc "$model"); mfr=$(esc "$mfr"); name=$(esc "$name"); status=$(esc "$status")
     [ "$first" = true ] && first=false || echo -n ','
 
     echo -n "{\"name\":\"$name\",\"capacity\":$cap,\"capacity_level\":$cap_level,\"status\":\"$status\""
