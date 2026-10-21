@@ -111,10 +111,12 @@ fn main() {
     let cached = fs::read_to_string(CACHE_FILE).ok();
     if let Some(cache) = cached {
         let parts: Vec<&str> = cache.split_whitespace().collect();
-        if parts.len() >= 3 {
-            let rx_prev: u64 = parts[0].parse().unwrap_or(rx_now);
-            let tx_prev: u64 = parts[1].parse().unwrap_or(tx_now);
-            let time_prev: u128 = parts[2].parse().unwrap_or(now_ns);
+        // Cache format: "<iface> <rx> <tx> <time_ns>". A different interface (Wi-Fi <-> ethernet,
+        // dock) would turn the counter difference into a huge one-off spike, so reseed instead.
+        if parts.len() >= 4 && parts[0] == iface {
+            let rx_prev: u64 = parts[1].parse().unwrap_or(rx_now);
+            let tx_prev: u64 = parts[2].parse().unwrap_or(tx_now);
+            let time_prev: u128 = parts[3].parse().unwrap_or(now_ns);
 
             // Detect counter reset (e.g. interface re-init): report 0 for this interval.
             let rx_diff = if rx_now < rx_prev { 0 } else { rx_now - rx_prev };
@@ -129,14 +131,22 @@ fn main() {
             let rx_speed = rx_diff as f64 / secs;
             let tx_speed = tx_diff as f64 / secs;
 
-            let _ = fs::write(CACHE_FILE, format!("{rx_now} {tx_now} {now_ns}"));
+            let _ = fs::write(CACHE_FILE, format!("{iface} {rx_now} {tx_now} {now_ns}"));
 
-            println!("{}|{}", human_readable(rx_speed), human_readable(tx_speed));
+            // Fields 3/4 are the raw rates (bytes/s) for graphing and activity tint;
+            // older consumers only read the first two.
+            println!(
+                "{}|{}|{:.0}|{:.0}",
+                human_readable(rx_speed),
+                human_readable(tx_speed),
+                rx_speed,
+                tx_speed
+            );
             return;
         }
     }
 
     // First run — seed cache, output zero
-    let _ = fs::write(CACHE_FILE, format!("{rx_now} {tx_now} {now_ns}"));
-    println!("0.0K|0.0K");
+    let _ = fs::write(CACHE_FILE, format!("{iface} {rx_now} {tx_now} {now_ns}"));
+    println!("0.0K|0.0K|0|0");
 }

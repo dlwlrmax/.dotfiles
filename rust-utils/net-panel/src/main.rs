@@ -14,6 +14,10 @@ struct InfoOutput {
 
 #[derive(Serialize)]
 struct TailscaleInfo {
+    installed: bool,
+    /// BackendState from tailscaled ("Running", "Stopped", "NeedsLogin", ...),
+    /// or "NotInstalled" / "Unavailable" when it can't be queried.
+    state: String,
     active: bool,
     exit_node: Option<String>,
     peers: Vec<TailscalePeer>,
@@ -184,41 +188,41 @@ fn get_dns(iface: &str) -> Vec<String> {
 
 // ── Tailscale status ────────────────────────────────────────────────────────
 
+fn tailscale_off(installed: bool, state: &str) -> TailscaleInfo {
+    TailscaleInfo {
+        installed,
+        state: state.to_string(),
+        active: false,
+        exit_node: None,
+        peers: vec![],
+    }
+}
+
 fn get_tailscale_info() -> TailscaleInfo {
     let output = match Command::new("tailscale")
         .args(["status", "--json"])
         .output()
     {
         Ok(o) => o,
-        Err(_) => {
-            return TailscaleInfo {
-                active: false,
-                exit_node: None,
-                peers: vec![],
-            }
-        }
+        Err(_) => return tailscale_off(false, "NotInstalled"),
     };
     if !output.status.success() {
-        return TailscaleInfo {
-            active: false,
-            exit_node: None,
-            peers: vec![],
-        };
+        return tailscale_off(true, "Unavailable");
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let val: serde_json::Value = match serde_json::from_str(&stdout) {
         Ok(v) => v,
-        Err(_) => {
-            return TailscaleInfo {
-                active: false,
-                exit_node: None,
-                peers: vec![],
-            }
-        }
+        Err(_) => return tailscale_off(true, "Unavailable"),
     };
 
-    let active = val.get("Self").is_some();
+    let state = val
+        .get("BackendState")
+        .and_then(|b| b.as_str())
+        .unwrap_or("Unknown")
+        .to_string();
+    // Only "connected" when the backend is actually running.
+    let active = val.get("Self").is_some() && (state == "Running" || state == "Unknown");
 
     // Determine active exit node
     let exit_node_id = val
@@ -265,6 +269,8 @@ fn get_tailscale_info() -> TailscaleInfo {
     }
 
     TailscaleInfo {
+        installed: true,
+        state,
         active,
         exit_node,
         peers,
@@ -423,6 +429,55 @@ fn cmd_dns_set(provider_name: &str) {
     }
 }
 
+// ── Subcommand: dns reset ───────────────────────────────────────────────────
+
+/// Drop the per-link DNS override so systemd-resolved falls back to the
+/// DHCP/global servers again.
+fn cmd_dns_reset() {
+    let mut output = DnsSetOutput {
+        success: false,
+        provider: "Automatic".into(),
+        primary: String::new(),
+        secondary: String::new(),
+        error: None,
+    };
+
+    match get_interface() {
+        None => output.error = Some("No active interface found".into()),
+        Some(iface) => match Command::new("resolvectl").args(["revert", &iface]).output() {
+            Ok(o) if o.status.success() => {
+                output.success = true;
+                // `revert` drops everything the network manager pushed for this link, and it
+                // only pushes it again on reconnect. Ask NetworkManager to re-apply now.
+                let nm_active = Command::new("systemctl")
+                    .args(["is-active", "--quiet", "NetworkManager"])
+                    .status()
+                    .map(|s| s.success())
+                    .unwrap_or(false);
+                if nm_active {
+                    match Command::new("nmcli").args(["device", "reapply", &iface]).output() {
+                        Ok(r) if r.status.success() => {}
+                        _ => {
+                            output.success = false;
+                            output.error = Some("Reverted, but could not restore the DHCP DNS (reconnect the network)".into());
+                        }
+                    }
+                }
+            }
+            Ok(o) => {
+                let stderr = String::from_utf8_lossy(&o.stderr).trim().to_string();
+                output.error = Some(if stderr.is_empty() {
+                    format!("resolvectl exited with code {}", o.status.code().unwrap_or(-1))
+                } else {
+                    stderr
+                });
+            }
+            Err(e) => output.error = Some(format!("Failed to run resolvectl: {}", e)),
+        },
+    }
+    println!("{}", serde_json::to_string(&output).unwrap_or_default());
+}
+
 // ── Subcommand: speedtest ───────────────────────────────────────────────────
 
 fn cmd_speedtest() {
@@ -579,11 +634,12 @@ fn main() {
                     print_json_error("Usage: net-panel dns set <name>");
                 }
             }
+            Some("reset") => cmd_dns_reset(),
             Some(other) => {
                 print_json_error(&format!("Unknown dns subcommand: {}", other));
             }
             None => {
-                print_json_error("Usage: net-panel dns [list|set <name>]");
+                print_json_error("Usage: net-panel dns [list|set <name>|reset]");
             }
         },
         Some("speedtest") => cmd_speedtest(),
