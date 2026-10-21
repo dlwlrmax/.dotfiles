@@ -3,7 +3,7 @@ local utils = require "mp.utils"
 local msg = require "mp.msg"
 
 local opts = {
-    properties = "volume,sub-scale",
+    properties = "volume,sub-scale,sub-pos,sub-font-size",
 }
 (require 'mp.options').read_options(opts, "persist_properties")
 
