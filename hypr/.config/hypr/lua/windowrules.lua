@@ -168,7 +168,7 @@ hl.window_rule({
 -- Terminal opacity
 -- ──────────────────────────────────────────────
 hl.window_rule({ match = { class = "^(org.wezfurlong.wezterm)$" }, opacity = 0.95 })
-hl.window_rule({ match = { class = "^(com.mitchellh.ghostty|kitty)$" }, opacity = 0.85 })
+hl.window_rule({ match = { class = "^(com.mitchellh.ghostty|kitty)$" }, opacity = 0.90 })
 
 -- ──────────────────────────────────────────────
 -- Misc window rules
