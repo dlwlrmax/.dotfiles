@@ -33,7 +33,7 @@ Item {
     Text {
         id: iconText
         anchors.centerIn: parent
-        anchors.verticalCenterOffset: 2
+        anchors.verticalCenterOffset: 0.5
         text: root.dnd ? "\uF09B" : "\uF0F3"
         color: root.notifCount > 0 ? theme.onAccent : theme.overlay0
         font.pixelSize: theme.fontSize + 8

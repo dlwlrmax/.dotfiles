@@ -13,15 +13,12 @@ Item {
     property var notifTimes: ({})
     property bool dnd: !!(dataSource && dataSource.dnd)
 
-    // Live (currently active) notifications — kept as their own section.
-    // KDE Connect relays phone notifications, which the KDE Connect panel also
-    // lists. Hide them here to avoid seeing each one twice (the bell dot still
-    // counts them).
-    property bool showPhone: true
-    function phoneFilter(n) { return root.showPhone || (n.appName || "") !== "KDE Connect" }
+    // Which tab is shown: "unread" (live + unread history) or "read".
+    property string tab: "unread"
 
+    // Live (currently active) notifications — shown first in the Unread tab.
     property var reversedNotifs: dataSource && dataSource.activeNotifs
-        ? dataSource.activeNotifs.slice().reverse().filter(root.phoneFilter) : []
+        ? dataSource.activeNotifs.slice().reverse() : []
     property var groupedNotifs: root.groupNotifications(root.reversedNotifs)
 
     // DB row ids backing the live notifications, so history can skip them and
@@ -37,14 +34,15 @@ Item {
         return m
     }
 
-    property var historyAll: dataSource && dataSource.history ? dataSource.history.filter(root.phoneFilter) : []
+    property var historyAll: dataSource && dataSource.history ? dataSource.history : []
     property var historyRows: root.historyAll.filter(function(r) {
         return !(r.id !== undefined && root.liveIds[r.id])
     })
     property var unreadRows: root.historyRows.filter(function(r) { return r.read !== 1 })
     property var readRows: root.historyRows.filter(function(r) { return r.read === 1 })
 
-    property int totalCount: root.reversedNotifs.length + root.unreadRows.length
+    property int unreadCount: root.reversedNotifs.length + root.unreadRows.length
+    property int totalCount: root.unreadCount
     property var expandedGroups: ({})
 
     signal close()
@@ -75,13 +73,13 @@ Item {
 
     clip: true
     implicitWidth: theme.panelWidthS
-    // Content height (14px margins + header + 10 spacing + 1px rule + 10 spacing + list),
+    // Content height (14px margins + header + 10 spacing + tab bar + 10 spacing + list),
     // capped at 640px (or the screen under the bar, if smaller); the list scrolls beyond that.
     readonly property real maxHeight: {
         var scr = root.QsWindow.window ? root.QsWindow.window.screen : null
         return Math.min(640, scr ? scr.height - theme.barHeight - 24 : 640)
     }
-    implicitHeight: Math.min(maxHeight, 14 + panelHeader.implicitHeight + 10 + 1 + 10 + contentCol.implicitHeight + 14)
+    implicitHeight: Math.min(maxHeight, 14 + panelHeader.implicitHeight + 10 + tabBar.implicitHeight + 10 + contentCol.implicitHeight + 14)
 
     PanelBackground {
         anchors.fill: parent
@@ -100,15 +98,6 @@ Item {
 
             Badge {
                 theme: root.theme
-                text: "Phone"
-                clr: root.showPhone ? theme.mauve : theme.subtext0
-                solid: root.showPhone
-                clickable: true
-                onClicked: root.showPhone = !root.showPhone
-            }
-
-            Badge {
-                theme: root.theme
                 text: "Clear all"
                 clr: theme.blue
                 clickable: true
@@ -116,6 +105,36 @@ Item {
                     if (root.dataSource && root.dataSource.clearAll)
                         root.dataSource.clearAll()
                 }
+            }
+        }
+
+        RowLayout {
+            id: tabBar
+            Layout.fillWidth: true
+            spacing: 6
+
+            Badge {
+                Layout.fillWidth: true
+                implicitHeight: 26
+                theme: root.theme
+                text: "Unread" + (root.unreadCount > 0 ? " (" + root.unreadCount + ")" : "")
+                pixelSize: theme.fontSize - 1
+                clr: theme.blue
+                solid: root.tab === "unread"
+                clickable: true
+                onClicked: root.tab = "unread"
+            }
+
+            Badge {
+                Layout.fillWidth: true
+                implicitHeight: 26
+                theme: root.theme
+                text: "Read" + (root.readRows.length > 0 ? " (" + root.readRows.length + ")" : "")
+                pixelSize: theme.fontSize - 1
+                clr: theme.blue
+                solid: root.tab === "read"
+                clickable: true
+                onClicked: root.tab = "read"
             }
         }
 
@@ -139,6 +158,7 @@ Item {
 
                     // ── Unread (live notifications on top, then unread history) ──
                     ColumnLayout {
+                        visible: root.tab === "unread"
                         Layout.fillWidth: true
                         spacing: 6
 
@@ -146,23 +166,14 @@ Item {
                             Layout.fillWidth: true
                             spacing: 8
 
-                            Text {
-                                property int cnt: root.reversedNotifs.length + root.unreadRows.length
-                                text: "Unread" + (cnt > 0 ? " (" + cnt + ")" : "")
-                                color: theme.text
-                                font.pixelSize: theme.fontSize
-                                font.bold: true
-                                font.family: theme.font
-                                Layout.fillWidth: true
-                            }
+                            Item { Layout.fillWidth: true }
 
                             Text {
                                 text: "Mark all read"
                                 color: theme.blue
                                 font.pixelSize: theme.fontSize - 1
                                 font.family: theme.font
-                                property int cnt: root.reversedNotifs.length + root.unreadRows.length
-                                visible: cnt > 0
+                                visible: root.unreadCount > 0
 
                                 MouseArea {
                                     anchors.fill: parent
@@ -180,8 +191,8 @@ Item {
                         }
 
                         Text {
-                            visible: root.reversedNotifs.length === 0 && root.unreadRows.length === 0
-                            text: "Nothing unread"
+                            visible: root.unreadCount === 0
+                            text: root.dnd ? "Do Not Disturb is on" : "Nothing unread"
                             color: theme.subtext0
                             font.pixelSize: theme.fontSize - 1
                             font.family: theme.font
@@ -203,6 +214,7 @@ Item {
 
                     // ── Read ───────────────────────────────────
                     ColumnLayout {
+                        visible: root.tab === "read"
                         Layout.fillWidth: true
                         spacing: 6
 
@@ -210,15 +222,7 @@ Item {
                             Layout.fillWidth: true
                             spacing: 8
 
-                            Text {
-                                text: "Read" + (root.readRows.length > 0
-                                    ? " (" + root.readRows.length + ")" : "")
-                                color: theme.text
-                                font.pixelSize: theme.fontSize
-                                font.bold: true
-                                font.family: theme.font
-                                Layout.fillWidth: true
-                            }
+                            Item { Layout.fillWidth: true }
 
                             Text {
                                 text: "Clear read"
@@ -251,30 +255,6 @@ Item {
                             model: readModel
                             delegate: historyCardDelegate
                         }
-                    }
-
-                    Text {
-                        visible: root.reversedNotifs.length === 0
-                            && root.unreadRows.length === 0
-                            && root.readRows.length === 0
-                            && !root.dnd
-                        text: "No notifications"
-                        color: theme.subtext0
-                        font.pixelSize: theme.fontSize
-                        font.family: theme.font
-                        Layout.alignment: Qt.AlignHCenter
-                    }
-
-                    Text {
-                        visible: root.reversedNotifs.length === 0
-                            && root.unreadRows.length === 0
-                            && root.readRows.length === 0
-                            && root.dnd
-                        text: "Do Not Disturb is on"
-                        color: theme.yellow
-                        font.pixelSize: theme.fontSizeMin
-                        font.family: theme.font
-                        Layout.alignment: Qt.AlignHCenter
                     }
                 }
             }

@@ -2,8 +2,8 @@ import QtQuick
 import qs.common
 
 // Notification avatar. For notifications relayed by KDE Connect it stacks the
-// phone app's own icon (front) over the KDE Connect icon (behind, offset), like
-// an avatar stack; otherwise it is the usual single app icon or a mail glyph.
+// phone app's own icon (front, lower right) over the KDE Connect icon (behind,
+// upper left) as two overlapping circles; otherwise it is the usual single app icon or a mail glyph.
 Item {
     id: root
 
@@ -17,20 +17,22 @@ Item {
         ? (ShellState.phoneAppIcons[(notif.summary || "").trim().toLowerCase()] || "") : ""
     readonly property bool stacked: phoneImg.status === Image.Ready
 
-    implicitWidth: stacked ? Math.round(size * 1.55) : size
-    implicitHeight: size
+    readonly property real dx: Math.round(size * 0.25)
+    readonly property real dy: Math.round(size * 0.3)
 
-    // KDE Connect (source) — behind and to the right.
+    // Same width stacked or not, so text lines up across notifications.
+    implicitWidth: size + dx
+    implicitHeight: stacked ? size + dy : size
+
+    // KDE Connect (source) — behind, upper left.
     Rectangle {
         visible: root.stacked
-        width: root.size * 0.8
+        width: root.size * 0.9
         height: width
         radius: width / 2
-        anchors.right: parent.right
-        anchors.verticalCenter: parent.verticalCenter
+        anchors.left: parent.left
+        anchors.top: parent.top
         color: root.theme.surface0
-        border.width: 1
-        border.color: root.theme.surface1
 
         AppIcon {
             anchors.centerIn: parent
@@ -41,16 +43,15 @@ Item {
         }
     }
 
-    // Phone app (or the plain app icon) — in front, left.
+    // Phone app (or the plain app icon) — in front, lower right.
     Rectangle {
         width: root.size
         height: root.size
         radius: root.size / 2
-        anchors.left: parent.left
-        anchors.verticalCenter: parent.verticalCenter
+        // Lower right when stacked; centered in the fixed width otherwise.
+        x: root.stacked ? root.dx : root.dx / 2
+        y: root.stacked ? root.dy : 0
         color: root.theme.surface1
-        border.width: root.stacked ? 2 : 0
-        border.color: root.theme.panelColorSolid
 
         Image {
             id: phoneImg
