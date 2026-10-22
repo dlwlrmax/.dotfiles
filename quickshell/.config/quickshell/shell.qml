@@ -220,32 +220,6 @@ ShellRoot {
                 }
             }
 
-            // Track-change card, top-right under the bar. Hidden on the game's screen.
-            PanelWindow {
-                screen: screenScope.screenData
-                anchors.top: true
-                anchors.right: true
-                color: "transparent"
-                exclusionMode: ExclusionMode.Ignore
-                implicitWidth: trackToast.implicitWidth + 16
-                implicitHeight: trackToast.implicitHeight + 16
-                visible: trackToast.opacity > 0
-                WlrLayershell.layer: WlrLayer.Overlay
-                WlrLayershell.namespace: "quickshell-track"
-                WlrLayershell.margins.top: theme.barHeight
-                WlrLayershell.margins.right: 8
-
-                TrackToast {
-                    id: trackToast
-                    anchors.top: parent.top
-                    anchors.right: parent.right
-                    anchors.topMargin: 8
-                    theme: screenScope.theme
-                    quiet: ShellState.quietOn(screenScope.screenData.name)
-                    audible: !dp.volumeData.muted && dp.volumeData.volumeLevel > 0
-                }
-            }
-
             // OSD popup: shows on volume/brightness change, auto-fades below bar
             PanelWindow {
                 screen: screenScope.screenData
