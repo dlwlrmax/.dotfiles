@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Mpris
+import Quickshell.Services.Pipewire
 
 // Shared media helpers for the bar widget, panel, tooltip and track toast.
 Singleton {
@@ -117,6 +118,18 @@ Singleton {
         if (_nowKey === "") return             // paused/stopped: keep _lastKey
         if (_armed && _nowKey !== _lastKey) trackStarted(playing)
         _lastKey = _nowKey
+    }
+
+    // Browsers report muted hover previews (YouTube thumbs) as "playing" over MPRIS, but
+    // only real playback opens an unmuted output stream named after the tab.
+    function isBrowser(p) {
+        return /zen|firefox|chrom|brave|vivaldi|edge/.test(((p.desktopEntry || "") + " " + (p.identity || "")).toLowerCase())
+    }
+    PwObjectTracker { objects: Pipewire.nodes.values.filter(n => n.isStream) }
+    function hasAudioStream(p) {
+        var t = p.trackTitle || ""
+        return Pipewire.nodes.values.some(n => n.isStream && n.audio && !n.audio.muted
+            && ((n.properties || {})["media.name"] || "").indexOf(t) >= 0)
     }
 
     Timer {

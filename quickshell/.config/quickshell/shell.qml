@@ -242,6 +242,7 @@ ShellRoot {
                     anchors.topMargin: 8
                     theme: screenScope.theme
                     quiet: ShellState.quietOn(screenScope.screenData.name)
+                    audible: !dp.volumeData.muted && dp.volumeData.volumeLevel > 0
                 }
             }
 

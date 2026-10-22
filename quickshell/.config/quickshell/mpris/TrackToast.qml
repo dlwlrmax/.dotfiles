@@ -8,6 +8,7 @@ Item {
     id: root
     property Theme theme: ThemeStore
     property bool quiet: false            // gaming quiet mode for this screen
+    property bool audible: true           // false when output is muted or at 0%
     property int holdMs: 3500
 
     // Snapshot at trigger time so a later metadata change doesn't rewrite the card.
@@ -21,8 +22,16 @@ Item {
     opacity: 0
     Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
 
+    // Browser audio streams appear a moment after the MPRIS title changes.
+    property var pending: null
+
     function show(p) {
-        if (quiet || !p) return
+        if (quiet || !audible || !p) return
+        if (MediaInfo.isBrowser(p) && !MediaInfo.hasAudioStream(p)) {
+            pending = p
+            streamTimer.restart()
+            return
+        }
         title = p.trackTitle || ""
         subtitle = [p.trackArtist, p.trackAlbum].filter(x => !!x).join(" · ")
         art = p.trackArtUrl || ""
@@ -34,6 +43,16 @@ Item {
     Connections {
         target: MediaInfo
         function onTrackStarted(p) { root.show(p) }
+    }
+
+    Timer {
+        id: streamTimer
+        interval: 800
+        onTriggered: {
+            var p = root.pending
+            root.pending = null
+            if (p && MediaInfo.playing === p && MediaInfo.hasAudioStream(p)) root.show(p)
+        }
     }
 
     Timer {
