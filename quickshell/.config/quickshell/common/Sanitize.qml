@@ -37,4 +37,18 @@ QtObject {
             .replace(/&lt;br\s*\/&gt;/gi, "<br>")
         return t
     }
+
+    // Plain text (app name, title) for a StyledText Text: escape everything,
+    // keep newlines as real <br> breaks.
+    function escapePlain(s) {
+        return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;").replace(/\n/g, "<br>")
+    }
+
+    // The text formatBody visibly renders (tags dropped, entities decoded),
+    // so search matches exactly what the card shows.
+    function visibleText(s) {
+        return formatBody(s).replace(/<br>/g, " ").replace(/<[^>]*>/g, "")
+            .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&")
+    }
 }

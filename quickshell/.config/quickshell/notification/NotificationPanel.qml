@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import qs.common
 import "../common/ListSync.js" as Sync
+import "Highlight.js" as Hl
 
 Item {
     id: root
@@ -16,10 +17,17 @@ Item {
     // Which tab is shown: "unread" (live + unread history) or "read".
     property string tab: "unread"
 
+    // Search over app name, title and body; empty = no filter. Case- and
+    // diacritic-insensitive ("thuy anh" matches "Thùy Anh").
+    property string query: ""
+    readonly property string _needle: Hl.fold(root.query.trim())
+    onActiveChanged: if (!active) searchField.text = ""
+
     // Live (currently active) notifications — shown first in the Unread tab.
     property var reversedNotifs: dataSource && dataSource.activeNotifs
         ? dataSource.activeNotifs.slice().reverse() : []
-    property var groupedNotifs: root.groupNotifications(root.reversedNotifs)
+    property var shownLive: root.reversedNotifs.filter(root.matches)
+    property var groupedNotifs: root.groupNotifications(root.shownLive)
 
     // DB row ids backing the live notifications, so history can skip them and
     // avoid showing the same notification twice (once live, once as history).
@@ -40,6 +48,9 @@ Item {
     })
     property var unreadRows: root.historyRows.filter(function(r) { return r.read !== 1 })
     property var readRows: root.historyRows.filter(function(r) { return r.read === 1 })
+    property var shownUnread: root.unreadRows.filter(root.matches)
+    property var shownRead: root.readRows.filter(root.matches)
+    readonly property bool searching: root._needle !== ""
 
     property int unreadCount: root.reversedNotifs.length + root.unreadRows.length
     property int totalCount: root.unreadCount
@@ -62,24 +73,36 @@ Item {
         historyById = h          // maps first: delegates re-read their row from them
         groupByKey = g
         Sync.sync(groupModel, groupedNotifs.map(function (x) { return String(x.key) }))
-        Sync.sync(unreadModel, unreadRows.map(function (r) { return String(r.id) }))
-        Sync.sync(readModel, readRows.map(function (r) { return String(r.id) }))
+        Sync.sync(unreadModel, shownUnread.map(function (r) { return String(r.id) }))
+        Sync.sync(readModel, shownRead.map(function (r) { return String(r.id) }))
     }
 
     onGroupedNotifsChanged: syncLists()
-    onUnreadRowsChanged: syncLists()
-    onReadRowsChanged: syncLists()
+    onShownUnreadChanged: syncLists()
+    onShownReadChanged: syncLists()
     Component.onCompleted: syncLists()
 
     clip: true
     implicitWidth: theme.panelWidthS
-    // Content height (14px margins + header + 10 spacing + tab bar + 10 spacing + list),
+    // Content height (14px margins + header + 10 spacing + tab bar + 10 spacing
+    // + search + 10 spacing + list),
     // capped at 640px (or the screen under the bar, if smaller); the list scrolls beyond that.
     readonly property real maxHeight: {
         var scr = root.QsWindow.window ? root.QsWindow.window.screen : null
         return Math.min(640, scr ? scr.height - theme.barHeight - 24 : 640)
     }
-    implicitHeight: Math.min(maxHeight, 14 + panelHeader.implicitHeight + 10 + tabBar.implicitHeight + 10 + contentCol.implicitHeight + 14)
+    implicitHeight: Math.min(maxHeight, 14 + panelHeader.implicitHeight + 10 + tabBar.implicitHeight + 10 + searchField.implicitHeight + 10 + contentCol.implicitHeight + 14)
+
+    // Type anywhere in the panel to search; Esc clears the query first, then closes.
+    Keys.onPressed: event => {
+        if (searchField.activeFocus) return
+        var t = event.text
+        if (!t || t.length !== 1 || t.charCodeAt(0) < 32 || t.charCodeAt(0) === 127) return
+        if (event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) return
+        searchField.forceActiveFocus()
+        searchField.insert(searchField.cursorPosition, t)
+        event.accepted = true
+    }
 
     PanelBackground {
         anchors.fill: parent
@@ -117,7 +140,9 @@ Item {
                 Layout.fillWidth: true
                 implicitHeight: 26
                 theme: root.theme
-                text: "Unread" + (root.unreadCount > 0 ? " (" + root.unreadCount + ")" : "")
+                readonly property int n: root.searching
+                    ? root.shownLive.length + root.shownUnread.length : root.unreadCount
+                text: "Unread" + (n > 0 ? " (" + n + ")" : "")
                 pixelSize: theme.fontSize - 1
                 clr: theme.blue
                 solid: root.tab === "unread"
@@ -129,12 +154,57 @@ Item {
                 Layout.fillWidth: true
                 implicitHeight: 26
                 theme: root.theme
-                text: "Read" + (root.readRows.length > 0 ? " (" + root.readRows.length + ")" : "")
+                readonly property int n: root.shownRead.length
+                text: "Read" + (n > 0 ? " (" + n + ")" : "")
                 pixelSize: theme.fontSize - 1
                 clr: theme.blue
                 solid: root.tab === "read"
                 clickable: true
                 onClicked: root.tab = "read"
+            }
+        }
+
+        TextField {
+            id: searchField
+            Layout.fillWidth: true
+            implicitHeight: 28
+            // Source of truth for root.query (one-way: field -> query).
+            onTextChanged: root.query = text
+            placeholderText: "Search notifications…"
+            color: theme.text
+            placeholderTextColor: theme.overlay0
+            font.pixelSize: theme.fontSizeMin
+            font.family: theme.fontUi
+            selectByMouse: true
+            leftPadding: 8
+            rightPadding: clearSearch.visible ? clearSearch.width + 12 : 8
+            background: Rectangle {
+                radius: theme.radiusMd
+                color: theme.surface0
+                border.color: searchField.activeFocus ? theme.blue : "transparent"
+                border.width: 1
+            }
+            // Non-empty: Esc clears. Empty: falls through to the overlay, which closes.
+            Keys.onEscapePressed: event => {
+                if (text === "") { event.accepted = false; return }
+                text = ""
+            }
+
+            Text {
+                id: clearSearch
+                visible: searchField.text !== ""
+                anchors.right: parent.right
+                anchors.rightMargin: 8
+                anchors.verticalCenter: parent.verticalCenter
+                text: Glyphs.close
+                color: theme.subtext0
+                font.family: theme.font
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -4
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: searchField.text = ""
+                }
             }
         }
 
@@ -173,7 +243,7 @@ Item {
                                 color: theme.blue
                                 font.pixelSize: theme.fontSize - 1
                                 font.family: theme.font
-                                visible: root.unreadCount > 0
+                                visible: root.unreadCount > 0 && !root.searching
 
                                 MouseArea {
                                     anchors.fill: parent
@@ -191,8 +261,11 @@ Item {
                         }
 
                         Text {
-                            visible: root.unreadCount === 0
-                            text: root.dnd ? "Do Not Disturb is on" : "Nothing unread"
+                            visible: root.searching
+                                ? root.shownLive.length + root.shownUnread.length === 0
+                                : root.unreadCount === 0
+                            text: root.searching ? "No matches"
+                                : root.dnd ? "Do Not Disturb is on" : "Nothing unread"
                             color: theme.subtext0
                             font.pixelSize: theme.fontSize - 1
                             font.family: theme.font
@@ -229,7 +302,7 @@ Item {
                                 color: theme.blue
                                 font.pixelSize: theme.fontSize - 1
                                 font.family: theme.font
-                                visible: root.readRows.length > 0
+                                visible: root.readRows.length > 0 && !root.searching
 
                                 MouseArea {
                                     anchors.fill: parent
@@ -244,8 +317,8 @@ Item {
                         }
 
                         Text {
-                            visible: root.readRows.length === 0
-                            text: "No read notifications"
+                            visible: root.shownRead.length === 0
+                            text: root.searching ? "No matches" : "No read notifications"
                             color: theme.subtext0
                             font.pixelSize: theme.fontSize - 1
                             font.family: theme.font
@@ -273,6 +346,7 @@ Item {
             theme: root.theme
             notifData: modelData
             notifTimes: ({})
+            highlight: root._needle
             read: modelData.read === 1
             unread: modelData.read !== 1
             // Callbacks must be function literals: a bare binding here would
@@ -346,7 +420,8 @@ Item {
 
                             Text {
                                 Layout.fillWidth: true
-                                text: modelData.appName || "Unknown"
+                                text: Hl.mark(Sanitize.escapePlain(modelData.appName || "Unknown"), root._needle, root.theme.yellow)
+                                textFormat: Text.StyledText
                                 color: root.theme.text
                                 font.pixelSize: root.theme.fontSize
                                 font.bold: true
@@ -429,6 +504,7 @@ Item {
                             theme: root.theme
                             notifData: modelData
                             notifTimes: root.notifTimes
+                            highlight: root._needle
                             unread: true
                             // Live entries stay under Unread while active, so both
                             // read-click and × retire them (see retireLive).
@@ -442,6 +518,30 @@ Item {
     }
 
     // ── helpers ────────────────────────────────────────────────
+
+    // History row id -> folded search text. Filled lazily and mutated in place
+    // (no change signal), so a keystroke only re-runs indexOf. Rows are
+    // immutable apart from `read`; the cache is dropped on every history reload.
+    property var _foldCache: ({})
+    onHistoryAllChanged: _foldCache = ({})
+
+    function _hay(n) {
+        return Hl.fold((n.appName || "") + " " + (n.summary || "") + " "
+            + Sanitize.visibleText(n.body))
+    }
+
+    function matches(n) {
+        if (!root._needle) return true
+        if (!n) return false
+        var hay
+        if (n.id !== undefined && n._dbId === undefined) {
+            hay = root._foldCache[n.id]
+            if (hay === undefined) hay = root._foldCache[n.id] = root._hay(n)
+        } else {
+            hay = root._hay(n)   // live notifications: few, and not plain rows
+        }
+        return hay.indexOf(root._needle) >= 0
+    }
 
     function notificationGroupKey(notif) {
         // Normalize: desktopEntry is the stable id; bare appName varies in

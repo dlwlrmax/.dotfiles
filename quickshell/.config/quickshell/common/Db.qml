@@ -20,7 +20,10 @@ QtObject {
     // LOCALSTORAGE_IDENTIFIER is fixed; Qt derives the file name from its MD5
     // (295c15b949ab0184dfc2580b74713178.sqlite under OfflineStorage/Databases).
     readonly property string _identifier: "quickshell_state"
-    readonly property int _notifCap: 100
+    // Separate caps so new unread notifications never push read history out.
+    // Unread is a safety bound (plus the 7-day TTL) against notification floods.
+    readonly property int _readNotifCap: 300
+    readonly property int _unreadNotifCap: 1000
     readonly property int _recentCap: 30
     readonly property int _cacheTtlMs: 8000
 
@@ -168,10 +171,18 @@ QtObject {
             // machines that rarely clear. timestamp is epoch seconds.
             tx.executeSql("DELETE FROM notifications WHERE timestamp < "
                 + "CAST(strftime('%s','now','-7 days') AS INTEGER)")
-            tx.executeSql("DELETE FROM notifications WHERE id NOT IN "
-                + "(SELECT id FROM notifications ORDER BY id DESC LIMIT " + _notifCap + ")")
+            _pruneNotifs(tx)
         })
         return id
+    }
+
+    // Keep the newest _readNotifCap read and _unreadNotifCap unread rows.
+    // Run wherever rows are added or flip to read.
+    function _pruneNotifs(tx) {
+        tx.executeSql("DELETE FROM notifications WHERE read=1 AND id NOT IN "
+            + "(SELECT id FROM notifications WHERE read=1 ORDER BY id DESC LIMIT " + _readNotifCap + ")")
+        tx.executeSql("DELETE FROM notifications WHERE read=0 AND id NOT IN "
+            + "(SELECT id FROM notifications WHERE read=0 ORDER BY id DESC LIMIT " + _unreadNotifCap + ")")
     }
 
     function loadNotifications() {
@@ -241,6 +252,7 @@ QtObject {
         open()
         _db.transaction(function(tx) {
             tx.executeSql("UPDATE notifications SET read=1 WHERE id=?", [id])
+            _pruneNotifs(tx)
         })
     }
 
@@ -248,6 +260,7 @@ QtObject {
         open()
         _db.transaction(function(tx) {
             tx.executeSql("UPDATE notifications SET read=1")
+            _pruneNotifs(tx)
         })
     }
 
@@ -431,8 +444,8 @@ QtObject {
                                  d.appIcon || "", d.desktopEntry || "", d.expireTimeout || 0,
                                  JSON.stringify(d.actions || []), d.timestamp || 0, 1])
                         }
-                        tx.executeSql("DELETE FROM notifications WHERE id NOT IN "
-                            + "(SELECT id FROM notifications ORDER BY id DESC LIMIT " + _notifCap + ")")
+                        tx.executeSql("DELETE FROM notifications WHERE read=1 AND id NOT IN "
+                            + "(SELECT id FROM notifications WHERE read=1 ORDER BY id DESC LIMIT " + _readNotifCap + ")")
                     })
                 }
             } catch (e) {

@@ -258,17 +258,15 @@ Rectangle {
             }
         }
 
-        Text {
+        NotifBody {
             Layout.fillWidth: true
             visible: !!(root.latest && root.latest.body)
             // Whole body: the card grows to fit (no line cap), so cumulative chat
             // bodies show every line including the newest.
-            text: Sanitize.formatBody(root.latest ? root.latest.body : "")
+            theme: root.theme
+            body: root.latest ? root.latest.body : ""
+            notif: root.latest
             color: theme.text
-            font.pixelSize: theme.fontSizeMin
-            font.family: theme.fontUi
-            wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-            textFormat: Text.StyledText
         }
 
         // Inline reply (apps that support it, e.g. chats relayed by KDE Connect).

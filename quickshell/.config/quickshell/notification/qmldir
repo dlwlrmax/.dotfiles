@@ -4,4 +4,5 @@ NotificationCard 1.0 NotificationCard.qml
 NotificationPanel 1.0 NotificationPanel.qml
 NotificationPopup 1.0 NotificationPopup.qml
 NotificationPopupCard 1.0 NotificationPopupCard.qml
+NotifBody 1.0 NotifBody.qml
 NotifIcon 1.0 NotifIcon.qml

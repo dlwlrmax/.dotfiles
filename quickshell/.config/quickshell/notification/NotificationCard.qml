@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import qs.common
+import "Highlight.js" as Hl
 
 Rectangle {
     id: root
@@ -12,6 +13,8 @@ Rectangle {
     property bool unread: false
     // Long bodies show 4 lines until expanded ("Show more").
     property bool bodyExpanded: false
+    // Folded search needle from the panel; matches render highlighted.
+    property string highlight: ""
     property var onDismissRequest: null
     property var onMarkRead: null
 
@@ -102,7 +105,8 @@ Rectangle {
 
                 Text {
                     id: appNameText
-                    text: notifData && notifData.appName || "Unknown"
+                    text: Hl.mark(Sanitize.escapePlain(notifData && notifData.appName || "Unknown"), root.highlight, theme.yellow)
+                    textFormat: Text.StyledText
                     color: theme.text
                     font.pixelSize: theme.fontSize
                     font.bold: true
@@ -122,7 +126,7 @@ Rectangle {
                         theme: root.theme
                         hovered: appNameHover.containsMouse && appNameText.truncated
                         delay: 500
-                        text: appNameText.text
+                        text: notifData && notifData.appName || "Unknown"
                     }
                 }
 
@@ -155,31 +159,26 @@ Rectangle {
 
             Text {
                 id: summaryText
-                text: notifData && notifData.summary || ""
+                text: Hl.mark(Sanitize.escapePlain(notifData && notifData.summary || ""), root.highlight, theme.yellow)
                 color: theme.text
                 font.pixelSize: theme.fontSize
                 font.family: theme.fontUi
                 Layout.fillWidth: true
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                 visible: !!(notifData && notifData.summary) && notifData.summary.length > 0
-                textFormat: Text.PlainText
+                textFormat: Text.StyledText
             }
 
             // Capped to 4 lines unless expanded; short bodies are unaffected.
-            Text {
+            NotifBody {
                 id: bodyText
-                // Untrusted markup rendered through the Sanitize allowlist
-                // (b/i/u only) as StyledText — no images, links, or attrs.
-                text: Sanitize.formatBody(notifData && notifData.body || "")
-                color: theme.subtext0
-                font.pixelSize: theme.fontSizeMin
-                font.family: theme.fontUi
+                theme: root.theme
+                body: notifData && notifData.body || ""
+                notif: notifData
+                highlight: root.highlight
                 Layout.fillWidth: true
-                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                maximumLineCount: root.bodyExpanded ? 1000 : 4
-                elide: Text.ElideRight
+                maxLines: root.bodyExpanded ? 0 : 4
                 visible: !!(notifData && notifData.body) && notifData.body.length > 0
-                textFormat: Text.StyledText
             }
 
             Text {
