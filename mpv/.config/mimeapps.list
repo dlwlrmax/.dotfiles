@@ -17,3 +17,5 @@ video/x-matroska=mpv.desktop
 x-scheme-handler/chrome=zen.desktop
 x-scheme-handler/http=zen.desktop
 x-scheme-handler/https=zen.desktop
+x-scheme-handler/hydralauncher=hydralauncher.desktop
+x-scheme-handler/discord=vesktop.desktop
