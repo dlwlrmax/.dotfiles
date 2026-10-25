@@ -264,6 +264,19 @@ hl.window_rule({
   idle_inhibit = "fullscreen",
 })
 
+hl.window_rule({
+  match = { title = 'S.T.A.L.K.E.R.: Anomaly' },
+  workspace = game_ws,
+  monitor = game_monitor,
+  confine_pointer = true,
+  immediate = true,
+  fullscreen = true,
+  center = true,
+  no_blur = true,
+  no_shadow = true,
+  idle_inhibit = "fullscreen",
+})
+
 -- Steam client (not games: those are steam_app_*, handled above; not toasts:
 -- those are placed corner-wise by the "steam-toast" rule below).
 hl.window_rule({
