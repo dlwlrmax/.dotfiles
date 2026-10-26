@@ -60,17 +60,19 @@ type scanTickMsg struct{}
 var packageDB = []struct{ Name, Group string; IsPipx bool }{
 	// Core
 	{Name: "hyprland", Group: "core"}, {Name: "hyprpaper", Group: "core"}, {Name: "hypridle", Group: "core"},
-	{Name: "hyprlock", Group: "core"}, {Name: "hyprpolkitagent", Group: "core"}, {Name: "waybar", Group: "core"},
+	{Name: "hyprlock", Group: "core"}, {Name: "hyprpolkitagent", Group: "core"}, {Name: "hyprpm", Group: "core"},
 	{Name: "swaync", Group: "core"}, {Name: "rofi", Group: "core"}, {Name: "walker", Group: "core"},
 	{Name: "grim", Group: "core"}, {Name: "slurp", Group: "core"}, {Name: "wl-clipboard", Group: "core"},
  {Name: "cliphist", Group: "core"}, {Name: "swappy", Group: "core"}, {Name: "ghostty", Group: "core"},
-	{Name: "dolphin", Group: "core"}, {Name: "fcitx5", Group: "core"}, {Name: "fcitx5-unikey", Group: "core"},
+	{Name: "dolphin", Group: "core"}, {Name: "archlinux-xdg-menu", Group: "core"}, {Name: "fcitx5", Group: "core"}, {Name: "fcitx5-unikey", Group: "core"},
 	{Name: "fcitx5-configtool", Group: "core"}, {Name: "blueman", Group: "core"}, {Name: "easyeffects", Group: "core"},
 	{Name: "xdg-desktop-portal-hyprland", Group: "core"}, {Name: "xdg-desktop-portal-gtk", Group: "core"},
 	{Name: "xdg-desktop-portal", Group: "core"}, {Name: "qt6-wayland", Group: "core"}, {Name: "brightnessctl", Group: "core"},
 	{Name: "stow", Group: "core"}, {Name: "jq", Group: "core"}, {Name: "gawk", Group: "core"}, {Name: "curl", Group: "core"},
 	{Name: "pacman-contrib", Group: "core"}, {Name: "flatpak", Group: "core"}, {Name: "fzf", Group: "core"},
-	{Name: "waypaper", Group: "core"},
+	{Name: "waypaper", Group: "core"}, {Name: "quickshell-git", Group: "core"}, {Name: "wireplumber", Group: "core"},
+	{Name: "playerctl", Group: "core"}, {Name: "gnome-keyring", Group: "core"}, {Name: "wlrctl", Group: "core"},
+	{Name: "ydotool", Group: "core"}, {Name: "libnotify", Group: "core"}, {Name: "qview", Group: "core"},
 
 	// Optional
 	{Name: "pavucontrol", Group: "optional"}, {Name: "mission-center", Group: "optional"}, {Name: "qt6ct", Group: "optional"},
@@ -81,6 +83,14 @@ var packageDB = []struct{ Name, Group string; IsPipx bool }{
 	{Name: "gtk-engine-murrine", Group: "optional"}, {Name: "sesh-bin", Group: "optional"},
 	{Name: "tmux", Group: "optional"}, {Name: "python-libtmux", Group: "optional"}, {Name: "tmuxp", Group: "optional"},
 	{Name: "python-pipx", Group: "optional"},
+	{Name: "ark", Group: "optional"}, {Name: "kdeconnect", Group: "optional"}, {Name: "git-cola", Group: "optional"},
+	{Name: "qbittorrent", Group: "optional"}, {Name: "font-manager", Group: "optional"}, {Name: "obsidian", Group: "optional"},
+	{Name: "vesktop", Group: "optional"}, {Name: "thunar", Group: "optional"}, {Name: "lutris", Group: "optional"},
+	{Name: "steam", Group: "optional"}, {Name: "tailscale", Group: "optional"}, {Name: "fish", Group: "optional"},
+	{Name: "zsh", Group: "optional"}, {Name: "kitty", Group: "optional"}, {Name: "alacritty", Group: "optional"},
+	{Name: "zellij", Group: "optional"}, {Name: "gitui", Group: "optional"}, {Name: "zoxide", Group: "optional"},
+	{Name: "eza", Group: "optional"}, {Name: "bat", Group: "optional"}, {Name: "ripgrep", Group: "optional"},
+	{Name: "fd", Group: "optional"},
 	{Name: "subliminal", Group: "optional", IsPipx: true}, {Name: "streamlink", Group: "optional", IsPipx: true},
 
 	// User apps
