@@ -133,7 +133,9 @@ local function pip_rule(match, extra)
   hl.window_rule(rule)
 end
 
-pip_rule({ class = "^(mpv)$" }, { focus_on_activate = false })
+if overrides.mpv_pip then
+  pip_rule({ class = "^(mpv)$" }, { focus_on_activate = false })
+end
 pip_rule({ title = "(?i)picture.*picture" }, { dim_around = false, no_shadow = true })
 if not overrides.stremio_normal then
   pip_rule({ class = "^(stremio-enhanced|com.stremio.Stremio)$" }, { dim_around = false })
