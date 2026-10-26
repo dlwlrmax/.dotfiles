@@ -39,6 +39,8 @@ local float_apps = {
   "waypaper",
   "org.kde.ark",
   "font-manager",
+  "com.interversehq.qView",
+  "qview",
 }
 hl.window_rule({
   match = { class = string.format("^(%s)$", table.concat(float_apps, "|")) },
