@@ -4,7 +4,7 @@ import QtQuick
 // Which popup panel is open, on which screen, and where the widget that opened it
 // sits. At most one panel is open at a time. Panel names: notif, mpris, volume,
 // weather, calendar, sysUsage, power, battery, net, kde, launcher, clipboard, tray,
-// settings (quick toggles + preferences), wallpaper.
+// settings (quick toggles + preferences), wallpaper, browserPick.
 QtObject {
     property string openName: ""
     property string screenName: ""

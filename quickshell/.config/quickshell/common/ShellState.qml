@@ -17,6 +17,11 @@ QtObject {
     // phone notifications can show the phone app's icon in the notification UI.
     property var phoneAppIcons: ({})
 
+    // Link waiting for a browser choice (browserpick panel, scripts/link-open.sh):
+    // [{pid, class, address, titles, profile, argv}], most recently focused first.
+    property string linkUrl: ""
+    property var linkBrowsers: []
+
     // True if popups/tooltips should stay off the given screen (QScreen/monitor name).
     function quietOn(screenName) {
         return gamingMonitor === "*" || (gamingMonitor !== "" && gamingMonitor === screenName)

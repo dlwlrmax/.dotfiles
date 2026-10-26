@@ -52,3 +52,4 @@ python-pillow            optional  wallpaper theme (scripts/palette.py)
 python-numpy             optional  wallpaper theme (scripts/palette.py)
 imagemagick              optional  wallpaper panel thumbnails
 zenity                   optional  KDE Connect "Send file" picker
+gtk3                     optional  link-open.sh fallback browser (gtk-launch)

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Link Opener
+Comment=Ask which running browser opens links clicked in a terminal (quickshell browserpick)
+Exec=/home/kienct/.config/quickshell/scripts/link-open.sh %u
+Type=Application
+NoDisplay=true
+MimeType=x-scheme-handler/http;x-scheme-handler/https;

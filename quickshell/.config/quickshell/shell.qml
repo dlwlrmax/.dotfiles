@@ -25,6 +25,7 @@ import qs.wallpaper
 import qs.common
 import qs.osd
 import qs.deps
+import qs.browserpick
 
 ShellRoot {
     id: shell
@@ -74,7 +75,8 @@ ShellRoot {
     }
 
     readonly property var panelNames: ["notif", "mpris", "volume", "weather", "calendar", "sysUsage",
-        "power", "battery", "net", "kde", "launcher", "clipboard", "tray", "settings", "wallpaper"]
+        "power", "battery", "net", "kde", "launcher", "clipboard", "tray", "settings", "wallpaper",
+        "browserPick"]
 
     // qs ipc call panel toggle <name>   (names: qs ipc call panel list)
     IpcHandler {
@@ -114,6 +116,23 @@ ShellRoot {
         target: "clipboard"
         function toggle(): void { Panels.toggle("clipboard", shell.screenNameOfFocus(), 0) }
         function close(): void { if (Panels.openName === "clipboard") Panels.close() }
+    }
+
+    // qs ipc call link pick   (scripts/link-open.sh). The link and the browser list come
+    // through $XDG_RUNTIME_DIR/quickshell-link.json: `qs ipc` splits arguments on commas.
+    IpcHandler {
+        target: "link"
+        function pick(): string {
+            var d
+            try { d = JSON.parse(Db._readFile(Quickshell.env("XDG_RUNTIME_DIR") + "/quickshell-link.json")) }
+            catch (e) { return "bad link file" }
+            if (!d.url || !Array.isArray(d.browsers) || d.browsers.length === 0) return "no browsers"
+            ShellState.linkUrl = d.url
+            ShellState.linkBrowsers = d.browsers
+            var scr = shell.screenNameOfFocus()
+            if (!Panels.isOpen("browserPick", scr)) Panels.toggle("browserPick", scr, 0)
+            return "ok"
+        }
     }
 
     // Audio output cycle (Super+Ctrl+A): next sink + move streams + notify
@@ -427,6 +446,15 @@ ShellRoot {
                 name: "clipboard"; placement: "center"
                 panel: Component {
                     ClipboardPanel { anchors.fill: parent; onClose: Panels.close() }
+                }
+            }
+
+            PanelHost {
+                id: hBrowserPick
+                targetScreen: screenScope.screenData
+                name: "browserPick"; placement: "center"
+                panel: Component {
+                    BrowserPickPanel { anchors.fill: parent; onClose: Panels.close() }
                 }
             }
         }
