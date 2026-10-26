@@ -7,7 +7,9 @@ import "LauncherLogic.js" as L
 
 // App launcher on top of PickerPanel. Search apps (accent-insensitive, recency +
 // frequency ranked), open an app's desktop actions with → / Tab, and use the
-// quick prefixes:  =  calculator   >  run a command   ?  web search   @  windows.
+// quick prefixes:  =  calculator   >  run a command   ?  web search   @  windows
+//                   +  AppImages: add one (file dialog, or `+ path/to/app.AppImage`),
+//                      list the installed ones (→ Remove).
 Item {
     id: root
     property Theme theme: ThemeStore
@@ -89,6 +91,8 @@ Item {
             entry.fkeywords = fold(entry.keywords)
             entry.fcomment = fold(entry.comment)
             entry.fcategories = fold(entry.categories)
+            // Entries written by scripts/appimage.sh carry its remove action.
+            entry.isAppImage = entry.actions.some(function (a) { return a.id === "remove-appimage" })
             next.push(entry)
         }
         root.allEntries = next
@@ -296,6 +300,18 @@ Item {
         }
     }
 
+    // ── AppImage (+) ──
+
+    // path "" opens a file dialog; scripts/appimage.sh moves the file to
+    // ~/Applications and writes the .desktop entry the next fingerprint check picks up.
+    function appImageRow(path) {
+        return { kind: "appimage", path: path,
+                 title: path ? "Add  " + path.split("/").pop() : "Add AppImage…",
+                 subtitle: path ? "move to ~/Applications and add to the launcher"
+                                : "pick a file · or type + path/to/app.AppImage",
+                 glyph: "\uf067", glyphClr: theme.green }
+    }
+
     // ── rows ──
 
     function isUrl(q) { return L.isUrl(q) }
@@ -347,6 +363,19 @@ Item {
             var wq = trimmed.slice(1).trim()
             picker.rows = wq ? webRows(wq) : []
             picker.emptyText = "type what to search for"
+            return
+        }
+        if (/^\+(?![\d.(])/.test(trimmed)) {
+            var ap = trimmed.slice(1).trim()
+            if (/\.appimage$/i.test(ap)) { picker.rows = [appImageRow(ap)]; picker.status = ""; return }
+            var af = fold(ap), arows = []
+            for (var a = 0; a < root.allEntries.length; a++) {
+                var ae = root.allEntries[a]
+                if (!ae.isAppImage || (af && ae.fname.indexOf(af) === -1)) continue
+                arows.push(appRow(ae, af, ""))
+            }
+            picker.rows = [appImageRow("")].concat(arows.length > 0 ? [{ isHeader: true, label: "Installed AppImages  ·  → remove" }] : [], arows)
+            picker.status = arows.length > 0 ? arows.length + " installed" : ""
             return
         }
         if (trimmed.charAt(0) === "@") {
@@ -404,6 +433,8 @@ Item {
         }
         // Nothing found (or it looks like a URL): fall back to the web.
         if (rows.length === 0 || isUrl(trimmed)) rows = rows.concat(webRows(trimmed))
+        if (fq.length >= 4 && ("add appimage".indexOf(fq) === 0 || "appimage".indexOf(fq) === 0))
+            rows.push(appImageRow(""))
 
         picker.rows = rows
         picker.status = total > root.maxResults ? root.maxResults + " of " + total : (total > 0 ? total + "" : "")
@@ -444,7 +475,17 @@ Item {
     function activate(row, alt) {
         switch (row.kind) {
         case "app":    launch(row.entry); break
-        case "action": launchAction(row.entry, row.action); break
+        case "action":
+            if (row.action.id === "remove-appimage") {
+                // Not a launch: no recents bump, and close first so the confirm
+                // dialog can take focus.
+                var rargv = parseXdgExec(row.action.exec || "", row.entry)
+                close()
+                _exec(rargv)
+            } else {
+                launchAction(row.entry, row.action)
+            }
+            break
         case "calc":
             _exec(["wl-copy", row.value]); close(); break
         case "cmd":
@@ -454,6 +495,11 @@ Item {
         case "web":
         case "url":
             _exec(["xdg-open", row.url]); close(); break
+        case "appimage":
+            // Close first: the dialog can't take focus under the launcher's grab.
+            close()
+            _exec(["bash", theme.scriptDir + "/appimage.sh"].concat(row.path ? [row.path] : []))
+            break
         case "window":
             _exec(["hyprctl", "dispatch", "hl.dsp.focus({ window = \"address:" + row.address + "\" })"])
             close(); break
@@ -499,11 +545,11 @@ Item {
         theme: root.theme
         active: root.active
         modal: true
-        placeholder: "Search apps…   (= calc · > run · ? web · @ windows)"
+        placeholder: "Search apps…   (= calc · > run · ? web · @ windows · + appimage)"
         iconSize: 28
         rowHeight: 48
         hints: root.actionsFor ? "↵ run · ← back · esc back"
-             : searchMode ? "↑↓ move · ↵ launch · → actions · = > ? @ modes · esc close"
+             : searchMode ? "↑↓ move · ↵ launch · → actions · = > ? @ + modes · esc close"
                           : "j/k move · / search · ↵ launch · esc close"
 
         onQueryChanged: {
