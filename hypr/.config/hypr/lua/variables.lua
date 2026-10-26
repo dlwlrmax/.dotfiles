@@ -5,7 +5,7 @@ local M = {}
 M.terminal    = "ghostty"
 M.mainMod     = "SUPER"
 M.mainModS    = M.mainMod .. " + SHIFT"
-M.fileManager = "dolphin"
+M.fileManager = "env XDG_MENU_PREFIX=arch- dolphin"
 M.mainMonitor   = "DP-2"       -- primary / center (per-machine: lua/local.lua)
 M.secondMonitor = "HDMI-A-1"   -- secondary / left or right
 
@@ -15,6 +15,8 @@ M.secondMonitor = "HDMI-A-1"   -- secondary / left or right
 hl.env("XDG_CURRENT_DESKTOP", "Hyprland")
 hl.env("XDG_SESSION_TYPE", "wayland")
 hl.env("XDG_SESSION_DESKTOP", "Hyprland")
+-- KService (Dolphin "Open With") needs an applications.menu; archlinux-xdg-menu ships arch-applications.menu
+hl.env("XDG_MENU_PREFIX", "arch-")
 
 -- Fcitx 5
 hl.env("GTK_IM_MODULE", "fcitx")
