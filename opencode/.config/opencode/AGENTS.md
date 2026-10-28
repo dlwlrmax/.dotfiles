@@ -17,6 +17,16 @@ Boundaries: code/commits/PRs written normal.
 ## MCP scoping rule
 
 Never flip an MCP server to `enabled: true` in global `~/.config/opencode/opencode.jsonc`.
-Enable per project instead: project-root `opencode.json` with `{"mcp":{"<server>":{"enabled":true}}}`
-— deep-merged onto global, inherits command/env/timeout. Restart OpenCode after the change.
+Define it there `"enabled": false` (command + shared env), then enable per project in
+project-root `opencode.json`. OpenCode v2 requires the override to repeat `type` + `command`;
+an enabled-only entry is dropped with `omitted enabled-only legacy MCP entry`.
+
+```jsonc
+{"mcp":{"mysql":{"type":"local",
+  "command":["npx","-y","@easy-mcps/mysql-mcp-server"],
+  "environment":{"MYSQL_DATABASE":"<db>"}}}}
+```
+
+Keys absent from the project entry (host/port/user/password, timeout) are inherited from
+global. Restart OpenCode after the change.
 Figma specifics (tools, URLs, gotchas): see `figma-mcp` skill.
