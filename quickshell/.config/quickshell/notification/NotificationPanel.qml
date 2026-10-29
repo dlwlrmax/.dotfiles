@@ -60,11 +60,24 @@ Item {
 
     // Card lists are ListModels of keys, updated in place: a click or an incoming notification
     // only touches the cards that changed, so the others keep their expanded state.
+    readonly property int pageSize: 15
+    property int unreadLimit: pageSize
+    property int readLimit: pageSize
+
     ListModel { id: groupModel }
     ListModel { id: unreadModel }
     ListModel { id: readModel }
     property var historyById: ({})
     property var groupByKey: ({})
+
+    // Infinite scroll: grow the active tab's page when the view nears the bottom.
+    // Also runs when content grows, so a short first page keeps filling the viewport.
+    function loadMore() {
+        if (tab === "unread" && shownUnread.length > unreadLimit)
+            unreadLimit += pageSize
+        else if (tab === "read" && shownRead.length > readLimit)
+            readLimit += pageSize
+    }
 
     function syncLists() {
         var h = {}, g = {}, i
@@ -73,13 +86,29 @@ Item {
         historyById = h          // maps first: delegates re-read their row from them
         groupByKey = g
         Sync.sync(groupModel, groupedNotifs.map(function (x) { return String(x.key) }))
-        Sync.sync(unreadModel, shownUnread.map(function (r) { return String(r.id) }))
-        Sync.sync(readModel, shownRead.map(function (r) { return String(r.id) }))
+        // Only the visible tab builds cards, and only a page of them at a time:
+        // every delegate is instantiated even when its tab is hidden.
+        var unread = tab === "unread" ? shownUnread.slice(0, unreadLimit) : []
+        var read = tab === "read" ? shownRead.slice(0, readLimit) : []
+        Sync.sync(unreadModel, unread.map(function (r) { return String(r.id) }))
+        Sync.sync(readModel, read.map(function (r) { return String(r.id) }))
     }
 
     onGroupedNotifsChanged: syncLists()
     onShownUnreadChanged: syncLists()
     onShownReadChanged: syncLists()
+    onUnreadLimitChanged: syncLists()
+    onReadLimitChanged: syncLists()
+    on_NeedleChanged: {
+        unreadLimit = pageSize
+        readLimit = pageSize
+        syncLists()
+    }
+    onTabChanged: {
+        unreadLimit = pageSize
+        readLimit = pageSize
+        syncLists()
+    }
     Component.onCompleted: syncLists()
 
     clip: true
@@ -218,6 +247,9 @@ Item {
                 contentHeight: contentCol.implicitHeight
                 clip: true
                 ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                readonly property bool nearEnd: contentHeight - (contentY + height) < 240
+                onNearEndChanged: if (nearEnd) root.loadMore()
+                onContentHeightChanged: if (nearEnd) root.loadMore()
 
                 ColumnLayout {
                     id: contentCol
@@ -283,6 +315,15 @@ Item {
                             model: unreadModel
                             delegate: historyCardDelegate
                         }
+
+                        Text {
+                            visible: root.shownUnread.length > root.unreadLimit
+                            Layout.alignment: Qt.AlignHCenter
+                            text: (root.shownUnread.length - root.unreadLimit) + " more…"
+                            color: theme.subtext0
+                            font.pixelSize: theme.fontSize - 1
+                            font.family: theme.font
+                        }
                     }
 
                     // ── Read ───────────────────────────────────
@@ -327,6 +368,15 @@ Item {
                         Repeater {
                             model: readModel
                             delegate: historyCardDelegate
+                        }
+
+                        Text {
+                            visible: root.shownRead.length > root.readLimit
+                            Layout.alignment: Qt.AlignHCenter
+                            text: (root.shownRead.length - root.readLimit) + " more…"
+                            color: theme.subtext0
+                            font.pixelSize: theme.fontSize - 1
+                            font.family: theme.font
                         }
                     }
                 }
