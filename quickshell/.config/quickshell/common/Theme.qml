@@ -83,6 +83,17 @@ QtObject {
     readonly property int iconSize: 16                  // inline glyph icons
     readonly property int displaySize: 36               // weather temperature
 
+    // ── Motion (SpringAnimation) ──
+    // Move: panels, cards, toggles. Press: scale feedback, stiffer so it settles fast.
+    readonly property real springMove: 3.0
+    readonly property real dampingMove: 0.4
+    readonly property real epsilonMove: 0.25
+    readonly property real springPress: 4.5
+    readonly property real dampingPress: 0.6
+    readonly property real epsilonPress: 0.002
+    // Restacking neighbours must not overshoot into the card next to them.
+    readonly property real dampingStack: 0.7
+
     // ── Shape / spacing scale ──
     readonly property int radiusSm: 4
     readonly property int radiusMd: 6

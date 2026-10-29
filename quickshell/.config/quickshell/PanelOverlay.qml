@@ -1,6 +1,7 @@
 import Quickshell
 import Quickshell.Wayland
 import QtQuick
+import qs.common
 
 PanelWindow {
     id: root
@@ -104,7 +105,7 @@ PanelWindow {
             reversible: true
             ParallelAnimation {
                 NumberAnimation { property: "opacity"; duration: 200; easing.type: Easing.OutCubic }
-                NumberAnimation { target: panelTranslate; property: "y"; duration: 200; easing.type: Easing.OutCubic }
+                SpringAnimation { target: panelTranslate; property: "y"; spring: ThemeStore.springMove; damping: ThemeStore.dampingMove; epsilon: ThemeStore.epsilonMove }
             }
         }
     }

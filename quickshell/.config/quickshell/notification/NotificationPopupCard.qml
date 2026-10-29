@@ -80,6 +80,8 @@ Rectangle {
         stopTimers()
         fadeAnim.to = 0
         fadeAnim.start()
+        slideSpring.to = -16
+        slideSpring.restart()
     }
 
     function requestDismiss() {
@@ -138,14 +140,15 @@ Rectangle {
         running: true
     }
 
-    transform: Translate { id: slideTransform; y: -8 }
-    NumberAnimation {
+    transform: Translate { id: slideTransform; y: -24 }
+    SpringAnimation {
+        id: slideSpring
         target: slideTransform
         property: "y"
-        from: -8
         to: 0
-        duration: 180
-        easing.type: Easing.OutCubic
+        spring: root.theme.springMove
+        damping: root.theme.dampingMove
+        epsilon: root.theme.epsilonMove
         running: true
     }
 

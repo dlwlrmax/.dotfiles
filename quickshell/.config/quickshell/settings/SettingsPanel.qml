@@ -300,7 +300,7 @@ Item {
                             border.width: picked ? 3 : 1
                             border.color: picked ? root.theme.text : Qt.alpha(root.theme.text, 0.25)
                             scale: swMa.containsMouse ? 1.1 : 1
-                            Behavior on scale { NumberAnimation { duration: 80 } }
+                            Behavior on scale { SpringAnimation { spring: root.theme.springPress; damping: root.theme.dampingPress; epsilon: root.theme.epsilonPress } }
 
                             Text {
                                 anchors.centerIn: parent

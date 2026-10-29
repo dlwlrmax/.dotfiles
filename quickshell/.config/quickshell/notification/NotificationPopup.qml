@@ -91,7 +91,7 @@ Item {
 
                 // Keep layout shifts uniform when cards enter or leave stack.
                 Behavior on y {
-                    NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+                    SpringAnimation { spring: root.theme.springMove; damping: root.theme.dampingStack; epsilon: root.theme.epsilonMove }
                 }
 
                 Component.onCompleted: root.cards[group.key] = this

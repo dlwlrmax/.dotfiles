@@ -24,7 +24,7 @@ Rectangle {
     border.width: 1
     border.color: active ? Qt.alpha(clr, 0.5) : "transparent"
     scale: ma.pressed ? 0.97 : 1
-    Behavior on scale { NumberAnimation { duration: 80 } }
+    Behavior on scale { SpringAnimation { spring: theme.springPress; damping: theme.dampingPress; epsilon: theme.epsilonPress } }
     Behavior on color { ColorAnimation { duration: 120 } }
 
     ColumnLayout {

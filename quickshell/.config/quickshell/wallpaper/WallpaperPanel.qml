@@ -150,7 +150,7 @@ Item {
                     border.width: cell.isCurrent ? 3 : (ma.containsMouse ? 2 : 0)
                     border.color: cell.isCurrent ? theme.highlight : theme.overlay1
                     scale: ma.containsMouse ? 1.02 : 1
-                    Behavior on scale { NumberAnimation { duration: 90 } }
+                    Behavior on scale { SpringAnimation { spring: theme.springPress; damping: theme.dampingPress; epsilon: theme.epsilonPress } }
 
                     Image {
                         id: img

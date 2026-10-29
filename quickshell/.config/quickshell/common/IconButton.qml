@@ -20,7 +20,7 @@ Rectangle {
          : ma.pressed ? theme.surface1 : ma.containsMouse ? theme.surface0 : "transparent"
     opacity: enabled ? 1 : 0.35
     scale: ma.pressed ? 0.92 : 1
-    Behavior on scale { NumberAnimation { duration: 80 } }
+    Behavior on scale { SpringAnimation { spring: btn.theme.springPress; damping: btn.theme.dampingPress; epsilon: btn.theme.epsilonPress } }
     Behavior on color { ColorAnimation { duration: 100 } }
 
     Text {

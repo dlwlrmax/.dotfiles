@@ -18,7 +18,7 @@ Rectangle {
     radius: theme.radiusMd
     color: solid ? clr : Qt.alpha(clr, clickable && ma.containsMouse ? 0.28 : 0.16)
     scale: clickable && ma.pressed ? 0.95 : 1
-    Behavior on scale { NumberAnimation { duration: 80 } }
+    Behavior on scale { SpringAnimation { spring: badge.theme.springPress; damping: badge.theme.dampingPress; epsilon: badge.theme.epsilonPress } }
     border.width: solid ? 0 : 1
     border.color: Qt.alpha(clr, 0.35)
 

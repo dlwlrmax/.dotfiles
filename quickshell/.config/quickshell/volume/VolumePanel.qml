@@ -207,7 +207,7 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             x: root.eeActive ? parent.width - width - 2 : 2
                             color: root.eeActive ? theme.base : theme.subtext0
-                            Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                            Behavior on x { SpringAnimation { spring: theme.springMove; damping: theme.dampingMove; epsilon: theme.epsilonMove } }
                         }
                     }
                 }
