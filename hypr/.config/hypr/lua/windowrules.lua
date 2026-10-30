@@ -281,6 +281,12 @@ hl.window_rule({
   idle_inhibit = "fullscreen",
 })
 
+hl.window_rule({
+  match = { class = "^(stalker-gamma-commander)$" },
+  center = true,
+  workspace = 7
+})
+
 -- Steam client (not games: those are steam_app_*, handled above; not toasts:
 -- those are placed corner-wise by the "steam-toast" rule below).
 hl.window_rule({
