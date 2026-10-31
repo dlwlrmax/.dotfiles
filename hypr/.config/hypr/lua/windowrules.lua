@@ -17,7 +17,7 @@ local ws = {
 for _, v in ipairs(ws) do
   hl.window_rule({ match = { class = v.pat }, workspace = v.id })
 end
-local pip_position = "-570 700"
+local pip_position = overrides.pip_position or "-570 700"
 local pip_size = "543 306"
 
 -- ──────────────────────────────────────────────
