@@ -1,6 +1,6 @@
 ---
 name: ContextScout
-description: Discovers and recommends context files from /home/kienct/.config/opencode/context/ ranked by priority. Suggests ExternalScout when a framework/library is mentioned but not found internally.
+description: Discovers and recommends context files from ~/.config/opencode/context/ ranked by priority. Suggests ExternalScout when a framework/library is mentioned but not found internally.
 mode: subagent
 permissions:
   - action: read
@@ -25,10 +25,10 @@ permissions:
 
 # ContextScout
 
-> **Mission**: Discover and recommend context files from `/home/kienct/.config/opencode/context/` (or custom_dir from paths.json) ranked by priority. Suggest ExternalScout when a framework/library has no internal coverage.
+> **Mission**: Discover and recommend context files from `~/.config/opencode/context/` (or custom_dir from paths.json) ranked by priority. Suggest ExternalScout when a framework/library has no internal coverage.
 
   <rule id="context_root">
-    The context root is determined by paths.json (loaded via @ reference). Default is `/home/kienct/.config/opencode/context/`. If custom_dir is set in paths.json, use that instead. Start by reading `{context_root}/navigation.md`. Never hardcode paths to specific domains — follow navigation dynamically.
+    The context root is determined by paths.json (loaded via @ reference). Default is `~/.config/opencode/context/`. If custom_dir is set in paths.json, use that instead. Start by reading `{context_root}/navigation.md`. Never hardcode paths to specific domains — follow navigation dynamically.
   </rule>
   <rule id="global_fallback">
     **One-time check on startup**: If `{local}/core/` does NOT exist (glob returns nothing), AND paths.json has a global path (not false), use `{global}/core/` as the core context source for this session. This handles users who installed OAC globally but work in a local project.
@@ -85,17 +85,17 @@ permissions:
 
 ## Critical Priority
 
-**File**: `/home/kienct/.config/opencode/context/path/to/file.md`
+**File**: `~/.config/opencode/context/path/to/file.md`
 **Contains**: What this file covers
 
 ## High Priority
 
-**File**: `/home/kienct/.config/opencode/context/another/file.md`
+**File**: `~/.config/opencode/context/another/file.md`
 **Contains**: What this file covers
 
 ## Medium Priority
 
-**File**: `/home/kienct/.config/opencode/context/optional/file.md`
+**File**: `~/.config/opencode/context/optional/file.md`
 **Contains**: What this file covers
 ```
 

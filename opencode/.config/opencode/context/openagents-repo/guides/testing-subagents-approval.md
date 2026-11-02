@@ -129,9 +129,9 @@ tags:
 
 ## Related Files
 
-- **Testing subagents**: `/home/kienct/.config/opencode/context/openagents-repo/guides/testing-subagents.md`
-- **Subagent invocation**: `/home/kienct/.config/opencode/context/openagents-repo/guides/subagent-invocation.md`
-- **Agent concepts**: `/home/kienct/.config/opencode/context/openagents-repo/core-concepts/agents.md`
+- **Testing subagents**: `~/.config/opencode/context/openagents-repo/guides/testing-subagents.md`
+- **Subagent invocation**: `~/.config/opencode/context/openagents-repo/guides/subagent-invocation.md`
+- **Agent concepts**: `~/.config/opencode/context/openagents-repo/core-concepts/agents.md`
 
 ---
 

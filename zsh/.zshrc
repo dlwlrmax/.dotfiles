@@ -217,10 +217,10 @@ npx() { nvm; npx "$@"; }
 eval "$(zoxide init zsh)"
 
 # opencode
-export PATH=/home/kienct/.opencode/bin:$PATH
+export PATH="$HOME/.opencode/bin:$PATH"
 
 # Created by `pipx` on 2025-12-25 02:59:08
-export PATH="$PATH:/home/kienct/.local/bin"
+export PATH="$PATH:$HOME/.local/bin"
 
 # Cargo (Rust)
 export PATH="$HOME/.cargo/bin:$PATH"
@@ -228,7 +228,7 @@ export PATH="$HOME/.cargo/bin:$PATH"
 # Corepack
 export COREPACK_ENABLE_AUTO_PIN=0
 
-export TUNNELTO_INSTALL="/home/kienct/.tunnelto"
+export TUNNELTO_INSTALL="$HOME/.tunnelto"
 export PATH="$TUNNELTO_INSTALL/bin:$PATH"
 
 fpath+=~/.zfunc

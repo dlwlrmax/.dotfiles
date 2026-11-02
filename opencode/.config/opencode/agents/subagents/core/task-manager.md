@@ -63,7 +63,7 @@ permissions:
 
 <critical_context_requirement>
 BEFORE starting task breakdown, ALWAYS:
-  1. Load context: `/home/kienct/.config/opencode/context/core/task-management/navigation.md`
+  1. Load context: `~/.config/opencode/context/core/task-management/navigation.md`
   2. Check existing tasks: Run `task-cli.ts status` to see current state
   3. If context file is provided in prompt or exists at `.tmp/sessions/{session-id}/context.md`, load it
   4. If context is missing or unclear, delegate discovery to ContextScout and capture relevant context file paths
@@ -82,7 +82,7 @@ WHY THIS MATTERS:
       - Expect the calling agent to supply relevant context file paths; request them if absent.
       - Use the task tool ONLY for ContextScout discovery, never to delegate task planning to TaskManager.
       - Do NOT create session bundles or write `.tmp/sessions/**` files.
-      - Do NOT read `/home/kienct/.config/opencode/context/core/workflows/task-delegation-basics.md` or follow delegation workflows.
+      - Do NOT read `~/.config/opencode/context/core/workflows/task-delegation-basics.md` or follow delegation workflows.
       - Your output (JSON files) is your primary communication channel.
     </with_meta_agent>
 
@@ -104,10 +104,10 @@ WHY THIS MATTERS:
       <action>Load context and check current task state</action>
       <process>
         1. Load task management context:
-           - `/home/kienct/.config/opencode/context/core/task-management/navigation.md`
-           - `/home/kienct/.config/opencode/context/core/task-management/standards/task-schema.md`
-           - `/home/kienct/.config/opencode/context/core/task-management/guides/splitting-tasks.md`
-           - `/home/kienct/.config/opencode/context/core/task-management/guides/managing-tasks.md`
+           - `~/.config/opencode/context/core/task-management/navigation.md`
+           - `~/.config/opencode/context/core/task-management/standards/task-schema.md`
+           - `~/.config/opencode/context/core/task-management/guides/splitting-tasks.md`
+           - `~/.config/opencode/context/core/task-management/guides/managing-tasks.md`
 
         2. Check current task state:
            ```bash
@@ -273,12 +273,12 @@ WHY THIS MATTERS:
               ```json
               "context_files": [
                 {
-                  "path": "/home/kienct/.config/opencode/context/core/standards/code-quality.md",
+                  "path": "~/.config/opencode/context/core/standards/code-quality.md",
                   "lines": "53-95",
                   "reason": "Pure function patterns for service layer"
                 },
                 {
-                  "path": "/home/kienct/.config/opencode/context/core/standards/security-patterns.md",
+                  "path": "~/.config/opencode/context/core/standards/security-patterns.md",
                   "lines": "120-145,200-220",
                   "reason": "JWT validation and token refresh patterns"
                 }
@@ -286,7 +286,7 @@ WHY THIS MATTERS:
               ```
               
               **Backward Compatibility**: Both formats are valid:
-              - String format: (example: `"/home/kienct/.config/opencode/context/file.md"`) - read entire file
+              - String format: (example: `"~/.config/opencode/context/file.md"`) - read entire file
               - Object format: `{"path": "...", "lines": "10-50", "reason": "..."}` (read specific lines)
               
               Agents MUST support both formats. Mix-and-match is allowed in the same array.
@@ -298,7 +298,7 @@ WHY THIS MATTERS:
  
               **FRONTEND RULE**: If a task involves UI design, styling, or frontend implementation:
               1. Set `suggested_agent`: "OpenFrontendSpecialist"
-              2. Include `/home/kienct/.config/opencode/context/ui/web/ui-styling-standards.md` and `/home/kienct/.config/opencode/context/core/workflows/design-iteration-overview.md` in `context_files`.
+              2. Include `~/.config/opencode/context/ui/web/ui-styling-standards.md` and `~/.config/opencode/context/core/workflows/design-iteration-overview.md` in `context_files`.
               3. If the design task is stage-specific, also include the relevant stage file(s): `design-iteration-stage-layout.md`, `design-iteration-stage-theme.md`, `design-iteration-stage-animation.md`, `design-iteration-stage-implementation.md`.
               4. Ensure `acceptance_criteria` includes "Follows 4-stage design workflow" and "Responsive at all breakpoints".
               5. **PARALLELIZATION**: Design tasks can run in parallel (`parallel: true`) since design work is isolated and doesn't affect backend/logic implementation. Only mark `parallel: false` if design depends on backend API contracts or data structures.
@@ -420,12 +420,12 @@ Before any status update or file modification:
       ```json
       "context_files": [
         {
-          "path": "/home/kienct/.config/opencode/context/core/standards/code-quality.md",
+          "path": "~/.config/opencode/context/core/standards/code-quality.md",
           "lines": "53-95",
           "reason": "Pure function patterns for service layer"
         },
         {
-          "path": "/home/kienct/.config/opencode/context/core/standards/security-patterns.md",
+          "path": "~/.config/opencode/context/core/standards/security-patterns.md",
           "lines": "120-145,200-220",
           "reason": "JWT validation and token refresh patterns"
         }
@@ -439,7 +439,7 @@ Before any status update or file modification:
     </when_to_use>
     <backward_compatibility>
       Both formats are valid and can be mixed:
-      - String: (example: `"/home/kienct/.config/opencode/context/file.md"`) - read entire file
+      - String: (example: `"~/.config/opencode/context/file.md"`) - read entire file
       - Object: `{"path": "...", "lines": "10-50", "reason": "..."}` (read specific lines)
     </backward_compatibility>
   </line_number_precision>
@@ -536,12 +536,12 @@ Before any status update or file modification:
       "objective": "Implement JWT-based authentication with refresh tokens",
       "context_files": [
         {
-          "path": "/home/kienct/.config/opencode/context/core/standards/code-quality.md",
+          "path": "~/.config/opencode/context/core/standards/code-quality.md",
           "lines": "53-95",
           "reason": "Pure function patterns for auth service"
         },
         {
-          "path": "/home/kienct/.config/opencode/context/core/standards/security-patterns.md",
+          "path": "~/.config/opencode/context/core/standards/security-patterns.md",
           "lines": "120-145",
           "reason": "JWT validation rules"
         }
@@ -600,12 +600,12 @@ Before any status update or file modification:
       "parallel": false,
       "context_files": [
         {
-          "path": "/home/kienct/.config/opencode/context/core/standards/code-quality.md",
+          "path": "~/.config/opencode/context/core/standards/code-quality.md",
           "lines": "53-72",
           "reason": "Pure function patterns"
         },
         {
-          "path": "/home/kienct/.config/opencode/context/core/standards/security-patterns.md",
+          "path": "~/.config/opencode/context/core/standards/security-patterns.md",
           "lines": "120-145",
           "reason": "JWT signing and validation rules"
         }

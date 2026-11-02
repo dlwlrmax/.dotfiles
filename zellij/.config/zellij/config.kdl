@@ -20,11 +20,11 @@ keybinds clear-defaults=true {
     normal {
         // --- Floating pane popups (replacing tmux display-popup) ---
         // Also available in locked mode via Alt+g, Alt+m, Alt+t (see shared block)
-        bind "g" { Run "/home/kienct/.config/zellij/scripts/zj-popup" "gitui"; SwitchToMode "locked"; }
+        bind "g" { Run "sh" "-c" "exec ~/.config/zellij/scripts/zj-popup gitui"; SwitchToMode "locked"; }
 
         // --- Session switching via sesh (replacing tmux sesh bindings) ---
-        bind "w" { Run "/home/kienct/.config/zellij/scripts/zj-sesh"; SwitchToMode "locked"; }
-        bind "q" { Run "/home/kienct/.config/zellij/scripts/zj-sesh-last"; SwitchToMode "locked"; }
+        bind "w" { Run "sh" "-c" "exec ~/.config/zellij/scripts/zj-sesh"; SwitchToMode "locked"; }
+        bind "q" { Run "sh" "-c" "exec ~/.config/zellij/scripts/zj-sesh-last"; SwitchToMode "locked"; }
 
         // --- Mode switching ---
         bind "Ctrl p" { SwitchToMode "pane"; }
@@ -277,13 +277,13 @@ keybinds clear-defaults=true {
         bind "Alt Shift p" { ToggleGroupMarking; }
 
         // --- Floating pane popups (Alt prefix to avoid mode-switch conflicts) ---
-        bind "Alt g" { Run "/home/kienct/.config/zellij/scripts/zj-popup" "gitui"; }
-        bind "Alt m" { Run "/home/kienct/.config/zellij/scripts/zj-popup" "lazydocker"; }
-        bind "Alt t" { Run "/home/kienct/.config/zellij/scripts/zj-popup" "zsh" "-lic" "llog"; }
+        bind "Alt g" { Run "sh" "-c" "exec ~/.config/zellij/scripts/zj-popup gitui"; }
+        bind "Alt m" { Run "sh" "-c" "exec ~/.config/zellij/scripts/zj-popup lazydocker"; }
+        bind "Alt t" { Run "sh" "-c" "exec ~/.config/zellij/scripts/zj-popup zsh -lic llog"; }
 
         // --- sesh session switchers ---
-        bind "Alt w" { Run "/home/kienct/.config/zellij/scripts/zj-sesh"; }
-        bind "Alt q" { Run "/home/kienct/.config/zellij/scripts/zj-sesh-last"; }
+        bind "Alt w" { Run "sh" "-c" "exec ~/.config/zellij/scripts/zj-sesh"; }
+        bind "Alt q" { Run "sh" "-c" "exec ~/.config/zellij/scripts/zj-sesh-last"; }
     }
 
     // Mode switching — available everywhere except locked + special modes

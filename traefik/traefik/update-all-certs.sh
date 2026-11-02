@@ -2,7 +2,7 @@
 set -e
 
 # Find all docker-compose.yml files in gitlab directory (excluding vendor directories)
-COMPOSE_FILES=$(find /home/kienct/gitlab -name "docker-compose.yml" -type f | grep -v vendor)
+COMPOSE_FILES=$(find "$HOME/gitlab" -name "docker-compose.yml" -type f | grep -v vendor)
 
 echo "Found $(echo "$COMPOSE_FILES" | wc -l) docker-compose.yml files to update..."
 

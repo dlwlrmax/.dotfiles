@@ -7,7 +7,7 @@
 ## Structure
 
 ```
-/home/kienct/.config/opencode/context/project-intelligence/
+~/.config/opencode/context/project-intelligence/
 ├── navigation.md                   # This file - quick overview
 ├── business-domain.md              # Business context and problem statement
 ├── technical-domain-backend.md     # Laravel backend API — stack, architecture
@@ -44,8 +44,8 @@
 ## Integration
 
 This folder is referenced from:
-- `/home/kienct/.config/opencode/context/core/standards/project-intelligence.md` (standards and patterns)
-- `/home/kienct/.config/opencode/context/core/system/context-guide.md` (context loading)
+- `~/.config/opencode/context/core/standards/project-intelligence.md` (standards and patterns)
+- `~/.config/opencode/context/core/system/context-guide.md` (context loading)
 
 ## Maintenance
 
