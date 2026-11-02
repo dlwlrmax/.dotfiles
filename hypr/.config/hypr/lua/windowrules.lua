@@ -17,7 +17,7 @@ local ws = {
 for _, v in ipairs(ws) do
   hl.window_rule({ match = { class = v.pat }, workspace = v.id })
 end
-local pip_position = overrides.pip_position or "-570 700"
+local pip_position = overrides.pip_position or "1358 644"
 local pip_size = "543 306"
 
 -- ──────────────────────────────────────────────
@@ -115,7 +115,7 @@ hl.window_rule({
 -- ──────────────────────────────────────────────
 -- Picture-in-Picture (pinned float on second monitor)
 -- ──────────────────────────────────────────────
-local pip_monitor = overrides.secondMonitor or "HDMI-A-1"
+local pip_monitor = overrides.pipMonitor or "0"
 local main_monitor = overrides.mainMonitor or vars.mainMonitor
 
 -- Shared PIP placement; `extra` adds per-app effects.
@@ -123,6 +123,9 @@ local function pip_rule(match, extra)
   local rule = {
     match = match,
     monitor = pip_monitor,
+    -- Class rules (e.g. zen -> ws 10) win over `monitor` since Hyprland 0.57,
+    -- so pin the PiP to a workspace that lives on the PiP monitor too.
+    workspace = overrides.pipWorkspace,
     float = true,
     pin = true,
     move = pip_position,
