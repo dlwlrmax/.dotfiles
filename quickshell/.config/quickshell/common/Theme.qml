@@ -126,6 +126,8 @@ QtObject {
     // Bar height: shared by the bar window in shell.qml and every panel/OSD
     // offset anchored below it.
     readonly property int barHeight: 44
+    // Gap between the bar and the left/right screen edges.
+    readonly property int barInsetX: 8
 
     // ── Thresholds ──
     // Volume / OSD level thresholds and their accent colors.

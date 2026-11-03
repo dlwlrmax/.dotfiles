@@ -16,6 +16,17 @@ PanelWindow {
     property int topMargin: 0
     property bool keyboardFocus: true
 
+    // TopCenter panels: x that centres the panel under its widget, and whether that leaves
+    // no room for the concave fillet before the bar's rounded end. Then the panel snaps to
+    // the bar's edge and a corner piece squares off the bar end instead.
+    readonly property real wantX: width / 2 + centerOffset - wrapper.width / 2
+    readonly property real endRoom: ThemeStore.barInsetX + ThemeStore.radiusXl
+    readonly property bool snapLeft: wantX - ThemeStore.frameRadius < endRoom
+    readonly property bool snapRight: width - (wantX + wrapper.width) - ThemeStore.frameRadius < endRoom
+    readonly property real placedX: snapLeft && !snapRight ? ThemeStore.barInsetX
+                                  : snapRight && !snapLeft ? width - ThemeStore.barInsetX - wrapper.width
+                                  : Math.max(ThemeStore.barInsetX, Math.min(width - wrapper.width - ThemeStore.barInsetX, wantX))
+
     default property alias content: wrapper.data
     // Item that gets key events first (set by PanelHost to the loaded panel).
     property Item keyTarget: null
@@ -40,7 +51,8 @@ PanelWindow {
             // The 20px fillets beside the panel's top corners count as panel chrome.
             var r = frame.visible ? ThemeStore.frameRadius : 0
             var onChrome = pos.y >= 0 && pos.y <= r
-                && ((pos.x >= -r && pos.x < 0) || (frame.centered && pos.x > wrapper.width && pos.x <= wrapper.width + r))
+                && ((!frame.snapL && pos.x >= -r && pos.x < 0)
+                    || (frame.centered && !frame.snapR && pos.x > wrapper.width && pos.x <= wrapper.width + r))
             if (!onChrome && (pos.x < 0 || pos.x > wrapper.width || pos.y < 0 || pos.y > wrapper.height)) {
                 root.closeRequested()
             }
@@ -59,10 +71,27 @@ PanelWindow {
         height: wrapper.height
         opacity: wrapper.opacity
 
-        // under the bar, left of the panel
-        FrameCorner { x: -width; flipX: true }
+        readonly property bool snapL: centered && root.snapLeft && !root.snapRight
+        readonly property bool snapR: centered && root.snapRight && !root.snapLeft
+
+        // under the bar, left of the panel (or squaring off the bar's end when snapped)
+        FrameCorner { x: -width; flipX: true; visible: !frame.snapL }
         // under the bar, right of a centred panel
-        FrameCorner { x: frame.width; visible: frame.centered }
+        FrameCorner { x: frame.width; visible: frame.centered && !frame.snapR }
+        FrameCorner {
+            visible: frame.snapL
+            radius: ThemeStore.radiusXl
+            y: -height
+            flipY: true
+        }
+        FrameCorner {
+            visible: frame.snapR
+            radius: ThemeStore.radiusXl
+            x: frame.width - width
+            y: -height
+            flipX: true
+            flipY: true
+        }
     }
 
     Item {
@@ -98,8 +127,7 @@ PanelWindow {
         Binding {
             target: wrapper
             property: "x"
-            value: Math.max(ThemeStore.frameRadius, Math.min(root.width - wrapper.width - ThemeStore.frameRadius,
-                                        root.width / 2 + root.centerOffset - wrapper.width / 2))
+            value: root.placedX
             when: root.position === PanelOverlay.Position.TopCenter
         }
 

@@ -188,8 +188,8 @@ ShellRoot {
                 Bar {
                     id: barItem
                     anchors.fill: parent
-                    anchors.leftMargin: 8
-                    anchors.rightMargin: 8
+                    anchors.leftMargin: theme.barInsetX
+                    anchors.rightMargin: theme.barInsetX
                     anchors.topMargin: 6
                     monitor: Hyprland.monitorFor(screenScope.screenData)
                     // primary = leftmost screen (DP-1 first in hypr/lua/monitors.lua)
