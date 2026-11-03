@@ -48,8 +48,10 @@ FISHER_PLUGINS=(
 
 # Stow groups (mirrors README Installation section).
 STOW_GROUPS=(
-  "fish hypr waybar rofi swaync"          # core desktop
-  "kitty ghostty tmux nvim yazi gitui"    # terminal + dev
+  "fish hypr rofi swaync"                 # core desktop (waybar -> quickshell)
+  "quickshell mpv stremio"                # live shell + media
+  "opencode wireplumber xdg-desktop-portal" # CLI + audio/portal
+  "ghostty tmux nvim gitui"               # terminal + dev (kitty/yazi unused)
   "gtk-3.0 gtk-4.0 qt6ct"                 # theming
   "portainer"                             # containers
 )
@@ -323,31 +325,24 @@ stage_aur_packages() {
 # Stow stage
 # ---------------------------------------------------------------------------
 
-# True when every sampled file under repo dir $1 resolves, in ~, to the
-# same canonical path (covers file symlinks and folded directory symlinks).
-# A copy-deployed config resolves elsewhere and is reported as not stowed.
+# True when stow itself has nothing left to link for repo dir $1.
+# Delegating the check to `stow -n` keeps its ignore rules (VCS files,
+# install.sh, ...) authoritative instead of re-deriving them here; a partial
+# stow (config linked, .local/bin missing) therefore reports "not stowed".
 dir_is_stowed() {
-  local dir="$1"
-  local count=0 f rel target src resolved
-  while IFS= read -r -d '' f; do
-    rel="${f#"$REPO_DIR/$dir"/}"
-    target="$HOME/$rel"
-    src="$(readlink -f "$f")"
-    resolved="$(readlink -f "$target" 2>/dev/null || true)"
-    if [ -z "$resolved" ] || [ "$resolved" != "$src" ]; then
-      return 1
-    fi
-    count=$((count + 1))
-  done < <(find "$REPO_DIR/$dir" -type f -print0 2>/dev/null | head -z -n 5)
-  # No files found -> nothing to verify -> not stowed.
-  [ "$count" -gt 0 ]
+  local dir="$1" out
+  out="$(stow --ignore='install\.sh' --dir "$REPO_DIR" -n -v -t "$HOME" "$dir" 2>&1)" || return 1
+  ! grep -qE '^(LINK|UNLINK): ' <<< "$out"
 }
 
 stow_one() {
   local target="$1" dir="$2"
-  local -a stow_cmd=(stow)
+  # Top-level install.sh belongs to the package, not to ~ : stowing it would
+  # drop ~/install.sh (and for quickshell/.local/bin/link-open, the handler
+  # command that xdg-open resolves, only exists once the package is stowed).
+  local -a stow_cmd=(stow --ignore='install\.sh')
   if [ "$target" != "$HOME" ]; then
-    stow_cmd=(sudo stow)
+    stow_cmd=(sudo stow --ignore='install\.sh')
   fi
   if ! command -v stow >/dev/null 2>&1; then
     warn "stow not available, skipping '$dir'"
