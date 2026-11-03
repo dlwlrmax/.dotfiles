@@ -27,7 +27,10 @@ Item {
     implicitWidth: theme.panelWidthM
     implicitHeight: Math.min(maxHeight, Math.max(220, content.implicitHeight + 2 * theme.panelMargin))
 
-    onActiveChanged: if (active) list.positionViewAtBeginning()
+    onActiveChanged: if (active) {
+        list.positionViewAtBeginning()
+        Qt.callLater(function () { addBar.focusTitle() })
+    }
 
     PanelBackground {
         anchors.fill: parent
@@ -98,11 +101,14 @@ Item {
             }
         }
 
-        // Task 5 replaces this with the add bar.
-        Item {
-            id: addSlot
+        TodoAddBar {
+            id: addBar
             Layout.fillWidth: true
-            implicitHeight: 0
+            theme: root.theme
+            todayKey: root.dataSource ? root.dataSource.nowKey : 0
+            onSubmitted: (title, dueKey, dueMinutes) => {
+                if (root.dataSource) root.dataSource.add(title, dueKey, dueMinutes)
+            }
         }
     }
 }
