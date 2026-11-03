@@ -323,8 +323,9 @@ hl.window_rule({
 -- Layer rules
 -- ──────────────────────────────────────────────
 
--- Quickshell panel bar
-hl.layer_rule({ match = { namespace = "^quickshell-bar$" }, ignore_alpha = 0.4 })
+-- Quickshell bar and its popup panels: blur what is behind them. ignore_alpha keeps the
+-- transparent parts of the full-screen panel overlay (and the bar gaps) unblurred.
+hl.layer_rule({ match = { namespace = "^quickshell-(bar|panel)$" }, blur = true, ignore_alpha = 0.4 })
 
 -- Notification overlays (swaync rules removed: swaync is not installed/enabled;
 -- quickshell notifications use the "notifications" namespace below)

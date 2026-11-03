@@ -11,7 +11,7 @@ Rectangle {
 
     Layout.fillWidth: true
     implicitHeight: col.implicitHeight + 20
-    radius: theme.radiusLg
+    radius: theme.radiusXl
     color: Qt.alpha(theme.surface0, 0.45)
 
     ColumnLayout {

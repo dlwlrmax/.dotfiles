@@ -27,6 +27,9 @@ PanelWindow {
     color: "transparent"
     visible: root.active || wrapper.opacity > 0
     WlrLayershell.layer: WlrLayer.Overlay
+    // Bar-attached panels get blurred by a Hyprland layer rule (windowrules.lua); the
+    // centred overlays draw their own opaque background and stay unblurred.
+    WlrLayershell.namespace: position === PanelOverlay.Position.Center ? "quickshell-overlay" : "quickshell-panel"
     WlrLayershell.keyboardFocus: root.keyboardFocus ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
 
@@ -34,10 +37,32 @@ PanelWindow {
         anchors.fill: parent
         onClicked: mouse => {
             var pos = mapToItem(wrapper, mouse.x, mouse.y)
-            if (pos.x < 0 || pos.x > wrapper.width || pos.y < 0 || pos.y > wrapper.height) {
+            // The 20px fillets beside the panel's top corners count as panel chrome.
+            var r = frame.visible ? ThemeStore.frameRadius : 0
+            var onChrome = pos.y >= 0 && pos.y <= r
+                && ((pos.x >= -r && pos.x < 0) || (frame.centered && pos.x > wrapper.width && pos.x <= wrapper.width + r))
+            if (!onChrome && (pos.x < 0 || pos.x > wrapper.width || pos.y < 0 || pos.y > wrapper.height)) {
                 root.closeRequested()
             }
         }
+    }
+
+    // Concave joins to the bar. A sibling of wrapper, not a child: wrapper clips, and its
+    // first child sizes it.
+    Item {
+        id: frame
+        readonly property bool centered: root.position === PanelOverlay.Position.TopCenter
+        visible: root.position !== PanelOverlay.Position.Center
+        x: wrapper.x
+        y: wrapper.y + panelTranslate.y
+        width: wrapper.width
+        height: wrapper.height
+        opacity: wrapper.opacity
+
+        // under the bar, left of the panel
+        FrameCorner { x: -width; flipX: true }
+        // under the bar, right of a centred panel
+        FrameCorner { x: frame.width; visible: frame.centered }
     }
 
     Item {
@@ -73,7 +98,7 @@ PanelWindow {
         Binding {
             target: wrapper
             property: "x"
-            value: Math.max(8, Math.min(root.width - wrapper.width - 8,
+            value: Math.max(ThemeStore.frameRadius, Math.min(root.width - wrapper.width - ThemeStore.frameRadius,
                                         root.width / 2 + root.centerOffset - wrapper.width / 2))
             when: root.position === PanelOverlay.Position.TopCenter
         }

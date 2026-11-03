@@ -55,11 +55,13 @@ QtObject {
 
     // Text/glyphs on a saturated fill (badges, counters, urgent workspace).
     readonly property color onAccent: "#ffffff"
-    // Panel background: translucent for overlays that want to show through,
-    // solid for panels (see PanelBackground).
+    // Centred overlays (power, launcher, picker, OSD): translucent / solid backgrounds.
+    // Bar-attached panels use barColor instead (see PanelBackground).
     readonly property color panelColor: Qt.rgba(base.r, base.g, base.b, 0.95)
     readonly property color panelColorSolid: Qt.rgba(base.r, base.g, base.b, 1)
-    readonly property color barColor: Qt.rgba(base.r, base.g, base.b, 0.6)
+    // Bar and attached panels share this (PanelBackground, FrameCorner). Translucent so the
+    // compositor blur shows through; gaming mode turns blur off, so go near-opaque then.
+    readonly property color barColor: Qt.rgba(base.r, base.g, base.b, ShellState.gamingMonitor !== "" ? 0.97 : 0.88)
     // Dark inset behind progress/level bars.
     readonly property color trackColor: Qt.darker(surface0, 1.2)
     readonly property color trackOverlay: Qt.rgba(0, 0, 0, 0.2)
@@ -99,7 +101,9 @@ QtObject {
     readonly property int radiusMd: 6
     readonly property int radiusLg: 8
     readonly property int radiusXl: 12
-    readonly property int panelRadius: 16
+    readonly property int panelRadius: 20
+    // Concave fillet where the bar/panel frame meets the screen or another piece.
+    readonly property int frameRadius: panelRadius
     readonly property int panelMargin: 14
     // Panel widths: small / medium / large / calendar-sized.
     readonly property int panelWidthS: 360
