@@ -63,6 +63,7 @@ Item {
 
         Text {
             text: root.todo.title
+            textFormat: Text.PlainText
             color: root.done ? theme.overlay1 : theme.text
             font.pixelSize: theme.fontSize
             font.family: theme.fontUi

@@ -37,8 +37,14 @@ Item {
         nowMinutes = d.getHours() * 60 + d.getMinutes()
     }
 
+    // Assign only when the sorted list really changed: reassigning an equal array
+    // resets the panel ListView's scroll position and re-fires markedKeys.
+    function _setItems(sorted) {
+        if (JSON.stringify(sorted) !== JSON.stringify(items)) items = sorted
+    }
+
     function reload() {
-        items = T.sortTodos(Db.loadTodos(), nowKey, nowMinutes)
+        _setItems(T.sortTodos(Db.loadTodos(), nowKey, nowMinutes))
     }
 
     function add(title, dueKey, dueMinutes) {
@@ -84,7 +90,7 @@ Item {
             Db.markTodoNotified(todo.id)
         }
         if (due.length > 0) reload()
-        else items = T.sortTodos(rows, nowKey, nowMinutes)
+        else _setItems(T.sortTodos(rows, nowKey, nowMinutes))
     }
 
     Timer {
