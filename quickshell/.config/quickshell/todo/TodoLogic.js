@@ -112,6 +112,17 @@ function resolveDue(chip, typed, todayKey) {
     return { ok: true, key: n < 0 ? null : addDays(todayKey, n), minutes: null }
 }
 
+// Optional time of day for the add bar: "" -> no time; "h:mm" / "hh:mm" -> minutes after midnight.
+function parseTime(text) {
+    var s = String(text || "").trim()
+    if (s === "") return { ok: true, minutes: null }
+    var m = /^(\d{1,2}):(\d{2})$/.exec(s)
+    if (!m) return { ok: false, minutes: null }
+    var h = parseInt(m[1], 10), mi = parseInt(m[2], 10)
+    if (h > 23 || mi > 59) return { ok: false, minutes: null }
+    return { ok: true, minutes: h * 60 + mi }
+}
+
 function normalizeTitle(s) {
     return String(s).replace(/\s+/g, " ").trim().slice(0, MAX_TITLE)
 }
