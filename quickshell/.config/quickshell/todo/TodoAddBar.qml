@@ -5,12 +5,14 @@ import qs.common
 import "TodoLogic.js" as T
 
 // Add bar: title field + "+" button, quick due chips (Today / Tomorrow / Next week),
-// a date picker (inline month grid) and an optional "hh:mm" time. A picked date and a
-// chip are mutually exclusive; the time only applies once a date is set.
+// a date picker (inline month grid) and a time picker (hour / minute spinner, default 17:30).
+// A picked date and a chip are mutually exclusive; the time only applies once a date is set.
 Item {
     id: root
     property Theme theme: ThemeStore
     property int todayKey: 0
+    // Current time of day (minutes after midnight); today's due time can't be earlier than this.
+    property int nowMinutes: 0
     // dueKey / dueMinutes are null when absent.
     signal submitted(string title, var dueKey, var dueMinutes)
 
@@ -19,7 +21,12 @@ Item {
     // yyyymmdd chosen in the picker, 0 = none
     property int pickedKey: 0
     property bool pickerOpen: false
-    property bool timeInvalid: false
+    property bool timePickerOpen: false
+    // Time of day in minutes after midnight; reset to the default after each submit.
+    readonly property int defaultMinutes: 17 * 60 + 30
+    property int timeMinutes: defaultMinutes
+    // true = date-only todo (no due time, falls back to 09:00 in the logic).
+    property bool noTime: false
     // Month shown in the picker (month is 0-based). Starts on today's month;
     // togglePicker() re-centres it on the picked date each time it opens.
     property int viewYear: Math.floor(todayKey / 10000)
@@ -28,6 +35,11 @@ Item {
     readonly property int dueKey: pickedKey !== 0 ? pickedKey
                                   : (T.resolveDue(chip, "", todayKey).key ?? 0)
     readonly property bool hasDue: dueKey !== 0
+    // Earliest selectable time: now (rounded up to 5 min) when the due date is today, else 0.
+    readonly property int minMinutes: dueKey === todayKey && dueKey !== 0
+                                      ? Math.min(Math.ceil(nowMinutes / 5) * 5, 1435) : 0
+    // The time actually used: the picked time, lifted to minMinutes so it is never in the past.
+    readonly property int shownMinutes: Math.max(timeMinutes, minMinutes)
     readonly property bool canAdd: T.normalizeTitle(titleField.text) !== ""
     readonly property var monthNames: ["January", "February", "March", "April", "May", "June",
                                        "July", "August", "September", "October", "November", "December"]
@@ -40,12 +52,29 @@ Item {
         chip = chip === name ? "" : name
         pickedKey = 0
         pickerOpen = false
+        timePickerOpen = false
     }
 
     function pickDate(key) {
         pickedKey = key
         chip = ""
         pickerOpen = false
+    }
+
+    function toggleTimePicker() {
+        if (!hasDue) return
+        timePickerOpen = !timePickerOpen
+        if (timePickerOpen) pickerOpen = false
+    }
+
+    // Step hours (+-1, wrap 24) or minutes (+-5, snapped to the 5-minute grid, wrap 60).
+    function stepTime(hour, dir) {
+        var h = Math.floor(shownMinutes / 60)
+        var m = shownMinutes % 60
+        if (hour) h = (h + dir + 24) % 24
+        else m = ((dir > 0 ? Math.floor(m / 5) + 1 : Math.ceil(m / 5) - 1) * 5 + 60) % 60
+        timeMinutes = Math.max(h * 60 + m, minMinutes)
+        noTime = false
     }
 
     function togglePicker() {
@@ -55,6 +84,7 @@ Item {
             viewMonth = Math.floor(k / 100) % 100 - 1
         }
         pickerOpen = !pickerOpen
+        if (pickerOpen) timePickerOpen = false
     }
 
     function shiftMonth(n) {
@@ -64,20 +94,16 @@ Item {
     }
 
     function submit() {
-        var t = T.parseTime(timeField.text)
-        if (!t.ok) {
-            timeInvalid = true
-            return
-        }
         var title = T.normalizeTitle(titleField.text)
         if (title === "") return
-        root.submitted(title, hasDue ? dueKey : null, hasDue ? t.minutes : null)
+        root.submitted(title, hasDue ? dueKey : null, hasDue && !noTime ? shownMinutes : null)
         titleField.text = ""
-        timeField.text = ""
         chip = ""
         pickedKey = 0
         pickerOpen = false
-        timeInvalid = false
+        timePickerOpen = false
+        timeMinutes = defaultMinutes
+        noTime = false
         titleField.forceActiveFocus()
     }
 
@@ -166,33 +192,18 @@ Item {
 
             Item { Layout.fillWidth: true }
 
-            TextField {
-                id: timeField
-                implicitWidth: 56
-                implicitHeight: 24
-                enabled: root.hasDue
+            // Clock button; shows the chosen time (hh:mm). Needs a due date.
+            Badge {
+                theme: root.theme
+                text: "  " + (root.noTime ? "--:--"
+                      : String(Math.floor(root.shownMinutes / 60)).padStart(2, "0") + ":"
+                        + String(root.shownMinutes % 60).padStart(2, "0"))
+                clickable: root.hasDue
                 opacity: root.hasDue ? 1 : 0.45
-                placeholderText: "hh:mm"
-                color: root.timeInvalid ? theme.red : theme.text
-                placeholderTextColor: theme.overlay0
-                font.pixelSize: theme.fontSizeMin
-                font.family: theme.fontUi
-                selectByMouse: true
-                horizontalAlignment: TextInput.AlignHCenter
-                leftPadding: 4
-                rightPadding: 4
-                topPadding: 0
-                bottomPadding: 0
-                verticalAlignment: TextInput.AlignVCenter
-                background: Rectangle {
-                    radius: theme.radiusMd
-                    color: root.timeInvalid ? Qt.alpha(theme.red, 0.12) : theme.surface0
-                    border.color: root.timeInvalid ? theme.red
-                                : timeField.activeFocus ? theme.blue : "transparent"
-                    border.width: 1
-                }
-                onTextChanged: root.timeInvalid = false
-                onAccepted: root.submit()
+                solid: false
+                clr: root.hasDue && root.timePickerOpen ? theme.highlight : theme.subtext0
+                implicitHeight: 24
+                onClicked: root.toggleTimePicker()
             }
         }
 
@@ -303,6 +314,96 @@ Item {
                         }
                     }
                 }
+            }
+        }
+
+        // ── inline time picker: spinner, hours wrap 00-23, minutes step 5 and wrap ──
+        Rectangle {
+            visible: root.timePickerOpen && root.hasDue
+            Layout.fillWidth: true
+            implicitHeight: pickCol.implicitHeight + 16
+            radius: theme.radiusMd
+            color: theme.surface0
+
+            ColumnLayout {
+                id: pickCol
+                anchors.centerIn: parent
+                spacing: 6
+
+            RowLayout {
+                id: spinRow
+                Layout.alignment: Qt.AlignHCenter
+                spacing: 8
+
+                Repeater {
+                    model: [0, 1]
+
+                    delegate: RowLayout {
+                        id: spin
+                        required property int modelData
+                        readonly property bool isHour: modelData === 0
+                        spacing: 8
+
+                        Text {
+                            visible: !spin.isHour
+                            text: ":"
+                            color: theme.subtext0
+                            font.pixelSize: theme.fontSize + 4
+                            font.bold: true
+                            font.family: theme.fontUi
+                        }
+
+                        ColumnLayout {
+                            spacing: 0
+
+                            IconButton {
+                                Layout.alignment: Qt.AlignHCenter
+                                theme: root.theme
+                                text: Glyphs.up
+                                glyphSize: theme.fontSizeMin
+                                onClicked: root.stepTime(spin.isHour, 1)
+                            }
+
+                            Text {
+                                Layout.alignment: Qt.AlignHCenter
+                                text: String(spin.isHour ? Math.floor(root.shownMinutes / 60)
+                                                         : root.shownMinutes % 60).padStart(2, "0")
+                                color: root.noTime ? Qt.alpha(theme.subtext0, 0.5) : theme.text
+                                font.pixelSize: theme.fontSize + 4
+                                font.bold: true
+                                font.family: theme.fontUi
+
+                                // Scroll wheel steps the value too.
+                                MouseArea {
+                                    anchors.fill: parent
+                                    anchors.margins: -4
+                                    onWheel: wheel => root.stepTime(spin.isHour, wheel.angleDelta.y > 0 ? 1 : -1)
+                                }
+                            }
+
+                            IconButton {
+                                Layout.alignment: Qt.AlignHCenter
+                                theme: root.theme
+                                text: Glyphs.down
+                                glyphSize: theme.fontSizeMin
+                                onClicked: root.stepTime(spin.isHour, -1)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Date-only todo: no due time.
+            Badge {
+                Layout.alignment: Qt.AlignHCenter
+                theme: root.theme
+                text: "No time"
+                clickable: true
+                solid: root.noTime
+                clr: root.noTime ? theme.highlight : theme.subtext0
+                implicitHeight: 24
+                onClicked: root.noTime = !root.noTime
+            }
             }
         }
     }

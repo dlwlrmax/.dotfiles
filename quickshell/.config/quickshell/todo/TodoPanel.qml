@@ -98,6 +98,7 @@ Item {
             Layout.fillWidth: true
             theme: root.theme
             todayKey: root.dataSource ? root.dataSource.nowKey : 0
+            nowMinutes: root.dataSource ? root.dataSource.nowMinutes : 0
             onSubmitted: (title, dueKey, dueMinutes) => {
                 if (root.dataSource) root.dataSource.add(title, dueKey, dueMinutes)
             }
