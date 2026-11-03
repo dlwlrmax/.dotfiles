@@ -21,12 +21,12 @@ Item {
 
     RowLayout {
         id: row
-        spacing: 4
+        spacing: 3
 
         Text {
             text: Glyphs.todo
             color: root.overdue > 0 ? theme.red : theme.subtext0
-            font.pixelSize: theme.fontSize + 4
+            font.pixelSize: theme.fontSize + 9
             font.family: theme.font
             Layout.alignment: Qt.AlignVCenter
             horizontalAlignment: Text.AlignHCenter

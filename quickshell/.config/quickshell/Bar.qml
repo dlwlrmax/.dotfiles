@@ -81,7 +81,7 @@ Item {
             anchors.rightMargin: 12
             anchors.verticalCenter: parent.verticalCenter
             width: Math.min(implicitWidth, parent.width / 2 - centerClock.width / 2 - 32)
-            spacing: 8
+            spacing: 6
             clip: true
             property real mprisMaxWidth: {
                 let used = 0
@@ -136,7 +136,7 @@ Item {
             // ── status: weather, audio, phone, idle, gaming, notifications ──
             Capsule {
                 theme: bar.theme
-                spacing: 10
+                spacing: 6
 
                 Weather {
                     id: barWeather
@@ -149,6 +149,7 @@ Item {
 
                 Todo {
                     id: todoWidget
+                    visible: Prefs.show("todo")
                     theme: bar.theme
                     Layout.alignment: Qt.AlignVCenter
                     dataSource: bar.todoDataSource

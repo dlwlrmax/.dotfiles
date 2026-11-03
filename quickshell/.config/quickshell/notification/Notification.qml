@@ -27,7 +27,7 @@ Item {
 
     // Hard containment: layout squeeze must never paint over neighbors.
     clip: true
-    implicitWidth: iconText.implicitWidth + 6
+    implicitWidth: iconText.implicitWidth + 4
     implicitHeight: iconText.implicitHeight + 4
 
     Text {

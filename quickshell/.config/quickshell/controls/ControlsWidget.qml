@@ -11,7 +11,7 @@ Item {
     property int issueCount: 0
     property bool hasErrors: false
 
-    implicitWidth: icon.implicitWidth + 6
+    implicitWidth: icon.implicitWidth + 4
     implicitHeight: icon.implicitHeight + 4
     Layout.alignment: Qt.AlignVCenter
 

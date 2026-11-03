@@ -30,7 +30,7 @@ Item {
         spacing: 8
 
         RowLayout {
-            spacing: 4
+            spacing: 3
 
             Text {
                 text: ""   // nf-fa-microchip
@@ -45,8 +45,10 @@ Item {
                 font.pixelSize: theme.fontSize - 1
                 font.weight: Font.Medium
                 font.family: theme.font
-                Layout.minimumWidth: 28
-                horizontalAlignment: Text.AlignRight
+                // Reserve room for two digits so the sparkline does not jitter, but align
+                // left: right-aligned, a short value ("5%") left a wide gap after the icon.
+                Layout.minimumWidth: 24
+                horizontalAlignment: Text.AlignLeft
             }
 
             Sparkline {
