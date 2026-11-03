@@ -16,6 +16,7 @@ Item {
     property int todayKey: 0
     property int selStart: 0
     property int selEnd: 0
+    property var markedSet: ({})   // {yyyymmdd: true} days that carry an open todo
     property var calLocale
     readonly property var dayHeaders: ["M", "T", "W", "T", "F", "S", "S"]
     readonly property bool isCurrent: Cal.keyYear(todayKey) === year && Cal.keyMonth(todayKey) === month + 1

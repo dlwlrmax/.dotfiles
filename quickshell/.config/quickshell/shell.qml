@@ -348,7 +348,11 @@ ShellRoot {
                 targetScreen: screenScope.screenData
                 name: "calendar"; placement: "widget"
                 panel: Component {
-                    CalendarPanel { anchors.fill: parent; onClose: Panels.close() }
+                    CalendarPanel {
+                        anchors.fill: parent
+                        markedKeys: dp.todoData.markedKeys
+                        onClose: Panels.close()
+                    }
                 }
             }
 

@@ -12,6 +12,17 @@ Item {
     property bool active: false
     signal close()
 
+    // Day keys (yyyymmdd) to mark with a dot; supplied by the host so this
+    // panel stays independent of any data provider.
+    property var markedKeys: []
+    // Same keys as an object for O(1) lookup; rebuilt only when markedKeys changes.
+    readonly property var markedSet: {
+        var set = {}
+        var keys = markedKeys || []
+        for (var i = 0; i < keys.length; i++) set[keys[i]] = true
+        return set
+    }
+
     property date today: new Date()
     readonly property int todayKey: Cal.keyOf(today)
     property int calYear: today.getFullYear()
@@ -231,6 +242,7 @@ Item {
                             todayKey: root.todayKey
                             selStart: root.selStart
                             selEnd: root.selEnd
+                            markedSet: root.markedSet
                             calLocale: root.calLocale
                             onDayClicked: key => root.pick(key)
                             onTitleClicked: root.zoomMonth = index
@@ -252,6 +264,7 @@ Item {
                     todayKey: root.todayKey
                     selStart: root.selStart
                     selEnd: root.selEnd
+                    markedSet: root.markedSet
                     calLocale: root.calLocale
                     onDayClicked: key => root.pick(key)
 
