@@ -1,7 +1,7 @@
 pragma Singleton
 // Db — single SQLite store for all persistent Quickshell state.
 // Backed by QtQuick.LocalStorage (Qt's bundled SQLite). One database,
-// five tables: notifications, recent_apps, apps, cache, meta.
+// six tables: notifications, recent_apps, apps, cache, meta, todos.
 //
 // Testing: never point a test run at the live DB. Isolate every test with
 //   env XDG_DATA_HOME=/tmp/opencode/qs-test/data \
@@ -72,6 +72,10 @@ QtObject {
                 + "key TEXT PRIMARY KEY, json TEXT, updated_at INTEGER)")
             tx.executeSql("CREATE TABLE IF NOT EXISTS meta ("
                 + "key TEXT PRIMARY KEY, value TEXT)")
+            tx.executeSql("CREATE TABLE IF NOT EXISTS todos ("
+                + "id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, done INTEGER DEFAULT 0, "
+                + "due_key INTEGER, due_minutes INTEGER, notified INTEGER DEFAULT 0, "
+                + "created_at INTEGER, done_at INTEGER)")
         })
         _migrateReadColumn()
         _migrateAppActions()
@@ -286,6 +290,102 @@ QtObject {
         _db.transaction(function(tx) {
             tx.executeSql("DELETE FROM notifications")
         })
+    }
+
+    // ── todos ───────────────────────────────────────────────
+    // due_key is yyyymmdd (NULL = no due date); due_minutes is minutes after
+    // midnight (NULL = date only). done/notified are 0|1; *_at are unix seconds.
+
+    function loadTodos() {
+        var out = []
+        try {
+            open()
+            _db.readTransaction(function(tx) {
+                var rs = tx.executeSql("SELECT id,title,done,due_key,due_minutes,notified,"
+                    + "created_at,done_at FROM todos ORDER BY id ASC")
+                for (var i = 0; i < rs.rows.length; i++) {
+                    var r = rs.rows.item(i)
+                    out.push({
+                        id: r.id,
+                        title: r.title || "",
+                        done: r.done ? 1 : 0,
+                        due_key: r.due_key ?? null,
+                        due_minutes: r.due_minutes ?? null,
+                        notified: r.notified ? 1 : 0,
+                        created_at: r.created_at ?? 0,
+                        done_at: r.done_at ?? null
+                    })
+                }
+            })
+        } catch (e) {
+            console.warn("Db: loadTodos failed:", e)
+            return []
+        }
+        return out
+    }
+
+    // Returns the new row id, or -1 on error.
+    function insertTodo(entry) {
+        var e = entry || {}
+        var id = -1
+        try {
+            open()
+            _db.transaction(function(tx) {
+                var rs = tx.executeSql("INSERT INTO todos "
+                    + "(title,done,due_key,due_minutes,notified,created_at) VALUES (?,?,?,?,?,?)",
+                    [e.title || "", 0, e.due_key ?? null, e.due_minutes ?? null, 0, _now()])
+                id = Number(rs.insertId)
+            })
+        } catch (err) {
+            console.warn("Db: insertTodo failed:", err)
+            return -1
+        }
+        return id
+    }
+
+    function setTodoDone(id, done) {
+        try {
+            open()
+            _db.transaction(function(tx) {
+                tx.executeSql("UPDATE todos SET done=?, done_at=? WHERE id=?",
+                    [done ? 1 : 0, done ? _now() : null, id])
+            })
+        } catch (e) {
+            console.warn("Db: setTodoDone failed:", e)
+        }
+    }
+
+    function deleteTodo(id) {
+        try {
+            open()
+            _db.transaction(function(tx) {
+                tx.executeSql("DELETE FROM todos WHERE id=?", [id])
+            })
+        } catch (e) {
+            console.warn("Db: deleteTodo failed:", e)
+        }
+    }
+
+    function deleteDoneTodos() {
+        try {
+            open()
+            _db.transaction(function(tx) {
+                tx.executeSql("DELETE FROM todos WHERE done=1")
+            })
+        } catch (e) {
+            console.warn("Db: deleteDoneTodos failed:", e)
+        }
+    }
+
+    function markTodoNotified(id) {
+        try {
+            open()
+            _db.transaction(function(tx) {
+                tx.executeSql("UPDATE todos SET notified=1 WHERE id=?", [id])
+            })
+        } catch (e) {
+            console.warn("Db: markTodoNotified failed:", e)
+        }
     }
 
     // ── recent apps ─────────────────────────────────────────
