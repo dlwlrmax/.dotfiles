@@ -73,13 +73,21 @@ Item {
         reload()
     }
 
-    function clearDone() {
-        Db.deleteDoneTodos()
-        reload()
+    // Completed todos stay in the list (struck through) for a week, then are removed
+    // by the periodic tick: once per calendar day (the first tick of a run counts as a
+    // new day, so a machine that is off overnight still gets cleaned up).
+    readonly property int doneRetentionDays: 7
+    property int _lastPurgeKey: 0
+
+    function _purgeOldDone() {
+        if (nowKey === _lastPurgeKey) return
+        _lastPurgeKey = nowKey
+        Db.purgeDoneTodos(doneRetentionDays)
     }
 
     function tick() {
         _refreshNow()
+        _purgeOldDone()
         // Load fresh rows so external edits are seen and ordering follows the clock.
         var rows = Db.loadTodos()
         var due = T.dueNow(rows, nowKey, nowMinutes)

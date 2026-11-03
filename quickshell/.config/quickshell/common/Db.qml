@@ -366,15 +366,21 @@ QtObject {
         }
     }
 
-    function deleteDoneTodos() {
+    // Housekeeping: drop todos that were completed more than `days` days ago.
+    // Open todos and recently completed ones stay. Returns the number of rows removed.
+    function purgeDoneTodos(days) {
+        var removed = 0
         try {
             open()
+            var cutoff = _now() - days * 86400
             _db.transaction(function(tx) {
-                tx.executeSql("DELETE FROM todos WHERE done=1")
+                var rs = tx.executeSql("DELETE FROM todos WHERE done=1 AND done_at IS NOT NULL AND done_at < ?", [cutoff])
+                removed = rs.rowsAffected
             })
         } catch (e) {
-            console.warn("Db: deleteDoneTodos failed:", e)
+            console.warn("Db: purgeDoneTodos failed:", e)
         }
+        return removed
     }
 
     function markTodoNotified(id) {

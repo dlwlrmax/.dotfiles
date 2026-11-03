@@ -39,16 +39,17 @@ Item {
             implicitWidth: 18
             implicitHeight: 18
             radius: theme.radiusSm
-            color: root.done ? Qt.alpha(theme.blue, 0.25) : "transparent"
+            // Done is muted grey (like the struck-through title), not an active accent.
+            color: root.done ? Qt.alpha(theme.overlay0, 0.2) : "transparent"
             border.width: 1
-            border.color: root.done ? theme.blue : theme.overlay1
+            border.color: root.done ? theme.overlay0 : theme.overlay1
             Layout.alignment: Qt.AlignVCenter
 
             Text {
                 anchors.centerIn: parent
                 visible: root.done
                 text: Glyphs.check
-                color: theme.blue
+                color: theme.overlay1
                 font.pixelSize: theme.fontSizeMin
                 font.family: theme.font
             }

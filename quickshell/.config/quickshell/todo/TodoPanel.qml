@@ -12,7 +12,6 @@ Item {
     signal close()
 
     readonly property var items: dataSource ? dataSource.items : []
-    readonly property int doneCount: items.length - (dataSource ? dataSource.pendingCount : 0)
 
     // Capped to the screen under the bar; the list scrolls beyond that.
     readonly property real maxHeight: {
@@ -51,13 +50,6 @@ Item {
                 theme: root.theme
                 text: root.dataSource ? root.dataSource.pendingCount : 0
                 clr: root.dataSource && root.dataSource.overdueCount > 0 ? theme.red : theme.subtext0
-            }
-
-            IconButton {
-                theme: root.theme
-                text: Glyphs.trash
-                enabled: root.doneCount > 0
-                onClicked: if (root.dataSource) root.dataSource.clearDone()
             }
         }
 
