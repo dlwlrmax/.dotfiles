@@ -10,6 +10,7 @@ import qs.mpris
 import qs.cpu
 import qs.netspeed
 import qs.weather
+import qs.todo
 import qs.volume
 import qs.battery
 import qs.idleinhibitor
@@ -30,6 +31,7 @@ Item {
     property var cpuDataSource: null
     property var netDataSource: null
     property var weatherDataSource: null
+    property var todoDataSource: null
     property var volumeDataSource: null
     property var batteryDataSource: null
     property var healthDataSource: null
@@ -143,6 +145,14 @@ Item {
                     Layout.alignment: Qt.AlignVCenter
                     dataSource: bar.weatherDataSource
                     onTogglePanel: bar.togglePanel("weather", bar.centerOf(barWeather))
+                }
+
+                Todo {
+                    id: todoWidget
+                    theme: bar.theme
+                    Layout.alignment: Qt.AlignVCenter
+                    dataSource: bar.todoDataSource
+                    onTogglePanel: bar.togglePanel("todo", bar.centerOf(todoWidget))
                 }
 
                 Volume {
