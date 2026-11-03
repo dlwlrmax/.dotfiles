@@ -58,30 +58,36 @@ Item {
             }
         }
 
-        ListView {
-            id: list
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.minimumHeight: 0
-            implicitHeight: contentHeight
-            clip: true
-            spacing: 2
-            boundsBehavior: Flickable.StopAtBounds
-            model: root.items
+            implicitHeight: list.contentHeight
 
-            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+            ListView {
+                id: list
+                anchors.fill: parent
+                clip: true
+                spacing: 2
+                boundsBehavior: Flickable.StopAtBounds
+                model: root.items
 
-            delegate: TodoRow {
-                required property var modelData
-                width: ListView.view.width
-                todo: modelData
-                theme: root.theme
-                nowKey: root.dataSource ? root.dataSource.nowKey : 0
-                nowMinutes: root.dataSource ? root.dataSource.nowMinutes : 0
-                onToggled: root.dataSource.toggle(modelData.id)
-                onRemoved: root.dataSource.remove(modelData.id)
+                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+                delegate: TodoRow {
+                    required property var modelData
+                    width: ListView.view.width
+                    todo: modelData
+                    theme: root.theme
+                    nowKey: root.dataSource ? root.dataSource.nowKey : 0
+                    nowMinutes: root.dataSource ? root.dataSource.nowMinutes : 0
+                    onToggled: root.dataSource.toggle(modelData.id)
+                    onRemoved: root.dataSource.remove(modelData.id)
+                }
             }
 
+            // Sibling of the ListView (not a child: a Flickable reparents children into
+            // its contentItem, which is 0 high when empty).
             Text {
                 anchors.centerIn: parent
                 visible: list.count === 0
