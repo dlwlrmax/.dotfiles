@@ -49,17 +49,17 @@ Item {
 
     RowLayout {
         id: row
-        spacing: 4
+        spacing: 3
 
         Text {
             id: iconText
             text: root.cur ? root.cur.icon : ""
             color: root.iconClr
             // Material weather glyphs: filled, so they read at the same weight as the other bar icons.
-            font.pixelSize: theme.fontSize + 14
+            font.pixelSize: theme.fontSize + 11
             font.family: theme.font
             Layout.alignment: Qt.AlignVCenter
-            Layout.preferredWidth: 28
+            Layout.preferredWidth: 25
             horizontalAlignment: Text.AlignHCenter
         }
 
@@ -67,7 +67,7 @@ Item {
             id: textText
             text: root.cur ? W.temp(root.cur.temp, root.fahrenheit) + "°" : "--"
             color: theme.subtext0
-            font.pixelSize: theme.fontSize
+            font.pixelSize: theme.fontSize - 1
             font.weight: Font.Medium
             font.family: theme.font
             Layout.alignment: Qt.AlignVCenter

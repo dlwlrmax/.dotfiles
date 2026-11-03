@@ -9,7 +9,7 @@ QtObject {
     // Name of a Theme palette colour used for highlights (today marker, play button, ...).
     property string accentName: "mauve"
     // Bar items the user turned off: key -> true.
-    // Keys: mpris, stats, weather, volume, phone, battery, controls, idle, tray.
+    // Keys: mpris, stats, weather, todo, volume, phone, battery, controls, idle, tray.
     property var hidden: ({})
     // CPU/RAM/net capsule on every bar instead of only the primary screen.
     property bool statsAllScreens: false
@@ -23,6 +23,7 @@ QtObject {
         { key: "mpris",    label: "Now playing" },
         { key: "stats",    label: "CPU / RAM / network" },
         { key: "weather",  label: "Weather" },
+        { key: "todo",     label: "Todo list" },
         { key: "volume",   label: "Volume" },
         { key: "phone",    label: "Phone (KDE Connect)" },
         { key: "battery",  label: "Low battery alerts" },

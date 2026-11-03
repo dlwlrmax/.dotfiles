@@ -23,6 +23,8 @@ Item {
     readonly property var info: other ? null : Cal.dayInfo(key)
     readonly property var holiday: info ? info.holiday : null
     readonly property bool hovered: ma.containsMouse
+    // Open todo due this day (one dot however many; filler cells never marked).
+    readonly property bool hasTodo: !other && view.markedSet[key] === true
 
     readonly property color numberColor: isToday ? theme.base
         : selected ? theme.text
@@ -84,6 +86,17 @@ Item {
                     radius: 2
                     color: cell.markColor
                 }
+
+                // open-todo marker: bottom centre, clear of the holiday dot
+                Rectangle {
+                    visible: cell.hasTodo
+                    x: (parent.width - width) / 2
+                    y: parent.height - height - 1
+                    width: 4
+                    height: 4
+                    radius: 2
+                    color: cell.theme.green
+                }
             }
         }
     }
@@ -104,6 +117,7 @@ Item {
             border.color: cell.selected ? cell.theme.sapphire : cell.theme.highlight
 
             Rectangle {
+                id: dayBox
                 x: 4
                 y: 4
                 width: dayText.implicitWidth + 8
@@ -120,6 +134,17 @@ Item {
                     font.bold: cell.isToday
                     font.family: cell.theme.font
                 }
+            }
+
+            // open-todo marker beside the day number
+            Rectangle {
+                visible: cell.hasTodo
+                x: 4 + dayBox.width + 3
+                y: dayBox.y + (dayBox.height - height) / 2
+                width: 5
+                height: 5
+                radius: 2.5
+                color: cell.theme.green
             }
 
             // lunar day (d/m on the first of a lunar month)

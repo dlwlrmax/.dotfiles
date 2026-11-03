@@ -11,6 +11,7 @@ import qs.notification
 import qs.mpris
 import qs.volume
 import qs.weather
+import qs.todo
 import qs.calendar
 import qs.sysusage
 import qs.netspeed
@@ -74,7 +75,7 @@ ShellRoot {
         return (Quickshell.screens.find(sc => sc.name === mon) ?? Quickshell.screens[0]).name
     }
 
-    readonly property var panelNames: ["notif", "mpris", "volume", "weather", "calendar", "sysUsage",
+    readonly property var panelNames: ["notif", "mpris", "volume", "weather", "todo", "calendar", "sysUsage",
         "power", "battery", "net", "kde", "launcher", "clipboard", "tray", "settings", "wallpaper",
         "browserPick"]
 
@@ -104,6 +105,12 @@ ShellRoot {
         target: "power"
         function toggle(): void { Panels.toggle("power", shell.screenNameOfFocus(), 0) }
         function close(): void { if (Panels.openName === "power") Panels.close() }
+    }
+
+    IpcHandler {
+        target: "todo"
+        function toggle(): void { Panels.toggle("todo", shell.screenNameOfFocus(), 0) }
+        function close(): void { if (Panels.openName === "todo") Panels.close() }
     }
 
     IpcHandler {
@@ -193,6 +200,7 @@ ShellRoot {
                     cpuDataSource: dp.cpuData
                     netDataSource: dp.netData
                     weatherDataSource: dp.weatherData
+                    todoDataSource: dp.todoData
                     volumeDataSource: dp.volumeData
                     batteryDataSource: dp.batteryData
                     healthDataSource: dp.healthData
@@ -323,11 +331,28 @@ ShellRoot {
             }
 
             PanelHost {
+                id: hTodo
+                targetScreen: screenScope.screenData
+                name: "todo"; placement: "widget"
+                panel: Component {
+                    TodoPanel {
+                        anchors.fill: parent
+                        dataSource: dp.todoData
+                        onClose: Panels.close()
+                    }
+                }
+            }
+
+            PanelHost {
                 id: hCalendar
                 targetScreen: screenScope.screenData
                 name: "calendar"; placement: "widget"
                 panel: Component {
-                    CalendarPanel { anchors.fill: parent; onClose: Panels.close() }
+                    CalendarPanel {
+                        anchors.fill: parent
+                        markedKeys: dp.todoData.markedKeys
+                        onClose: Panels.close()
+                    }
                 }
             }
 

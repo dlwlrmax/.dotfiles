@@ -9,7 +9,7 @@ Rectangle {
     default property alias content: row.data
     property alias spacing: row.spacing
 
-    implicitWidth: row.implicitWidth + 20
+    implicitWidth: row.implicitWidth + 16
     implicitHeight: 30
     radius: theme.radiusLg
     color: theme.capsuleColor

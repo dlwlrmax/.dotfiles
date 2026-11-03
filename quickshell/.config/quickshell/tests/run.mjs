@@ -160,5 +160,99 @@ test("Exec= parsing", () => {
     assert.deepEqual(L.parseXdgExec("", {}), [])
 })
 
+// ── TodoLogic ──
+const T = load("todo/TodoLogic.js", ["dueMinutes", "isOverdue", "dueNow", "sortTodos", "markedKeys",
+    "addDays", "parseDue", "resolveDue", "parseTime", "normalizeTitle", "formatDue"])
+const td = o => ({ id: 1, title: "t", done: 0, due_key: null, due_minutes: null, notified: 0,
+                   created_at: 100, done_at: null, ...o })
+
+console.log("TodoLogic")
+test("date-only todo is due at 09:00", () => {
+    assert.equal(T.dueMinutes(td({ due_key: 20261105 })), 540)
+    assert.equal(T.dueMinutes(td({ due_key: 20261105, due_minutes: 600 })), 600)
+})
+test("isOverdue boundary and exclusions", () => {
+    const t = td({ due_key: 20261105, due_minutes: 600 })
+    assert.equal(T.isOverdue(t, 20261105, 600), false)
+    assert.equal(T.isOverdue(t, 20261105, 601), true)
+    assert.equal(T.isOverdue(td({ ...t, done: 1 }), 20261106, 0), false)
+    assert.equal(T.isOverdue(td(), 20261106, 0), false)
+})
+test("dueNow: boundary, notified, done, late-added date-only", () => {
+    const t = td({ id: 1, due_key: 20261105, due_minutes: 600 })
+    assert.deepEqual(T.dueNow([t], 20261105, 599).map(x => x.id), [])
+    assert.deepEqual(T.dueNow([t], 20261105, 600).map(x => x.id), [1])
+    assert.deepEqual(T.dueNow([td({ ...t, notified: 1 })], 20261105, 700), [])
+    assert.deepEqual(T.dueNow([td({ ...t, done: 1 })], 20261105, 700), [])
+    const dateOnly = td({ id: 2, due_key: 20261105 })
+    assert.deepEqual(T.dueNow([dateOnly], 20261105, 539), [])
+    assert.deepEqual(T.dueNow([dateOnly], 20261105, 1020).map(x => x.id), [2])   // added at 17:00
+})
+test("sortTodos order", () => {
+    const list = [
+        td({ id: 1 }),                                                  // undated
+        td({ id: 2, done: 1, done_at: 50 }),
+        td({ id: 3, due_key: 20261105, due_minutes: 900 }),             // later today
+        td({ id: 4, due_key: 20261101 }),                               // overdue
+        td({ id: 5, done: 1, done_at: 80 }),
+    ]
+    assert.deepEqual(T.sortTodos(list, 20261105, 600).map(x => x.id), [4, 3, 1, 5, 2])
+})
+test("markedKeys: open dated only, unique, sorted", () => {
+    const list = [td({ due_key: 20261105 }), td({ due_key: 20261105 }), td({ due_key: 20261101, done: 1 }),
+                  td({ due_key: 20261103 }), td()]
+    assert.deepEqual(T.markedKeys(list), [20261103, 20261105])
+})
+test("addDays crosses month/year and leap day", () => {
+    assert.equal(T.addDays(20261231, 1), 20270101)
+    assert.equal(T.addDays(20240228, 1), 20240229)
+    assert.equal(T.addDays(20261105, 7), 20261112)
+    assert.equal(T.addDays(20261101, -1), 20261031)
+})
+test("parseDue", () => {
+    assert.deepEqual(T.parseDue("05/11", 20261103), { key: 20261105, minutes: null })
+    assert.deepEqual(T.parseDue(" 05/11 14:30 ", 20261103), { key: 20261105, minutes: 870 })
+    assert.deepEqual(T.parseDue("05/11 9:05", 20261103), { key: 20261105, minutes: 545 })
+    assert.equal(T.parseDue("03/11", 20261103).key, 20261103)           // today counts
+    assert.equal(T.parseDue("02/11", 20261103).key, 20271102)           // passed -> next year
+    assert.equal(T.parseDue("29/02", 20261103).key, 20280229)           // next leap year
+    assert.equal(T.parseDue("05/11/2027", 20261103).key, 20271105)
+    for (const bad of ["", "abc", "31/02", "32/01", "05/13", "05/11 25:00", "05/11 10:60"])
+        assert.equal(T.parseDue(bad, 20261103), null, bad)
+})
+test("resolveDue: chips, typed override, invalid", () => {
+    const t = 20261231
+    assert.deepEqual(T.resolveDue("", "", t), { ok: true, key: null, minutes: null })
+    assert.deepEqual(T.resolveDue("today", "", t), { ok: true, key: 20261231, minutes: null })
+    assert.deepEqual(T.resolveDue("tomorrow", "", t), { ok: true, key: 20270101, minutes: null })
+    assert.deepEqual(T.resolveDue("week", "", t), { ok: true, key: 20270107, minutes: null })
+    assert.deepEqual(T.resolveDue("today", "05/01 10:00", t), { ok: true, key: 20270105, minutes: 600 })
+    assert.equal(T.resolveDue("", "garbage", t).ok, false)
+})
+test("parseTime: empty, valid, invalid", () => {
+    assert.deepEqual(T.parseTime(""), { ok: true, minutes: null })
+    assert.deepEqual(T.parseTime("  "), { ok: true, minutes: null })
+    assert.deepEqual(T.parseTime("9:05"), { ok: true, minutes: 545 })
+    assert.deepEqual(T.parseTime("14:30"), { ok: true, minutes: 870 })
+    assert.deepEqual(T.parseTime("00:00"), { ok: true, minutes: 0 })
+    assert.deepEqual(T.parseTime("23:59"), { ok: true, minutes: 1439 })
+    for (const bad of ["24:00", "10:60", "1430", "10:5", "ab:cd", "10:30pm"])
+        assert.equal(T.parseTime(bad).ok, false, bad)
+})
+test("normalizeTitle", () => {
+    assert.equal(T.normalizeTitle("  hello   world \n"), "hello world")
+    assert.equal(T.normalizeTitle("line1\nline2"), "line1 line2")
+    assert.equal(T.normalizeTitle("   \n "), "")
+    assert.equal(T.normalizeTitle("a".repeat(300)).length, 200)
+})
+test("formatDue", () => {
+    assert.equal(T.formatDue(td(), 20261105), "")
+    assert.equal(T.formatDue(td({ due_key: 20261105 }), 20261105), "Today")
+    assert.equal(T.formatDue(td({ due_key: 20261105, due_minutes: 870 }), 20261105), "Today 14:30")
+    assert.equal(T.formatDue(td({ due_key: 20261106 }), 20261105), "Tomorrow")
+    assert.equal(T.formatDue(td({ due_key: 20261112 }), 20261105), "12/11")
+    assert.equal(T.formatDue(td({ due_key: 20261105 }), 0), "05/11 09:00")
+})
+
 console.log(`\n${passed} passed, ${failed} failed`)
 process.exit(failed ? 1 : 0)

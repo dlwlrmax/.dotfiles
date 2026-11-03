@@ -12,11 +12,26 @@ Item {
     property bool active: false
     signal close()
 
+    // Day keys (yyyymmdd) to mark with a dot; supplied by the host so this
+    // panel stays independent of any data provider.
+    property var markedKeys: []
+    // Same keys as an object for O(1) lookup; rebuilt only when markedKeys changes.
+    readonly property var markedSet: {
+        var set = {}
+        var keys = markedKeys || []
+        for (var i = 0; i < keys.length; i++) set[keys[i]] = true
+        return set
+    }
+
     property date today: new Date()
     readonly property int todayKey: Cal.keyOf(today)
     property int calYear: today.getFullYear()
-    // -1 = 12-month overview, 0..11 = zoomed month
-    property int zoomMonth: -1
+    // -1 = 12-month overview, 0..11 = zoomed month. Opens on the current month;
+    // click the title (or press Esc) to get the overview. Plain value, not a binding
+    // on `today`, so a midnight rollover never moves the month the user is viewing.
+    property int zoomMonth: new Date().getMonth()
+    // True once the overview has been shown; it is built lazily (see overviewLoader).
+    property bool overviewBuilt: false
     // en_GB gives Monday-first weeks (MonthGrid follows the locale; MonthView's
     // dayHeaders must match).
     readonly property var calLocale: Qt.locale("en_GB")
@@ -125,7 +140,10 @@ Item {
     }
 
     onCalYearChanged: fade.restart()
-    onZoomMonthChanged: fade.restart()
+    onZoomMonthChanged: {
+        if (zoomMonth < 0) overviewBuilt = true
+        fade.restart()
+    }
 
     PanelBackground {
         anchors.fill: parent
@@ -201,39 +219,49 @@ Item {
             // ── 12-month overview (4 cols × 3 rows) ──
             // ScrollView: fills exactly when the grid fits the capped height,
             // scrolls (instead of clipping months) when the screen is short.
-            ScrollView {
-                id: gridScroll
+            // The panel opens on the current month, so the overview is built only the
+            // first time it is shown (then kept, so switching back and forth stays
+            // instant). Hidden items are still instantiated, so a plain `visible: false`
+            // would build ~500 unused day cells on every open.
+            Loader {
+                id: overviewLoader
                 anchors.fill: parent
                 visible: root.zoomMonth < 0
-                clip: true
-                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-                ScrollBar.vertical.policy: ScrollBar.AsNeeded
+                active: root.zoomMonth < 0 || root.overviewBuilt
 
-                GridLayout {
-                    id: yearGrid
-                    width: gridScroll.availableWidth
-                    height: Math.max(implicitHeight, gridScroll.availableHeight)
-                    columns: 4
-                    rowSpacing: 10
-                    columnSpacing: 14
+                sourceComponent: ScrollView {
+                    id: gridScroll
+                    clip: true
+                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                    ScrollBar.vertical.policy: ScrollBar.AsNeeded
 
-                    Repeater {
-                        model: 12
+                    GridLayout {
+                        id: yearGrid
+                        width: gridScroll.availableWidth
+                        height: Math.max(implicitHeight, gridScroll.availableHeight)
+                        columns: 4
+                        rowSpacing: 10
+                        columnSpacing: 14
 
-                        delegate: MonthView {
-                            required property int index
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            Layout.preferredWidth: 1   // equal columns regardless of content
-                            theme: root.theme
-                            year: root.calYear
-                            month: index
-                            todayKey: root.todayKey
-                            selStart: root.selStart
-                            selEnd: root.selEnd
-                            calLocale: root.calLocale
-                            onDayClicked: key => root.pick(key)
-                            onTitleClicked: root.zoomMonth = index
+                        Repeater {
+                            model: 12
+
+                            delegate: MonthView {
+                                required property int index
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                Layout.preferredWidth: 1   // equal columns regardless of content
+                                theme: root.theme
+                                year: root.calYear
+                                month: index
+                                todayKey: root.todayKey
+                                selStart: root.selStart
+                                selEnd: root.selEnd
+                                markedSet: root.markedSet
+                                calLocale: root.calLocale
+                                onDayClicked: key => root.pick(key)
+                                onTitleClicked: root.zoomMonth = index
+                            }
                         }
                     }
                 }
@@ -252,6 +280,7 @@ Item {
                     todayKey: root.todayKey
                     selStart: root.selStart
                     selEnd: root.selEnd
+                    markedSet: root.markedSet
                     calLocale: root.calLocale
                     onDayClicked: key => root.pick(key)
 

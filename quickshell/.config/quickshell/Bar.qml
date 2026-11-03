@@ -10,6 +10,7 @@ import qs.mpris
 import qs.cpu
 import qs.netspeed
 import qs.weather
+import qs.todo
 import qs.volume
 import qs.battery
 import qs.idleinhibitor
@@ -30,6 +31,7 @@ Item {
     property var cpuDataSource: null
     property var netDataSource: null
     property var weatherDataSource: null
+    property var todoDataSource: null
     property var volumeDataSource: null
     property var batteryDataSource: null
     property var healthDataSource: null
@@ -79,7 +81,7 @@ Item {
             anchors.rightMargin: 12
             anchors.verticalCenter: parent.verticalCenter
             width: Math.min(implicitWidth, parent.width / 2 - centerClock.width / 2 - 32)
-            spacing: 8
+            spacing: 6
             clip: true
             property real mprisMaxWidth: {
                 let used = 0
@@ -134,7 +136,7 @@ Item {
             // ── status: weather, audio, phone, idle, gaming, notifications ──
             Capsule {
                 theme: bar.theme
-                spacing: 10
+                spacing: 6
 
                 Weather {
                     id: barWeather
@@ -143,6 +145,15 @@ Item {
                     Layout.alignment: Qt.AlignVCenter
                     dataSource: bar.weatherDataSource
                     onTogglePanel: bar.togglePanel("weather", bar.centerOf(barWeather))
+                }
+
+                Todo {
+                    id: todoWidget
+                    visible: Prefs.show("todo")
+                    theme: bar.theme
+                    Layout.alignment: Qt.AlignVCenter
+                    dataSource: bar.todoDataSource
+                    onTogglePanel: bar.togglePanel("todo", bar.centerOf(todoWidget))
                 }
 
                 Volume {
