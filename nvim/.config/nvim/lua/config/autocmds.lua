@@ -15,25 +15,3 @@ vim.api.nvim_create_autocmd("VimLeavePre", {
     end
   end,
 })
-
--- `q` is globally disabled in config/keymaps.lua; restore it where it
--- natively closes a window/pager.
-vim.api.nvim_create_autocmd("FileType", {
-  group = vim.api.nvim_create_augroup("UserNativeQ", { clear = true }),
-  pattern = {
-    "checkhealth",
-    "dap-repl",
-    "help",
-    "lazy",
-    "lspinfo",
-    "man",
-    "mason",
-    "noice",
-    "notify",
-    "qf",
-    "trouble",
-  },
-  callback = function(ev)
-    vim.keymap.set("n", "q", "q", { buffer = ev.buf, desc = "Close Window" })
-  end,
-})

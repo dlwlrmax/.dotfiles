@@ -1,19 +1,12 @@
 return {
   "mason.nvim",
   opts = {
+    -- appended to LazyVim's and the extras' lists
     ensure_installed = {
       "blade-formatter",
-      "stylua",
-      "shellcheck",
-      "eslint-lsp",
-      "intelephense",
       "phpstan",
       "pint",
-      "prettier",
       "prettierd",
-      "tailwindcss-language-server",
-      "vue-language-server",
-      "vtsls",
     },
   },
 }

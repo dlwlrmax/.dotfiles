@@ -2,6 +2,7 @@ return {
   {
     "saghen/blink.cmp",
     dependencies = {
+      "xzbdmw/colorful-menu.nvim",
       "xieyonn/blink-cmp-dat-word",
       { "mikavilpas/blink-ripgrep.nvim", version = "*" },
       { "RicardoRamirezR/blade-nav.nvim", ft = { "blade", "php" } },
@@ -14,6 +15,7 @@ return {
         ["<C-Space>"] = {
           function()
             require("blink.cmp").show({ providers = { "ripgrep" } })
+            return true
           end,
         },
       }
@@ -62,7 +64,7 @@ return {
             module = "blink-cmp-dat-word",
             score_offset = -10,
             opts = {
-              paths = { "~/.dotfiles/nvim/.config/nvim/words" },
+              paths = { vim.fn.stdpath("config") .. "/words" },
             },
           },
           ripgrep = {

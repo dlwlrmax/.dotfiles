@@ -6,7 +6,6 @@ local map = vim.keymap.set
 local api = vim.api
 
 map({ "i" }, "jj", "<ESC>", { desc = "Quick Escape" })
-map({ "n" }, "<leader>w", ":w!<CR>", { desc = "Save File", silent = true })
 
 -- Buffers
 map("n", "<M-h>", "<cmd>bprevious<cr>", { desc = "Prev Buffer" })

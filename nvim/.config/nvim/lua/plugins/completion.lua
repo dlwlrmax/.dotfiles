@@ -36,9 +36,6 @@ return {
         desc = "[Neocodeium] Accept Word",
       },
     },
-    config = function()
-      local neocodeium = require("neocodeium")
-      neocodeium.setup()
-    end,
+    opts = {},
   },
 }

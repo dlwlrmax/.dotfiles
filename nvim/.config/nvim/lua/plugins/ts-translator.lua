@@ -1,4 +1,4 @@
 return {
   "dmmulroy/ts-error-translator.nvim",
-  event = "VeryLazy",
+  ft = { "typescript", "typescriptreact", "vue" },
 }

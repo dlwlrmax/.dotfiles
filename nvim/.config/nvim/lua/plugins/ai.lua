@@ -18,7 +18,7 @@ return {
           },
           tools = {
             opencode = {
-              cmd = { "opencode" },
+              cmd = { "opencode" }, -- not defaulted in sidekick's config
               -- HACK: https://github.com/sst/opencode/issues/445
               env = { OPENCODE_THEME = "catppuccin" },
             },
@@ -27,9 +27,7 @@ return {
           prompts = {
             refactor = "Please refactor {this} to be more maintainable",
             security = "Review {file} for security vulnerabilities",
-            custom = function(ctx)
-              return "Current file: " .. ctx.buf .. " at line " .. ctx.row
-            end,
+            custom = "Current position: {position}",
           },
         },
       }

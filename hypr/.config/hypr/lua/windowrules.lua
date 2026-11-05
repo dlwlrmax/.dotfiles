@@ -51,11 +51,6 @@ hl.window_rule({ match = { title = "^(Library)$" }, float = true })
 hl.window_rule({ match = { title = ".*(Tài khoản Google|Google Account|accounts\\.google\\.com).*" }, float = true })
 hl.window_rule({ match = { title = ".*Tailscale.*" }, float = true })
 hl.window_rule({
-  match = { class = "^(vesktop)$" },
-  float = true,
-  workspace = 6,
-})
-hl.window_rule({
   match = { class = "^(google-chrome)$" },
   workspace = 1,
 })

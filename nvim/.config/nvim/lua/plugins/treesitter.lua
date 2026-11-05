@@ -1,25 +1,7 @@
 return {
   "nvim-treesitter/nvim-treesitter",
   opts = {
-    ensure_installed = {
-      "bash",
-      "blade",
-      "c",
-      "cpp",
-      "css",
-      "html",
-      "javascript",
-      "php",
-      "vue",
-      "json",
-      "lua",
-      "markdown",
-      "markdown_inline",
-      "python",
-      "tsx",
-      "typescript",
-      "vim",
-      "yaml",
-    },
+    -- appended to LazyVim's and the extras' lists
+    ensure_installed = { "blade", "cpp", "vue" },
   },
 }

@@ -24,25 +24,16 @@ return {
       --   end,
       -- },
       phpcs = {
-        args = {
-          "--report=json",
-          "-q",
-          "-s",
-          "--stdin-path=%filepath",
-          "-",
-        },
         condition = function(ctx)
           return vim.fs.find({ "phpcs.xml" }, { path = ctx.filename, upward = true })[1]
         end,
       },
       phpstan = {
-        args = {
-          "analyse",
-          "--error-format=raw",
-          "--no-progress",
+        -- Keep built-in args (json format, which its parser needs; file path
+        -- is appended automatically). Only add extras.
+        prepend_args = {
           "--memory-limit=2G", -- prevent OOM on large files
           "--no-interactivity",
-          "%filepath",
         },
         -- Only run when project has phpstan config; avoids spawning
         -- phpstan on every BufReadPost for plain PHP files

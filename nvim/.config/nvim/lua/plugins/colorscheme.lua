@@ -21,7 +21,7 @@ return {
           SnacksPickerSelected = { fg = colors.lavender },
           WinSeparator = { fg = colors.pink, bold = true },
           VertSplit = { fg = colors.pink, bold = true },
-          CodeiumSuggestion = { fg = colors.overlay0 },
+          NeoCodeiumSuggestion = { fg = colors.overlay0 },
         }
       end,
       -- PERF: skip plugin-integration detection at startup; LazyVim styles
