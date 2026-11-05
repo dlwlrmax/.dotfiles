@@ -112,12 +112,22 @@ local url_decode = function(url)
     end
 end
 
+-- mpv reports a local external subtitle as a file:// path that needs decoding,
+-- but an http(s) URL is already exactly what curl wants. Decoding it turns %20
+-- and + into spaces and the download fails.
+local function decode_filename(name)
+    if name == nil or name:match('^https?://') then
+        return name
+    end
+    return url_decode(name)
+end
+
 local function get_loaded_tracks(track_type)
     local result = {}
     local track_list = mp.get_property_native('track-list')
     for _, track in pairs(track_list) do
         if track.type == track_type then
-            track['external-filename'] = track.external and url_decode(track['external-filename'])
+            track['external-filename'] = track.external and decode_filename(track['external-filename'])
             table.insert(result, track)
         end
     end
@@ -129,7 +139,7 @@ local function get_active_track(track_type)
     for num, track in ipairs(track_list) do
         if track.type == track_type and track.selected == true then
             if track.external and not h.file_exists(track['external-filename']) then
-                track['external-filename'] = url_decode(track['external-filename'])
+                track['external-filename'] = decode_filename(track['external-filename'])
             end
             if not (track_type == 'sub' and track.id == mp.get_property_native('secondary-sid')) then
                 return num, track
@@ -176,7 +186,7 @@ local function download_subtitle(url, tag)
     local ret
     local curl = h.find_executable('curl')
     if h.file_exists(curl) then
-        ret = subprocess { curl, '-L', '--max-time', '30', '-o', target, url }
+        ret = subprocess { curl, '-fL', '--max-time', '30', '-o', target, url }
     else
         local wget = h.find_executable('wget')
         if h.file_exists(wget) then
