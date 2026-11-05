@@ -669,5 +669,24 @@ end
 ------------------------------------------------------------
 -- Entry point
 
+-- One key, no menu: retime the active subtitle to the first other external
+-- subtitle track. Reads only the two subtitle files, never the video, which is
+-- what you want when the video is a multi-GB stream.
+local function sync_quick()
+    local _, active = get_active_track('sub')
+    if active == nil then
+        return
+    end
+    for _, track in ipairs(get_loaded_tracks('sub')) do
+        if track.external and not track.selected then
+            -- The alt-sub tool (alass by default) decides the engine.
+            ref_selector.selected = 2
+            return sync_subtitles(track['external-filename'])
+        end
+    end
+    notify("No other external subtitle to sync to.", "error", 4)
+end
+
 init()
 mp.add_key_binding("n", "autosubsync-menu", function() ref_selector:open() end)
+mp.add_key_binding(nil, "autosubsync-quick", sync_quick)
