@@ -10,6 +10,8 @@ map({ "i" }, "jj", "<ESC>", { desc = "Quick Escape" })
 -- Buffers
 map("n", "<M-h>", "<cmd>bprevious<cr>", { desc = "Prev Buffer" })
 map("n", "<M-l>", "<cmd>bnext<cr>", { desc = "Next Buffer" })
+map("n", "<Leader>w", "<cmd>w!<cr>", { desc = "Save Buffer" })
+
 
 -- Movement
 map("n", "<S-h>", "^", { desc = "To Line Start" })
