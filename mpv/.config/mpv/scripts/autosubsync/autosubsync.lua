@@ -270,8 +270,43 @@ local function extract_to_file(subtitle_track)
     return temp_sub_fp
 end
 
+-- alass/ffsubsync pick a parser from the file extension, but subtitle addons
+-- often serve WebVTT under a .srt name. Sniff the header and, if it is VTT,
+-- convert to a real SRT with ffmpeg. Returns the path to use (unchanged when
+-- the file is fine or the conversion fails).
+local function ensure_real_srt(path, tag)
+    local f = io.open(path, "rb")
+    if not f then
+        return path
+    end
+    local head = f:read(16) or ""
+    f:close()
+    head = head:gsub("^\239\187\191", "") -- strip UTF-8 BOM
+    if head:sub(1, 6) ~= "WEBVTT" then
+        return path
+    end
+    local out = utils.join_path(os_temp(), 'autosubsync_' .. tag .. '_vtt.srt')
+    local ret = subprocess {
+        config.ffmpeg_path, "-hide_banner", "-nostdin", "-y", "-loglevel", "quiet",
+        "-f", "webvtt", "-i", path, "-f", "srt", out
+    }
+    if ret == nil or ret.status ~= 0 or not h.file_exists(out) then
+        return path
+    end
+    return out
+end
+
 local function sync_subtitles(ref_sub_path)
     local finish = begin_pause()
+    if ref_sub_path and is_url(ref_sub_path) then
+        ref_sub_path = download_subtitle(ref_sub_path, 'reference')
+        if ref_sub_path == nil then
+            return finish()
+        end
+    end
+    if ref_sub_path then
+        ref_sub_path = ensure_real_srt(ref_sub_path, 'reference')
+    end
     local reference_file_path = ref_sub_path or mp.get_property("path")
     local _, sub_track = get_active_track('sub')
     if sub_track == nil then
@@ -287,6 +322,7 @@ local function sync_subtitles(ref_sub_path)
             return finish()
         end
     end
+    subtitle_path = ensure_real_srt(subtitle_path, 'input')
     local engine_name = engine_selector:get_engine_name()
     local engine_path = config[engine_name .. '_path']
 
@@ -343,6 +379,18 @@ local function sync_subtitles(ref_sub_path)
         end
     else
         local err = ret.stderr and ret.stderr:gsub("%s+$", "") or ""
+        if err == "" and ret.stdout then
+            -- alass-cli reports its errors on stdout, not stderr. Drop the
+            -- RUST_BACKTRACE hint and keep the last few lines.
+            local lines = {}
+            for line in ret.stdout:gmatch("[^\r\n]+") do
+                if not line:match("RUST_BACKTRACE") then
+                    table.insert(lines, line)
+                end
+            end
+            local first = math.max(1, #lines - 3)
+            err = table.concat(lines, "\n", first, #lines)
+        end
         if err ~= "" then
             finish("Subtitle synchronization failed:\n" .. err, "error", 7)
         else
