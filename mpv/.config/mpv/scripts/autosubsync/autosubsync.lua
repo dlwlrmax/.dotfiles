@@ -296,7 +296,10 @@ local function ensure_real_srt(path, tag)
     return out
 end
 
-local function sync_subtitles(ref_sub_path)
+-- opts (optional): { engine = "alass", alass_args = { "--no-split" } } forces the
+-- engine and adds extra arguments for alass, for callers that know better than
+-- the menu's engine choice.
+local function sync_subtitles(ref_sub_path, opts)
     local finish = begin_pause()
     if ref_sub_path and is_url(ref_sub_path) then
         ref_sub_path = download_subtitle(ref_sub_path, 'reference')
@@ -323,7 +326,7 @@ local function sync_subtitles(ref_sub_path)
         end
     end
     subtitle_path = ensure_real_srt(subtitle_path, 'input')
-    local engine_name = engine_selector:get_engine_name()
+    local engine_name = opts and opts.engine or engine_selector:get_engine_name()
     local engine_path = config[engine_name .. '_path']
 
     if h.is_path(config.ffmpeg_path) and not h.file_exists(engine_path) then
@@ -358,7 +361,14 @@ local function sync_subtitles(ref_sub_path)
         end
         ret = subprocess(args)
     else
-        ret = subprocess { config.alass_path, reference_file_path, subtitle_path, retimed_subtitle_path }
+        local args = { config.alass_path }
+        for _, extra in ipairs(opts and opts.alass_args or {}) do
+            table.insert(args, extra)
+        end
+        table.insert(args, reference_file_path)
+        table.insert(args, subtitle_path)
+        table.insert(args, retimed_subtitle_path)
+        ret = subprocess(args)
     end
 
     if ret == nil then
@@ -418,6 +428,42 @@ local function sync_to_subtitle()
     finish()
 end
 
+-- Sync to audio, reading only the first 10 minutes of it. For a stream this
+-- is a quarter of a 40-minute file instead of all of it. alass is told not to
+-- look for splits: the clip is shorter than the subtitle, so split detection
+-- would only fit the first 10 minutes. The price is that this finds one
+-- constant offset and does not correct drift later in the file.
+local function sync_audio_clip()
+    local _, audio = get_active_track('audio')
+    if audio == nil then
+        return
+    end
+    if h.is_path(config.ffmpeg_path) and not h.file_exists(config.ffmpeg_path) then
+        return notify("Can't find ffmpeg executable.\nPlease specify the correct path in the config.", "error", 5)
+    end
+    local clip = utils.join_path(os_temp(), 'autosubsync_clip.wav')
+    notify("Syncing against the first 10 minutes only (constant offset)...", nil, 4)
+    local ret = subprocess {
+        config.ffmpeg_path,
+        "-hide_banner",
+        "-nostdin",
+        "-y",
+        "-loglevel", "quiet",
+        "-t", "600",
+        "-i", mp.get_property("path"),
+        "-vn",
+        "-map", "0:" .. (audio['ff-index'] or 'a:0'),
+        "-ac", "1",
+        "-ar", "16000",
+        clip
+    }
+    if ret == nil or ret.status ~= 0 or not h.file_exists(clip) then
+        return notify("Couldn't extract an audio clip.", "error", 5)
+    end
+    sync_subtitles(clip, { engine = "alass", alass_args = { "--no-split" } })
+    os.remove(clip)
+end
+
 local function sync_to_manual_offset()
     local _, track = get_active_track('sub')
     local sub_delay = tonumber(mp.get_property("sub-delay"))
@@ -461,7 +507,7 @@ end
 -- Menu actions & bindings
 
 ref_selector = menu:new {
-    items = { 'Sync to audio', 'Sync to another subtitle', 'Save current timings', 'Cancel' },
+    items = { 'Sync to audio', 'Sync to another subtitle', 'Sync to audio (first 10 min)', 'Save current timings', 'Cancel' },
     last_choice = 'audio',
     pos_x = 50,
     pos_y = 50,
@@ -517,9 +563,12 @@ function ref_selector:act()
     self:close()
 
     if self.selected == 3 then
-        return sync_to_manual_offset()
+        return sync_audio_clip()
     end
     if self.selected == 4 then
+        return sync_to_manual_offset()
+    end
+    if self.selected == 5 then
         return
     end
 
@@ -531,7 +580,7 @@ function ref_selector:call_subsync()
         sync_subtitles()
     elseif self.selected == 2 then
         sync_to_subtitle()
-    elseif self.selected == 3 then
+    elseif self.selected == 4 then
         sync_to_manual_offset()
     end
 end
