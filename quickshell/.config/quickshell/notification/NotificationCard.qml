@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import Quickshell
 import qs.common
 import "Highlight.js" as Hl
+import "Group.js" as Grp
 
 Rectangle {
     id: root
@@ -11,6 +12,8 @@ Rectangle {
     property var notifTimes: ({})
     property bool read: false
     property bool unread: false
+    // Notifications merged into this card (panel runs); shows a badge above 1.
+    property int count: 1
     // Long bodies show 4 lines until expanded ("Show more").
     property bool bodyExpanded: false
     // Folded search needle from the panel; matches render highlighted.
@@ -130,6 +133,24 @@ Rectangle {
                     }
                 }
 
+                Rectangle {
+                    visible: root.count > 1
+                    implicitWidth: countText.implicitWidth + 12
+                    implicitHeight: 20
+                    radius: 10
+                    color: theme.surface1
+                    Layout.alignment: Qt.AlignVCenter
+                    Text {
+                        id: countText
+                        anchors.centerIn: parent
+                        text: root.count
+                        color: theme.blue
+                        font.pixelSize: theme.fontSizeMin
+                        font.bold: true
+                        font.family: theme.font
+                    }
+                }
+
                 Text {
                     text: root.formatTime(root.getNotifTime(notifData && notifData.id))
                     color: theme.onAccent
@@ -177,6 +198,8 @@ Rectangle {
                 notif: notifData
                 highlight: root.highlight
                 Layout.fillWidth: true
+                bodyList: notifData && notifData.bodyList || null
+                newestFirst: !!notifData && !notifData.merged && Grp.isKde(notifData)
                 maxLines: root.bodyExpanded ? 0 : 4
                 visible: !!(notifData && notifData.body) && notifData.body.length > 0
             }

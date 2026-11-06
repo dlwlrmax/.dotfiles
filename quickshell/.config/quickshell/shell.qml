@@ -215,7 +215,7 @@ ShellRoot {
                 anchors.top: true
                 color: "transparent"
                 exclusionMode: ExclusionMode.Ignore
-                implicitWidth: 440
+                implicitWidth: notifPopupItem.maxWidth + 40
                 implicitHeight: notifPopupItem.implicitHeight > 0 ? notifPopupItem.implicitHeight + 60 : 0
                 WlrLayershell.layer: WlrLayer.Overlay
                 WlrLayershell.namespace: "quickshell-notif-popup"

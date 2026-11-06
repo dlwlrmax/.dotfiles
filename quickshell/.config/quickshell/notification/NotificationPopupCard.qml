@@ -3,13 +3,15 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import qs.common
+import "Group.js" as Grp
 
 Rectangle {
     id: root
     property Theme theme: ThemeStore
     property var groupData: ({})
     property var notifTimes: ({})
-    property bool expanded: false
+    // Long bodies show 5 lines until expanded ("Show more").
+    property bool bodyExpanded: false
     property bool autoDismiss: !latest || latest.urgency !== 2
     property int dismissTimeoutMs: {
         if (latest && latest.expireTimeout > 0) return latest.expireTimeout
@@ -21,10 +23,12 @@ Rectangle {
     property real progressValue: 1.0
     property real _hoverElapsedBeforePause: 0
     readonly property var latest: groupData && groupData.latest ? groupData.latest : null
+    // The whole run as one notification: every message, newest first.
+    readonly property var view: groupData && groupData.messages && groupData.messages.length > 0
+        ? Grp.mergedView(groupData.messages) : null
 
     signal dismissed()
     signal dismissRequested()
-    signal messageDismissRequested(var notifId)
     // function(notifId, text) -> bool; set by the popup. false = notification is gone.
     property var replyHandler: null
     property bool _replyFailed: false
@@ -34,10 +38,9 @@ Rectangle {
     border.color: theme.surface0
     border.width: 1
     clip: true
-    width: 400
     // implicitHeight, not height: the popup's ColumnLayout (and the window sized from it)
     // only follows implicit sizes. With a plain height, a card that grows (newer, longer
-    // message in the group, expanded list, reply box) got cut off at its first size.
+    // message in the group, reply box) got cut off at its first size.
     implicitHeight: cardLayout.implicitHeight + 20
 
     function formatTime(unixEpoch) {
@@ -212,7 +215,7 @@ Rectangle {
                 }
                 Text {
                     // Full title; with no title the body below shows everything.
-                    text: root.latest && root.latest.summary ? Sanitize.formatBody(root.latest.summary) : ""
+                    text: root.view && root.view.summary ? Sanitize.formatBody(root.view.summary) : ""
                     visible: text !== ""
                     color: theme.subtext0
                     font.pixelSize: theme.fontSizeMin
@@ -262,14 +265,32 @@ Rectangle {
         }
 
         NotifBody {
+            id: bodyText
             Layout.fillWidth: true
-            visible: !!(root.latest && root.latest.body)
-            // Whole body: the card grows to fit (no line cap), so cumulative chat
-            // bodies show every line including the newest.
+            visible: !!(root.view && root.view.body)
+            // Capped to 5 lines (newest first for chats) until "Show more".
+            maxLines: root.bodyExpanded ? 0 : 5
             theme: root.theme
-            body: root.latest ? root.latest.body : ""
+            body: root.view ? root.view.body : ""
+            bodyList: root.view && root.view.bodyList || null
             notif: root.latest
+            newestFirst: !!root.view && !root.view.merged && Grp.isKde(root.latest)
             color: theme.text
+        }
+
+        Text {
+            visible: bodyText.visible && (bodyText.truncated || root.bodyExpanded)
+            text: root.bodyExpanded ? "Show less" : "Show more"
+            color: theme.blue
+            font.pixelSize: theme.fontSizeMin
+            font.family: theme.fontUi
+
+            MouseArea {
+                anchors.fill: parent
+                anchors.margins: -4
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.bodyExpanded = !root.bodyExpanded
+            }
         }
 
         // Inline reply (apps that support it, e.g. chats relayed by KDE Connect).
@@ -337,54 +358,6 @@ Rectangle {
             wrapMode: Text.Wrap
         }
 
-        ColumnLayout {
-            visible: root.expanded && (root.groupData.count || 0) > 1
-            Layout.fillWidth: true
-            spacing: 4
-
-            Repeater {
-                model: root.groupData.messages || []
-                delegate: Rectangle {
-                    required property var modelData
-                    Layout.fillWidth: true
-                    implicitHeight: messageText.implicitHeight + 8
-                    radius: 5
-                    color: theme.surface1
-                    Text {
-                        id: messageText
-                        anchors.left: parent.left
-                        anchors.right: closeText.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.margins: 6
-                        // "Title: full body" (title alone is often just the group/app name)
-                        text: modelData.summary && modelData.body
-                            ? Sanitize.formatBody(modelData.summary) + ": " + Sanitize.formatBody(modelData.body)
-                            : Sanitize.formatBody(modelData.summary || modelData.body)
-                        color: theme.subtext0
-                        font.pixelSize: theme.fontSizeMin
-                        font.family: theme.fontUi
-                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                        textFormat: Text.StyledText
-                    }
-                    Text {
-                        font.family: theme.font
-                        id: closeText
-                        anchors.right: parent.right
-                        anchors.rightMargin: 6
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: Glyphs.close
-                        color: theme.subtext0
-                        MouseArea {
-                            anchors.fill: parent
-                            anchors.margins: -4
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.messageDismissRequested(modelData.id)
-                        }
-                    }
-                }
-            }
-        }
-
         Rectangle {
             Layout.fillWidth: true
             height: 3
@@ -399,14 +372,6 @@ Rectangle {
                 color: theme.blue
             }
         }
-    }
-
-    MouseArea {
-        id: toggleArea
-        anchors.fill: parent
-        z: -1
-        cursorShape: (root.groupData.count || 0) > 1 ? Qt.PointingHandCursor : Qt.ArrowCursor
-        onClicked: if ((root.groupData.count || 0) > 1) root.expanded = !root.expanded
     }
 
     MouseArea {

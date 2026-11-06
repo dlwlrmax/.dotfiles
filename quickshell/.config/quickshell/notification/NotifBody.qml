@@ -29,8 +29,23 @@ ColumnLayout {
 
     // Independent of `highlight`: a search keystroke rebinds each delegate's
     // text instead of rebuilding every delegate.
-    readonly property var paragraphs: Sanitize.formatBody(body).split("<br>")
-        .filter(function(p) { return p.trim() !== "" })
+    // Chat relays append the newest message last; newestFirst flips the order
+    // so the latest message leads and maxLines keeps it when the body is cut.
+    property bool newestFirst: false
+    // Merged cards: [{ text, flip }] newest first (see Group.mergedView); flip
+    // turns that body's own lines around. Overrides body/newestFirst.
+    property var bodyList: null
+    readonly property var paragraphs: {
+        var src = bodyList && bodyList.length > 0
+            ? bodyList : [{ text: body, flip: newestFirst }]
+        var out = []
+        for (var i = 0; i < src.length; i++) {
+            var p = Sanitize.formatBody(src[i].text).split("<br>")
+                .filter(function(p) { return p.trim() !== "" })
+            out = out.concat(src[i].flip ? p.reverse() : p)
+        }
+        return out
+    }
     // index -> { lines, cut }: lines each paragraph actually shows.
     property var _state: ({})
 

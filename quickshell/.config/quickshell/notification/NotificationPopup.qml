@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Services.Notifications
 import qs.notification
 import qs.common
+import "Group.js" as Grp
 
 Item {
     id: root
@@ -12,7 +13,7 @@ Item {
     property bool dnd: false
     // Gaming quiet mode for this screen: only critical notifications pop up.
     property bool quiet: false
-    property int maxWidth: 400
+    property int maxWidth: 460
     property int maxVisible: 2
     // Backing data source (notifData Item in shell.qml). Used to broadcast
     // dismiss requests across screens so closing one popup closes all.
@@ -59,6 +60,7 @@ Item {
     function makeGroup(key, messages) {
         return {
             key: key,
+            appKey: messages.length ? root.appKey(messages[0]) : "",
             appName: (messages.length && messages[0].appName) ? messages[0].appName : "Unknown",
             count: messages.length,
             messages: messages,
@@ -111,11 +113,6 @@ Item {
                     return !!(root.dataSource && root.dataSource.sendReply
                               && root.dataSource.sendReply(notifId, text))
                 }
-                onMessageDismissRequested: function(notifId) {
-                    root.removeMessage(group.key, notifId)
-                    if (root.dataSource && root.dataSource.requestDismissPopup)
-                        root.dataSource.requestDismissPopup(notifId)
-                }
             }
         }
 
@@ -154,14 +151,15 @@ Item {
         }
     }
 
-    // Same normalization as NotificationPanel.notificationGroupKey: sender
-    // casing/whitespace ("Telegram" vs "telegram") must not split one app.
-    function appKey(notif) {
-        var de = (notif.desktopEntry || "").trim().toLowerCase()
-        if (de) return de
-        var app = (notif.appName || "").trim().toLowerCase()
-        if (app) return app
-        return notif.appIcon || "unknown"
+    function appKey(notif) { return Grp.appKey(notif) }
+
+    // Unique per card: one app can own several cards when others interrupt it.
+    property int _groupSeq: 0
+
+    // Card is fading out (or gone): anything added to it would never be seen.
+    function isLeaving(key) {
+        var card = root.cards[key]
+        return !!card && (card._dismissing || card._dismissed)
     }
 
     function cardForNotification(notifId) {
@@ -189,6 +187,8 @@ Item {
             if (!group || !group.messages) continue
             var rest = group.messages.filter(function(m) { return m && m.id !== notif.id })
             if (rest.length === group.messages.length) continue
+            // Card already on its way out: show the update on a fresh card.
+            if (root.isLeaving(group.key)) break
             var messages = [root.snapshotNotif(notif)].concat(rest)
             notificationModel.setProperty(i, "group", root.makeGroup(group.key, messages))
             notificationModel.move(i, 0, 1)
@@ -202,22 +202,22 @@ Item {
         if (root.quiet && notif.urgency !== NotificationUrgency.Critical) return
         if (!notif.tracked) return
 
-        var key = root.appKey(notif)
+        var appKey = root.appKey(notif)
         var snapshot = root.snapshotNotif(notif)
-        for (var i = 0; i < notificationModel.count; ++i) {
-            var row = notificationModel.get(i)
-            var existing = row ? row.group : null
-            if (!existing || existing.key !== key) continue
-
-            var messages = (existing.messages || []).slice()
-            messages.unshift(snapshot)
-            notificationModel.setProperty(i, "group", root.makeGroup(key, messages))
-            notificationModel.move(i, 0, 1)
-            return
+        // Join only the newest card: another app in between starts a new card.
+        if (notificationModel.count > 0) {
+            var top = notificationModel.get(0)
+            var existing = top ? top.group : null
+            if (existing && existing.appKey === appKey && !root.isLeaving(existing.key)) {
+                var messages = (existing.messages || []).slice()
+                messages.unshift(snapshot)
+                notificationModel.setProperty(0, "group", root.makeGroup(existing.key, messages))
+                return
+            }
         }
 
         notificationModel.insert(0, {
-            group: root.makeGroup(key, [snapshot])
+            group: root.makeGroup(appKey + "#" + (root._groupSeq++), [snapshot])
         })
     }
 
@@ -238,29 +238,6 @@ Item {
                 return row.group
         }
         return null
-    }
-
-    function removeMessage(key, id) {
-        var group = groupForKey(key)
-        if (!group || !group.messages) return
-        var messages = group.messages.filter(function(message) {
-            return message && message.id !== id
-        })
-        if (!messages.length) {
-            var card = root.cards[key]
-            if (card) card.fadeOut()
-            return
-        }
-        var rowIndex = -1
-        for (var i = 0; i < notificationModel.count; ++i) {
-            var row = notificationModel.get(i)
-            if (row && row.group && row.group.key === key) {
-                rowIndex = i
-                break
-            }
-        }
-        if (rowIndex >= 0)
-            notificationModel.setProperty(rowIndex, "group", root.makeGroup(key, messages))
     }
 
     function removeGroup(key) {

@@ -5,6 +5,7 @@ import Quickshell
 import qs.common
 import "../common/ListSync.js" as Sync
 import "Highlight.js" as Hl
+import "Group.js" as Grp
 
 Item {
     id: root
@@ -27,7 +28,14 @@ Item {
     property var reversedNotifs: dataSource && dataSource.activeNotifs
         ? dataSource.activeNotifs.slice().reverse() : []
     property var shownLive: root.reversedNotifs.filter(root.matches)
-    property var groupedNotifs: root.groupNotifications(root.shownLive)
+    // Unread tab: live notifications, then unread history rows, grouped as one
+    // newest-first sequence so a run from one app is a single card either way.
+    property var groupedNotifs: root.groupNotifications(root.tab === "unread"
+        ? root.byTimeDesc(root.shownLive.concat(root.pageRows(root.shownUnread, root.unreadLimit)))
+        : root.shownLive)
+    // Read tab: same merging over read history rows.
+    property var groupedRead: root.groupNotifications(root.tab === "read"
+        ? root.pageRows(root.shownRead, root.readLimit) : [])
 
     // DB row ids backing the live notifications, so history can skip them and
     // avoid showing the same notification twice (once live, once as history).
@@ -54,7 +62,6 @@ Item {
 
     property int unreadCount: root.reversedNotifs.length + root.unreadRows.length
     property int totalCount: root.unreadCount
-    property var expandedGroups: ({})
 
     signal close()
 
@@ -65,9 +72,7 @@ Item {
     property int readLimit: pageSize
 
     ListModel { id: groupModel }
-    ListModel { id: unreadModel }
     ListModel { id: readModel }
-    property var historyById: ({})
     property var groupByKey: ({})
 
     // Infinite scroll: grow the active tab's page when the view nears the bottom.
@@ -80,25 +85,18 @@ Item {
     }
 
     function syncLists() {
-        var h = {}, g = {}, i
-        for (i = 0; i < historyRows.length; i++) h[historyRows[i].id] = historyRows[i]
+        var g = {}, i
         for (i = 0; i < groupedNotifs.length; i++) g[groupedNotifs[i].key] = groupedNotifs[i]
-        historyById = h          // maps first: delegates re-read their row from them
-        groupByKey = g
-        Sync.sync(groupModel, groupedNotifs.map(function (x) { return String(x.key) }))
-        // Only the visible tab builds cards, and only a page of them at a time:
+        for (i = 0; i < groupedRead.length; i++) g[groupedRead[i].key] = groupedRead[i]
+        groupByKey = g           // map first: delegates re-read their group from it
+        // Only the visible tab builds cards, and only a page of rows at a time:
         // every delegate is instantiated even when its tab is hidden.
-        var unread = tab === "unread" ? shownUnread.slice(0, unreadLimit) : []
-        var read = tab === "read" ? shownRead.slice(0, readLimit) : []
-        Sync.sync(unreadModel, unread.map(function (r) { return String(r.id) }))
-        Sync.sync(readModel, read.map(function (r) { return String(r.id) }))
+        Sync.sync(groupModel, groupedNotifs.map(function (x) { return String(x.key) }))
+        Sync.sync(readModel, groupedRead.map(function (x) { return String(x.key) }))
     }
 
     onGroupedNotifsChanged: syncLists()
-    onShownUnreadChanged: syncLists()
-    onShownReadChanged: syncLists()
-    onUnreadLimitChanged: syncLists()
-    onReadLimitChanged: syncLists()
+    onGroupedReadChanged: syncLists()
     on_NeedleChanged: {
         unreadLimit = pageSize
         readLimit = pageSize
@@ -310,12 +308,6 @@ Item {
                             delegate: activeGroupDelegate
                         }
 
-                        // Unread history rows below the live ones.
-                        Repeater {
-                            model: unreadModel
-                            delegate: historyCardDelegate
-                        }
-
                         Text {
                             visible: root.shownUnread.length > root.unreadLimit
                             Layout.alignment: Qt.AlignHCenter
@@ -367,7 +359,7 @@ Item {
 
                         Repeater {
                             model: readModel
-                            delegate: historyCardDelegate
+                            delegate: activeGroupDelegate
                         }
 
                         Text {
@@ -386,184 +378,27 @@ Item {
 
     // ── delegates ──────────────────────────────────────────────
 
+    // One card per run of same-app notifications (see groupNotifications).
     Component {
-        id: historyCardDelegate
+        id: activeGroupDelegate
         NotificationCard {
             required property string k
-            readonly property var modelData: root.historyById[k] || ({})
+            readonly property var modelData: root.groupByKey[k] || ({ messages: [], key: k })
             Layout.fillWidth: true
             width: contentCol.width
             theme: root.theme
-            notifData: modelData
-            notifTimes: ({})
+            notifData: modelData.view || ({})
+            // Live ids index notifTimes; history ids live in another space.
+            notifTimes: modelData.latest && modelData.latest.dismiss ? root.notifTimes : ({})
+            count: modelData.messages.length
             highlight: root._needle
-            read: modelData.read === 1
-            unread: modelData.read !== 1
-            // Callbacks must be function literals: a bare binding here would
-            // invoke deleteHistoryRow/markRead the moment the delegate is
-            // created, wiping every row without a click.
-            onDismissRequest: function() {
-                if (root.dataSource) root.dataSource.deleteHistoryRow(modelData.id)
-            }
-            onMarkRead: function() {
-                if (root.dataSource) root.dataSource.markRead(modelData.id)
-            }
-        }
-    }
-
-    Component {
-        id: activeGroupDelegate
-        Item {
-            required property string k
-            readonly property var modelData: root.groupByKey[k] || ({ messages: [], key: k })
-            width: contentCol.width
-            implicitHeight: agCol.implicitHeight
-            height: implicitHeight
-
-            ColumnLayout {
-                id: agCol
-                anchors.left: parent.left
-                anchors.right: parent.right
-                spacing: 6
-
-                Rectangle {
-                    Layout.fillWidth: true
-                    implicitHeight: modelData.expanded ? 42 : 52
-                    radius: theme.radiusLg
-                    color: root.theme.surface1
-                    border.color: root.theme.surface0
-                    border.width: 1
-
-                    Rectangle {
-                        anchors.left: parent.left
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        width: 4
-                        radius: 2
-                        color: modelData.latest && modelData.latest.urgency === 2
-                            ? root.theme.red : root.theme.surface0
-                    }
-
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: 14
-                        anchors.rightMargin: 10
-                        spacing: 8
-
-                        Rectangle {
-                            width: 28
-                            height: 28
-                            radius: 14
-                            color: root.theme.panelColor
-                            AppIcon {
-                                anchors.centerIn: parent
-                                appId: modelData.latest && modelData.latest.desktopEntry || ""
-                                iconName: modelData.latest && modelData.latest.appIcon || ""
-                                size: 20
-                                hideOnMissing: true
-                            }
-                        }
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 0
-
-                            Text {
-                                Layout.fillWidth: true
-                                text: Hl.mark(Sanitize.escapePlain(modelData.appName || "Unknown"), root._needle, root.theme.yellow)
-                                textFormat: Text.StyledText
-                                color: root.theme.text
-                                font.pixelSize: root.theme.fontSize
-                                font.bold: true
-                                font.family: root.theme.fontUi
-                                elide: Text.ElideRight
-                            }
-
-                            // One-line preview of the latest message while collapsed.
-                            Text {
-                                Layout.fillWidth: true
-                                visible: !modelData.expanded && text !== ""
-                                text: {
-                                    var n = modelData.latest
-                                    if (!n) return ""
-                                    var t = n.summary || ""
-                                    var b = (n.body || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim()
-                                    return t && b ? t + " — " + b : (t || b)
-                                }
-                                color: root.theme.subtext0
-                                font.pixelSize: root.theme.fontSizeMin
-                                font.family: root.theme.fontUi
-                                elide: Text.ElideRight
-                            }
-                        }
-
-                        Rectangle {
-                            implicitWidth: countText.implicitWidth + 12
-                            implicitHeight: 22
-                            radius: 11
-                            color: root.theme.panelColor
-                            Text {
-                                font.family: theme.font
-                                id: countText
-                                anchors.centerIn: parent
-                                text: modelData.messages.length
-                                color: root.theme.blue
-                                font.pixelSize: root.theme.fontSizeMin
-                                font.bold: true
-                            }
-                        }
-
-                        Text {
-                            font.family: theme.font
-                            text: modelData.expanded ? Glyphs.down : Glyphs.next
-                            color: root.theme.subtext0
-                            font.pixelSize: root.theme.fontSize
-                        }
-
-                        Text {
-                            text: "Clear"
-                            color: root.theme.blue
-                            font.pixelSize: root.theme.fontSizeMin
-                            font.family: root.theme.font
-                            MouseArea {
-                                anchors.fill: parent
-                                anchors.margins: -5
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.clearGroup(modelData.key)
-                            }
-                        }
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        z: -1
-                        onClicked: root.toggleGroup(modelData.key)
-                    }
-                }
-
-                ColumnLayout {
-                    visible: modelData.expanded
-                    Layout.fillWidth: true
-                    spacing: 8
-                    Repeater {
-                        model: modelData.messages
-                        delegate: NotificationCard {
-                            required property var modelData
-                            Layout.fillWidth: true
-                            width: contentCol.width
-                            theme: root.theme
-                            notifData: modelData
-                            notifTimes: root.notifTimes
-                            highlight: root._needle
-                            unread: true
-                            // Live entries stay under Unread while active, so both
-                            // read-click and × retire them (see retireLive).
-                            onDismissRequest: function() { root.retireLive(modelData) }
-                            onMarkRead: function() { root.retireLive(modelData) }
-                        }
-                    }
-                }
-            }
+            // Read tab runs are history rows with read === 1.
+            read: !!modelData.latest && !modelData.latest.dismiss && modelData.latest.read === 1
+            unread: !read
+            // Live entries stay under Unread while active, so both read-click
+            // and × retire them; history rows delete on × and mark read on click.
+            onDismissRequest: function() { root.forEachMessage(modelData, root.dismissItem) }
+            onMarkRead: function() { root.forEachMessage(modelData, root.readItem) }
         }
     }
 
@@ -593,50 +428,76 @@ Item {
         return hay.indexOf(root._needle) >= 0
     }
 
-    function notificationGroupKey(notif) {
-        // Normalize: desktopEntry is the stable id; bare appName varies in
-        // case/whitespace per sender ("Telegram" vs "telegram") and would
-        // split one app into several groups. appIcon is per-notification
-        // artwork, never a grouping key — last-resort fallback only.
-        var de = (notif.desktopEntry || "").trim().toLowerCase()
-        if (de) return de
-        var app = (notif.appName || "").trim().toLowerCase()
-        if (app) return app
-        return (notif.appIcon || "unknown")
-    }
-
+    // Newest first. Only neighbours from the same app share a card; another
+    // app in between starts a new one. Key = app + oldest member's id, so it
+    // stays put while newer messages join.
     function groupNotifications(notifs) {
         var groups = []
+        var cur = null
         for (var i = 0; i < notifs.length; ++i) {
             var notif = notifs[i]
-            var key = root.notificationGroupKey(notif)
-            var group = null
-            for (var j = 0; j < groups.length; ++j) {
-                if (groups[j].key === key) {
-                    group = groups[j]
-                    break
-                }
+            var appKey = Grp.appKey(notif)
+            if (!cur || cur.appKey !== appKey) {
+                cur = { appKey: appKey, key: "", appName: notif.appName || "Unknown",
+                        latest: notif, messages: [], view: null }
+                groups.push(cur)
             }
-            if (!group) {
-                group = {
-                    key: key,
-                    appName: notif.appName || "Unknown",
-                    latest: notif,
-                    messages: [],
-                    expanded: root.expandedGroups[key] !== false
-                }
-                groups.push(group)
-            }
-            group.messages.push(notif)
+            cur.messages.push(notif)
+            // History rows have their own id space: prefix keeps keys unique.
+            cur.key = appKey + "#" + (notif.dismiss ? "" : "h") + notif.id
         }
+        for (var g = 0; g < groups.length; ++g)
+            groups[g].view = root.mergedView(groups[g].key, groups[g].messages)
         return groups
     }
 
-    function toggleGroup(key) {
-        var next = {}
-        for (var existing in root.expandedGroups) next[existing] = root.expandedGroups[existing]
-        next[key] = root.expandedGroups[key] === false
-        root.expandedGroups = next
+    // Merged views keep their identity while the run is unchanged: a fresh
+    // object per call would rebuild every body line on each history reload or
+    // search keystroke. Mutated in place (no change signal); dropped when big.
+    property var _viewCache: ({})
+
+    function mergedView(key, messages) {
+        if (messages.length === 1) return messages[0]
+        var sig = ""
+        for (var i = 0; i < messages.length; ++i) {
+            var m = messages[i]
+            sig += (m.dismiss ? "" : "h") + m.id + "\u0001" + (m.summary || "")
+                + "\u0001" + (m.body || "") + "\u0002"
+        }
+        var hit = root._viewCache[key]
+        if (hit && hit.sig === sig) return hit.view
+        if (Object.keys(root._viewCache).length > 400) root._viewCache = ({})
+        var view = Grp.mergedView(messages)
+        root._viewCache[key] = { sig: sig, view: view }
+        return view
+    }
+
+    // First `limit` rows, then on to the end of the run the last one belongs
+    // to: a run cut mid-way would change its key (oldest member) and rebuild
+    // its card when the next page loads.
+    function pageRows(rows, limit) {
+        if (rows.length <= limit) return rows
+        var end = limit
+        var key = Grp.appKey(rows[limit - 1])
+        while (end < rows.length && Grp.appKey(rows[end]) === key) end++
+        return rows.slice(0, end)
+    }
+
+    // Live notifications stay until dismissed, so one can be older than
+    // history rows below it: order the mix by time, newest first.
+    function byTimeDesc(list) {
+        var t = function(n) {
+            var v = n.dismiss ? (root.notifTimes[n.id] || n.timestamp || 0) : (n.timestamp || 0)
+            return v || Date.now() / 1000     // unknown time: treat as just now
+        }
+        return list.map(function(n, i) { return { n: n, t: t(n), i: i } })
+            .sort(function(a, b) { return b.t - a.t || a.i - b.i })
+            .map(function(x) { return x.n })
+    }
+
+    function forEachMessage(group, fn) {
+        var msgs = group && group.messages ? group.messages.slice() : []
+        for (var i = 0; i < msgs.length; ++i) fn(msgs[i])
     }
 
     // Clear = done: mark the backing row read so it drops into Read once its
@@ -649,9 +510,20 @@ Item {
         if (notif.dismiss) notif.dismiss()
     }
 
-    function clearGroup(key) {
-        var notifs = root.reversedNotifs
-        for (var i = 0; i < notifs.length; ++i)
-            if (root.notificationGroupKey(notifs[i]) === key) root.retireLive(notifs[i])
+    // Group members are live notifications (have dismiss) or history rows.
+    // Under Unread, × only marks read (the row moves to Read, nothing is lost);
+    // under Read it deletes the row.
+    function dismissItem(n) {
+        if (!n) return
+        if (n.dismiss) root.retireLive(n)
+        else if (!root.dataSource) return
+        else if (n.read === 1) root.dataSource.deleteHistoryRow(n.id)
+        else root.dataSource.markRead(n.id)
+    }
+
+    function readItem(n) {
+        if (!n) return
+        if (n.dismiss) root.retireLive(n)
+        else if (root.dataSource && n.read !== 1) root.dataSource.markRead(n.id)
     }
 }
