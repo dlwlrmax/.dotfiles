@@ -1,4 +1,5 @@
 [Added Associations]
+application/x-msdownload=io.github.Faugus.faugus-launcher.desktop;
 video/x-matroska=mpv.desktop;
 x-scheme-handler/chrome=zen.desktop;
 x-scheme-handler/http=zen.desktop;
@@ -10,12 +11,13 @@ application/x-extension-html=zen.desktop
 application/x-extension-shtml=zen.desktop
 application/x-extension-xht=zen.desktop
 application/x-extension-xhtml=zen.desktop
+application/x-msdownload=io.github.Faugus.faugus-launcher.desktop;
 application/xhtml+xml=zen.desktop
 inode/directory=org.kde.dolphin.desktop
 text/html=zen.desktop
 video/x-matroska=mpv.desktop
 x-scheme-handler/chrome=zen.desktop
+x-scheme-handler/discord=vesktop.desktop
 x-scheme-handler/http=link-open.desktop
 x-scheme-handler/https=link-open.desktop
 x-scheme-handler/hydralauncher=hydralauncher.desktop
-x-scheme-handler/discord=vesktop.desktop
