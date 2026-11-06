@@ -9,7 +9,7 @@ local ws = {
   { pat = "^(Lark|Ferdium|ferdium)$", id = 3 },
   { pat = "^(Code|code-oss)$", id = 4 },
   { pat = "tabularis", id = 5 }, -- DBeaver: see dbeaver-* rules below
-  { pat = "^(Postman|yaak-app|bruno)$", id = 6 },
+  { pat = "^(Postman|yaak-app|bruno|vesktop)$", id = 6 },
   { pat = "^(Spotify)$", id = 7 },
   { pat = "^(zen-beta|zen)$", id = 10 },
   { pat = "^(com.mitchellh.ghostty)$", id = overrides.terminal_ws or 10 },
