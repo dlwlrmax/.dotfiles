@@ -137,6 +137,11 @@ hl.config({
   -- 2 = only for windows tagged content-type "game", so desktop apps are unaffected.
   render = {
     direct_scanout = 2,
+    -- Auto-HDR off: the Odyssey G5 is a 400-nit edge-lit panel. Its HDR picture
+    -- preset locks brightness/contrast in the monitor OSD and looks washed out,
+    -- so HDR video is tone-mapped to SDR by mpv instead (see mpv.conf).
+    -- Set to 1 (or 2 = hdredid) to re-enable fullscreen auto-HDR.
+    cm_auto_hdr = 0,
   },
 })
 
