@@ -63,8 +63,13 @@ Item {
         return h > 0 ? h + "h " + mm + "m" : mm + "m"
     }
 
+    // A refresh asked for while a fetch runs is queued, not dropped, so a
+    // plug/unplug that lands mid-fetch still gets read.
+    property bool _pending: false
+
     function refresh() {
-        if (!fetchProc.running) fetchProc.running = true
+        if (fetchProc.running) _pending = true
+        else fetchProc.running = true
     }
 
     function _ingest(list) {
@@ -108,6 +113,36 @@ Item {
                 catch (e) { console.log("BatteryData: parse error", e) }
             }
         }
+        onExited: if (root._pending) { root._pending = false; root.refresh() }
+    }
+
+    // Kernel power_supply uevents (device added/removed, charger plugged,
+    // status/capacity change) trigger one debounced fetch, so the bar follows
+    // a plug or unplug right away instead of waiting for the next poll.
+    Process {
+        id: ueventProc
+        command: ["udevadm", "monitor", "--udev", "--subsystem-match=power_supply"]
+        running: true
+        stdout: SplitParser {
+            onRead: data => {
+                if (data.startsWith("UDEV") && data.includes("power_supply"))
+                    ueventDebounce.restart()
+            }
+        }
+        onRunningChanged: if (!running) ueventRestart.restart()
+    }
+
+    Timer {
+        id: ueventDebounce
+        interval: 500
+        onTriggered: root.refresh()
+    }
+
+    // udevadm should never exit; if it does, bring it back without spinning.
+    Timer {
+        id: ueventRestart
+        interval: 5000
+        onTriggered: ueventProc.running = true
     }
 
     Timer {
