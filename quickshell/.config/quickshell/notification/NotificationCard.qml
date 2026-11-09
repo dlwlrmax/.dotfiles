@@ -199,7 +199,7 @@ Rectangle {
                 highlight: root.highlight
                 Layout.fillWidth: true
                 bodyList: notifData && notifData.bodyList || null
-                newestFirst: !!notifData && !notifData.merged && Grp.isKde(notifData)
+                newestFirst: !!notifData && !notifData.merged && Grp.flips(notifData)
                 maxLines: root.bodyExpanded ? 0 : 4
                 visible: !!(notifData && notifData.body) && notifData.body.length > 0
             }

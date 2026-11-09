@@ -29,8 +29,8 @@ ColumnLayout {
 
     // Independent of `highlight`: a search keystroke rebinds each delegate's
     // text instead of rebuilding every delegate.
-    // Chat relays append the newest message last; newestFirst flips the order
-    // so the latest message leads and maxLines keeps it when the body is cut.
+    // A chat body listing its messages oldest-first (see Group.flips) is read
+    // bottom-up with newestFirst, so the latest leads and maxLines keeps it.
     property bool newestFirst: false
     // Merged cards: [{ text, flip }] newest first (see Group.mergedView); flip
     // turns that body's own lines around. Overrides body/newestFirst.

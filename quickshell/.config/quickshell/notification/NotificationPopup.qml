@@ -202,8 +202,8 @@ Item {
         if (root.quiet && notif.urgency !== NotificationUrgency.Critical) return
         if (!notif.tracked) return
 
-        var appKey = root.appKey(notif)
         var snapshot = root.snapshotNotif(notif)
+        var appKey = root.appKey(snapshot)   // same input as makeGroup's
         // Join only the newest card: another app in between starts a new card.
         if (notificationModel.count > 0) {
             var top = notificationModel.get(0)

@@ -274,7 +274,7 @@ Rectangle {
             body: root.view ? root.view.body : ""
             bodyList: root.view && root.view.bodyList || null
             notif: root.latest
-            newestFirst: !!root.view && !root.view.merged && Grp.isKde(root.latest)
+            newestFirst: !!root.view && !root.view.merged && Grp.flips(root.latest)
             color: theme.text
         }
 

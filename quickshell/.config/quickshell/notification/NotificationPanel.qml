@@ -444,7 +444,9 @@ Item {
             }
             cur.messages.push(notif)
             // History rows have their own id space: prefix keeps keys unique.
-            cur.key = appKey + "#" + (notif.dismiss ? "" : "h") + notif.id
+            // Solo keys already carry the id; chat runs add their oldest member.
+            cur.key = appKey.indexOf("solo|") === 0 ? appKey
+                : appKey + "#" + (notif.dismiss ? "" : "h") + notif.id
         }
         for (var g = 0; g < groups.length; ++g)
             groups[g].view = root.mergedView(groups[g].key, groups[g].messages)
