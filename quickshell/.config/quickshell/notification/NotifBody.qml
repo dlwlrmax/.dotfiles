@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import qs.common
 import "Highlight.js" as Hl
+import "Group.js" as Grp
 
 // Notification body, one Text per line. Chat relays (KDE Connect inbox-style
 // Zalo/Messenger notifications) put one message per line, so a gap between
@@ -42,7 +43,7 @@ ColumnLayout {
         for (var i = 0; i < src.length; i++) {
             var p = Sanitize.formatBody(src[i].text).split("<br>")
                 .filter(function(p) { return p.trim() !== "" })
-            out = out.concat(src[i].flip ? p.reverse() : p)
+            out = out.concat(src[i].flip ? Grp.newestFirst(p) : p)
         }
         return out
     }

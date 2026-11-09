@@ -254,5 +254,39 @@ test("formatDue", () => {
     assert.equal(T.formatDue(td({ due_key: 20261105 }), 0), "05/11 09:00")
 })
 
+// ── Group (notification chat ordering) ──
+const G = load("notification/Group.js", ["flips", "newestFirst"])
+const kde = body => ({ appName: "KDE Connect", desktopEntry: "org.kde.kdeconnect.daemon", summary: "Messenger", body })
+// Lines as NotifBody gets them: formatted body split on <br>.
+const split = body => body.split(/\n|<br\s*\/?>/i).map(l => l.trim()).filter(Boolean)
+
+console.log("Group")
+test("flips: Messenger group body (sender blocks)", () => {
+    assert.equal(G.flips(kde("Nhà mình: <b>Thắm</b>\nmột<br/>hai<br/><b>Trang</b>\nba")), true)
+})
+test("flips: 1:1 body with name on first line only", () => {
+    assert.equal(G.flips(kde("Giang: một<br/>hai")), true)
+})
+test("flips: not for single line, unprefixed, or non-KDE", () => {
+    assert.equal(G.flips(kde("Thu Trang: A mang xg đi")), false)
+    assert.equal(G.flips(kde("plain first\nplain second")), false)
+    assert.equal(G.flips({ appName: "Thunderbird", summary: "Mail", body: "From: a\nTo: b" }), false)
+})
+test("newestFirst: group blocks reversed, headers kept above their lines", () => {
+    const body = "Nhà mình: <b>Thắm</b>\nmột<br/>hai<br/><b>Trang</b>\nba<br/><b>Thắm</b>\nbốn<br/>Ok"
+    assert.deepEqual(G.newestFirst(split(body)),
+        ["Nhà mình: <b>Thắm</b>", "Ok", "bốn", "<b>Trang</b>", "ba", "<b>Thắm</b>", "hai", "một"])
+})
+test("newestFirst: 1:1 keeps name on top line", () => {
+    assert.deepEqual(G.newestFirst(["Giang: một", "hai"]), ["Giang: hai", "một"])
+})
+test("newestFirst: every line prefixed is a plain reverse", () => {
+    assert.deepEqual(G.newestFirst(["A: một", "B: hai"]), ["B: hai", "A: một"])
+})
+test("newestFirst: single sender block", () => {
+    assert.deepEqual(G.newestFirst(["Nhà mình: <b>Trang</b>", "Sent a photo.", "Sent 2 photos."]),
+        ["Nhà mình: <b>Trang</b>", "Sent 2 photos.", "Sent a photo."])
+})
+
 console.log(`\n${passed} passed, ${failed} failed`)
 process.exit(failed ? 1 : 0)
