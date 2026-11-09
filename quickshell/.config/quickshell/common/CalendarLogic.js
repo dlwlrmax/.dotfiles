@@ -222,6 +222,21 @@ function dayInfo(k) {
     return (_cache[k] = { lunar: lunar, holiday: holiday })
 }
 
+// ── work schedule ──
+// Workdays: Mon–Fri plus the 1st and 3rd Saturday of each month (days 1–7 and
+// 15–21), minus public holidays (kind "holiday"; observances are still worked).
+function isWorkSaturday(k) {
+    var d = keyDay(k)
+    return keyToDate(k).getDay() === 6 && ((d >= 1 && d <= 7) || (d >= 15 && d <= 21))
+}
+
+function isWorkday(k) {
+    var dow = keyToDate(k).getDay()
+    if (dow === 0 || (dow === 6 && !isWorkSaturday(k))) return false
+    var h = dayInfo(k).holiday
+    return !(h && h.kind === "holiday")
+}
+
 // Short lunar label for a cell: "12", or "1/10" on the first of a lunar month.
 function lunarLabel(k) {
     var l = dayInfo(k).lunar

@@ -75,8 +75,10 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredWidth: 1
                     text: modelData
-                    color: Qt.alpha(mv.theme.subtext0, 0.6)
+                    color: index === 6 ? Qt.alpha(mv.theme.subtext0, 0.4)
+                         : index === 5 ? mv.theme.subtext0 : mv.theme.text
                     font.pixelSize: mv.theme.fontSize - 1
+                    font.weight: index >= 5 ? Font.Normal : Font.DemiBold
                     font.family: mv.theme.font
                     horizontalAlignment: Text.AlignHCenter
                 }

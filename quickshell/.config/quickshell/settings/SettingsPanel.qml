@@ -266,6 +266,15 @@ Item {
                         }
                     }
 
+                    Badge {
+                        theme: root.theme
+                        text: Glyphs.refresh + " Reload shell"
+                        clr: theme.peach
+                        clickable: true
+                        // hard: rebuild every window, not only the changed files
+                        onClicked: Quickshell.reload(true)
+                    }
+
                     Text {
                         visible: !!root.health && root.health.missingDeps.length > 0
                         text: "Install missing packages: scripts/check-deps.sh"

@@ -18,7 +18,8 @@ Item {
     readonly property bool selected: !other && (key === view.selStart || key === view.selEnd)
     readonly property bool inRange: !other && view.selStart !== 0 && view.selEnd !== 0
                                     && key > view.selStart && key < view.selEnd
-    readonly property bool weekend: model.date.getDay() === 0 || model.date.getDay() === 6
+    // Worked day of this month (see Cal.isWorkday); filler cells never count.
+    readonly property bool workday: !other && Cal.isWorkday(key)
     // Lunar/holiday data only for days of this month (adjacent-month cells are dim filler).
     readonly property var info: other ? null : Cal.dayInfo(key)
     readonly property var holiday: info ? info.holiday : null
@@ -30,8 +31,9 @@ Item {
         : selected ? theme.text
         : other ? theme.surface1
         : (holiday && holiday.kind === "holiday") ? theme.red
-        : weekend ? Qt.alpha(theme.subtext0, 0.6)
-        : theme.subtext0
+        : workday ? theme.text
+        : Qt.alpha(theme.subtext0, 0.55)
+    readonly property int numberWeight: isToday ? Font.Bold : workday ? Font.DemiBold : Font.Normal
     readonly property color markColor: holiday && holiday.kind === "holiday" ? theme.red : theme.sapphire
 
     width: grid.availableWidth / 7
@@ -72,7 +74,7 @@ Item {
                     text: cell.model.day
                     color: cell.numberColor
                     font.pixelSize: cell.theme.fontSize - 1
-                    font.bold: cell.isToday
+                    font.weight: cell.numberWeight
                     font.family: cell.theme.font
                 }
 
@@ -112,7 +114,8 @@ Item {
                  : cell.selected ? Qt.alpha(cell.theme.sapphire, 0.3)
                  : cell.inRange ? Qt.alpha(cell.theme.sapphire, 0.12)
                  : cell.hovered ? Qt.alpha(cell.theme.surface0, 0.9)
-                 : cell.other ? "transparent" : Qt.alpha(cell.theme.surface0, 0.3)
+                 : cell.other ? "transparent"
+                 : Qt.alpha(cell.theme.surface0, cell.workday ? 0.6 : 0.1)
             border.width: cell.selected ? 1.5 : cell.isToday ? 1 : 0
             border.color: cell.selected ? cell.theme.sapphire : cell.theme.highlight
 
@@ -131,7 +134,7 @@ Item {
                     text: cell.model.day
                     color: cell.numberColor
                     font.pixelSize: cell.theme.fontSize + 1
-                    font.bold: cell.isToday
+                    font.weight: cell.numberWeight
                     font.family: cell.theme.font
                 }
             }
