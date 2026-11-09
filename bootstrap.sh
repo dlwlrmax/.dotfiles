@@ -50,7 +50,7 @@ FISHER_PLUGINS=(
 STOW_GROUPS=(
   "fish hypr rofi swaync"                 # core desktop (waybar -> quickshell)
   "quickshell mpv stremio"                # live shell + media
-  "opencode wireplumber xdg-desktop-portal" # CLI + audio/portal
+  "opencode obscura wireplumber xdg-desktop-portal" # CLI + audio/portal
   "ghostty tmux nvim gitui"               # terminal + dev (kitty/yazi unused)
   "gtk-3.0 gtk-4.0 qt6ct"                 # theming
   "portainer"                             # containers

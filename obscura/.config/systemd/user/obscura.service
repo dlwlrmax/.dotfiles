@@ -1,0 +1,10 @@
+[Unit]
+Description=Obscura headless browser (CDP on 127.0.0.1:9222, used by Playwright MCP)
+
+[Service]
+ExecStart=/usr/bin/obscura serve --host 127.0.0.1 --port 9222 --stealth --allow-private-network --quiet
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

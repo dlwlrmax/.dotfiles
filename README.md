@@ -109,7 +109,7 @@ installer, unrelated to this bootstrap script.
 # Stow configs (use only what you need)
 stow -t ~ fish hypr rofi swaync                 # core desktop (waybar -> quickshell)
 stow -t ~ quickshell mpv stremio                # live shell + media
-stow -t ~ opencode wireplumber xdg-desktop-portal # CLI + audio/portal
+stow -t ~ opencode obscura wireplumber xdg-desktop-portal # CLI + audio/portal
 stow -t ~ ghostty tmux nvim gitui               # terminal + dev (kitty/yazi unused)
 stow -t ~ gtk-3.0 gtk-4.0 qt6ct                # theming
 stow -t ~ portainer                             # containers
