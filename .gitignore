@@ -40,3 +40,4 @@ opencode/.config/opencode/skills/*
 !opencode/.config/opencode/skills/figma-mcp/
 !opencode/.config/opencode/skills/figma-mcp/**
 .ocx
+nvim/.config/nvim/lazy-lock.json
