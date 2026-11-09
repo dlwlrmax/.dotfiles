@@ -103,6 +103,31 @@ Singleton {
         return m + ":" + (sec < 10 ? "0" : "") + sec
     }
 
+    // Position worth showing: some players (browsers) claim support but report 0.
+    function hasPosition(p) {
+        return !!p && p.positionSupported && p.position > 0.5
+    }
+
+    // "pos/len", "pos", "len" or "" depending on what the player reports.
+    function formatProgress(p, sep) {
+        if (!p) return ""
+        var len = trackLength(p)
+        var pos = hasPosition(p)
+        if (pos && len > 1) return formatTime(p.position) + (sep ?? "/") + formatTime(len)
+        if (pos) return formatTime(p.position)
+        if (len > 1) return formatTime(len)
+        return ""
+    }
+
+    // Position isn't pushed by MPRIS; one shared 1s ticker for the playing player
+    // (bar label + tooltip). The panel polls its other players itself.
+    Timer {
+        interval: 1000
+        repeat: true
+        running: !!root.playing && root.playing.positionSupported && Prefs.show("mpris")
+        onTriggered: if (root.playing) root.playing.positionChanged()
+    }
+
     // ── Current track / track changes ───────────────────────
     // Same rule as the bar widget: first player that is playing a titled track.
     readonly property var playing: (Mpris.players.values || []).find(p => p && p.isPlaying && p.trackTitle) ?? null

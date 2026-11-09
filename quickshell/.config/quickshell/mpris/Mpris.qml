@@ -39,6 +39,23 @@ Item {
             font.family: theme.font
         }
 
+        // (NN%) of track played; hidden unless both position and length known. Ticked by MediaInfo.
+        Text {
+            id: timeLabel
+            readonly property var p: root.currentPlayer
+            readonly property real len: MediaInfo.trackLength(p)
+            readonly property bool shown: MediaInfo.hasPosition(p) && len > 1
+            visible: shown
+            text: shown ?"(" + Math.min(100, Math.floor(p.position / len * 100)) + "%)" : ""
+            color: root.theme.subtext0
+            font.pixelSize: root.theme.fontSize - 2
+            font.weight: Font.Medium
+            font.family: theme.font
+            font.features: { "tnum": 1 }
+            // Never squeezed; the title elides instead.
+            Layout.minimumWidth: implicitWidth
+        }
+
         Text {
             id: trackLabel
             text: {
@@ -53,8 +70,13 @@ Item {
             font.weight: Font.Medium
             font.family: theme.font
             elide: Text.ElideRight
-            Layout.maximumWidth: root.maxWidth
-            Layout.fillWidth: false
+            // maxWidth budgets time + title; title takes what's left (fillWidth lets
+            // the layout shrink it, not the time, when the bar squeezes the widget).
+            Layout.maximumWidth: Math.max(40, root.maxWidth
+                - (timeLabel.visible ? timeLabel.implicitWidth + row.spacing : 0))
+            Layout.preferredWidth: implicitWidth
+            Layout.minimumWidth: 0
+            Layout.fillWidth: true
         }
     }
 
@@ -62,19 +84,10 @@ Item {
     BarTooltip {
         id: labelTip
         readonly property var p: root.currentPlayer
-        readonly property real len: MediaInfo.trackLength(p)
         target: root
         theme: root.theme
         hovered: rootHover.hovered && !!p
         delay: 600
-
-        // Position isn't pushed by MPRIS; poll it only while the card is open.
-        Timer {
-            interval: 1000
-            repeat: true
-            running: labelTip.open && !!labelTip.p && labelTip.p.isPlaying
-            onTriggered: labelTip.p.positionChanged()
-        }
 
         RowLayout {
             spacing: 12
@@ -124,10 +137,9 @@ Item {
                     Layout.fillWidth: true
                 }
                 Text {
-                    readonly property bool hasPos: !!labelTip.p && labelTip.p.positionSupported && labelTip.p.position > 0.5
+                    readonly property string progress: MediaInfo.formatProgress(labelTip.p, " / ")
                     text: (labelTip.p ? (labelTip.p.identity || "") : "")
-                        + (hasPos ? "  ·  " + MediaInfo.formatTime(labelTip.p.position) + (labelTip.len > 1 ? " / " + MediaInfo.formatTime(labelTip.len) : "")
-                                  : (labelTip.len > 1 ? "  ·  " + MediaInfo.formatTime(labelTip.len) : ""))
+                        + (progress !== "" ? "  ·  " + progress : "")
                     color: root.theme.overlay0
                     font.pixelSize: root.theme.fontSize - 2
                     font.family: root.theme.font
@@ -143,7 +155,7 @@ Item {
         }
 
         Text {
-            text: "Click title: panel · icon: play/pause · Right: next · Middle: prev · Scroll: volume"
+            text: "Click %/title: panel · icon: play/pause · Right: next · Middle: prev · Scroll: volume"
             color: root.theme.overlay0
             font.pixelSize: root.theme.fontSize - 2
             font.family: root.theme.font
@@ -153,14 +165,14 @@ Item {
     MouseArea {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
-        // Left: panel (on the label) / play-pause; right: next; middle: previous.
+        // Left: panel (on time/title) / play-pause (on icon); right: next; middle: previous.
         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
         onClicked: mouse => {
             labelTip.suppressed = true
             if (!root.currentPlayer) return
             if (mouse.button === Qt.LeftButton) {
-                var labelPos = trackLabel.mapFromItem(root, mouse.x, mouse.y)
-                if (labelPos.x >= 0 && labelPos.x <= trackLabel.width) {
+                var textStart = (timeLabel.visible ? timeLabel : trackLabel).mapToItem(root, 0, 0).x
+                if (mouse.x >= textStart) {
                     var globalPos = root.mapToItem(null, 0, 0)
                     root.togglePanel(globalPos.x + root.width / 2)
                 } else if (root.currentPlayer.canTogglePlaying) {
