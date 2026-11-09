@@ -1,10 +1,5 @@
 [
   {
-    "git":"https://github.com/jgreco/mpv-scripts",
-    "whitelist":"fastforward%.lua$",
-    "dest":"~~/scripts"
-  },
-  {
     "git":"https://github.com/wiiaboo/mpv-scripts",
     "whitelist":"auto%-profiles%.lua$",
     "dest":"~~/scripts"
@@ -63,6 +58,21 @@
     "git":"https://github.com/po5/thumbfast",
     "whitelist":"thumbfast%.lua$",
     "dest":"~~/scripts"
+  },
+  {
+    "git":"https://github.com/po5/evafast",
+    "whitelist":"evafast%.lua$",
+    "dest":"~~/scripts"
+  },
+  {
+    "git":"https://github.com/po5/memo",
+    "whitelist":"memo%.lua$",
+    "dest":"~~/scripts"
+  },
+  {
+    "git":"https://github.com/4e6/mpv-reload",
+    "whitelist":"^main%.lua$",
+    "dest":"~~/scripts/reload"
   },
   {
     "git":"https://github.com/christoph-heinrich/mpv-quality-menu",

@@ -3,7 +3,7 @@ local utils = require "mp.utils"
 local msg = require "mp.msg"
 
 local opts = {
-    properties = "volume,sub-scale,sub-pos,sub-font-size",
+    properties = "volume,sub-scale",
 }
 (require 'mp.options').read_options(opts, "persist_properties")
 
@@ -94,6 +94,7 @@ local function onInitialLoad()
                     save_timer:resume()
                     got_unsaved_changed = true
                 else
+                    got_unsaved_changed = true
                     save_timer = mp.add_timeout(5, function()
                         save_config(PCONFIG, properties)
                         got_unsaved_changed = false
