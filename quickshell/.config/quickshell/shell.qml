@@ -283,6 +283,31 @@ ShellRoot {
                 }
             }
 
+            // Click-away on the other screens: a panel's own overlay only covers
+            // its screen, so while a panel is open elsewhere this transparent
+            // layer takes the click and closes it. Below the bar, so bar widgets
+            // here still work (and open their panel on this screen instead).
+            PanelWindow {
+                screen: screenScope.screenData
+                visible: Panels.openName !== "" && Panels.screenName !== screenScope.screenData.name
+                anchors.top: true
+                anchors.left: true
+                anchors.right: true
+                anchors.bottom: true
+                margins.top: theme.barHeight
+                color: "transparent"
+                exclusionMode: ExclusionMode.Ignore
+                WlrLayershell.layer: WlrLayer.Top
+                WlrLayershell.namespace: "quickshell-clickaway"
+                WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.AllButtons
+                    onPressed: Panels.close()
+                }
+            }
+
             // ── popup panels (open state: Panels singleton) ──
 
             PanelHost {
