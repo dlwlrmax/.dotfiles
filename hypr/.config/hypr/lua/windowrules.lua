@@ -133,6 +133,15 @@ end
 
 if overrides.mpv_pip then
   pip_rule({ class = "^(mpv)$" }, { focus_on_activate = false })
+elseif overrides.mpv_workspace then
+  -- mpv opens on a fixed workspace instead of wherever focus happens to be.
+  -- Workspace 1 is bound to the main monitor (lua/workspaces.lua), so this also
+  -- decides which display playback lands on. Set to false to disable.
+  hl.window_rule({
+    name = "mpv-workspace",
+    match = { class = "^(mpv)$" },
+    workspace = overrides.mpv_workspace,
+  })
 end
 pip_rule({ title = "(?i)picture.*picture" }, { dim_around = false, no_shadow = true })
 if not overrides.stremio_normal then
