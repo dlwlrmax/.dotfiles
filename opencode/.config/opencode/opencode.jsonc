@@ -51,6 +51,21 @@
       "enabled": false,
       "timeout": 15000
     },
+    // Lark/Feishu MCP template. Disabled globally per MCP scoping rule.
+    // Enable per project by repeating type+command (v2 rejects enabled-only
+    // entries) and adding the tool list for that project:
+    //   {"mcp":{"lark":{"type":"local",
+    //     "command":["npx","-y","@larksuiteoapi/lark-mcp","mcp","-a","{env:LARK_APP_ID}","-s","{env:LARK_APP_SECRET}","-t","<tools>"]}}}
+    "lark": {
+      "type": "local",
+      "command": [
+        "npx", "-y", "@larksuiteoapi/lark-mcp", "mcp",
+        "-a", "{env:LARK_APP_ID}",
+        "-s", "{env:LARK_APP_SECRET}"
+      ],
+      "enabled": false,
+      "timeout": 30000
+    },
     "context7": {
       "type": "remote",
       "url": "https://mcp.context7.com/mcp",
