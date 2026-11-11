@@ -16,4 +16,5 @@ QtObject {
     readonly property string upload: "\uf176"
     readonly property string reply: "\uf112"
     readonly property string todo: "\uf046"
+    readonly property string note: "\uf249"
 }

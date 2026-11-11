@@ -73,12 +73,13 @@ QtObject {
             tx.executeSql("CREATE TABLE IF NOT EXISTS meta ("
                 + "key TEXT PRIMARY KEY, value TEXT)")
             tx.executeSql("CREATE TABLE IF NOT EXISTS todos ("
-                + "id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, done INTEGER DEFAULT 0, "
-                + "due_key INTEGER, due_minutes INTEGER, notified INTEGER DEFAULT 0, "
+                + "id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, content TEXT DEFAULT '', "
+                + "done INTEGER DEFAULT 0, due_key INTEGER, due_minutes INTEGER, notified INTEGER DEFAULT 0, "
                 + "created_at INTEGER, done_at INTEGER)")
         })
         _migrateReadColumn()
         _migrateAppActions()
+        _migrateTodoContent()
         _ready = true
         _ensureWal()
         return _db
@@ -113,6 +114,18 @@ QtObject {
         try {
             _db.transaction(function(tx) {
                 tx.executeSql("ALTER TABLE apps ADD COLUMN actions TEXT DEFAULT '[]'")
+            })
+        } catch (e) {
+            // Column already exists.
+        }
+    }
+
+    // Free-form note under a todo's title; upgrades databases created before the
+    // column was part of CREATE TABLE.
+    function _migrateTodoContent() {
+        try {
+            _db.transaction(function(tx) {
+                tx.executeSql("ALTER TABLE todos ADD COLUMN content TEXT DEFAULT ''")
             })
         } catch (e) {
             // Column already exists.
@@ -301,13 +314,14 @@ QtObject {
         try {
             open()
             _db.readTransaction(function(tx) {
-                var rs = tx.executeSql("SELECT id,title,done,due_key,due_minutes,notified,"
+                var rs = tx.executeSql("SELECT id,title,content,done,due_key,due_minutes,notified,"
                     + "created_at,done_at FROM todos ORDER BY id ASC")
                 for (var i = 0; i < rs.rows.length; i++) {
                     var r = rs.rows.item(i)
                     out.push({
                         id: r.id,
                         title: r.title || "",
+                        content: r.content || "",
                         done: r.done ? 1 : 0,
                         due_key: r.due_key ?? null,
                         due_minutes: r.due_minutes ?? null,
@@ -332,8 +346,8 @@ QtObject {
             open()
             _db.transaction(function(tx) {
                 var rs = tx.executeSql("INSERT INTO todos "
-                    + "(title,done,due_key,due_minutes,notified,created_at) VALUES (?,?,?,?,?,?)",
-                    [e.title || "", 0, e.due_key ?? null, e.due_minutes ?? null, 0, _now()])
+                    + "(title,content,done,due_key,due_minutes,notified,created_at) VALUES (?,?,?,?,?,?,?)",
+                    [e.title || "", e.content || "", 0, e.due_key ?? null, e.due_minutes ?? null, 0, _now()])
                 id = Number(rs.insertId)
             })
         } catch (err) {

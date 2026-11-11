@@ -3,11 +3,12 @@
 // Pure helpers for the todo module: due-time maths, ordering, input parsing and
 // display formatting. Self-contained (no imports) so tests/run.mjs can eval it.
 //
-// A todo is {id, title, done: 0|1, due_key: yyyymmdd|null, due_minutes: 0..1439|null,
+// A todo is {id, title, content, done: 0|1, due_key: yyyymmdd|null, due_minutes: 0..1439|null,
 //            notified: 0|1, created_at, done_at}. A date-only todo is due at 09:00.
 
 var DEFAULT_DUE_MINUTES = 540
 var MAX_TITLE = 200
+var MAX_CONTENT = 4000
 
 function pad2(n) { return (n < 10 ? "0" : "") + n }
 
@@ -125,6 +126,12 @@ function parseTime(text) {
 
 function normalizeTitle(s) {
     return String(s).replace(/\s+/g, " ").trim().slice(0, MAX_TITLE)
+}
+
+// Multi-line note: normalise line endings, trim blank edges, cap length.
+function normalizeContent(s) {
+    return String(s === null || s === undefined ? "" : s)
+        .replace(/\r\n?/g, "\n").replace(/[ \t]+\n/g, "\n").trim().slice(0, MAX_CONTENT)
 }
 
 function formatDue(todo, todayKey) {

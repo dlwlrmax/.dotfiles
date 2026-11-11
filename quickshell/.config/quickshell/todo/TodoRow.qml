@@ -3,7 +3,9 @@ import QtQuick.Layouts
 import qs.common
 import "TodoLogic.js" as T
 
-// One todo line: checkbox, title, due label, delete button (on hover).
+// One todo line: checkbox, title, note marker, due label, delete button (on hover).
+// Clicking anywhere outside the checkbox / delete button emits opened(); the panel
+// then shows the detail view (full title + note, selectable and copyable).
 Item {
     id: root
     required property var todo
@@ -12,11 +14,13 @@ Item {
     property int nowMinutes: 0
     signal toggled()
     signal removed()
+    signal opened()
 
     readonly property bool done: !!todo.done
     readonly property bool overdue: T.isOverdue(todo, nowKey, nowMinutes)
     readonly property bool dueToday: !done && T.isDated(todo) && todo.due_key === nowKey
     readonly property string dueText: T.formatDue(todo, nowKey)
+    readonly property bool hasContent: !!todo.content && String(todo.content).trim() !== ""
 
     implicitHeight: 34
 
@@ -27,6 +31,13 @@ Item {
     }
 
     HoverHandler { id: hover }
+
+    // Declared before the checkbox / delete MouseAreas, so those sit above it and win.
+    MouseArea {
+        anchors.fill: parent
+        cursorShape: Qt.PointingHandCursor
+        onClicked: root.opened()
+    }
 
     RowLayout {
         anchors.fill: parent
@@ -71,6 +82,16 @@ Item {
             font.strikeout: root.done
             elide: Text.ElideRight
             Layout.fillWidth: true
+            Layout.alignment: Qt.AlignVCenter
+        }
+
+        // Note marker: this todo has content to show in the detail view.
+        Text {
+            visible: root.hasContent
+            text: Glyphs.note
+            color: root.done ? theme.overlay0 : theme.overlay1
+            font.pixelSize: theme.fontSizeMin
+            font.family: theme.font
             Layout.alignment: Qt.AlignVCenter
         }
 

@@ -162,7 +162,7 @@ test("Exec= parsing", () => {
 
 // ── TodoLogic ──
 const T = load("todo/TodoLogic.js", ["dueMinutes", "isOverdue", "dueNow", "sortTodos", "markedKeys",
-    "addDays", "parseDue", "resolveDue", "parseTime", "normalizeTitle", "formatDue"])
+    "addDays", "parseDue", "resolveDue", "parseTime", "normalizeTitle", "normalizeContent", "formatDue"])
 const td = o => ({ id: 1, title: "t", done: 0, due_key: null, due_minutes: null, notified: 0,
                    created_at: 100, done_at: null, ...o })
 
@@ -228,6 +228,13 @@ test("resolveDue: chips, typed override, invalid", () => {
     assert.deepEqual(T.resolveDue("week", "", t), { ok: true, key: 20270107, minutes: null })
     assert.deepEqual(T.resolveDue("today", "05/01 10:00", t), { ok: true, key: 20270105, minutes: 600 })
     assert.equal(T.resolveDue("", "garbage", t).ok, false)
+})
+test("normalizeContent: CRLF, trailing spaces, trim, null, cap", () => {
+    assert.equal(T.normalizeContent("a \r\nb  \n\n"), "a\nb")
+    assert.equal(T.normalizeContent("  \n\t "), "")
+    assert.equal(T.normalizeContent(null), "")
+    assert.equal(T.normalizeContent(undefined), "")
+    assert.equal(T.normalizeContent("x".repeat(5000)).length, 4000)
 })
 test("parseTime: empty, valid, invalid", () => {
     assert.deepEqual(T.parseTime(""), { ok: true, minutes: null })

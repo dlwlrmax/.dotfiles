@@ -4,7 +4,8 @@ import QtQuick.Controls
 import qs.common
 import "TodoLogic.js" as T
 
-// Add bar: title field + "+" button, quick due chips (Today / Tomorrow / Next week),
+// Add bar: title field, an optional multi-line note (Enter adds,
+// Shift+Enter inserts a newline), quick due chips (Today / Tomorrow / Next week),
 // a date picker (inline month grid) and a time picker (hour / minute spinner, default 17:30).
 // A picked date and a chip are mutually exclusive; the time only applies once a date is set.
 Item {
@@ -14,7 +15,7 @@ Item {
     // Current time of day (minutes after midnight); today's due time can't be earlier than this.
     property int nowMinutes: 0
     // dueKey / dueMinutes are null when absent.
-    signal submitted(string title, var dueKey, var dueMinutes)
+    signal submitted(string title, string content, var dueKey, var dueMinutes)
 
     // "" | "today" | "tomorrow" | "week"
     property string chip: ""
@@ -96,8 +97,9 @@ Item {
     function submit() {
         var title = T.normalizeTitle(titleField.text)
         if (title === "") return
-        root.submitted(title, hasDue ? dueKey : null, hasDue && !noTime ? shownMinutes : null)
+        root.submitted(title, contentField.text, hasDue ? dueKey : null, hasDue && !noTime ? shownMinutes : null)
         titleField.text = ""
+        contentField.text = ""
         chip = ""
         pickedKey = 0
         pickerOpen = false
@@ -113,42 +115,83 @@ Item {
         anchors.right: parent.right
         spacing: 8
 
-        // ── title + add button ──
-        RowLayout {
+        // ── title ──
+        TextField {
+            id: titleField
             Layout.fillWidth: true
-            spacing: 6
-
-            TextField {
-                id: titleField
-                Layout.fillWidth: true
-                implicitHeight: 32
-                placeholderText: "Add a todo…"
-                color: theme.text
-                placeholderTextColor: theme.overlay0
-                font.pixelSize: theme.fontSize
-                font.family: theme.fontUi
-                selectByMouse: true
-                leftPadding: 10
-                rightPadding: 10
-                background: Rectangle {
-                    radius: theme.radiusMd
-                    color: theme.surface0
-                    border.color: titleField.activeFocus ? theme.blue : "transparent"
-                    border.width: 1
-                }
-                onAccepted: root.submit()
-                // Escape is not consumed here, so it bubbles up to the panel and closes it.
+            implicitHeight: 32
+            placeholderText: "Add a todo…"
+            color: theme.text
+            placeholderTextColor: theme.overlay0
+            font.pixelSize: theme.fontSize
+            font.family: theme.fontUi
+            selectByMouse: true
+            leftPadding: 10
+            rightPadding: 10
+            background: Rectangle {
+                radius: theme.radiusMd
+                color: theme.surface0
+                border.color: titleField.activeFocus ? theme.blue : "transparent"
+                border.width: 1
             }
+            onAccepted: root.submit()
+            // Escape is not consumed here, so it bubbles up to the panel and closes it.
+        }
 
-            IconButton {
-                theme: root.theme
-                text: ""   // nf-fa-plus
-                glyphSize: theme.fontSize + 1
-                fill: theme.highlight
-                implicitWidth: 32
-                implicitHeight: 32
-                enabled: root.canAdd
-                onClicked: root.submit()
+        // ── optional note (grows with its text, scrolls past 6 lines) ──
+        Rectangle {
+            Layout.fillWidth: true
+            implicitHeight: Math.min(Math.max(contentField.implicitHeight, 32),
+                                     6 * noteMetrics.height + contentField.topPadding + contentField.bottomPadding)
+
+            FontMetrics { id: noteMetrics; font: contentField.font }
+            radius: theme.radiusMd
+            color: theme.surface0
+            border.color: contentField.activeFocus ? theme.blue : "transparent"
+            border.width: 1
+
+            Flickable {
+                id: contentFlick
+                anchors.fill: parent
+                contentWidth: width
+                contentHeight: contentField.implicitHeight
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+                // Keep the caret in view while typing.
+                function ensureVisible(r) {
+                    if (contentY >= r.y) contentY = r.y
+                    else if (contentY + height <= r.y + r.height) contentY = r.y + r.height - height
+                }
+
+                TextArea {
+                    id: contentField
+                    width: contentFlick.width
+                    placeholderText: "Note (optional) — Shift+Enter for a new line"
+                    color: theme.text
+                    placeholderTextColor: theme.overlay0
+                    font.pixelSize: theme.fontSizeMin
+                    font.family: theme.fontUi
+                    wrapMode: TextEdit.Wrap
+                    selectByMouse: true
+                    leftPadding: 10
+                    rightPadding: 10
+                    topPadding: 8
+                    bottomPadding: 8
+                    background: null
+                    onCursorRectangleChanged: contentFlick.ensureVisible(cursorRectangle)
+                    Keys.onPressed: event => {
+                        if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
+                                && !(event.modifiers & Qt.ShiftModifier)) {
+                            // Nothing to add yet: send the user to the title instead of eating the key.
+                            if (root.canAdd) root.submit()
+                            else titleField.forceActiveFocus()
+                            event.accepted = true
+                        }
+                        // Escape is not consumed here, so it bubbles up to the panel and closes it.
+                    }
+                }
             }
         }
 
@@ -404,6 +447,36 @@ Item {
                 implicitHeight: 24
                 onClicked: root.noTime = !root.noTime
             }
+            }
+        }
+
+        // ── create button (bottom of the bar) ──
+        Rectangle {
+            Layout.fillWidth: true
+            implicitHeight: 32
+            radius: theme.radiusMd
+            color: !root.canAdd ? Qt.alpha(theme.surface1, 0.6)
+                 : addMa.pressed ? Qt.darker(theme.highlight, 1.1)
+                 : addMa.containsMouse ? Qt.lighter(theme.highlight, 1.1) : theme.highlight
+            scale: addMa.pressed && root.canAdd ? 0.98 : 1
+            Behavior on color { ColorAnimation { duration: 100 } }
+
+            Text {
+                anchors.centerIn: parent
+                text: "\uf067  Add todo"   // nf-fa-plus
+                color: root.canAdd ? theme.base : theme.overlay0
+                font.pixelSize: theme.fontSize
+                font.bold: true
+                font.family: theme.font
+            }
+
+            MouseArea {
+                id: addMa
+                anchors.fill: parent
+                hoverEnabled: true
+                enabled: root.canAdd
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.submit()
             }
         }
     }

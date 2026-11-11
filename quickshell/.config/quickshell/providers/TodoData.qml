@@ -47,11 +47,12 @@ Item {
         _setItems(T.sortTodos(Db.loadTodos(), nowKey, nowMinutes))
     }
 
-    function add(title, dueKey, dueMinutes) {
+    function add(title, content, dueKey, dueMinutes) {
         var t = T.normalizeTitle(title === null || title === undefined ? "" : title)
         if (t === "") return
         Db.insertTodo({
             title: t,
+            content: T.normalizeContent(content),
             due_key: dueKey === undefined ? null : dueKey,
             due_minutes: dueMinutes === undefined ? null : dueMinutes
         })
