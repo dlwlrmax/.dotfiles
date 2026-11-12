@@ -21,8 +21,27 @@ Item {
         var p = n.properties || {}
         return p["device.api"] === "alsa" || !!p["device.bus"]
     }
+    // HDMI/DisplayPort outputs are hidden: the GPU's HDMI sink feeds a TV/receiver
+    // that never plays desktop audio, so it would just sit in the list as dead weight.
+    // Matched on hardware names only (node/profile/alsa card id), not on the
+    // user-editable description or nickname. Toggleable in Settings.
+    // Keep in sync with the filter in scripts/audio-cycle.sh.
+    function isHdmi(n) {
+        var p = n.properties || {}
+        return /hdmi/i.test(n.name || "")
+            || /hdmi/i.test(p["device.profile.name"] || "")
+            || /hdmi/i.test(p["alsa.id"] || "")
+    }
     readonly property var audioNodes: active ? Pipewire.nodes.values.filter(n => n.audio) : []
-    readonly property var sinks: audioNodes.filter(n => n.isSink && !n.isStream && isPhysical(n))
+    readonly property var sinks: audioNodes.filter(n => n.isSink && !n.isStream && isPhysical(n)
+        && !(Prefs.hideHdmiOutput && isHdmi(n)))
+    // Default output that the HDMI rule keeps out of the list. Without a row for it
+    // the panel would show no default at all, so the card gets a one-line escape hatch.
+    readonly property var hiddenDefaultSink: {
+        if (!active) return null
+        var d = Pipewire.defaultAudioSink
+        return d && Prefs.hideHdmiOutput && isHdmi(d) ? d : null
+    }
     readonly property var sources: audioNodes.filter(n => !n.isSink && !n.isStream && isPhysical(n))
     // Playback streams; paused (corked) ones are hidden like before.
     readonly property var streams: audioNodes.filter(n => n.isSink && n.isStream
@@ -74,10 +93,32 @@ Item {
                     }
                 }
 
+                // Escape hatch: audio is on the hidden HDMI output, so no row above is
+                // marked default. One click moves it to a visible device.
+                Text {
+                    readonly property var d: root.hiddenDefaultSink
+                    Layout.fillWidth: true
+                    visible: !!d && root.sinks.length > 0
+                    text: d ? "Playing to hidden HDMI output · click to switch" : ""
+                    color: hiddenDefaultMouse.containsMouse ? theme.mauve : theme.subtext0
+                    font.pixelSize: theme.fontSizeMin
+                    font.family: theme.font
+                    elide: Text.ElideRight
+
+                    MouseArea {
+                        id: hiddenDefaultMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: if (root.sinks.length > 0) Pipewire.preferredDefaultAudioSink = root.sinks[0]
+                    }
+                }
+
                 Text {
                     Layout.fillWidth: true
                     visible: root.sinks.length === 0
-                    text: "No output devices"
+                    text: root.hiddenDefaultSink ? "Only the hidden HDMI output is available"
+                                                 : "No output devices"
                     color: theme.subtext0
                     font.pixelSize: theme.fontSize - 1
                     font.family: theme.font

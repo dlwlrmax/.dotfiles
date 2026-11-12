@@ -389,6 +389,41 @@ Item {
                 }
             }
 
+            // ── audio ──
+            SectionCard {
+                theme: root.theme
+                title: "Audio"
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    Text {
+                        text: "Hide HDMI output"
+                        color: theme.subtext1
+                        font.pixelSize: theme.fontSize - 1
+                        font.family: theme.fontUi
+                        Layout.fillWidth: true
+                    }
+
+                    Badge {
+                        theme: root.theme
+                        text: Prefs.hideHdmiOutput ? "Hidden" : "Shown"
+                        clr: Prefs.hideHdmiOutput ? theme.green : theme.subtext0
+                        solid: Prefs.hideHdmiOutput
+                        clickable: true
+                        onClicked: Prefs.setHideHdmiOutput(!Prefs.hideHdmiOutput)
+                    }
+                }
+
+                Text {
+                    text: "Applies to the volume panel and the output cycle (Super+Ctrl+A)."
+                    color: theme.overlay0
+                    font.pixelSize: theme.fontSizeMin
+                    font.family: theme.fontUi
+                }
+            }
+
             // ── units ──
             SectionCard {
                 visible: !!root.weather

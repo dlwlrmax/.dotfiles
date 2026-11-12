@@ -17,6 +17,8 @@ QtObject {
     property string themeMode: "catppuccin"
     // In wallpaper mode, regenerate the palette whenever the wallpaper changes.
     property bool autoFollow: true
+    // Hide HDMI/DisplayPort outputs from the volume panel and the sink cycle.
+    property bool hideHdmiOutput: true
 
     readonly property var accentChoices: ["auto", "mauve", "blue", "lavender", "sapphire", "sky", "green", "yellow", "peach", "pink", "red"]
     readonly property var barItems: [
@@ -46,6 +48,7 @@ QtObject {
     function setAccent(name) { accentName = name; save() }
     function setStatsAllScreens(v) { statsAllScreens = v; save() }
     function setAutoFollow(v) { autoFollow = v; save() }
+    function setHideHdmiOutput(v) { hideHdmiOutput = v; save() }
 
     // Switching to the wallpaper theme also picks the wallpaper's own highlight;
     // switching back restores the default accent if it was "auto".
@@ -68,6 +71,7 @@ QtObject {
                 statsAllScreens = !!p.statsAllScreens
                 if (p.themeMode === "wallpaper") themeMode = "wallpaper"
                 autoFollow = p.autoFollow !== false
+                hideHdmiOutput = p.hideHdmiOutput !== false
             } catch (e) {}
         }
         _loaded = true
@@ -76,7 +80,8 @@ QtObject {
     function save() {
         if (!_loaded) return
         Db.cachePut("prefs", JSON.stringify({ accentName: accentName, hidden: hidden, statsAllScreens: statsAllScreens,
-                                              themeMode: themeMode, autoFollow: autoFollow }))
+                                              themeMode: themeMode, autoFollow: autoFollow,
+                                              hideHdmiOutput: hideHdmiOutput }))
     }
 
 }

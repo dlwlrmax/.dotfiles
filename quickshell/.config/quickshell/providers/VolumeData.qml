@@ -130,7 +130,8 @@ Item {
 
     Process {
         id: cycleProc
-        command: [theme.scriptDir + "/audio-cycle.sh"]
+        // Hide HDMI in the cycle unless the panel's setting turns that off.
+        command: [theme.scriptDir + "/audio-cycle.sh"].concat(Prefs.hideHdmiOutput ? [] : ["--include-hdmi"])
         stdout: StdioCollector {
             onStreamFinished: {
                 // Script notifies itself; sync baseline so the sink change stays silent
