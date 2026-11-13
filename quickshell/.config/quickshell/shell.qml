@@ -125,21 +125,45 @@ ShellRoot {
         function close(): void { if (Panels.openName === "clipboard") Panels.close() }
     }
 
-    // qs ipc call link pick   (scripts/link-open.sh). The link and the browser list come
-    // through $XDG_RUNTIME_DIR/quickshell-link.json: `qs ipc` splits arguments on commas.
+    // Link picker (scripts/link-open.sh). The script writes the link and the browser list
+    // to $XDG_RUNTIME_DIR/quickshell-link.json and the watcher below opens the picker: no
+    // `qs` process on the way, whose cold start alone costs 60-140ms. Only a change opens
+    // it, so a file left over from an earlier link does nothing at startup. The link's `id`
+    // is written back to <file>.ack: the script falls back to a browser when it never shows.
+    readonly property string linkFile: Quickshell.env("XDG_RUNTIME_DIR") + "/quickshell-link.json"
+
+    function pickLink(): string {
+        var d
+        try { d = JSON.parse(Db._readFile(linkFile)) }
+        catch (e) { return "bad link file" }
+        if (!d.url || !Array.isArray(d.browsers) || d.browsers.length === 0) return "no browsers"
+        ShellState.linkUrl = d.url
+        ShellState.linkBrowsers = d.browsers
+        var scr = shell.screenNameOfFocus()
+        if (!Panels.isOpen("browserPick", scr)) Panels.toggle("browserPick", scr, 0)
+        if (d.id) linkAck.setText(String(d.id))
+        return "ok"
+    }
+
+    FileView {
+        path: shell.linkFile
+        watchChanges: true
+        preload: false
+        printErrors: false
+        onFileChanged: shell.pickLink()
+    }
+
+    FileView {
+        id: linkAck
+        path: shell.linkFile + ".ack"
+        preload: false
+        printErrors: false
+    }
+
+    // qs ipc call link pick   re-opens the picker for the link in that file.
     IpcHandler {
         target: "link"
-        function pick(): string {
-            var d
-            try { d = JSON.parse(Db._readFile(Quickshell.env("XDG_RUNTIME_DIR") + "/quickshell-link.json")) }
-            catch (e) { return "bad link file" }
-            if (!d.url || !Array.isArray(d.browsers) || d.browsers.length === 0) return "no browsers"
-            ShellState.linkUrl = d.url
-            ShellState.linkBrowsers = d.browsers
-            var scr = shell.screenNameOfFocus()
-            if (!Panels.isOpen("browserPick", scr)) Panels.toggle("browserPick", scr, 0)
-            return "ok"
-        }
+        function pick(): string { return shell.pickLink() }
     }
 
     // Audio output cycle (Super+Ctrl+A): next sink + move streams + notify

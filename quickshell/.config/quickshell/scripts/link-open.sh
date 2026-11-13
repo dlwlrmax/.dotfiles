@@ -13,37 +13,65 @@ fallback="${LINK_OPEN_FALLBACK:-zen.desktop}"
 
 open_fallback() { exec gtk-launch "$fallback" ${url:+"$url"}; }
 
+# A live quickshell instance, found without forking.
+qs_running() {
+    local p
+    for p in "${XDG_RUNTIME_DIR:-/run/user/$UID}"/quickshell/by-pid/*; do
+        kill -0 "${p##*/}" 2>/dev/null && return 0
+    done
+    return 1
+}
+
 [ -n "$url" ] || open_fallback
 command -v hyprctl >/dev/null && command -v jq >/dev/null || open_fallback
 
 terminals='^(com\.mitchellh\.ghostty|ghostty|kitty|Alacritty|alacritty|org\.wezfurlong\.wezterm|foot|footclient|org\.kde\.konsole)$'
-active=$(hyprctl activewindow -j 2>/dev/null | jq -r '.class // ""')
+browsers='^(zen|firefox|librewolf|floorp|waterfox|google-chrome|google-chrome-beta|chromium|brave-browser|vivaldi-stable|microsoft-edge|opera|thorium-browser|helium)$'
+
+# One hyprctl round trip and one jq for both questions (every fork here is time
+# before the picker shows). Three lines out: focused class, browser pids, then
+# one entry per browser process (separate profiles / user-data-dirs are separate
+# processes), most recently focused first.
+{ IFS= read -r active && IFS= read -r pids && IFS= read -r instances; } < <(
+    hyprctl -j --batch 'activewindow ; clients' 2>/dev/null | jq -r -s --arg re "$browsers" '
+    (.[0].class // ""),
+    ([ .[1][] | select(.class | test($re)) ]
+     | group_by(.pid)
+     | map(sort_by(.focusHistoryID)
+         # a PiP window must not be the one that gets focused or labels the instance
+         | (map(select(.title != "Picture-in-Picture")) | if length > 0 then . else null end) as $main
+         | ($main // .) as $w
+         | { pid: .[0].pid, class: .[0].class, address: $w[0].address,
+             focus: .[0].focusHistoryID, titles: ($w | map(.title)) })
+     | sort_by(.focus)
+     | (map(.pid) | join(" ")), tojson)') || open_fallback
 [[ "$active" =~ $terminals ]] || open_fallback
 
-# One entry per browser process (separate profiles / user-data-dirs are separate
-# processes), most recently focused first.
-browsers='^(zen|firefox|librewolf|floorp|waterfox|google-chrome|google-chrome-beta|chromium|brave-browser|vivaldi-stable|microsoft-edge|opera|thorium-browser|helium)$'
-instances=$(hyprctl clients -j 2>/dev/null | jq -c --arg re "$browsers" '
-    [ .[] | select(.class | test($re)) ]
-    | group_by(.pid)
-    | map(sort_by(.focusHistoryID)
-        # a PiP window must not be the one that gets focused or labels the instance
-        | (map(select(.title != "Picture-in-Picture")) | if length > 0 then . else null end) as $main
-        | ($main // .) as $w
-        | { pid: .[0].pid, class: .[0].class, address: $w[0].address,
-            focus: .[0].focusHistoryID, titles: ($w | map(.title)) })
-    | sort_by(.focus)') || open_fallback
+# Each instance's executable and command line, handed to jq as $ARGS.named
+# (e<pid>, c<pid>); a process that is gone by now is left out.
+procargs=()
+count=0
+for pid in $pids; do
+    [ -r "/proc/$pid/cmdline" ] && exe=$(readlink "/proc/$pid/exe") || continue
+    procargs+=(--arg "e$pid" "$exe" --rawfile "c$pid" "/proc/$pid/cmdline")
+    count=$((count + 1))
+done
+[ "$count" -gt 0 ] || open_fallback
 
 # Launch argv per instance: its own executable plus the flags that pick the
 # profile, so the link lands in that instance instead of the default profile.
-with_argv='[]'
-while IFS= read -r inst; do
-    pid=$(jq -r '.pid' <<< "$inst")
-    exe=$(readlink "/proc/$pid/exe") || continue
-    inst=$(jq -c --argjson inst "$inst" --arg url "$url" --arg exe "$exe" -R -s '
+# Written to a file, moved into place once complete.
+file="${XDG_RUNTIME_DIR:-/run/user/$UID}/quickshell-link.json"
+tmp="$file.$$.tmp"
+id="$$-$EPOCHREALTIME"
+jq -n --arg url "$url" --arg id "$id" --argjson instances "$instances" "${procargs[@]}" '
+    $ARGS.named as $n
+    | { url: $url, id: $id, browsers: [ $instances[]
+        | . as $inst
+        | ($n["e\(.pid)"] // empty) as $exe
         # Chrome rewrites its title to one space-joined string; NUL-split otherwise
-        split("\u0000") | map(select(. != ""))
-        | (if length == 1 then .[0] | split(" ") | map(select(. != "")) else . end) as $a
+        | ($n["c\(.pid)"] | split("\u0000") | map(select(. != ""))
+           | if length == 1 then .[0] | split(" ") | map(select(. != "")) else . end) as $a
         | ($inst.class | test("^(zen|firefox|librewolf|floorp|waterfox)$")) as $gecko
         | [ range(1; $a | length) as $i
             | if $gecko then
@@ -59,20 +87,26 @@ while IFS= read -r inst; do
             profile: (if $dir != "" then
                           (if ($dir | test("playwright")) then "Playwright" else ($dir | split("/") | last) end)
                       elif $p != null then $keep[$p + 1]
-                      else "" end) }' "/proc/$pid/cmdline") || continue
-    with_argv=$(jq -c --argjson i "$inst" '. + [$i]' <<< "$with_argv")
-done < <(jq -c '.[]' <<< "$instances")
+                      else "" end) } ] }' > "$tmp" || { rm -f "$tmp"; open_fallback; }
 
-count=$(jq 'length' <<< "$with_argv")
-[ "$count" -gt 0 ] || open_fallback
 if [ "$count" -eq 1 ]; then
-    mapfile -t argv < <(jq -r '.[0].argv[]' <<< "$with_argv")
+    mapfile -t argv < <(jq -r '.browsers[0].argv[]' "$tmp")
+    rm -f "$tmp"
+    [ "${#argv[@]}" -gt 0 ] || open_fallback
     setsid -f "${argv[@]}" >/dev/null 2>&1
     exit 0
 fi
 
-# Handed over in a file: `qs ipc call` splits its arguments on commas.
-file="${XDG_RUNTIME_DIR:-/run/user/$UID}/quickshell-link.json"
-jq -n --arg url "$url" --argjson b "$with_argv" '{url: $url, browsers: $b}' > "$file.tmp" \
-    && mv "$file.tmp" "$file" || open_fallback
-[ "$(qs ipc call link pick 2>/dev/null)" = "ok" ] || open_fallback
+# quickshell watches that file (shell.qml) and opens the picker when it changes.
+# No `qs ipc call` here: starting the qs binary costs 60-140ms when it is cold.
+# It answers by writing this link's id to <file>.ack; without that answer (old
+# config loaded, watcher broken, stale pid) the link still goes somewhere.
+qs_running || { rm -f "$tmp"; open_fallback; }
+mv "$tmp" "$file" || open_fallback
+for _ in {1..40}; do
+    got=""
+    { IFS= read -r got < "$file.ack"; } 2>/dev/null
+    [ "$got" = "$id" ] && exit 0
+    sleep 0.05
+done
+open_fallback
