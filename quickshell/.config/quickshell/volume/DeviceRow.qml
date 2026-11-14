@@ -37,13 +37,23 @@ ColumnLayout {
         }
 
         Text {
+            id: nameText
             text: row.node ? (row.node.description || row.node.nickname || row.node.name) : ""
-            color: row.theme.text
+            color: nameMouse.containsMouse && !row.isDefault ? row.fillColor : row.theme.text
             font.pixelSize: row.theme.fontSize
             font.weight: Font.Medium
             font.family: row.theme.fontUi
             elide: Text.ElideRight
             Layout.fillWidth: true
+
+            // Clicking the name picks the device too, same as the radio.
+            MouseArea {
+                id: nameMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: row.makeDefault()
+            }
         }
 
         Text {
