@@ -1,6 +1,7 @@
 .pragma library
 
-// Pure helpers for the launcher (text folding, calculator, URL test, Exec= parsing),
+// Pure helpers for the launcher (text folding, calculator, URL test, Exec= parsing,
+// the file picker's path and listing handling),
 // kept free of QML types so tests/run.mjs can exercise them under node.
 
 function fold(s) {
@@ -199,4 +200,55 @@ function parseXdgExec(exec, entry) {
     }
     flush()
     return argv
+}
+
+// ── file picker (`+ ~/folder/name`) ──
+
+// What was typed after "+", split into the folder to list (ends in "/") and the
+// partly typed name. "~" and "~name" (no slash yet) look in the home folder.
+function browseSplit(ap) {
+    if (ap.indexOf("/") === -1) ap = "~/" + ap.slice(1)
+    var cut = ap.lastIndexOf("/")
+    return { dir: ap.slice(0, cut + 1), part: ap.slice(cut + 1) }
+}
+
+// Parent of a folder path ending in "/"; "" at the top ("/" and "~/").
+function browseParent(dir) {
+    if (dir === "/" || dir === "~/") return ""
+    return dir.replace(/[^\/]+\/$/, "")
+}
+
+// Output of scripts/list-programs.sh: { ok, dir, items: [{ name, dir }] }, or null
+// when the first line isn't the "ok|fail<TAB>folder" header.
+function browseParse(text) {
+    var lines = text.split("\n")
+    var head = lines[0].split("\t")
+    if (head.length < 2 || (head[0] !== "ok" && head[0] !== "fail")) return null
+    var items = []
+    for (var i = 1; i < lines.length; i++) {
+        var tab = lines[i].indexOf("\t")
+        if (tab > 0) items.push({ name: lines[i].slice(tab + 1), dir: lines[i].charAt(0) === "d" })
+    }
+    return { ok: head[0] === "ok", dir: head.slice(1).join("\t"), items: items }
+}
+
+// Items matching the partly typed name, as { files, dirs }: accent-insensitive
+// substring match, names that start with it first, then by name. Dot files only
+// once `part` starts with a dot.
+function browseFilter(items, part) {
+    var fp = fold(part), hidden = part.charAt(0) === "."
+    var files = [], dirs = []
+    for (var i = 0; i < items.length; i++) {
+        var it = items[i]
+        if (!hidden && it.name.charAt(0) === ".") continue
+        if (fp && fold(it.name).indexOf(fp) === -1) continue
+        if (it.dir) dirs.push(it); else files.push(it)
+    }
+    function order(a, b) {
+        var pa = fp && fold(a.name).indexOf(fp) === 0 ? 0 : 1, pb = fp && fold(b.name).indexOf(fp) === 0 ? 0 : 1
+        return pa !== pb ? pa - pb : a.name.localeCompare(b.name)
+    }
+    files.sort(order)
+    dirs.sort(order)
+    return { files: files, dirs: dirs }
 }

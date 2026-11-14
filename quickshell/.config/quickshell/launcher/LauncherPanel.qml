@@ -8,8 +8,12 @@ import "LauncherLogic.js" as L
 // App launcher on top of PickerPanel. Search apps (accent-insensitive, recency +
 // frequency ranked), open an app's desktop actions with → / Tab, and use the
 // quick prefixes:  =  calculator   >  run a command   ?  web search   @  windows
-//                   +  AppImages: add one (file dialog, or `+ path/to/app.AppImage`),
-//                      list the installed ones (→ Remove).
+//                   +  AppImages and Windows programs: add one (file dialog, or
+//                      `+ path/to/app.AppImage` / `+ path/to/app.exe`), list the
+//                      added ones (→ Remove). An .exe runs through Faugus Launcher.
+//                      `+ ~/folder/` (or "Browse files…") is a file picker: it lists
+//                      the folder's sub-folders and its .exe / .AppImage files.
+// Right-click an app for a menu with its actions (Remove for the added ones).
 Item {
     id: root
     property Theme theme: ThemeStore
@@ -93,6 +97,8 @@ Item {
             entry.fcategories = fold(entry.categories)
             // Entries written by scripts/appimage.sh carry its remove action.
             entry.isAppImage = entry.actions.some(function (a) { return a.id === "remove-appimage" })
+            // Likewise scripts/exe.sh.
+            entry.isExe = entry.actions.some(function (a) { return a.id === "remove-exe" })
             next.push(entry)
         }
         root.allEntries = next
@@ -103,6 +109,25 @@ Item {
         var cached = Db.loadApps()
         if (cached.length > 0) root._applyEntries(cached)
         if (!fpProc.running) fpProc.running = true
+        if (!userProc.running) userProc.running = true
+    }
+
+    // Ids of the entries in the user's own applications folder (plain files only,
+    // not symlinks): the ones the right-click menu may remove.
+    property var _userIds: ({})
+
+    Process {
+        id: userProc
+        command: ["bash", "-c", 'find -H "${XDG_DATA_HOME:-$HOME/.local/share}/applications" -maxdepth 1 -name "*.desktop" -type f -printf "%f\\n" 2>/dev/null']
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var m = ({}), lines = this.text.split("\n")
+                for (var i = 0; i < lines.length; i++)
+                    if (lines[i]) m[lines[i].replace(/\.desktop$/, "")] = true
+                root._userIds = m
+            }
+        }
     }
 
     Process {
@@ -312,6 +337,79 @@ Item {
                  glyph: "\uf067", glyphClr: theme.green }
     }
 
+    // Same for a Windows program: scripts/exe.sh leaves the file where it is and
+    // writes an entry that runs it with faugus-launcher.
+    function exeRow(path) {
+        return { kind: "exe", path: path,
+                 title: path ? "Add  " + path.split("/").pop() : "Add Windows app (.exe)\u2026",
+                 subtitle: path ? "add to the launcher \u00b7 runs through Faugus"
+                                : "pick a file \u00b7 or type + path/to/app.exe",
+                 glyph: "\uf067", glyphClr: theme.blue }
+    }
+
+    // ── file picker (+ ~/folder/) ──
+
+    property string _browseWant: ""        // folder the picker is showing
+    property string _browseDir: "\u0000"   // folder `_browseItems` was read from
+    property var _browseItems: []          // [{ name, dir }]
+    property bool _browseFailed: false
+
+    function browse(dir) {
+        root._browseWant = dir
+        if (dir === root._browseDir || browseProc.running) return
+        browseProc.dir = dir
+        browseProc.running = true
+    }
+
+    Process {
+        id: browseProc
+        property string dir: ""
+        command: ["bash", theme.scriptDir + "/list-programs.sh", dir]
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                // The listing names the folder it is for; a late answer for a folder
+                // we already left must not pass for the current one.
+                var r = L.browseParse(this.text)
+                if (!r) return
+                root._browseFailed = !r.ok
+                root._browseItems = r.items
+                root._browseDir = r.dir
+                root.rebuild()
+            }
+        }
+        // The folder changed while this one was being read: read the new one.
+        onExited: Qt.callLater(function () {
+            if (root._browseWant !== browseProc.dir && !browseProc.running) root.browse(root._browseWant)
+        })
+    }
+
+    function dirRow(path, title, subtitle) {
+        return { kind: "dir", path: path, title: title, subtitle: subtitle,
+                 glyph: "\uf07b", glyphClr: theme.peach }
+    }
+
+    // Rows for `dir` (ends in "/", may start with "~"), narrowed by the partly typed
+    // name `part`. Dot files only show once `part` starts with a dot.
+    function browseRows(dir, part) {
+        root.browse(dir)
+        if (root._browseDir !== dir) { picker.emptyText = "reading " + dir + "\u2026"; picker.status = ""; return [] }
+        if (root._browseFailed) { picker.emptyText = "can't open " + dir; picker.status = ""; return [] }
+        var m = L.browseFilter(root._browseItems, part), files = m.files, dirs = m.dirs
+        var rows = []
+        if (files.length > 0) rows.push({ isHeader: true, label: "Programs  \u00b7  \u21b5 add" })
+        files.slice(0, root.maxResults).forEach(function (f) {
+            rows.push(/\.exe$/i.test(f.name) ? exeRow(dir + f.name) : appImageRow(dir + f.name))
+        })
+        var parent = part ? "" : L.browseParent(dir)
+        if (parent || dirs.length > 0) rows.push({ isHeader: true, label: "Folders  \u00b7  \u21b5 open" })
+        if (parent) rows.push(dirRow(parent, "..", parent))
+        dirs.slice(0, root.maxResults).forEach(function (d) { rows.push(dirRow(dir + d.name + "/", d.name + "/", "")) })
+        picker.emptyText = "nothing here"
+        picker.status = files.length > 0 ? files.length + (files.length === 1 ? " program" : " programs") : ""
+        return rows
+    }
+
     // ── rows ──
 
     function isUrl(q) { return L.isUrl(q) }
@@ -368,14 +466,21 @@ Item {
         if (/^\+(?![\d.(])/.test(trimmed)) {
             var ap = trimmed.slice(1).trim()
             if (/\.appimage$/i.test(ap)) { picker.rows = [appImageRow(ap)]; picker.status = ""; return }
+            if (/\.exe$/i.test(ap)) { picker.rows = [exeRow(ap)]; picker.status = ""; return }
+            if (/^[~\/]/.test(ap)) {
+                var bp = L.browseSplit(ap)
+                picker.rows = browseRows(bp.dir, bp.part)
+                return
+            }
             var af = fold(ap), arows = []
             for (var a = 0; a < root.allEntries.length; a++) {
                 var ae = root.allEntries[a]
-                if (!ae.isAppImage || (af && ae.fname.indexOf(af) === -1)) continue
+                if (!(ae.isAppImage || ae.isExe) || (af && ae.fname.indexOf(af) === -1)) continue
                 arows.push(appRow(ae, af, ""))
             }
-            picker.rows = [appImageRow("")].concat(arows.length > 0 ? [{ isHeader: true, label: "Installed AppImages  ·  → remove" }] : [], arows)
-            picker.status = arows.length > 0 ? arows.length + " installed" : ""
+            picker.rows = [appImageRow(""), exeRow(""),
+                           dirRow("~/", "Browse files\u2026", "pick an .exe or .AppImage here \u00b7 or type + ~/folder/")].concat(arows.length > 0 ? [{ isHeader: true, label: "Added AppImages and Windows apps  ·  → remove" }] : [], arows)
+            picker.status = arows.length > 0 ? arows.length + " added" : ""
             return
         }
         if (trimmed.charAt(0) === "@") {
@@ -435,6 +540,8 @@ Item {
         if (rows.length === 0 || isUrl(trimmed)) rows = rows.concat(webRows(trimmed))
         if (fq.length >= 4 && ("add appimage".indexOf(fq) === 0 || "appimage".indexOf(fq) === 0))
             rows.push(appImageRow(""))
+        if (fq === "exe" || (fq.length >= 4 && ("add exe".indexOf(fq) === 0 || "add windows app".indexOf(fq) === 0)))
+            rows.push(exeRow(""))
 
         picker.rows = rows
         picker.status = total > root.maxResults ? root.maxResults + " of " + total : (total > 0 ? total + "" : "")
@@ -476,12 +583,12 @@ Item {
         switch (row.kind) {
         case "app":    launch(row.entry); break
         case "action":
-            if (row.action.id === "remove-appimage") {
-                // Not a launch: no recents bump, and close first so the confirm
-                // dialog can take focus.
-                var rargv = parseXdgExec(row.action.exec || "", row.entry)
+            if (row.action.id === "remove-appimage" || row.action.id === "remove-exe") {
+                // Not a launch: no recents bump. Spawn before close(): closing
+                // unloads this panel, and nothing on it can be called afterwards.
+                // The dialog still comes up after the launcher's grab is gone.
+                _exec(parseXdgExec(row.action.exec || "", row.entry))
                 close()
-                _exec(rargv)
             } else {
                 launchAction(row.entry, row.action)
             }
@@ -496,9 +603,18 @@ Item {
         case "url":
             _exec(["xdg-open", row.url]); close(); break
         case "appimage":
-            // Close first: the dialog can't take focus under the launcher's grab.
-            close()
+            // Spawn, then close (see above); the file dialog opens once the grab is gone.
             _exec(["bash", theme.scriptDir + "/appimage.sh"].concat(row.path ? [row.path] : []))
+            close()
+            break
+        case "dir":
+            // Step into the folder: the query is the path.
+            picker.reset()
+            picker.query = "+ " + row.path
+            break
+        case "exe":
+            _exec(["bash", theme.scriptDir + "/exe.sh"].concat(row.path ? [row.path] : []))
+            close()
             break
         case "window":
             _exec(["hyprctl", "dispatch", "hl.dsp.focus({ window = \"address:" + row.address + "\" })"])
@@ -506,7 +622,38 @@ Item {
         }
     }
 
+    // Right-click menu of an app row: launch, then its desktop actions (for an
+    // added AppImage or Windows program that includes the remove action). Any other
+    // entry of the user's own (a shortcut Faugus or Steam wrote, say) gets a plain
+    // "Remove from launcher": scripts/remove-entry.sh trashes the .desktop file and,
+    // when an installed entry has the same id, leaves a NoDisplay copy to keep that
+    // one out too.
+    function contextItems(row) {
+        if (row.kind !== "app" || !row.entry) return []
+        var e = row.entry
+        var items = [{ label: "Launch " + e.name }]
+        for (var i = 0; i < e.actions.length; i++) {
+            var a = e.actions[i]
+            items.push({ label: a.name, action: a, danger: a.id === "remove-appimage" || a.id === "remove-exe" })
+        }
+        if (!e.isAppImage && !e.isExe && root._userIds[e.id])
+            items.push({ label: "Remove from launcher", removeId: e.id, danger: true })
+        return items
+    }
+
+    function contextChoose(row, item) {
+        if (item.removeId) {
+            _exec(["bash", theme.scriptDir + "/remove-entry.sh", item.removeId])
+            close()
+        } else if (item.action) {
+            activate({ kind: "action", entry: row.entry, action: item.action }, false)
+        } else {
+            launch(row.entry)
+        }
+    }
+
     function openActions(row) {
+        if (row.kind === "dir") { activate(row, false); return }
         if (row.kind !== "app" || !row.entry || row.entry.actions.length === 0) return
         root.actionsFor = row.entry
         picker.canGoBack = true
@@ -531,6 +678,7 @@ Item {
         picker.query = ""
         picker.searchMode = true
         loadTries = 0
+        _browseDir = "\u0000"
         loadRecent()
         loadEntries()
         rebuild()
@@ -545,7 +693,7 @@ Item {
         theme: root.theme
         active: root.active
         modal: true
-        placeholder: "Search apps…   (= calc · > run · ? web · @ windows · + appimage)"
+        placeholder: "Search apps…   (= calc · > run · ? web · @ windows · + appimage/exe)"
         iconSize: 28
         rowHeight: 48
         hints: root.actionsFor ? "↵ run · ← back · esc back"
@@ -557,6 +705,8 @@ Item {
             root.rebuild()
         }
         onActivated: (row, alt) => root.activate(row, alt)
+        contextFor: function (row) { return root.contextItems(row) }
+        onContextChosen: (row, item) => root.contextChoose(row, item)
         onSecondary: row => root.openActions(row)
         onBackRequested: root.back()
         onCloseRequested: root.close()

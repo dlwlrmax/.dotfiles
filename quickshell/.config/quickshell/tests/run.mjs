@@ -112,7 +112,8 @@ test("clock formatting", () => {
 })
 
 // ── LauncherLogic ──
-const L = load("launcher/LauncherLogic.js", ["fold", "calc", "formatNumber", "isUrl", "parseXdgExec"])
+const L = load("launcher/LauncherLogic.js", ["fold", "calc", "formatNumber", "isUrl", "parseXdgExec",
+    "browseSplit", "browseParent", "browseParse", "browseFilter"])
 
 console.log("LauncherLogic")
 test("fold strips accents and lower-cases", () => {
@@ -293,6 +294,54 @@ test("newestFirst: every line prefixed is a plain reverse", () => {
 test("newestFirst: single sender block", () => {
     assert.deepEqual(G.newestFirst(["Nhà mình: <b>Trang</b>", "Sent a photo.", "Sent 2 photos."]),
         ["Nhà mình: <b>Trang</b>", "Sent 2 photos.", "Sent a photo."])
+})
+
+// ── LauncherLogic: file picker ──
+console.log("LauncherLogic file picker")
+test("browseSplit: folder and partly typed name", () => {
+    assert.deepEqual(L.browseSplit("~/Games/po"), { dir: "~/Games/", part: "po" })
+    assert.deepEqual(L.browseSplit("/storage/ssd/"), { dir: "/storage/ssd/", part: "" })
+    assert.deepEqual(L.browseSplit("/"), { dir: "/", part: "" })
+    assert.deepEqual(L.browseSplit("~/Path of exile/x"), { dir: "~/Path of exile/", part: "x" })
+})
+test("browseSplit: ~ without a slash looks in home", () => {
+    assert.deepEqual(L.browseSplit("~"), { dir: "~/", part: "" })
+    assert.deepEqual(L.browseSplit("~Dow"), { dir: "~/", part: "Dow" })
+})
+test("browseParent", () => {
+    assert.equal(L.browseParent("~/Games/poe/"), "~/Games/")
+    assert.equal(L.browseParent("~/Games/"), "~/")
+    assert.equal(L.browseParent("/storage/"), "/")
+    assert.equal(L.browseParent("~/"), "")
+    assert.equal(L.browseParent("/"), "")
+})
+test("browseParse: listing", () => {
+    const r = L.browseParse("ok\t~/Games/\nd\tpoe\nf\tsetup.exe\nf\ta\tb.exe\n")
+    assert.equal(r.ok, true)
+    assert.equal(r.dir, "~/Games/")
+    assert.deepEqual(r.items, [{ name: "poe", dir: true }, { name: "setup.exe", dir: false },
+                               { name: "a\tb.exe", dir: false }])
+})
+test("browseParse: failure, tab in the folder name, garbage", () => {
+    assert.deepEqual(L.browseParse("fail\t/nope/\n"), { ok: false, dir: "/nope/", items: [] })
+    assert.equal(L.browseParse("ok\t/a\tb/\n").dir, "/a\tb/")
+    assert.equal(L.browseParse(""), null)
+    assert.equal(L.browseParse("something else\n"), null)
+})
+test("browseFilter: splits, hides dot files, sorts", () => {
+    const items = [{ name: "zeta", dir: true }, { name: ".cache", dir: true }, { name: "Alpha", dir: true },
+                   { name: "b.exe", dir: false }, { name: "A.AppImage", dir: false }, { name: ".x.exe", dir: false }]
+    const r = L.browseFilter(items, "")
+    assert.deepEqual(r.dirs.map(d => d.name), ["Alpha", "zeta"])
+    assert.deepEqual(r.files.map(f => f.name), ["A.AppImage", "b.exe"])
+    assert.deepEqual(L.browseFilter(items, ".").dirs.map(d => d.name), [".cache"])
+    assert.deepEqual(L.browseFilter(items, ".x").files.map(f => f.name), [".x.exe"])
+})
+test("browseFilter: accent-insensitive, prefix matches first", () => {
+    const items = [{ name: "My Games", dir: true }, { name: "Games", dir: true }, { name: "Trò chơi", dir: true }]
+    assert.deepEqual(L.browseFilter(items, "gam").dirs.map(d => d.name), ["Games", "My Games"])
+    assert.deepEqual(L.browseFilter(items, "tro").dirs.map(d => d.name), ["Trò chơi"])
+    assert.deepEqual(L.browseFilter(items, "zzz"), { files: [], dirs: [] })
 })
 
 console.log(`\n${passed} passed, ${failed} failed`)

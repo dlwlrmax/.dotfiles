@@ -51,6 +51,36 @@ Item {
     signal backRequested()
     signal closeRequested()
 
+    // Right-click menu. `contextFor(row)` returns the items for a row, each
+    // { label, danger?, ... }; none (or no function) means no menu. The chosen item
+    // comes back through contextChosen().
+    property var contextFor: null
+    property var _menuRow: null
+    property var _menuItems: []
+    signal contextChosen(var row, var item)
+
+    function openMenu(row, x, y) {
+        var items = contextFor ? contextFor(row) : []
+        if (!items || items.length === 0) return
+        _menuItems = items
+        _menuRow = row
+        menu.x = Math.max(8, Math.min(x, picker.width - menu.width - 8))
+        menu.y = Math.max(8, Math.min(y, picker.height - menu.height - 8))
+    }
+
+    // Hides the menu; its rows stay until the next openMenu(), so a click handler
+    // on one of them is never torn down under itself.
+    function closeMenu() { _menuRow = null }
+
+    // Nothing may follow the signal: its handler can unload the whole panel.
+    function _choose(item) {
+        var r = _menuRow
+        closeMenu()
+        contextChosen(r, item)
+    }
+
+    onActiveChanged: if (!active) closeMenu()
+
     implicitWidth: listWidth + (preview !== null ? previewWidth + 10 : 0) + 24
     implicitHeight: 520
     focus: true
@@ -88,6 +118,12 @@ Item {
         var ctrl = (event.modifiers & Qt.ControlModifier) !== 0
         var shift = (event.modifiers & Qt.ShiftModifier) !== 0
         var typing = !modal || searchMode      // letters go to the field
+
+        // Any key dismisses the right-click menu; Esc and Enter do only that.
+        if (_menuRow !== null) {
+            closeMenu()
+            if (event.key === Qt.Key_Escape || event.key === Qt.Key_Return || event.key === Qt.Key_Enter) return true
+        }
 
         switch (event.key) {
         case Qt.Key_Escape:
@@ -175,6 +211,7 @@ Item {
     // A new query starts at the top; a refresh with the same query (late results, timers,
     // thumbnails arriving) keeps the selection where the user put it.
     onRowsChanged: {
+        closeMenu()
         var sameQuery = query === _rowsQuery
         _rowsQuery = query
         if (sameQuery && _selKey !== "") {
@@ -428,8 +465,17 @@ Item {
                                 hoverEnabled: true
                                 // Only real pointer movement moves the selection, so a list
                                 // that scrolls under a resting mouse doesn't steal it.
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
                                 onPositionChanged: if (!row.selected) picker.selectedIndex = row.index
-                                onClicked: picker.activated(row.modelData, false)
+                                onClicked: mouse => {
+                                    if (mouse.button === Qt.RightButton) {
+                                        picker.selectedIndex = row.index
+                                        var at = mapToItem(picker, mouse.x, mouse.y)
+                                        picker.openMenu(row.modelData, at.x, at.y)
+                                    } else {
+                                        picker.activated(row.modelData, false)
+                                    }
+                                }
                             }
                         }
                     }
@@ -494,6 +540,67 @@ Item {
                     font.pixelSize: picker.theme.fontSizeMin
                     font.family: picker.theme.font
                     Layout.rightMargin: 4
+                }
+            }
+        }
+    }
+
+    // ── right-click menu ──
+    MouseArea {
+        anchors.fill: parent
+        visible: picker._menuRow !== null
+        acceptedButtons: Qt.AllButtons
+        hoverEnabled: true              // rows underneath don't follow the pointer
+        onPressed: picker.closeMenu()
+        onWheel: wheel => { wheel.accepted = true }
+    }
+
+    Rectangle {
+        id: menu
+        visible: picker._menuRow !== null
+        width: 240
+        height: menuCol.implicitHeight + 12
+        radius: picker.theme.radiusLg
+        color: picker.theme.mantle
+        border.color: picker.theme.surface1
+        border.width: 1
+
+        Column {
+            id: menuCol
+            x: 6
+            y: 6
+            width: parent.width - 12
+            spacing: 2
+
+            Repeater {
+                model: picker._menuItems
+
+                delegate: Rectangle {
+                    id: menuItem
+                    required property var modelData
+                    width: menuCol.width
+                    height: 30
+                    radius: picker.theme.radiusMd
+                    color: menuArea.containsMouse ? picker.theme.surface0 : "transparent"
+
+                    Text {
+                        anchors.fill: parent
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        verticalAlignment: Text.AlignVCenter
+                        text: menuItem.modelData.label || ""
+                        color: menuItem.modelData.danger ? picker.theme.red : picker.theme.text
+                        font.pixelSize: picker.theme.fontSize + 1
+                        font.family: picker.theme.fontUi
+                        elide: Text.ElideRight
+                    }
+
+                    MouseArea {
+                        id: menuArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: picker._choose(menuItem.modelData)
+                    }
                 }
             }
         }
