@@ -127,7 +127,9 @@ local function pip_rule(match, extra)
     size = pip_size,
     no_blur = true,
   }
-  for k, v in pairs(extra or {}) do rule[k] = v end
+  for k, v in pairs(extra or {}) do
+    rule[k] = v
+  end
   hl.window_rule(rule)
 end
 
@@ -247,6 +249,12 @@ local game_monitor = overrides.gameMonitor or main_monitor
 local game_ws = (game_monitor == main_monitor) and 1 or nil
 hl.window_rule({ match = { content = "game", fullscreen = true }, confine_pointer = true })
 hl.window_rule({
+  match = { class = "^(pathofexile.exe)$", title = "^(Path of Exile)$" },
+  fullscreen = true,
+  confine_pointer = true,
+  workspace = 1
+})
+hl.window_rule({
   match = { class = game_classes },
   workspace = game_ws,
   monitor = game_monitor,
@@ -276,7 +284,7 @@ hl.window_rule({
 })
 
 hl.window_rule({
-  match = { title = 'S.T.A.L.K.E.R.: Anomaly' },
+  match = { title = "S.T.A.L.K.E.R.: Anomaly" },
   workspace = game_ws,
   monitor = game_monitor,
   confine_pointer = true,
@@ -291,7 +299,7 @@ hl.window_rule({
 hl.window_rule({
   match = { class = "^(stalker-gamma-commander)$" },
   center = true,
-  workspace = 7
+  workspace = 7,
 })
 
 -- Steam client (not games: those are steam_app_*, handled above; not toasts:
