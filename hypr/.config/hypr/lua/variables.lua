@@ -9,6 +9,11 @@ M.fileManager = "env XDG_MENU_PREFIX=arch- dolphin"
 M.mainMonitor   = "DP-2"       -- primary / center (per-machine: lua/local.lua)
 M.secondMonitor = "HDMI-A-1"   -- secondary / left or right
 
+-- Awakened PoE Trade price-check overlay (WM_CLASS / initialClass, verified).
+-- Kept in one place: window rules, float placement and the hotkey pass binds
+-- all match on it, and a wrong class there silently disables all three.
+M.poeTradeClass = "awakened-poe-trade"
+
 -- Env vars, general, decoration, input, misc, xwayland, cursor
 
 -- XDG Desktop Portal

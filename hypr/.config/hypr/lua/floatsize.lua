@@ -27,6 +27,7 @@
 -- A min_size/max_size rule would be a permanent clamp, and min_size also
 -- inflated small dialogs (see windowrules.lua) — hence one-shot Lua.
 
+local vars = require("lua/variables")
 local pippeek = require("lua/pippeek")
 
 local M = {}
@@ -58,11 +59,18 @@ local function is_toast(w)
     and tostring(w.title or w.initial_title or ""):find("^notificationtoasts") ~= nil
 end
 
+-- Awakened PoE Trade overlay: sizes/positions itself over the game window;
+-- grid placement or geometry memory would drag it off the game.
+local function is_poe_trade(w)
+  return w.class == vars.poeTradeClass
+end
+
 local function skip(w)
   return not w or not w.floating or w.pinned
     or (w.fullscreen or 0) ~= 0
     or pippeek.is_pip(w)
     or is_toast(w)
+    or is_poe_trade(w)
 end
 
 local function get(addr)

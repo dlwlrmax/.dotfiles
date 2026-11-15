@@ -249,12 +249,6 @@ local game_monitor = overrides.gameMonitor or main_monitor
 local game_ws = (game_monitor == main_monitor) and 1 or nil
 hl.window_rule({ match = { content = "game", fullscreen = true }, confine_pointer = true })
 hl.window_rule({
-  match = { class = "^(pathofexile.exe)$", title = "^(Path of Exile)$" },
-  fullscreen = true,
-  confine_pointer = true,
-  workspace = 1
-})
-hl.window_rule({
   match = { class = game_classes },
   workspace = game_ws,
   monitor = game_monitor,
@@ -265,6 +259,43 @@ hl.window_rule({
   no_blur = true,
   no_shadow = true,
   idle_inhibit = "fullscreen", -- controller-only play must not trigger lock/DPMS
+})
+-- Path of Exile. Declared AFTER the generic steam_app_* rule on purpose: rules
+-- apply top-to-bottom, so this one has to win on fullscreen/centre/geometry.
+-- Class depends on how it is launched (umu/Faugus: steam_app_default or
+-- steam_app_faugus<id>; native: pathofexile.exe), so match the title.
+-- Deliberately NOT Hyprland-fullscreen: the Awakened PoE Trade overlay is a
+-- separate X11 window and a fullscreen game covers it. Borderless at monitor
+-- size instead (in-game setting: Windowed Fullscreen). idle_inhibit switches to
+-- "always" because "fullscreen" idle inhibit no longer fires for this window.
+hl.window_rule({
+  match = { class = "^(steam_app_.*|pathofexile\\.exe)$", title = "^(Path of Exile)$" },
+  float = true,
+  monitor = game_monitor,
+  workspace = 1,
+  fullscreen = false,
+  center = false,
+  size = "monitor_w monitor_h",
+  move = "0 0",
+  confine_pointer = true,
+  idle_inhibit = "always",
+})
+-- Awakened PoE Trade price-check overlay (class from lua/variables.lua). It runs
+-- as an X11/XWayland client on purpose (~/.config/awakened-poe-trade-flags.conf):
+-- electron-overlay-window tracks the game window over X11 only and its hotkeys
+-- are X11 grabs, so PoE must be XWayland too (Faugus "wayland-driver" off /
+-- PROTON_ENABLE_WAYLAND=0). The overlay sizes and places itself over the game
+-- window, so never tile, decorate, animate or focus it. Matched on class only —
+-- the title changes with mode (overlay vs --no-overlay browser window).
+hl.window_rule({
+  name = "poe-trade-overlay",
+  match = { class = "^(" .. vars.poeTradeClass .. ")$" },
+  float = true,
+  decorate = false,
+  no_blur = true,
+  no_shadow = true,
+  no_anim = true,
+  no_initial_focus = true,
 })
 
 -- Enshrouded (Steam AppID 1203620): in-game camera wheel-zoom feels too fast at

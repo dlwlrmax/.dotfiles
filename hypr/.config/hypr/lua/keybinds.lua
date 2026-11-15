@@ -135,3 +135,50 @@ hl.bind("ALT + Z", hl.dsp.exec_cmd("fcitx5-remote -t"))
 hl.bind("CTRL + semicolon", hl.dsp.exec_cmd("qs ipc call clipboard toggle"))
 
 -- Overview binds (ALT+TAB, SUPER+TAB/A/C) live in lua/hymission.lua.
+
+-- ──────────────────────────────────────────────
+-- Awakened PoE Trade (price-check overlay)
+-- ──────────────────────────────────────────────
+-- The overlay handles its hotkeys itself (X11 grabs), which only fire while an
+-- X11 client owns focus; these binds forward the same keys to the overlay
+-- window so they work whatever is focused. A pass bind swallows the key, so the
+-- binds are attached only while the overlay window exists (window.open/close):
+-- with APT closed, Ctrl+D / Shift+Space stay free for everything else.
+local poe_trade_window = "class:^(" .. vars.poeTradeClass .. ")$"
+local poe_trade_keys = { "CTRL + D", "CTRL + ALT + D", "SHIFT + Space" }
+local poe_trade_bound = false
+
+local function poe_trade_attach()
+  if poe_trade_bound then return end
+  for _, key in ipairs(poe_trade_keys) do
+    hl.bind(key, hl.dsp.pass({ window = poe_trade_window }))
+  end
+  poe_trade_bound = true
+end
+
+local function poe_trade_detach()
+  if not poe_trade_bound then return end
+  for _, key in ipairs(poe_trade_keys) do
+    hl.unbind(key)
+  end
+  poe_trade_bound = false
+end
+
+local function is_poe_trade(w)
+  return w ~= nil and w.class == vars.poeTradeClass
+end
+
+pcall(hl.on, "window.open", function(w)
+  if is_poe_trade(w) then poe_trade_attach() end
+end)
+for _, ev in ipairs({ "window.close", "window.destroy" }) do
+  pcall(hl.on, ev, function(w)
+    if is_poe_trade(w) then poe_trade_detach() end
+  end)
+end
+
+-- Overlay already up when this config loads (reload / first start).
+do
+  local ok, w = pcall(hl.get_window, poe_trade_window)
+  if ok and w ~= nil then poe_trade_attach() end
+end
