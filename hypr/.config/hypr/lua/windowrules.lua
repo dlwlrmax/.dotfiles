@@ -280,26 +280,62 @@ hl.window_rule({
   confine_pointer = true,
   idle_inhibit = "always",
 })
--- Proton/Faugus map the game window before the game sets its own title: it
--- shows up as an ordinary steam_app_* window ("Connecting…"), so the generic
--- game rule above takes it and makes it fullscreen. Switching to the PoE rule
--- afterwards cannot undo that — a rule never leaves fullscreen — so the game
--- stays fullscreen (covering the overlay) at whatever geometry it had. Put the
--- borderless geometry back once the title becomes the game's own.
-pcall(hl.on, "window.title", function(w)
+-- The game reconfigures its own window after mapping, and a window rule is
+-- applied once, at map:
+--   • it asks X11 for fullscreen (borderless-windowed mode), which covers the
+--     overlay, and no rule can leave fullscreen;
+--   • on launch it also resizes itself and re-homes to whatever workspace was
+--     focused — the launch trace showed 2560x1440 on workspace 1 turning into
+--     1080x810 on the terminal's workspace a few seconds later.
+-- So re-assert the borderless geometry whenever the game window reports a
+-- change. The checks are idempotent: once the window matches, nothing is
+-- dispatched and the handler settles.
+local function game_monitor_obj()
+  for _, m in ipairs(hl.get_monitors() or {}) do
+    if m.name == game_monitor then return m end
+  end
+  return hl.get_active_monitor()
+end
+
+local function keep_poe_borderless(w)
   if not vars.is_poe_game(w) then return end
-  local mon = w.monitor
+  local mon = game_monitor_obj()
   if not mon then return end
   local sel = "address:" .. w.address
-  pcall(function()
-    if (w.fullscreen or 0) ~= 0 then
-      hl.dispatch(hl.dsp.window.fullscreen_state({ window = sel, internal = 0, client = 0 }))
-    end
+  if (w.fullscreen or 0) ~= 0 then
+    hl.dispatch(hl.dsp.window.fullscreen_state({ window = sel, internal = 0, client = 0 }))
+    w = hl.get_window(sel) or w
+  end
+  if not w.floating then
     hl.dispatch(hl.dsp.window.float({ window = sel, action = "enable" }))
+    w = hl.get_window(sel) or w
+  end
+  if game_ws and w.workspace and w.workspace.id ~= game_ws then
+    hl.dispatch(hl.dsp.window.move({ window = sel, workspace = tostring(game_ws) }))
+    w = hl.get_window(sel) or w
+  end
+  if w.size and (w.size.x ~= mon.width or w.size.y ~= mon.height) then
     hl.dispatch(hl.dsp.window.resize({ window = sel, x = mon.width, y = mon.height }))
+  end
+  if w.at and (w.at.x ~= mon.x or w.at.y ~= mon.y) then
     hl.dispatch(hl.dsp.window.move({ window = sel, x = mon.x, y = mon.y }))
-  end)
-end)
+  end
+end
+
+for _, ev in ipairs({ "window.open", "window.title", "window.fullscreen",
+                      "window.move_to_workspace", "window.update_rules" }) do
+  pcall(hl.on, ev, function(w) pcall(keep_poe_borderless, w) end)
+end
+
+-- Hyprland emits no event for a plain client resize, and that is exactly how the
+-- game drifts off the rule, so sweep the windows that exist once in a while.
+pcall(hl.timer, function()
+  local ok, wins = pcall(hl.get_windows)
+  if not ok or not wins then return end
+  for _, w in ipairs(wins) do
+    if vars.is_poe_game(w) then pcall(keep_poe_borderless, w) end
+  end
+end, { timeout = 3000, type = "repeat" })
 -- Awakened PoE Trade price-check overlay (class from lua/variables.lua). It runs
 -- as an X11/XWayland client on purpose (~/.config/awakened-poe-trade-flags.conf):
 -- electron-overlay-window tracks the game window over X11 only and its hotkeys
