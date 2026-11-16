@@ -269,10 +269,10 @@ hl.window_rule({
 -- size instead (in-game setting: Windowed Fullscreen). idle_inhibit switches to
 -- "always" because "fullscreen" idle inhibit no longer fires for this window.
 hl.window_rule({
-  match = { class = "^(steam_app_.*|pathofexile\\.exe)$", title = "^(Path of Exile)$" },
+  match = { class = "^(steam_app_.*|pathofexile\\.exe)$", title = "^(" .. vars.poeGameTitle .. ")$" },
   float = true,
   monitor = game_monitor,
-  workspace = 1,
+  workspace = game_ws,
   fullscreen = false,
   center = false,
   size = "monitor_w monitor_h",
@@ -280,6 +280,26 @@ hl.window_rule({
   confine_pointer = true,
   idle_inhibit = "always",
 })
+-- Proton/Faugus map the game window before the game sets its own title: it
+-- shows up as an ordinary steam_app_* window ("Connecting…"), so the generic
+-- game rule above takes it and makes it fullscreen. Switching to the PoE rule
+-- afterwards cannot undo that — a rule never leaves fullscreen — so the game
+-- stays fullscreen (covering the overlay) at whatever geometry it had. Put the
+-- borderless geometry back once the title becomes the game's own.
+pcall(hl.on, "window.title", function(w)
+  if not vars.is_poe_game(w) then return end
+  local mon = w.monitor
+  if not mon then return end
+  local sel = "address:" .. w.address
+  pcall(function()
+    if (w.fullscreen or 0) ~= 0 then
+      hl.dispatch(hl.dsp.window.fullscreen_state({ window = sel, internal = 0, client = 0 }))
+    end
+    hl.dispatch(hl.dsp.window.float({ window = sel, action = "enable" }))
+    hl.dispatch(hl.dsp.window.resize({ window = sel, x = mon.width, y = mon.height }))
+    hl.dispatch(hl.dsp.window.move({ window = sel, x = mon.x, y = mon.y }))
+  end)
+end)
 -- Awakened PoE Trade price-check overlay (class from lua/variables.lua). It runs
 -- as an X11/XWayland client on purpose (~/.config/awakened-poe-trade-flags.conf):
 -- electron-overlay-window tracks the game window over X11 only and its hotkeys

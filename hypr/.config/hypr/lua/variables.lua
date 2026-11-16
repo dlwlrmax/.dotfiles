@@ -14,6 +14,23 @@ M.secondMonitor = "HDMI-A-1"   -- secondary / left or right
 -- all match on it, and a wrong class there silently disables all three.
 M.poeTradeClass = "awakened-poe-trade"
 
+-- The Path of Exile game window. The class depends on how the game is started
+-- (umu/Faugus: steam_app_default or steam_app_faugus<id>, native: pathofexile.exe)
+-- and is shared with every other Steam game, so the title is the stable part.
+M.poeGameTitle = "Path of Exile"
+
+-- True for the game window. Titles are set by the game, so Proton/Faugus windows
+-- report a temporary one ("Connecting…") while they are still mapping, and a
+-- freshly opened window object carries it as initial_title only.
+function M.is_poe_game(w)
+  if w == nil then return false end
+  local cls = tostring(w.class or "")
+  local title = tostring(w.title or "")
+  if title == "" then title = tostring(w.initial_title or "") end
+  return title == M.poeGameTitle
+    and (cls:sub(1, #"steam_app_") == "steam_app_" or cls == "pathofexile.exe")
+end
+
 -- Env vars, general, decoration, input, misc, xwayland, cursor
 
 -- XDG Desktop Portal

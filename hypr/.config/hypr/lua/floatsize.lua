@@ -65,12 +65,19 @@ local function is_poe_trade(w)
   return w.class == vars.poeTradeClass
 end
 
+-- The Path of Exile game window is skipped for the same reason: its geometry
+-- comes from the window rules (borderless at monitor size), so remembering it
+-- would make floatsize restore whatever size the game once had — and then win
+-- over the rule. That is how a stale "1080x810" entry kept overriding
+-- "size = monitor_w monitor_h".
+
 local function skip(w)
   return not w or not w.floating or w.pinned
     or (w.fullscreen or 0) ~= 0
     or pippeek.is_pip(w)
     or is_toast(w)
     or is_poe_trade(w)
+    or vars.is_poe_game(w)
 end
 
 local function get(addr)
