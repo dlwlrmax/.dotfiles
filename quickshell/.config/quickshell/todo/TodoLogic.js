@@ -4,7 +4,8 @@
 // display formatting. Self-contained (no imports) so tests/run.mjs can eval it.
 //
 // A todo is {id, title, content, done: 0|1, due_key: yyyymmdd|null, due_minutes: 0..1439|null,
-//            notified: 0|1, created_at, done_at}. A date-only todo is due at 09:00.
+//            notified: 0|1, created_at, done_at, lark_id: string|null}. lark_id is the Lark
+// Base record the todo mirrors (a task / order created from the panel or pulled by the sync). A date-only todo is due at 09:00.
 
 var DEFAULT_DUE_MINUTES = 540
 var MAX_TITLE = 200
@@ -52,6 +53,25 @@ function sortTodos(todos, nowKey, nowMinutes) {
         }
         return (a.created_at || 0) - (b.created_at || 0)
     })
+}
+
+// Display rows for the panel: local todos first, then the ones that mirror a Lark
+// task / order, keeping the given (sorted) order inside each group. Every row is a
+// copy of its todo plus group_head: the group's heading ("Todo · <open count>") on
+// its first row, "" elsewhere. No headings at all while nothing came from Lark.
+function groupTodos(todos) {
+    var local = todos.filter(function (t) { return !t.lark_id })
+    var lark = todos.filter(function (t) { return !!t.lark_id })
+    function rows(list, label) {
+        var open = list.filter(function (t) { return !t.done }).length
+        return list.map(function (t, i) {
+            var r = {}
+            for (var k in t) r[k] = t[k]
+            r.group_head = label !== "" && i === 0 ? label + " · " + open : ""
+            return r
+        })
+    }
+    return rows(local, lark.length > 0 ? "Todo" : "").concat(rows(lark, "Lark"))
 }
 
 function markedKeys(todos) {

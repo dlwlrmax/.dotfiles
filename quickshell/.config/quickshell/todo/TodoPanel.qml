@@ -6,13 +6,50 @@ import qs.common
 import "TodoLogic.js" as T
 
 // Todo panel: list + add bar, or (after clicking an item) a detail view with the
-// full title / due / note as selectable text and one-click copy buttons.
+// full title / due / note as selectable text and one-click copy buttons, or (after
+// the add bar's "Lark" button) the Lark order picker that creates a Lark task.
 Item {
     id: root
     property Theme theme: ThemeStore
     property bool active: false
     property var dataSource: null      // DataProviders.todoData
+    property var larkSource: null      // DataProviders.larkData
     signal close()
+
+    // Input handed over by the add bar's "Lark" button: {title, content, dueKey,
+    // dueMinutes}. Non-null = the Lark picker is shown instead of the list. The add
+    // bar keeps its text until the task really exists on Lark.
+    property var pending: null
+    readonly property bool listShown: detailId === 0 && pending === null
+    // The picker now showing has handed a create request to LarkData. A result that
+    // belongs to an earlier picker (panel closed mid-create, then reopened) must not
+    // reset this one.
+    property bool larkSent: false
+    readonly property bool larkReady: !!(larkSource && larkSource.configured)
+    onPendingChanged: if (larkSource) larkSource.watched = pending !== null
+    Component.onDestruction: if (larkSource) larkSource.watched = false
+
+    // Leaving the picker is refused while a create call runs: the result must land
+    // here (reset the add bar, close the picker), or the text would invite a duplicate.
+    function cancelLark() {
+        if (pending === null || (larkSource && larkSource.busy)) return
+        if (larkSource) larkSource.cancelReview()
+        pending = null
+        Qt.callLater(function () { addBar.focusTitle() })
+    }
+
+    // LarkData itself adds the local todo and notifies; here only the view is reset.
+    Connections {
+        target: root.larkSource
+        enabled: root.pending !== null
+        function onTaskCreated(url) {
+            if (!root.larkSent) return
+            root.larkSent = false
+            addBar.reset()
+            root.pending = null
+            Qt.callLater(function () { addBar.focusTitle() })
+        }
+    }
 
     readonly property var items: dataSource ? dataSource.items : []
     readonly property int nowKey: dataSource ? dataSource.nowKey : 0
@@ -37,7 +74,8 @@ Item {
     focus: true
     // Escape steps back out of the detail view first, then closes the panel.
     Keys.onEscapePressed: {
-        if (detailId !== 0) { detailId = 0; Qt.callLater(function () { addBar.focusTitle() }) }
+        if (pending !== null) cancelLark()
+        else if (detailId !== 0) { detailId = 0; Qt.callLater(function () { addBar.focusTitle() }) }
         else root.close()
     }
 
@@ -48,6 +86,13 @@ Item {
     // Always reopen on the list; when opening also scroll to the top and focus the title.
     onActiveChanged: {
         detailId = 0
+        if (pending !== null) {
+            if (larkSource) larkSource.cancelReview()
+            // Closed while a create call was running: LarkData still finishes it, so the
+            // typed text is done with — drop it rather than offer it for a second task.
+            if (larkSource && larkSource.busy) addBar.reset()
+            pending = null
+        }
         if (active) {
             list.positionViewAtBeginning()
             Qt.callLater(function () { addBar.focusTitle() })
@@ -85,10 +130,38 @@ Item {
 
         // ════════ list view ════════
         PanelHeader {
-            visible: root.detailId === 0
+            visible: root.listShown
             theme: root.theme
             title: "Todo"
             onClose: root.close()
+
+            // Pull tasks / orders assigned on Lark right now (it also runs every 15 min).
+            IconButton {
+                id: syncButton
+                visible: root.larkReady
+                theme: root.theme
+                text: Glyphs.refresh
+                glyphSize: theme.fontSizeMin
+                tint: root.larkSource && root.larkSource.syncError !== "" ? theme.red : "transparent"
+                enabled: !!(root.larkSource && !root.larkSource.syncing)
+                opacity: enabled ? 1 : 0.45
+                onClicked: root.larkSource.sync()
+
+                BarTooltip {
+                    target: syncButton
+                    theme: root.theme
+                    hovered: syncHover.hovered
+                    text: {
+                        var s = root.larkSource
+                        if (!s) return ""
+                        if (s.syncing) return "Syncing with Lark…"
+                        if (s.syncError !== "") return "Lark sync failed: " + s.syncError
+                        if (s.lastSyncAt === 0) return "Sync with Lark"
+                        return "Sync with Lark — last " + Qt.formatTime(new Date(s.lastSyncAt), "HH:mm")
+                    }
+                }
+                HoverHandler { id: syncHover }
+            }
 
             Badge {
                 theme: root.theme
@@ -98,7 +171,7 @@ Item {
         }
 
         Item {
-            visible: root.detailId === 0
+            visible: root.listShown
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.minimumHeight: 0
@@ -110,20 +183,40 @@ Item {
                 clip: true
                 spacing: 2
                 boundsBehavior: Flickable.StopAtBounds
-                model: root.items
+                // Local todos, then the ones mirroring a Lark task / order (see groupTodos).
+                model: T.groupTodos(root.items)
 
                 ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
-                delegate: TodoRow {
+                delegate: Column {
+                    id: cell
                     required property var modelData
                     width: ListView.view.width
-                    todo: modelData
-                    theme: root.theme
-                    nowKey: root.nowKey
-                    nowMinutes: root.nowMinutes
-                    onToggled: root.dataSource.toggle(modelData.id)
-                    onRemoved: root.dataSource.remove(modelData.id)
-                    onOpened: { root.detailId = modelData.id; root.forceActiveFocus() }
+                    spacing: 2
+
+                    // Group heading, on the first row of each group only.
+                    Text {
+                        visible: cell.modelData.group_head !== ""
+                        text: cell.modelData.group_head
+                        color: theme.subtext0
+                        font.pixelSize: theme.fontSizeMin
+                        font.bold: true
+                        font.family: theme.fontUi
+                        leftPadding: 6
+                        topPadding: 6
+                        bottomPadding: 2
+                    }
+
+                    TodoRow {
+                        width: cell.width
+                        todo: cell.modelData
+                        theme: root.theme
+                        nowKey: root.nowKey
+                        nowMinutes: root.nowMinutes
+                        onToggled: root.dataSource.toggle(cell.modelData.id)
+                        onRemoved: root.dataSource.remove(cell.modelData.id)
+                        onOpened: { root.detailId = cell.modelData.id; root.forceActiveFocus() }
+                    }
                 }
             }
 
@@ -141,14 +234,41 @@ Item {
 
         TodoAddBar {
             id: addBar
-            visible: root.detailId === 0
+            visible: root.listShown
             Layout.fillWidth: true
             theme: root.theme
             todayKey: root.nowKey
+            larkEnabled: root.larkReady
             nowMinutes: root.nowMinutes
             onSubmitted: (title, content, dueKey, dueMinutes) => {
                 if (root.dataSource) root.dataSource.add(title, content, dueKey, dueMinutes)
             }
+            onLarkRequested: (title, content, dueKey, dueMinutes) => {
+                if (!root.larkReady) return
+                root.larkSent = false
+                root.pending = { title: title, content: T.normalizeContent(content),
+                                 dueKey: dueKey, dueMinutes: dueMinutes }
+                larkPicker.open()
+            }
+        }
+
+        // ════════ Lark view ════════
+        LarkOrderPicker {
+            id: larkPicker
+            visible: root.pending !== null
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.minimumHeight: 0
+            theme: root.theme
+            source: root.larkSource
+            originalTitle: root.pending ? root.pending.title : ""
+            originalContent: root.pending ? root.pending.content : ""
+            // No due date on the todo = work on it today.
+            dateKey: root.pending ? (root.pending.dueKey ?? root.nowKey) : 0
+            dueKey: root.pending ? root.pending.dueKey : null
+            dueMinutes: root.pending ? root.pending.dueMinutes : null
+            onCancelled: root.cancelLark()
+            onSent: root.larkSent = true
         }
 
         // ════════ detail view ════════

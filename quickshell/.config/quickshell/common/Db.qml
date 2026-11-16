@@ -80,6 +80,7 @@ QtObject {
         _migrateReadColumn()
         _migrateAppActions()
         _migrateTodoContent()
+        _migrateTodoLarkId()
         _ready = true
         _ensureWal()
         return _db
@@ -126,6 +127,18 @@ QtObject {
         try {
             _db.transaction(function(tx) {
                 tx.executeSql("ALTER TABLE todos ADD COLUMN content TEXT DEFAULT ''")
+            })
+        } catch (e) {
+            // Column already exists.
+        }
+    }
+
+    // Lark Base record a todo mirrors (created from the panel or pulled by the sync);
+    // NULL for purely local todos.
+    function _migrateTodoLarkId() {
+        try {
+            _db.transaction(function(tx) {
+                tx.executeSql("ALTER TABLE todos ADD COLUMN lark_id TEXT")
             })
         } catch (e) {
             // Column already exists.
@@ -315,7 +328,7 @@ QtObject {
             open()
             _db.readTransaction(function(tx) {
                 var rs = tx.executeSql("SELECT id,title,content,done,due_key,due_minutes,notified,"
-                    + "created_at,done_at FROM todos ORDER BY id ASC")
+                    + "created_at,done_at,lark_id FROM todos ORDER BY id ASC")
                 for (var i = 0; i < rs.rows.length; i++) {
                     var r = rs.rows.item(i)
                     out.push({
@@ -327,7 +340,8 @@ QtObject {
                         due_minutes: r.due_minutes ?? null,
                         notified: r.notified ? 1 : 0,
                         created_at: r.created_at ?? 0,
-                        done_at: r.done_at ?? null
+                        done_at: r.done_at ?? null,
+                        lark_id: r.lark_id || null
                     })
                 }
             })
@@ -346,8 +360,9 @@ QtObject {
             open()
             _db.transaction(function(tx) {
                 var rs = tx.executeSql("INSERT INTO todos "
-                    + "(title,content,done,due_key,due_minutes,notified,created_at) VALUES (?,?,?,?,?,?,?)",
-                    [e.title || "", e.content || "", 0, e.due_key ?? null, e.due_minutes ?? null, 0, _now()])
+                    + "(title,content,done,due_key,due_minutes,notified,created_at,lark_id) VALUES (?,?,?,?,?,?,?,?)",
+                    [e.title || "", e.content || "", 0, e.due_key ?? null, e.due_minutes ?? null, 0, _now(),
+                     e.lark_id || null])
                 id = Number(rs.insertId)
             })
         } catch (err) {
@@ -366,6 +381,17 @@ QtObject {
             })
         } catch (e) {
             console.warn("Db: setTodoDone failed:", e)
+        }
+    }
+
+    function setTodoTitle(id, title) {
+        try {
+            open()
+            _db.transaction(function(tx) {
+                tx.executeSql("UPDATE todos SET title=? WHERE id=?", [title || "", id])
+            })
+        } catch (e) {
+            console.warn("Db: setTodoTitle failed:", e)
         }
     }
 

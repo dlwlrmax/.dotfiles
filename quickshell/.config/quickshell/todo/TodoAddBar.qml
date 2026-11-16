@@ -8,6 +8,8 @@ import "TodoLogic.js" as T
 // Shift+Enter inserts a newline), quick due chips (Today / Tomorrow / Next week),
 // a date picker (inline month grid) and a time picker (hour / minute spinner, default 17:30).
 // A picked date and a chip are mutually exclusive; the time only applies once a date is set.
+// Bottom row: "Add todo", and "Lark" which hands the same input to the panel's Lark
+// flow (larkRequested) without clearing it — the panel calls reset() once that succeeds.
 Item {
     id: root
     property Theme theme: ThemeStore
@@ -16,6 +18,9 @@ Item {
     property int nowMinutes: 0
     // dueKey / dueMinutes are null when absent.
     signal submitted(string title, string content, var dueKey, var dueMinutes)
+    signal larkRequested(string title, string content, var dueKey, var dueMinutes)
+    // false hides the Lark button (Lark is not configured on this machine).
+    property bool larkEnabled: true
 
     // "" | "today" | "tomorrow" | "week"
     property string chip: ""
@@ -98,6 +103,16 @@ Item {
         var title = T.normalizeTitle(titleField.text)
         if (title === "") return
         root.submitted(title, contentField.text, hasDue ? dueKey : null, hasDue && !noTime ? shownMinutes : null)
+        reset()
+    }
+
+    function requestLark() {
+        var title = T.normalizeTitle(titleField.text)
+        if (title === "") return
+        root.larkRequested(title, contentField.text, hasDue ? dueKey : null, hasDue && !noTime ? shownMinutes : null)
+    }
+
+    function reset() {
         titleField.text = ""
         contentField.text = ""
         chip = ""
@@ -450,33 +465,68 @@ Item {
             }
         }
 
-        // ── create button (bottom of the bar) ──
-        Rectangle {
+        // ── create buttons (bottom of the bar): local todo, or Lark task + todo ──
+        RowLayout {
             Layout.fillWidth: true
-            implicitHeight: 32
-            radius: theme.radiusMd
-            color: !root.canAdd ? Qt.alpha(theme.surface1, 0.6)
-                 : addMa.pressed ? Qt.darker(theme.highlight, 1.1)
-                 : addMa.containsMouse ? Qt.lighter(theme.highlight, 1.1) : theme.highlight
-            scale: addMa.pressed && root.canAdd ? 0.98 : 1
-            Behavior on color { ColorAnimation { duration: 100 } }
+            spacing: 6
 
-            Text {
-                anchors.centerIn: parent
-                text: "\uf067  Add todo"   // nf-fa-plus
-                color: root.canAdd ? theme.base : theme.overlay0
-                font.pixelSize: theme.fontSize
-                font.bold: true
-                font.family: theme.font
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: 32
+                radius: theme.radiusMd
+                color: !root.canAdd ? Qt.alpha(theme.surface1, 0.6)
+                     : addMa.pressed ? Qt.darker(theme.highlight, 1.1)
+                     : addMa.containsMouse ? Qt.lighter(theme.highlight, 1.1) : theme.highlight
+                scale: addMa.pressed && root.canAdd ? 0.98 : 1
+                Behavior on color { ColorAnimation { duration: 100 } }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "\uf067  Add todo"   // nf-fa-plus
+                    color: root.canAdd ? theme.base : theme.overlay0
+                    font.pixelSize: theme.fontSize
+                    font.bold: true
+                    font.family: theme.font
+                }
+
+                MouseArea {
+                    id: addMa
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    enabled: root.canAdd
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.submit()
+                }
             }
 
-            MouseArea {
-                id: addMa
-                anchors.fill: parent
-                hoverEnabled: true
-                enabled: root.canAdd
-                cursorShape: Qt.PointingHandCursor
-                onClicked: root.submit()
+            Rectangle {
+                visible: root.larkEnabled
+                implicitWidth: 84
+                implicitHeight: 32
+                radius: theme.radiusMd
+                color: !root.canAdd ? Qt.alpha(theme.surface1, 0.6)
+                     : larkMa.pressed ? Qt.darker(theme.blue, 1.1)
+                     : larkMa.containsMouse ? Qt.lighter(theme.blue, 1.1) : theme.blue
+                scale: larkMa.pressed && root.canAdd ? 0.98 : 1
+                Behavior on color { ColorAnimation { duration: 100 } }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "\uf1d8  Lark"   // nf-fa-paper_plane
+                    color: root.canAdd ? theme.base : theme.overlay0
+                    font.pixelSize: theme.fontSize
+                    font.bold: true
+                    font.family: theme.font
+                }
+
+                MouseArea {
+                    id: larkMa
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    enabled: root.canAdd
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.requestLark()
+                }
             }
         }
     }

@@ -47,25 +47,46 @@ Item {
         _setItems(T.sortTodos(Db.loadTodos(), nowKey, nowMinutes))
     }
 
-    function add(title, content, dueKey, dueMinutes) {
+    // larkId: record id of the Lark task / order this todo mirrors (optional).
+    function add(title, content, dueKey, dueMinutes, larkId) {
         var t = T.normalizeTitle(title === null || title === undefined ? "" : title)
         if (t === "") return
         Db.insertTodo({
             title: t,
             content: T.normalizeContent(content),
             due_key: dueKey === undefined ? null : dueKey,
-            due_minutes: dueMinutes === undefined ? null : dueMinutes
+            due_minutes: dueMinutes === undefined ? null : dueMinutes,
+            lark_id: larkId || null
         })
         reload()
     }
 
+    // The user ticked a todo that mirrors a Lark record (not emitted when the Lark
+    // sync ticks it, nor on un-ticking). LarkData pushes the change to Lark.
+    signal larkTicked(string larkId, string title)
+
     function toggle(id) {
         for (var i = 0; i < items.length; i++) {
             if (items[i].id === id) {
-                Db.setTodoDone(id, !items[i].done)
+                var nowDone = !items[i].done
+                Db.setTodoDone(id, nowDone)
+                if (nowDone && items[i].lark_id) larkTicked(items[i].lark_id, items[i].title)
                 break
             }
         }
+        reload()
+    }
+
+    // Mark done without toggling (the Lark sync ticks todos finished on Lark).
+    function setDone(id) {
+        Db.setTodoDone(id, true)
+        reload()
+    }
+
+    function rename(id, title) {
+        var t = T.normalizeTitle(title)
+        if (t === "") return
+        Db.setTodoTitle(id, t)
         reload()
     }
 

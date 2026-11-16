@@ -20,6 +20,7 @@ Item {
     property alias healthData: healthData
     property alias wallpaperData: wallpaperData
     property alias todoData: todoData
+    property alias larkData: larkData
 
     // Set by Hyprland's gaming profile (hypr lua/gaming.lua via `qs ipc call
     // gaming set`). While true: no popups on the game's monitor (chimes still
@@ -42,5 +43,6 @@ Item {
     BatteryData { id: batteryData; theme: root.theme }
     WallpaperData { id: wallpaperData; theme: root.theme }
     TodoData { id: todoData; theme: root.theme }
+    LarkData { id: larkData; theme: root.theme; todoData: todoData }
     HealthData { id: healthData; theme: root.theme; weather: weatherData; kde: kdeData; net: netData; cpu: cpuData }
 }

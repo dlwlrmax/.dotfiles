@@ -163,7 +163,7 @@ test("Exec= parsing", () => {
 
 // ── TodoLogic ──
 const T = load("todo/TodoLogic.js", ["dueMinutes", "isOverdue", "dueNow", "sortTodos", "markedKeys",
-    "addDays", "parseDue", "resolveDue", "parseTime", "normalizeTitle", "normalizeContent", "formatDue"])
+    "addDays", "parseDue", "resolveDue", "parseTime", "normalizeTitle", "normalizeContent", "formatDue", "groupTodos"])
 const td = o => ({ id: 1, title: "t", done: 0, due_key: null, due_minutes: null, notified: 0,
                    created_at: 100, done_at: null, ...o })
 
@@ -342,6 +342,178 @@ test("browseFilter: accent-insensitive, prefix matches first", () => {
     assert.deepEqual(L.browseFilter(items, "gam").dirs.map(d => d.name), ["Games", "My Games"])
     assert.deepEqual(L.browseFilter(items, "tro").dirs.map(d => d.name), ["Trò chơi"])
     assert.deepEqual(L.browseFilter(items, "zzz"), { files: [], dirs: [] })
+})
+
+test("groupTodos: local todos first, then Lark items, each group headed once", () => {
+    const rows = T.groupTodos([td({ id: 1, lark_id: "r1" }), td({ id: 2 }), td({ id: 3, lark_id: "r2", done: 1 }), td({ id: 4 })])
+    assert.deepEqual(rows.map(r => [r.id, r.group_head]), [[2, "Todo · 2"], [4, ""], [1, "Lark · 1"], [3, ""]])
+})
+test("groupTodos: no headers when nothing came from Lark; no empty Todo group", () => {
+    assert.deepEqual(T.groupTodos([td({ id: 1 }), td({ id: 2 })]).map(r => r.group_head), ["", ""])
+    assert.deepEqual(T.groupTodos([td({ id: 1, lark_id: "r1" })]).map(r => r.group_head), ["Lark · 1"])
+    assert.deepEqual(T.groupTodos([]), [])
+})
+test("groupTodos does not modify its input", () => {
+    const a = td({ id: 1, lark_id: "r1" })
+    T.groupTodos([a])
+    assert.equal("group_head" in a, false)
+})
+
+// ── LarkLogic ──
+const K = load("todo/LarkLogic.js", ["fold", "filterOrders", "validOrderForm", "dateMs", "taskFields", "orderFields", "parseReview", "msToKey", "planSync"])
+const larkOrders = [
+    { id: "r1", title: "Thêm banner sinh nhật ở website", bu: "Langmaster", project: "Website", status: "L4. Đang code" },
+    { id: "r2", title: "Order Writing Xpert ver 2", bu: "LangGo", project: "", status: "L7. Chờ nghiệm thu" },
+    { id: "r3", title: "Check logic mở lớp", bu: "Langmaster", project: "Cổng đào tạo", status: "L4. Đang code" }]
+
+console.log("LarkLogic")
+test("fold strips diacritics and đ", () => {
+    assert.equal(K.fold("Cổng ĐÀO tạo"), "cong dao tao")
+})
+test("filterOrders: accent-insensitive, all words, any field", () => {
+    assert.deepEqual(K.filterOrders(larkOrders, "sinh nhat").map(o => o.id), ["r1"])
+    assert.deepEqual(K.filterOrders(larkOrders, "langmaster dao tao").map(o => o.id), ["r3"])
+    assert.deepEqual(K.filterOrders(larkOrders, "  ").map(o => o.id), ["r1", "r2", "r3"])
+    assert.deepEqual(K.filterOrders(larkOrders, "zzz"), [])
+})
+test("validOrderForm needs title, BU and project", () => {
+    assert.equal(K.validOrderForm("a", "HBR", "ERP"), true)
+    assert.equal(K.validOrderForm(" ", "HBR", "ERP"), false)
+    assert.equal(K.validOrderForm("a", "", "ERP"), false)
+    assert.equal(K.validOrderForm("a", "HBR", ""), false)
+})
+test("dateMs is local midnight", () => {
+    assert.equal(K.dateMs(20261116), new Date(2026, 10, 16).getTime())
+})
+test("taskFields: both dates equal, note optional", () => {
+    const ms = new Date(2026, 10, 16).getTime()
+    assert.deepEqual(K.taskFields("Fix bug", "see log", 20261116, "recA"), {
+        "Công việc": "Fix bug", "Order": ["recA"],
+        "Ngày thực hiện": ms, "Ngày bắt đầu task": ms,
+        "Kết quả cuối ngày": "Chờ code", "Link issue": "see log" })
+    assert.equal("Link issue" in K.taskFields("Fix bug", "  ", 20261116, "recA"), false)
+})
+test("orderFields: fixed status / kind / priority", () => {
+    assert.deepEqual(K.orderFields(" New order ", "LangGo", "ERP", 1794502800000), {
+        "Tiêu đề order": "New order", "BU order": "LangGo", "Loại dự án": "ERP",
+        "Ngày order": 1794502800000,
+        "Trạng thái": "L4. Đang code", "Phân loại": "Order mới", "Ưu tiên": "Medium" })
+})
+
+test("parseReview: plain, fenced, chatty, invalid", () => {
+    assert.deepEqual(K.parseReview('{"title":"Sửa lỗi A","content":"x"}'), { title: "Sửa lỗi A", content: "x" })
+    assert.deepEqual(K.parseReview('Đây:\n```json\n{"title":" Sửa  lỗi A ","content":" x\\ny "}\n```\n'),
+                     { title: "Sửa lỗi A", content: "x\ny" })
+    assert.deepEqual(K.parseReview('{"title":"T"}'), { title: "T", content: "" })
+    assert.equal(K.parseReview('{"title":"  ","content":"x"}'), null)
+    assert.equal(K.parseReview("sorry, I can't"), null)
+    assert.equal(K.parseReview('{"title":"T","content":'), null)
+})
+test("parseReview caps title at 200 and content at 4000 chars", () => {
+    const r = K.parseReview(JSON.stringify({ title: "a".repeat(300), content: "b".repeat(5000) }))
+    assert.equal(r.title.length, 200)
+    assert.equal(r.content.length, 4000)
+})
+
+test("msToKey: local calendar day of a timestamp", () => {
+    assert.equal(K.msToKey(new Date(2026, 10, 17).getTime()), 20261117)
+    assert.equal(K.msToKey(new Date(2026, 0, 5, 23, 59).getTime()), 20260105)
+    assert.equal(K.msToKey(null), null)
+})
+const day = (d) => new Date(2026, 10, d).getTime()
+const li = o => ({ id: "r1", kind: "task", title: "T", content: "", dateMs: null, created: day(16), done: false, ...o })
+test("planSync: new open item becomes a todo and is marked seen", () => {
+    const p = K.planSync([li({ id: "a", title: " Fix  A ", content: "note", dateMs: day(18) })], [], [], day(16), false)
+    assert.deepEqual(p.add, [{ larkId: "a", title: "Fix A", content: "note", dueKey: 20261118 }])
+    assert.deepEqual(p.seen, ["a"])
+    assert.deepEqual(p.done, [])
+})
+test("planSync: orders are prefixed, seen items and finished items are not added", () => {
+    const p = K.planSync([li({ id: "o", kind: "order", title: "Banner" }), li({ id: "s" }), li({ id: "d", done: true })],
+                         ["s"], [], day(16), false)
+    assert.deepEqual(p.add.map(a => [a.larkId, a.title]), [["o", "Order: Banner"]])
+    assert.deepEqual(p.seen.slice().sort(), ["d", "o", "s"])
+})
+test("planSync: first run only takes items created since the cutoff, but remembers all", () => {
+    const p = K.planSync([li({ id: "old", created: day(10) }), li({ id: "new", created: day(16) + 5 })], [], [], day(16), true)
+    assert.deepEqual(p.add.map(a => a.larkId), ["new"])
+    assert.deepEqual(p.seen.slice().sort(), ["new", "old"])
+    // later runs: an old task that only now got assigned is new to us
+    assert.deepEqual(K.planSync([li({ id: "old2", created: day(1) })], ["new", "old"], [], day(16), false).add.length, 1)
+})
+test("planSync: finished on Lark ticks the linked open todo, nothing else", () => {
+    const todos = [{ id: 7, lark_id: "a", done: 0 }, { id: 8, lark_id: "b", done: 1 }, { id: 9, lark_id: null, done: 0 },
+                   { id: 10, lark_id: "c", done: 0 }]
+    const p = K.planSync([li({ id: "a", done: true }), li({ id: "b", done: true }), li({ id: "c" })],
+                         ["a", "b", "c"], todos, day(16), false)
+    assert.deepEqual(p.done, [7])
+    assert.deepEqual(p.add, [])
+})
+test("planSync: a task and its order (same order id) become one Task/Order todo", () => {
+    const p = K.planSync([li({ id: "o1", kind: "order", title: "Thêm  banner", content: "order note" }),
+                          li({ id: "t1", title: "[Langmaster] banner web", orderId: "o1", dateMs: day(18) }),
+                          li({ id: "t2", title: "Việc khác", orderId: "oX" })], [], [], day(16), false)
+    assert.deepEqual(p.add, [
+        { larkId: "t1", title: "Task/Order: Thêm banner", content: "order note", dueKey: 20261118 },
+        { larkId: "t2", title: "Việc khác", content: "", dueKey: null }])
+    assert.deepEqual(p.seen.slice().sort(), ["o1", "t1", "t2"])
+    assert.deepEqual(p.rename, [])
+})
+test("planSync: same title but different order ids stay separate", () => {
+    const p = K.planSync([li({ id: "o1", kind: "order", title: "X" }), li({ id: "t1", title: "X", orderId: "o9" })],
+                         [], [], day(16), false)
+    assert.deepEqual(p.add.map(a => a.title), ["Order: X", "X"])
+})
+test("planSync: several tasks of one order collapse into one todo linked to the order", () => {
+    const p = K.planSync([li({ id: "t1", title: "Làm API", orderId: "o1", dateMs: day(20), content: "a" }),
+                          li({ id: "o1", kind: "order", title: "Dự án A", content: "mô tả" }),
+                          li({ id: "t2", title: "Làm UI", orderId: "o1", dateMs: day(18) })], [], [], day(16), false)
+    assert.deepEqual(p.add, [{ larkId: "o1", title: "Task/Order: Dự án A",
+                               content: "mô tả\n\n- Làm API\n- Làm UI", dueKey: 20261118 }])
+    // two tasks of an order that is not assigned to the user: still one todo
+    const q = K.planSync([li({ id: "t1", title: "Làm API", orderId: "o7" }), li({ id: "t2", title: "Làm UI", orderId: "o7" })],
+                         [], [], day(16), false)
+    assert.deepEqual(q.add, [{ larkId: "o7", title: "Task/Order: Làm API", content: "- Làm API\n- Làm UI", dueKey: null }])
+})
+test("planSync: a member arriving later joins the existing todo instead of adding one", () => {
+    const todos = [{ id: 5, lark_id: "o1", done: 0, title: "Order: Thêm banner" }]
+    const items = [li({ id: "o1", kind: "order", title: "Thêm banner" }), li({ id: "t1", title: "banner", orderId: "o1" })]
+    const p = K.planSync(items, ["o1"], todos, day(16), false)
+    assert.deepEqual(p.add, [])
+    assert.deepEqual(p.rename, [{ id: 5, title: "Task/Order: Thêm banner" }])
+    assert.deepEqual(p.seen.slice().sort(), ["o1", "t1"])
+    // a second task later: the todo is already labelled, nothing to do
+    todos[0].title = "Task/Order: Thêm banner"
+    const r = K.planSync(items.concat([li({ id: "t2", title: "x", orderId: "o1" })]), ["o1", "t1"], todos, day(16), false)
+    assert.deepEqual([r.add, r.rename], [[], []])
+    // ... also when the existing todo hangs on a sibling task
+    const s2 = K.planSync([li({ id: "t1", title: "a", orderId: "o5" }), li({ id: "t2", title: "b", orderId: "o5" })],
+                          ["t1"], [{ id: 6, lark_id: "t1", done: 0, title: "a" }], day(16), false)
+    assert.deepEqual([s2.add, s2.rename], [[], [{ id: 6, title: "Task/Order: a" }]])
+})
+test("planSync: finished members do not count; a known order without a todo still groups", () => {
+    const a = K.planSync([li({ id: "o1", kind: "order", title: "X", done: true }), li({ id: "t1", title: "T", orderId: "o1" })],
+                         [], [], day(16), false)
+    assert.deepEqual(a.add.map(x => x.title), ["T"])
+    // order was skipped earlier (backlog / deleted locally), its task is newly assigned now
+    const b = K.planSync([li({ id: "o1", kind: "order", title: "X" }), li({ id: "t1", title: "T", orderId: "o1" })],
+                         ["o1"], [], day(16), false)
+    assert.deepEqual(b.add.map(x => [x.larkId, x.title]), [["t1", "Task/Order: X"]])
+})
+
+test("planSync: a todo whose Lark record was deleted is removed, others stay", () => {
+    const todos = [{ id: 1, lark_id: "gone", done: 0, title: "a" }, { id: 2, lark_id: "gone2", done: 1, title: "b" },
+                   { id: 3, lark_id: "kept", done: 0, title: "c" }, { id: 4, lark_id: null, done: 0, title: "d" }]
+    const p = K.planSync([li({ id: "kept" })], ["gone", "gone2", "kept"], todos, day(16), false, ["gone", "gone2", "nope"])
+    assert.deepEqual(p.remove, [1, 2])
+    assert.deepEqual([p.add, p.done], [[], []])
+    assert.deepEqual(K.planSync([], [], todos, day(16), false).remove, [])
+})
+
+test("planSync: items without a title are skipped but remembered; seen list keeps old ids", () => {
+    const p = K.planSync([li({ id: "e", title: "  " })], ["gone"], [], day(16), false)
+    assert.deepEqual(p.add, [])
+    assert.deepEqual(p.seen.slice().sort(), ["e", "gone"])
 })
 
 console.log(`\n${passed} passed, ${failed} failed`)

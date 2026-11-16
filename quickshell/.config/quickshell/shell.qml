@@ -110,6 +110,8 @@ ShellRoot {
     IpcHandler {
         target: "todo"
         function toggle(): void { Panels.toggle("todo", shell.screenNameOfFocus(), 0) }
+        // qs ipc call todo sync   → pull Lark assignments now (also runs every 15 min)
+        function sync(): string { dp.larkData.sync(); return "ok" }
         function close(): void { if (Panels.openName === "todo") Panels.close() }
     }
 
@@ -387,6 +389,7 @@ ShellRoot {
                     TodoPanel {
                         anchors.fill: parent
                         dataSource: dp.todoData
+                        larkSource: dp.larkData
                         onClose: Panels.close()
                     }
                 }
