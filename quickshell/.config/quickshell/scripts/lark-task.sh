@@ -13,6 +13,8 @@
 #   lark-task.sh create-order '<fieldsJson>' new order   (Dev phụ trách added here)
 #   lark-task.sh create-task  '<fieldsJson>' [--adopt]   new task (Người thực hiện added
 #                                            here); --adopt: for an order created just now
+#   lark-task.sh start <id>                  "Mark đang code" in the panel: -> Đang code
+#   lark-task.sh deadline <id> <yyyymmdd>    deadline set in the panel -> Lark, if Lark has none
 #   lark-task.sh finish <id>                 ticked in the panel: "Đang code" -> Chờ nghiệm thu, 100 %
 #   lark-task.sh update <tasks|orders> <id> '<fieldsJson>'
 #   lark-task.sh delete <tasks|orders> <id>  remove a record (smoke tests only)
@@ -157,6 +159,7 @@ case "${1:-}" in
         dateMs: (.fields["Ngày thực hiện"] // null),
         created: (.fields["Ngày tạo"] // 0),
         orderId: (.fields.Order.link_record_ids[0]? // ""),
+        coding: ((.fields["Kết quả cuối ngày"] // "") == "Đang code"),
         done: ((.fields["Kết quả cuối ngày"] // "") | IN("Đã hoàn thành", "Hủy"))}]' <<< "$RESP" > "$t_file"
     body=$(jq -nc --arg me "$me" '{
       field_names: ["Tiêu đề order", "Chi tiết nội dung yêu cầu", "Trạng thái", "Ngày tạo"],
@@ -169,6 +172,7 @@ case "${1:-}" in
         content: text(.fields["Chi tiết nội dung yêu cầu"]),
         dateMs: null,
         created: (.fields["Ngày tạo"] // 0),
+        coding: ((.fields["Trạng thái"] // "") == "L4. Đang code"),
         done: ((.fields["Trạng thái"] // "") | IN("L8. Đã nghiệm thu", "Hủy"))}])}' <<< "$RESP" > "$t_file.out"
     # Extra arguments: record ids the caller still holds. Those that exist in neither
     # table any more (deleted on Lark) come back as "missing".
@@ -228,6 +232,80 @@ case "${1:-}" in
       '.data.record.record_id as $id
        | {ok:true, id:$id} + (if $u != "" then {url: "\($u)/\($app)?table=\($t)&record=\($id)"} else {} end)' <<< "$RESP"
     ;;
+  start)
+    # "Mark đang code" in the panel: work on the record begins. Only records that have
+    # not been started move; anything further along the workflow is never pulled back.
+    #   task  "Chờ code" (or no status)            -> "Đang code"
+    #   order L0 – L3 (or no status)               -> "L4. Đang code"
+    #   and, for an order that is now L4, its "Chờ code" tasks assigned to
+    #   LARK_ASSIGNEE_OPEN_ID                       -> "Đang code"
+    # Prints {"ok":true,"kind":"task"|"order","changed":<records updated>,
+    #         "coding":<the record itself is "Đang code" afterwards>}.
+    id="${2:-}"
+    [[ "$id" =~ ^rec[A-Za-z0-9]+$ ]] || fail "bad record id"
+    task_coding='{"fields":{"Kết quả cuối ngày":"Đang code"}}'
+    changed=0
+    coding=false
+    if SOFT=1 api GET "$base/$tasks/records/$id"; then
+      case "$(jq -r '.data.record.fields["Kết quả cuối ngày"] // ""' <<< "$RESP")" in
+        "Đang code") coding=true ;;
+        "Chờ code"|"") api PUT "$base/$tasks/records/$id" "$task_coding"; changed=1; coding=true ;;
+      esac
+      jq -nc --argjson n "$changed" --argjson c "$coding" '{ok:true, kind:"task", changed:$n, coding:$c}'
+    else
+      [ "$(jq -r '.code // empty' <<< "$RESP")" = 1254043 ] \
+        || fail "$(jq -r '"\(.msg // "Lark error") (\(.code))"' <<< "$RESP")"
+      api GET "$base/$orders/records/$id"
+      case "$(jq -r '.data.record.fields["Trạng thái"] // ""' <<< "$RESP")" in
+        "L4. Đang code") coding=true ;;
+        "L0. Chờ tiếp nhận"|"L1. Cần chốt mục tiêu"|"L2. Đang làm rõ yêu cầu"|"L3. Chờ lên kế hoạch code"|"")
+          api PUT "$base/$orders/records/$id" '{"fields":{"Trạng thái":"L4. Đang code"}}'; changed=1; coding=true ;;
+      esac
+      # Its tasks only follow an order that is being coded.
+      if [ "$coding" = true ]; then
+        body=$(jq -nc --arg me "${cfg[LARK_ASSIGNEE_OPEN_ID]}" '{
+          field_names: ["Order", "Kết quả cuối ngày"],
+          sort: [{field_name: "Ngày cập nhật", desc: true}],
+          filter: {conjunction: "and", conditions: [
+            {field_name: "Người thực hiện", operator: "is", value: [$me]},
+            {field_name: "Kết quả cuối ngày", operator: "is", value: ["Chờ code"]}]}}')
+        api POST "$base/$tasks/records/search?page_size=200" "$body"
+        for t in $(jq -r --arg o "$id" '.data.items[]?
+            | select(((.fields.Order.link_record_ids // []) | index($o)) != null)
+            | select((.fields["Kết quả cuối ngày"] // "") == "Chờ code")
+            | .record_id' <<< "$RESP"); do
+          api PUT "$base/$tasks/records/$t" "$task_coding"
+          changed=$((changed + 1))
+        done
+      fi
+      jq -nc --argjson n "$changed" --argjson c "$coding" '{ok:true, kind:"order", changed:$n, coding:$c}'
+    fi
+    ;;
+  deadline)
+    # A deadline was set on the todo in the panel: copy the date to Lark, but only
+    # where Lark has none yet (an existing date is never overwritten).
+    #   task  -> "Ngày hoàn thành task"      order -> "Ngày code xong"
+    # Prints {"ok":true,"kind":"task"|"order","changed":0|1}.
+    id="${2:-}"
+    [[ "$id" =~ ^rec[A-Za-z0-9]+$ ]] || fail "bad record id"
+    [[ "${3:-}" =~ ^[0-9]{8}$ ]] || fail "bad date"
+    secs=$(date -d "$3" +%s 2>/dev/null) || fail "bad date"
+    ms=$((secs * 1000))
+    changed=0
+    if SOFT=1 api GET "$base/$tasks/records/$id"; then
+      table="$tasks"; field="Ngày hoàn thành task"; kind="task"
+    else
+      [ "$(jq -r '.code // empty' <<< "$RESP")" = 1254043 ] \
+        || fail "$(jq -r '"\(.msg // "Lark error") (\(.code))"' <<< "$RESP")"
+      api GET "$base/$orders/records/$id"
+      table="$orders"; field="Ngày code xong"; kind="order"
+    fi
+    if [ "$(jq -r --arg f "$field" '.data.record.fields[$f] // empty' <<< "$RESP")" = "" ]; then
+      api PUT "$base/$table/records/$id" "$(jq -nc --arg f "$field" --argjson d "$ms" '{fields: {($f): $d}}')"
+      changed=1
+    fi
+    jq -nc --arg k "$kind" --argjson n "$changed" '{ok:true, kind:$k, changed:$n}'
+    ;;
   finish)
     # A todo was ticked in the panel. Records that are being coded right now move to
     # "Chờ nghiệm thu" with progress 100 %; anything in another state is left alone.
@@ -285,6 +363,6 @@ case "${1:-}" in
     printf '{"ok":true}\n'
     ;;
   *)
-    fail "usage: lark-task.sh orders|options|assigned|create-order|create-task|finish|update|delete"
+    fail "usage: lark-task.sh orders|options|assigned|create-order|create-task|start|deadline|finish|update|delete"
     ;;
 esac

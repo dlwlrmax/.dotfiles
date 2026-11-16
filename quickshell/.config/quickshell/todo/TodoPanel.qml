@@ -103,7 +103,10 @@ Item {
     // "title" | "note" | "all" | "" — which copy button just fired. Reset when the
     // shown todo changes so the check never carries over to another item.
     property string copied: ""
-    onDetailIdChanged: { copied = ""; copyTimer.stop() }
+    onDetailIdChanged: { copied = ""; copyTimer.stop(); dueOpen = false }
+
+    // The detail view's deadline editor is showing.
+    property bool dueOpen: false
 
     function copyText(what, text) {
         if (text === "") return
@@ -215,6 +218,8 @@ Item {
                         nowMinutes: root.nowMinutes
                         onToggled: root.dataSource.toggle(cell.modelData.id)
                         onRemoved: root.dataSource.remove(cell.modelData.id)
+                        larkEnabled: root.larkReady
+                        onStarted: if (root.larkReady) root.larkSource.markCoding(cell.modelData.lark_id, cell.modelData.title)
                         onOpened: { root.detailId = cell.modelData.id; root.forceActiveFocus() }
                     }
                 }
@@ -415,6 +420,25 @@ Item {
             }
         }
 
+        // Deadline editor (toggled by the "Deadline" action below).
+        TodoDuePicker {
+            id: duePicker
+            visible: root.detailId !== 0 && root.dueOpen
+            Layout.fillWidth: true
+            theme: root.theme
+            todayKey: root.nowKey
+            onPicked: (dueKey, dueMinutes) => {
+                var t = root.detail
+                if (t) {
+                    root.dataSource.setDue(t.id, dueKey, dueMinutes)
+                    // Lark takes the date only when it has no deadline of its own yet.
+                    if (dueKey !== null && t.lark_id && root.larkReady)
+                        root.larkSource.setDeadline(t.lark_id, t.title, dueKey)
+                }
+                root.dueOpen = false
+            }
+        }
+
         // Actions: done toggle, copy both, delete.
         RowLayout {
             visible: root.detailId !== 0
@@ -429,6 +453,32 @@ Item {
                 clr: root.detail && root.detail.done ? theme.overlay1 : theme.green
                 implicitHeight: 24
                 onClicked: if (root.detail) root.dataSource.toggle(root.detail.id)
+            }
+
+            // Lark todos: move the record to "Đang code".
+            Badge {
+                visible: !!(root.detail && root.detail.lark_id && !root.detail.done && root.larkReady)
+                theme: root.theme
+                readonly property bool on: !!(root.detail && root.detail.lark_coding)
+                text: "\uf111  Đang code"   // nf-fa-circle
+                clickable: !on
+                solid: on
+                clr: on ? theme.green : theme.overlay1
+                implicitHeight: 24
+                onClicked: root.larkSource.markCoding(root.detail.lark_id, root.detail.title)
+            }
+
+            Badge {
+                theme: root.theme
+                text: "\uf073  Deadline"   // nf-fa-calendar
+                clickable: true
+                solid: root.dueOpen
+                clr: root.dueOpen ? theme.highlight : theme.subtext0
+                implicitHeight: 24
+                onClicked: {
+                    if (!root.dueOpen) duePicker.load(root.detail)
+                    root.dueOpen = !root.dueOpen
+                }
             }
 
             Badge {

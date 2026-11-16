@@ -81,6 +81,7 @@ QtObject {
         _migrateAppActions()
         _migrateTodoContent()
         _migrateTodoLarkId()
+        _migrateTodoLarkCoding()
         _ready = true
         _ensureWal()
         return _db
@@ -127,6 +128,17 @@ QtObject {
         try {
             _db.transaction(function(tx) {
                 tx.executeSql("ALTER TABLE todos ADD COLUMN content TEXT DEFAULT ''")
+            })
+        } catch (e) {
+            // Column already exists.
+        }
+    }
+
+    // 1 while the todo's Lark record is "Đang code" (kept current by the Lark sync).
+    function _migrateTodoLarkCoding() {
+        try {
+            _db.transaction(function(tx) {
+                tx.executeSql("ALTER TABLE todos ADD COLUMN lark_coding INTEGER DEFAULT 0")
             })
         } catch (e) {
             // Column already exists.
@@ -328,7 +340,7 @@ QtObject {
             open()
             _db.readTransaction(function(tx) {
                 var rs = tx.executeSql("SELECT id,title,content,done,due_key,due_minutes,notified,"
-                    + "created_at,done_at,lark_id FROM todos ORDER BY id ASC")
+                    + "created_at,done_at,lark_id,lark_coding FROM todos ORDER BY id ASC")
                 for (var i = 0; i < rs.rows.length; i++) {
                     var r = rs.rows.item(i)
                     out.push({
@@ -341,7 +353,8 @@ QtObject {
                         notified: r.notified ? 1 : 0,
                         created_at: r.created_at ?? 0,
                         done_at: r.done_at ?? null,
-                        lark_id: r.lark_id || null
+                        lark_id: r.lark_id || null,
+                        lark_coding: r.lark_coding ? 1 : 0
                     })
                 }
             })
@@ -360,9 +373,10 @@ QtObject {
             open()
             _db.transaction(function(tx) {
                 var rs = tx.executeSql("INSERT INTO todos "
-                    + "(title,content,done,due_key,due_minutes,notified,created_at,lark_id) VALUES (?,?,?,?,?,?,?,?)",
+                    + "(title,content,done,due_key,due_minutes,notified,created_at,lark_id,lark_coding) "
+                    + "VALUES (?,?,?,?,?,?,?,?,?)",
                     [e.title || "", e.content || "", 0, e.due_key ?? null, e.due_minutes ?? null, 0, _now(),
-                     e.lark_id || null])
+                     e.lark_id || null, e.lark_coding ? 1 : 0])
                 id = Number(rs.insertId)
             })
         } catch (err) {
@@ -381,6 +395,32 @@ QtObject {
             })
         } catch (e) {
             console.warn("Db: setTodoDone failed:", e)
+        }
+    }
+
+    // By Lark record id: every todo mirroring that record.
+    function setTodoLarkCoding(larkId, coding) {
+        try {
+            open()
+            _db.transaction(function(tx) {
+                tx.executeSql("UPDATE todos SET lark_coding=? WHERE lark_id=?", [coding ? 1 : 0, larkId])
+            })
+        } catch (e) {
+            console.warn("Db: setTodoLarkCoding failed:", e)
+        }
+    }
+
+    // New deadline (both NULL = none). notified is cleared so the due notification
+    // fires again for the new time.
+    function setTodoDue(id, dueKey, dueMinutes) {
+        try {
+            open()
+            _db.transaction(function(tx) {
+                tx.executeSql("UPDATE todos SET due_key=?, due_minutes=?, notified=0 WHERE id=?",
+                    [dueKey ?? null, dueKey === null || dueKey === undefined ? null : (dueMinutes ?? null), id])
+            })
+        } catch (e) {
+            console.warn("Db: setTodoDue failed:", e)
         }
     }
 

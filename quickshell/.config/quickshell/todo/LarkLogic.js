@@ -83,13 +83,14 @@ function msToKey(ms) {
 }
 
 // Decide what one poll of Lark changes locally.
-//   items   [{id, kind: "task"|"order", title, content, dateMs, created, done, orderId}]
+//   items   [{id, kind: "task"|"order", title, content, dateMs, created, done, coding, orderId}]
 //           assigned to the user; orderId (tasks only) is the order the task belongs to
 //   seenIds record ids already handled once (imported, created from the panel, or skipped)
 //   todos   local todos ({id, lark_id, done, title})
 //   missingIds (optional) record ids Lark reports as no longer existing
 // Returns {add: [{larkId, title, content, dueKey}], done: [todoId],
-//          rename: [{id, title}], remove: [todoId], seen: [ids]}.
+//          rename: [{id, title}], remove: [todoId], coding: [{id, coding}], seen: [ids]}.
+// add entries carry coding: true when their record is "Đang code".
 // A todo whose Lark record was deleted is removed (done or not).
 // An item is imported once: deleting its todo locally does not bring it back. On the
 // first run only items created since cutoffMs are imported (the backlog is remembered,
@@ -137,8 +138,10 @@ function planSync(items, seenIds, todos, cutoffMs, firstRun, missingIds) {
 
         var g = groups[groupId(it)]
         if (!g || (g.order ? 1 : 0) + g.tasks.length < 2) {
-            add.push({ larkId: it.id, title: it.kind === "order" ? "Order: " + title : title,
-                       content: text(it.content), dueKey: msToKey(it.dateMs) })
+            var single = { larkId: it.id, title: it.kind === "order" ? "Order: " + title : title,
+                           content: text(it.content), dueKey: msToKey(it.dateMs) }
+            if (it.coding) single.coding = true
+            add.push(single)
             return
         }
         if (g.added) return
@@ -163,16 +166,25 @@ function planSync(items, seenIds, todos, cutoffMs, firstRun, missingIds) {
         }
         var dates = g.tasks.map(function (t) { return t.dateMs })
             .filter(function (d) { return d !== null && d !== undefined })
-        add.push({
+        var merged = {
             larkId: one ? one.id : g.id,
             title: "Task/Order: " + (g.order ? clean(g.order.title) || title : title),
             content: content,
             dueKey: dates.length > 0 ? msToKey(Math.min.apply(null, dates)) : null
-        })
+        }
+        // Being coded = the record the todo is linked to is "Đang code".
+        if (one ? one.coding : (g.order && g.order.coding)) merged.coding = true
+        add.push(merged)
+    })
+    // Existing todos take over the "Đang code" state of their record when it changed.
+    var coding = []
+    ;(items || []).forEach(function (it) {
+        var t = it && it.id ? byLark[it.id] : null
+        if (t && !!t.lark_coding !== !!it.coding) coding.push({ id: t.id, coding: !!it.coding })
     })
     var missing = {}
     ;(missingIds || []).forEach(function (id) { missing[id] = true })
     var remove = (todos || []).filter(function (t) { return t.lark_id && missing[t.lark_id] })
         .map(function (t) { return t.id })
-    return { add: add, done: done, rename: rename, remove: remove, seen: seenList }
+    return { add: add, done: done, rename: rename, remove: remove, coding: coding, seen: seenList }
 }

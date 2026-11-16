@@ -510,6 +510,19 @@ test("planSync: a todo whose Lark record was deleted is removed, others stay", (
     assert.deepEqual(K.planSync([], [], todos, day(16), false).remove, [])
 })
 
+test("planSync: 'đang code' state follows the linked Lark record", () => {
+    const todos = [{ id: 1, lark_id: "a", done: 0, title: "a", lark_coding: 0 },
+                   { id: 2, lark_id: "b", done: 0, title: "b", lark_coding: 1 },
+                   { id: 3, lark_id: "c", done: 0, title: "c", lark_coding: 1 },
+                   { id: 4, lark_id: "zz", done: 0, title: "not in this page", lark_coding: 1 }]
+    const p = K.planSync([li({ id: "a", coding: true }), li({ id: "b", coding: false }), li({ id: "c", coding: true })],
+                         ["a", "b", "c"], todos, day(16), false)
+    assert.deepEqual(p.coding, [{ id: 1, coding: true }, { id: 2, coding: false }])
+    // new items carry their state
+    const q = K.planSync([li({ id: "n", coding: true }), li({ id: "m" })], [], [], day(16), false)
+    assert.deepEqual(q.add.map(a => [a.larkId, !!a.coding]), [["n", true], ["m", false]])
+})
+
 test("planSync: items without a title are skipped but remembered; seen list keeps old ids", () => {
     const p = K.planSync([li({ id: "e", title: "  " })], ["gone"], [], day(16), false)
     assert.deepEqual(p.add, [])

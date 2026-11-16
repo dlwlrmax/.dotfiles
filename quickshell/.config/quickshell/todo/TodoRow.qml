@@ -3,7 +3,8 @@ import QtQuick.Layouts
 import qs.common
 import "TodoLogic.js" as T
 
-// One todo line: checkbox, title, note marker, due label, delete button (on hover).
+// One todo line: checkbox, title, due label, a state dot for Lark todos
+// (green = đang code, grey = not started; click grey to start) and, on hover, delete.
 // Clicking anywhere outside the checkbox / delete button emits opened(); the panel
 // then shows the detail view (full title + note, selectable and copyable).
 Item {
@@ -15,12 +16,18 @@ Item {
     signal toggled()
     signal removed()
     signal opened()
+    // "Mark đang code" on the Lark record this todo mirrors.
+    signal started()
 
     readonly property bool done: !!todo.done
     readonly property bool overdue: T.isOverdue(todo, nowKey, nowMinutes)
     readonly property bool dueToday: !done && T.isDated(todo) && todo.due_key === nowKey
     readonly property string dueText: T.formatDue(todo, nowKey)
-    readonly property bool hasContent: !!todo.content && String(todo.content).trim() !== ""
+    // false: Lark is not set up on this machine, so no Lark state / actions are shown.
+    property bool larkEnabled: true
+    readonly property bool onLark: larkEnabled && !!todo.lark_id
+    // Its Lark record is "Đang code": green title and a green state dot.
+    readonly property bool coding: onLark && !done && !!todo.lark_coding
 
     implicitHeight: 34
 
@@ -76,22 +83,12 @@ Item {
         Text {
             text: root.todo.title
             textFormat: Text.PlainText
-            color: root.done ? theme.overlay1 : theme.text
+            color: root.done ? theme.overlay1 : root.coding ? theme.green : theme.text
             font.pixelSize: theme.fontSize
             font.family: theme.fontUi
             font.strikeout: root.done
             elide: Text.ElideRight
             Layout.fillWidth: true
-            Layout.alignment: Qt.AlignVCenter
-        }
-
-        // Note marker: this todo has content to show in the detail view.
-        Text {
-            visible: root.hasContent
-            text: Glyphs.note
-            color: root.done ? theme.overlay0 : theme.overlay1
-            font.pixelSize: theme.fontSizeMin
-            font.family: theme.font
             Layout.alignment: Qt.AlignVCenter
         }
 
@@ -105,6 +102,34 @@ Item {
             font.pixelSize: theme.fontSizeMin
             font.family: theme.fontUi
             Layout.alignment: Qt.AlignVCenter
+        }
+
+        // Lark todos: state dot. Green = "Đang code", grey = not started ("Chờ code");
+        // clicking a grey dot marks the record "Đang code".
+        Item {
+            visible: root.onLark && !root.done
+            implicitWidth: 18
+            implicitHeight: 18
+            Layout.alignment: Qt.AlignVCenter
+
+            Rectangle {
+                anchors.centerIn: parent
+                width: 11
+                height: 11
+                radius: width / 2
+                color: root.coding ? theme.green
+                     : dotMa.containsMouse ? Qt.alpha(theme.green, 0.55) : theme.overlay0
+                Behavior on color { ColorAnimation { duration: 100 } }
+            }
+
+            MouseArea {
+                id: dotMa
+                anchors.fill: parent
+                hoverEnabled: true
+                enabled: !root.coding
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.started()
+            }
         }
 
         IconButton {

@@ -146,11 +146,18 @@ Item {
         var i
         for (i = 0; i < plan.add.length; i++) {
             var a = plan.add[i]
-            todoData.add(a.title, a.content, a.dueKey, null, a.larkId)
+            todoData.add(a.title, a.content, a.dueKey, null, a.larkId, !!a.coding)
         }
         for (i = 0; i < plan.done.length; i++) todoData.setDone(plan.done[i])
         for (i = 0; i < plan.rename.length; i++) todoData.rename(plan.rename[i].id, plan.rename[i].title)
         for (i = 0; i < plan.remove.length; i++) todoData.remove(plan.remove[i])
+        if (plan.coding.length > 0) {
+            var all = Db.loadTodos()
+            for (i = 0; i < plan.coding.length; i++) {
+                for (var j = 0; j < all.length; j++)
+                    if (all[j].id === plan.coding[i].id) todoData.setLarkCoding(all[j].lark_id, plan.coding[i].coding)
+            }
+        }
         // Only now: ids are marked as handled after their todos exist.
         Db.cachePut("lark-seen", JSON.stringify(plan.seen))
         if (plan.add.length > 0) {
@@ -382,16 +389,39 @@ Item {
     Connections {
         target: root.todoData
         function onLarkTicked(larkId, title) {
-            root._finishQueue = root._finishQueue.concat([{ id: larkId, title: title }])
+            root._finishQueue = root._finishQueue.concat([{ action: "finish", id: larkId, title: title }])
             root._finishNext()
         }
     }
 
+    // "Mark đang code" button of a Lark todo: the record moves to "Đang code"
+    // (lark-task.sh start). Shares the queue with the tick updates.
+    function markCoding(larkId, title) {
+        if (!larkId) return
+        _finishQueue = _finishQueue.concat([{ action: "start", id: larkId, title: title }])
+        _finishNext()
+    }
+
+    // A deadline was set on a Lark todo: Lark gets the date if it has none yet
+    // (lark-task.sh deadline). Shares the queue with the tick updates.
+    function setDeadline(larkId, title, dateKey) {
+        if (!larkId || !dateKey) return
+        _finishQueue = _finishQueue.concat([{ action: "deadline", id: larkId, title: title, arg: String(dateKey) }])
+        _finishNext()
+    }
+
+    // The next request starts only after the previous one has exited AND its output
+    // was handled (the two signals come in either order; `current` belongs to the run
+    // being handled until then).
     function _finishNext() {
-        if (finishProc.running || _finishQueue.length === 0) return
+        if (finishProc.running || (finishProc.current && !finishProc.handled)) return
+        finishProc.current = null
+        if (_finishQueue.length === 0) return
+        finishProc.handled = false
         finishProc.current = _finishQueue[0]
         _finishQueue = _finishQueue.slice(1)
-        _run(finishProc, finishWatchdog, [_taskScript, "finish", finishProc.current.id])
+        var c = finishProc.current
+        _run(finishProc, finishWatchdog, [_taskScript, c.action, c.id].concat(c.arg ? [c.arg] : []))
     }
 
     function _finishNote(urgent, summary, message) {
@@ -404,17 +434,32 @@ Item {
     Process {
         id: finishProc
         property bool killed: false
+        property bool handled: true
         property var current: null
         stdout: StdioCollector {
             onStreamFinished: {
                 if (finishProc.killed) { finishProc.killed = false; return }
                 var d = root._parse(this.text)
                 finishWatchdog.stop()
+                finishProc.handled = true
+                Qt.callLater(root._finishNext)
                 if (!d.ok) root._finishNote(true, "Lark not updated", d.error || "Lark error")
-                else if (d.changed > 0) root._finishNote(false, "Lark: Chờ nghiệm thu, 100%", "")
+                else if (finishProc.current.action === "deadline") {
+                    // Lark already had a date: kept as it is, nothing to report.
+                    if (d.changed > 0) root._finishNote(false, "Lark: deadline set", "")
+                } else if (finishProc.current.action === "start") {
+                    // Shown at once; the next sync confirms (or corrects) it.
+                    // d.coding: the record is "Đang code" now (also when it already was).
+                    if (root.todoData) root.todoData.setLarkCoding(finishProc.current.id, !!d.coding)
+                    root._finishNote(false, d.changed > 0 ? "Lark: Đang code"
+                        : d.coding ? "Lark: already Đang code" : "Lark: not changed (already past Chờ code)", "")
+                } else if (d.changed > 0) {
+                    if (root.todoData) root.todoData.setLarkCoding(finishProc.current.id, false)
+                    root._finishNote(false, "Lark: Chờ nghiệm thu, 100%", "")
+                }
             }
         }
-        onExited: root._finishNext()
+        onExited: Qt.callLater(root._finishNext)
     }
     Timer {
         id: finishWatchdog
@@ -422,6 +467,7 @@ Item {
         onTriggered: {
             if (finishProc.running) { finishProc.killed = true; finishProc.running = false }
             root._finishNote(true, "Lark not updated", "Lark did not answer")
+            finishProc.handled = true
             Qt.callLater(root._finishNext)
         }
     }

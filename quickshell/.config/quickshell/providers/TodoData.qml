@@ -48,7 +48,7 @@ Item {
     }
 
     // larkId: record id of the Lark task / order this todo mirrors (optional).
-    function add(title, content, dueKey, dueMinutes, larkId) {
+    function add(title, content, dueKey, dueMinutes, larkId, larkCoding) {
         var t = T.normalizeTitle(title === null || title === undefined ? "" : title)
         if (t === "") return
         Db.insertTodo({
@@ -56,7 +56,8 @@ Item {
             content: T.normalizeContent(content),
             due_key: dueKey === undefined ? null : dueKey,
             due_minutes: dueMinutes === undefined ? null : dueMinutes,
-            lark_id: larkId || null
+            lark_id: larkId || null,
+            lark_coding: larkCoding ? 1 : 0
         })
         reload()
     }
@@ -80,6 +81,23 @@ Item {
     // Mark done without toggling (the Lark sync ticks todos finished on Lark).
     function setDone(id) {
         Db.setTodoDone(id, true)
+        reload()
+    }
+
+    // The Lark record behind these todos is (no longer) "Đang code".
+    function setLarkCoding(larkId, coding) {
+        if (!larkId) return
+        Db.setTodoLarkCoding(larkId, coding)
+        reload()
+    }
+
+    // dueKey null = no deadline; dueMinutes null = date only.
+    function setDue(id, dueKey, dueMinutes) {
+        var k = dueKey ?? null, m = k === null ? null : (dueMinutes ?? null)
+        // Unchanged: keep it as it is (saving would re-arm the due notification).
+        for (var i = 0; i < items.length; i++)
+            if (items[i].id === id && items[i].due_key === k && items[i].due_minutes === m) return
+        Db.setTodoDue(id, k, m)
         reload()
     }
 
