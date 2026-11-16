@@ -279,6 +279,7 @@ hl.window_rule({
   move = "0 0",
   confine_pointer = true,
   idle_inhibit = "always",
+  no_anim = true, -- the guard below corrects geometry after map: land instantly
 })
 -- The game reconfigures its own window after mapping, and a window rule is
 -- applied once, at map:
