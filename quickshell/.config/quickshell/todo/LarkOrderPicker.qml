@@ -231,6 +231,8 @@ Item {
             Layout.fillWidth: true
             spacing: 6
 
+            Spinner { visible: !!(root.source && root.source.reviewing); theme: root.theme }
+
             Text {
                 Layout.fillWidth: true
                 elide: Text.ElideRight
@@ -352,10 +354,20 @@ Item {
                 }
             }
 
+            Spinner {
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: emptyText.top
+                anchors.bottomMargin: 6
+                visible: orderList.count === 0 && !!(root.source && root.source.loading)
+                theme: root.theme
+                size: theme.fontSize + 4
+            }
+
             Text {
+                id: emptyText
                 anchors.centerIn: parent
                 visible: orderList.count === 0
-                text: root.source && root.source.loading ? "Loading…"
+                text: root.source && root.source.loading ? "Loading orders…"
                     : searchField.text.trim() !== "" ? "No matching order" : "No open order"
                 color: theme.subtext0
                 font.pixelSize: theme.fontSize
@@ -475,11 +487,11 @@ Item {
                 onClicked: root.toggleForm()
             }
 
+            Item { Layout.fillWidth: true; visible: !!(root.source && root.source.busy) }
+            Spinner { visible: !!(root.source && root.source.busy); theme: root.theme }
             Text {
-                Layout.fillWidth: true
-                horizontalAlignment: Text.AlignRight
                 visible: !!(root.source && root.source.busy)
-                text: "Creating…"
+                text: "Creating on Lark…"
                 color: theme.overlay1
                 font.pixelSize: theme.fontSizeMin
                 font.family: theme.fontUi

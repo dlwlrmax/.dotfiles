@@ -385,11 +385,35 @@ Item {
     // are left alone (lark-task.sh finish decides). One request at a time; ticks made
     // meanwhile wait in the queue.
     property var _finishQueue: []
+    // Lark record ids with an update (start / tick / deadline) queued or running: their
+    // rows show a spinner and take no further clicks until Lark has answered.
+    property var workingIds: []
+
+    function _refreshWorking() {
+        var ids = _finishQueue.map(function (q) { return q.id })
+        if (finishProc.current && !finishProc.handled) ids.push(finishProc.current.id)
+        workingIds = ids
+    }
+
+    // What is in progress right now, for the panel's status line ("" = idle).
+    readonly property string activity: {
+        if (busy) return "Creating on Lark…"
+        if (workingIds.length > 0) {
+            var c = finishProc.current
+            var a = c && !finishProc.handled ? c.action : ""
+            return a === "start" ? "Marking Đang code…" : a === "deadline" ? "Setting deadline on Lark…"
+                 : "Updating Lark…"
+        }
+        if (syncing) return "Syncing with Lark…"
+        if (loading) return "Loading orders…"
+        return ""
+    }
 
     Connections {
         target: root.todoData
         function onLarkTicked(larkId, title) {
             root._finishQueue = root._finishQueue.concat([{ action: "finish", id: larkId, title: title }])
+            root._refreshWorking()
             root._finishNext()
         }
     }
@@ -399,6 +423,7 @@ Item {
     function markCoding(larkId, title) {
         if (!larkId) return
         _finishQueue = _finishQueue.concat([{ action: "start", id: larkId, title: title }])
+        _refreshWorking()
         _finishNext()
     }
 
@@ -407,6 +432,7 @@ Item {
     function setDeadline(larkId, title, dateKey) {
         if (!larkId || !dateKey) return
         _finishQueue = _finishQueue.concat([{ action: "deadline", id: larkId, title: title, arg: String(dateKey) }])
+        _refreshWorking()
         _finishNext()
     }
 
@@ -416,10 +442,11 @@ Item {
     function _finishNext() {
         if (finishProc.running || (finishProc.current && !finishProc.handled)) return
         finishProc.current = null
-        if (_finishQueue.length === 0) return
+        if (_finishQueue.length === 0) { _refreshWorking(); return }
         finishProc.handled = false
         finishProc.current = _finishQueue[0]
         _finishQueue = _finishQueue.slice(1)
+        _refreshWorking()
         var c = finishProc.current
         _run(finishProc, finishWatchdog, [_taskScript, c.action, c.id].concat(c.arg ? [c.arg] : []))
     }
@@ -442,6 +469,7 @@ Item {
                 var d = root._parse(this.text)
                 finishWatchdog.stop()
                 finishProc.handled = true
+                root._refreshWorking()
                 Qt.callLater(root._finishNext)
                 if (!d.ok) root._finishNote(true, "Lark not updated", d.error || "Lark error")
                 else if (finishProc.current.action === "deadline") {
@@ -468,6 +496,7 @@ Item {
             if (finishProc.running) { finishProc.killed = true; finishProc.running = false }
             root._finishNote(true, "Lark not updated", "Lark did not answer")
             finishProc.handled = true
+            root._refreshWorking()
             Qt.callLater(root._finishNext)
         }
     }

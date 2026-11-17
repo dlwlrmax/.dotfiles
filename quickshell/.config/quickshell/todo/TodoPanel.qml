@@ -26,6 +26,12 @@ Item {
     // reset this one.
     property bool larkSent: false
     readonly property bool larkReady: !!(larkSource && larkSource.configured)
+    // What Lark is doing right now ("" = idle), and whether the shown todo is part of it.
+    readonly property string larkActivity: larkReady ? larkSource.activity : ""
+    function larkWorking(larkId) {
+        return !!(larkId && larkReady && larkSource.workingIds.indexOf(larkId) !== -1)
+    }
+    readonly property bool detailWorking: !!(detail && larkWorking(detail.lark_id))
     onPendingChanged: if (larkSource) larkSource.watched = pending !== null
     Component.onDestruction: if (larkSource) larkSource.watched = false
 
@@ -138,6 +144,16 @@ Item {
             title: "Todo"
             onClose: root.close()
 
+            // Lark is busy: say with what, so a wait is not mistaken for a hang.
+            Spinner { visible: root.larkActivity !== ""; theme: root.theme }
+            Text {
+                visible: root.larkActivity !== ""
+                text: root.larkActivity
+                color: theme.subtext0
+                font.pixelSize: theme.fontSizeMin
+                font.family: theme.fontUi
+            }
+
             // Pull tasks / orders assigned on Lark right now (it also runs every 15 min).
             IconButton {
                 id: syncButton
@@ -219,6 +235,7 @@ Item {
                         onToggled: root.dataSource.toggle(cell.modelData.id)
                         onRemoved: root.dataSource.remove(cell.modelData.id)
                         larkEnabled: root.larkReady
+                        working: root.larkWorking(cell.modelData.lark_id)
                         onStarted: if (root.larkReady) root.larkSource.markCoding(cell.modelData.lark_id, cell.modelData.title)
                         onOpened: { root.detailId = cell.modelData.id; root.forceActiveFocus() }
                     }
@@ -297,6 +314,15 @@ Item {
             }
 
             Item { Layout.fillWidth: true }
+
+            Spinner { visible: root.larkActivity !== ""; theme: root.theme }
+            Text {
+                visible: root.larkActivity !== ""
+                text: root.larkActivity
+                color: theme.subtext0
+                font.pixelSize: theme.fontSizeMin
+                font.family: theme.fontUi
+            }
 
             // Status / due badge.
             Badge {
@@ -448,7 +474,8 @@ Item {
             Badge {
                 theme: root.theme
                 text: root.detail && root.detail.done ? "Mark undone" : "Mark done"
-                clickable: true
+                clickable: !root.detailWorking
+                opacity: root.detailWorking ? 0.45 : 1
                 solid: !!(root.detail && root.detail.done)
                 clr: root.detail && root.detail.done ? theme.overlay1 : theme.green
                 implicitHeight: 24
@@ -461,7 +488,8 @@ Item {
                 theme: root.theme
                 readonly property bool on: !!(root.detail && root.detail.lark_coding)
                 text: "\uf111  Đang code"   // nf-fa-circle
-                clickable: !on
+                clickable: !on && !root.detailWorking
+                opacity: root.detailWorking ? 0.45 : 1
                 solid: on
                 clr: on ? theme.green : theme.overlay1
                 implicitHeight: 24

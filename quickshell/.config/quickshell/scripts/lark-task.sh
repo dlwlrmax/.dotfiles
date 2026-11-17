@@ -107,6 +107,43 @@ create() {
   api POST "$base/$table/records?user_id_type=open_id" "$body"
 }
 
+# ── a task's order follows the task (start / finish from the panel) ──
+# $FOLLOWED is set to 1 when the order was updated.
+
+# order_start ORDER_ID: an order that has not been started (L0 – L3, or no status)
+# goes to "L4. Đang code" once one of its tasks is being coded.
+order_start() {
+  FOLLOWED=0
+  [[ "${1:-}" =~ ^rec[A-Za-z0-9]+$ ]] || return 0
+  SOFT=1 api GET "$base/$orders/records/$1" || return 0
+  case "$(jq -r '.data.record.fields["Trạng thái"] // ""' <<< "$RESP")" in
+    "L0. Chờ tiếp nhận"|"L1. Cần chốt mục tiêu"|"L2. Đang làm rõ yêu cầu"|"L3. Chờ lên kế hoạch code"|"")
+      api PUT "$base/$orders/records/$1" '{"fields":{"Trạng thái":"L4. Đang code"}}'
+      FOLLOWED=1 ;;
+  esac
+}
+
+# order_finish ORDER_ID DONE_TASK_ID: an order that is "L4. Đang code" goes to
+# "L7. Chờ nghiệm thu", 100 %, when none of its other tasks (anyone's) is still to be
+# coded. DONE_TASK_ID is skipped: Lark's search may not show its new status yet.
+order_finish() {
+  FOLLOWED=0
+  [[ "${1:-}" =~ ^rec[A-Za-z0-9]+$ ]] || return 0
+  SOFT=1 api GET "$base/$orders/records/$1" || return 0
+  [ "$(jq -r '.data.record.fields["Trạng thái"] // ""' <<< "$RESP")" = "L4. Đang code" ] || return 0
+  api POST "$base/$tasks/records/search?page_size=500" "$(jq -nc --arg o "$1" '{
+    field_names: ["Kết quả cuối ngày"],
+    filter: {conjunction: "and", conditions: [{field_name: "Order", operator: "is", value: [$o]}]}}')"
+  local pending
+  pending=$(jq -r --arg me "${2:-}" '[.data.items[]? | select(.record_id != $me)
+      | (.fields["Kết quả cuối ngày"] // "")
+      | select(IN("Chờ nghiệm thu", "Đã hoàn thành", "Hủy", "Cần test trên stag", "Cần test trên product",
+                  "Đang test", "Cần merge to stag", "Cần merge to master") | not)] | length' <<< "$RESP")
+  [ "$pending" = 0 ] || return 0
+  api PUT "$base/$orders/records/$1" '{"fields":{"Trạng thái":"L7. Chờ nghiệm thu","Tiến độ code":1}}'
+  FOLLOWED=1
+}
+
 case "${1:-}" in
   orders)
     body=$(jq -nc '{
@@ -235,7 +272,8 @@ case "${1:-}" in
   start)
     # "Mark đang code" in the panel: work on the record begins. Only records that have
     # not been started move; anything further along the workflow is never pulled back.
-    #   task  "Chờ code" (or no status)            -> "Đang code"
+    #   task  "Chờ code" (or no status)            -> "Đang code"; its order, if
+    #         L0 – L3, follows to "L4. Đang code"
     #   order L0 – L3 (or no status)               -> "L4. Đang code"
     #   and, for an order that is now L4, its "Chờ code" tasks assigned to
     #   LARK_ASSIGNEE_OPEN_ID                       -> "Đang code"
@@ -247,10 +285,16 @@ case "${1:-}" in
     changed=0
     coding=false
     if SOFT=1 api GET "$base/$tasks/records/$id"; then
+      order_id=$(jq -r '.data.record.fields.Order[0].record_ids[0]? // empty' <<< "$RESP")
       case "$(jq -r '.data.record.fields["Kết quả cuối ngày"] // ""' <<< "$RESP")" in
         "Đang code") coding=true ;;
         "Chờ code"|"") api PUT "$base/$tasks/records/$id" "$task_coding"; changed=1; coding=true ;;
       esac
+      # The task is being coded, so its order is too.
+      if [ "$coding" = true ]; then
+        order_start "$order_id"
+        changed=$((changed + FOLLOWED))
+      fi
       jq -nc --argjson n "$changed" --argjson c "$coding" '{ok:true, kind:"task", changed:$n, coding:$c}'
     else
       [ "$(jq -r '.code // empty' <<< "$RESP")" = 1254043 ] \
@@ -309,7 +353,8 @@ case "${1:-}" in
   finish)
     # A todo was ticked in the panel. Records that are being coded right now move to
     # "Chờ nghiệm thu" with progress 100 %; anything in another state is left alone.
-    #   task  (Kết quả cuối ngày = "Đang code")  -> "Chờ nghiệm thu"
+    #   task  (Kết quả cuối ngày = "Đang code")  -> "Chờ nghiệm thu"; then its order,
+    #         if "L4. Đang code" with no other task left to code -> "L7. Chờ nghiệm thu"
     #   order (Trạng thái = "L4. Đang code")     -> "L7. Chờ nghiệm thu", and the same
     #         for each of its "Đang code" tasks assigned to LARK_ASSIGNEE_OPEN_ID
     # Prints {"ok":true,"kind":"task"|"order","changed":<records updated>}.
@@ -318,10 +363,19 @@ case "${1:-}" in
     task_done='{"fields":{"Kết quả cuối ngày":"Chờ nghiệm thu","Tiến độ code":1}}'
     changed=0
     if SOFT=1 api GET "$base/$tasks/records/$id"; then
-      if [ "$(jq -r '.data.record.fields["Kết quả cuối ngày"] // ""' <<< "$RESP")" = "Đang code" ]; then
+      order_id=$(jq -r '.data.record.fields.Order[0].record_ids[0]? // empty' <<< "$RESP")
+      state=$(jq -r '.data.record.fields["Kết quả cuối ngày"] // ""' <<< "$RESP")
+      if [ "$state" = "Đang code" ]; then
         api PUT "$base/$tasks/records/$id" "$task_done"
         changed=1
+        state="Chờ nghiệm thu"
       fi
+      # Coding of this task is over: its order follows when no other task is left.
+      case "$state" in
+        "Chờ nghiệm thu"|"Đã hoàn thành")
+          order_finish "$order_id" "$id"
+          changed=$((changed + FOLLOWED)) ;;
+      esac
       jq -nc --argjson n "$changed" '{ok:true, kind:"task", changed:$n}'
     else
       # Only "no such record" means it may be an order; any other failure is real.

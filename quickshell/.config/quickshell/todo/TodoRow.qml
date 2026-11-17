@@ -25,6 +25,8 @@ Item {
     readonly property string dueText: T.formatDue(todo, nowKey)
     // false: Lark is not set up on this machine, so no Lark state / actions are shown.
     property bool larkEnabled: true
+    // An update of its Lark record is on the way: spinner instead of the dot, no clicks.
+    property bool working: false
     readonly property bool onLark: larkEnabled && !!todo.lark_id
     // Its Lark record is "Đang code": green title and a green state dot.
     readonly property bool coding: onLark && !done && !!todo.lark_coding
@@ -75,6 +77,7 @@ Item {
             MouseArea {
                 anchors.fill: parent
                 anchors.margins: -4
+                enabled: !root.working
                 cursorShape: Qt.PointingHandCursor
                 onClicked: root.toggled()
             }
@@ -107,12 +110,19 @@ Item {
         // Lark todos: state dot. Green = "Đang code", grey = not started ("Chờ code");
         // clicking a grey dot marks the record "Đang code".
         Item {
-            visible: root.onLark && !root.done
+            visible: root.onLark && (!root.done || root.working)
             implicitWidth: 18
             implicitHeight: 18
             Layout.alignment: Qt.AlignVCenter
 
+            Spinner {
+                anchors.centerIn: parent
+                visible: root.working
+                theme: root.theme
+            }
+
             Rectangle {
+                visible: !root.working
                 anchors.centerIn: parent
                 width: 11
                 height: 11
@@ -126,7 +136,7 @@ Item {
                 id: dotMa
                 anchors.fill: parent
                 hoverEnabled: true
-                enabled: !root.coding
+                enabled: !root.coding && !root.working
                 cursorShape: Qt.PointingHandCursor
                 onClicked: root.started()
             }
