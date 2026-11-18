@@ -1,0 +1,14 @@
+{
+  "status": "securable",
+  "filters": {
+    "type_filters": { "filters": { "category": { "option": "accessory.ring" } } },
+    "trade_filters": { "filters": { "price": { "option": "chaos", "max": 6 } } }
+  },
+  "stats": [
+    { "type": "and", "filters": [
+      { "id": "explicit.stat_3299347043", "value": { "min": 103, "max": 103 }, "disabled": false },
+      { "id": "explicit.stat_4220027924", "value": { "min": 36, "max": 36 }, "disabled": false }
+    ]}
+  ],
+  "sort": { "price": "asc" }
+}

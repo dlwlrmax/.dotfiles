@@ -182,6 +182,12 @@ base are not enough (rare names repeat):
 
 - the open tab, **plus** the seller account and the price, e.g.
   `helm tab · row 2 · gujin1987#4540 · 1c`;
+- **highlight the row in the page** rather than describing where it is: outline it, insert
+  a label with name/price/seller, `scrollIntoView`, then screenshot to confirm. One glowing
+  row is what answers "mở link cũng không biết mua item nào" — prose does not. The marks
+  are cosmetic DOM injection and vanish on reload, so re-apply if the page refreshes;
+- an exact-roll filter is **not** guaranteed unique either (life 103 + cold 36 exact still
+  returned 6 rows) — combine it with the seller match to pin the row;
 - and confirm the tab still has rows. "No results found" means the filter was too
   strict for that listing or it sold — rebuild the query, do not hand over an empty tab.
 

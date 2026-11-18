@@ -78,7 +78,7 @@ merge into "mcp", keep existing keys). Rewrite `pob` to exactly:
 "PoB Lua Bridge started successfully." Do not use `bash -lc` in `command`; it
 breaks MCP stdio registration.
 
-STEP 5 — write the skill (12 files, exact content):
+STEP 5 — write the skill (13 files, exact content):
 
 5a) ~/.config/opencode/skills/poe-gear-finder/SKILL.md
 
@@ -266,6 +266,12 @@ base are not enough (rare names repeat):
 
 - the open tab, **plus** the seller account and the price, e.g.
   `helm tab · row 2 · gujin1987#4540 · 1c`;
+- **highlight the row in the page** rather than describing where it is: outline it, insert
+  a label with name/price/seller, `scrollIntoView`, then screenshot to confirm. One glowing
+  row is what answers "mở link cũng không biết mua item nào" — prose does not. The marks
+  are cosmetic DOM injection and vanish on reload, so re-apply if the page refreshes;
+- an exact-roll filter is **not** guaranteed unique either (life 103 + cold 36 exact still
+  returned 6 rows) — combine it with the seller match to pin the row;
 - and confirm the tab still has rows. "No results found" means the filter was too
   strict for that listing or it sold — rebuild the query, do not hand over an empty tab.
 
@@ -1187,7 +1193,24 @@ console.log(`\n_bleed chance ${pickSet.bleedChance}% · baseline life ${base.lif
   "sort": { "price": "asc" }
 }
 
-5l) ~/.config/opencode/skills/poe-gear-finder/specs/ring.json
+5l) ~/.config/opencode/skills/poe-gear-finder/specs/ring-exact-rapture.json
+
+{
+  "status": "securable",
+  "filters": {
+    "type_filters": { "filters": { "category": { "option": "accessory.ring" } } },
+    "trade_filters": { "filters": { "price": { "option": "chaos", "max": 6 } } }
+  },
+  "stats": [
+    { "type": "and", "filters": [
+      { "id": "explicit.stat_3299347043", "value": { "min": 103, "max": 103 }, "disabled": false },
+      { "id": "explicit.stat_4220027924", "value": { "min": 36, "max": 36 }, "disabled": false }
+    ]}
+  ],
+  "sort": { "price": "asc" }
+}
+
+5m) ~/.config/opencode/skills/poe-gear-finder/specs/ring.json
 
 {
   "status": "securable",
