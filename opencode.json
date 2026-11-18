@@ -1,0 +1,16 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "pob": {
+      "type": "local",
+      "command": ["node", "{env:HOME}/pob/pob-mcp/build/index.js"],
+      "environment": {
+        "POB_LUA_ENABLED": "true",
+        "POB_CMD": "luajit",
+        "POB_PATH": "{env:HOME}/pob/PathOfBuilding/src",
+        "POB_DIRECTORY": "{env:HOME}/pob/builds",
+        "LUA_PATH": "{env:HOME}/pob/PathOfBuilding/src/lua/?.lua;{env:HOME}/pob/PathOfBuilding/src/lua/?/init.lua;./lua/?.lua;./lua/?/init.lua;;"
+      }
+    }
+  }
+}
