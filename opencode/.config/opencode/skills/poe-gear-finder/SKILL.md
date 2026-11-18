@@ -55,10 +55,12 @@ freshness gates for you.
    (`~/pob/setup-pob.sh`, then the references) — never fall back to judging mods by eye
    or to a trade-only answer with no PoB numbers.
 2. **Baseline** — captured for you: the sim program returns `base` next to every
-   candidate set, and `table.mjs` diffs against it. The rule that matters: overcap lives
-   in `*ResistOverCap` from `export_full_stats({filter: "Resist"})`, **never** in the
-   capped `FireResist` that `lua_get_stats` prints — a capped `78` can hide `+33`. The
-   res before/after table is mandatory output, not an optional extra.
+   candidate set, and `table.mjs` diffs against it. Two keys matter, both from
+   `export_full_stats({filter: "Resist"})`: `*ResistOverCap` (how far above the cap) and
+   `Missing<Element>Resist` (**0 means capped**; anything else is how much you are short).
+   Never judge capping from `lua_get_stats` — its `FireResist` is **clamped to the cap**, so
+   a build 1% short prints `76 / 76` and looks capped. The res before/after table is
+   mandatory output, not an optional extra.
 3. **Search** — `node scripts/search.mjs --league <L> --slot <slot> --spec specs/<slot>.json`.
    It refuses to run inside 10 s of the previous search and inside the 4-per-30-min cap,
    then prints the `expression` to paste into `browse.eval` (instant buyout, 60 ids

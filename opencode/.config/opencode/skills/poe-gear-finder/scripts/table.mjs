@@ -30,9 +30,16 @@ const SET_KEYS = ["fire", "cold", "lightning", "chaos"];
 const ELEM = ["fire", "cold", "lightning"];
 const OVERCAP_TARGET = 20;
 
+// Capped can only be judged from Missing<El>Resist: the baseline `FireResist` value is
+// clamped to the cap, so a build 1% short of the cap reads as "capped" there.
+const short = (s, e) => (s[e].missing ?? 0) > 0;
+const thinOf = (s) => ELEM.filter((e) => !short(s, e) && (s[e].overcap ?? 0) < OVERCAP_TARGET);
+const shortOf = (s) => ELEM.filter((e) => short(s, e));
+
 const delta = (a, b) => (a === null || b === null ? null : b - a);
 const signed = (v) => (v === null ? "–" : (v > 0 ? "+" : "") + v);
 const pct = (a, b) => (a ? signed(Math.round(((b / a) - 1) * 1000) / 10) + "%" : "–");
+const ocTxt = (s, e) => (short(s, e) ? `⚠short ${s[e].missing}` : signed(s[e].overcap));
 
 const labels = Object.keys(data).filter((k) => !["build", "own", "reqs", "base"].includes(k));
 const base = data.base;
@@ -48,21 +55,21 @@ if (badReqs.length) {
   for (const [k, r] of badReqs) console.log(`  - ${k}: ${r && r.error ? r.error : `needs S${r.str} D${r.dex} I${r.int}`}`);
 }
 const pickSet = data[pick];
-const uncapped = ELEM.filter((e) => pickSet[e].total !== null && pickSet[e].cap !== null && pickSet[e].total < pickSet[e].cap);
-const thin = ELEM.filter((e) => pickSet[e].overcap !== null && pickSet[e].overcap < OVERCAP_TARGET);
-console.log(`- res caps (${pick}): ${uncapped.length ? "**FAIL** " + uncapped.map((e) => `${e} ${pickSet[e].total}<${pickSet[e].cap}`).join(", ") : "all elements capped"}`);
-console.log(`- overcap >= ${OVERCAP_TARGET} (${pick}): ${thin.length ? "**thin** " + thin.map((e) => `${e} +${pickSet[e].overcap}`).join(", ") : "ok"}`);
-console.log(`- chaos (${pick}): ${pickSet.chaos.total} (informational; negative is normal)`);
+const shortPick = shortOf(pickSet);
+const thinPick = thinOf(pickSet);
+console.log(`- res caps (${pick}): ${shortPick.length ? "**FAIL** " + shortPick.map((e) => `${e} short ${pickSet[e].missing}`).join(", ") : "all elements capped"}`);
+console.log(`- overcap >= ${OVERCAP_TARGET} (${pick}): ${thinPick.length ? "**thin** " + thinPick.map((e) => `${e} +${pickSet[e].overcap}`).join(", ") : "ok"}`);
+console.log(`- chaos (${pick}): total ${pickSet.chaos.total}, still short ${pickSet.chaos.missing} of the cap (informational; negative is normal)`);
 
 console.log("\n## Sets\n");
 console.log("| Set | Cost | Life | EHP | Armour | DPS | BleedDPS | Overcap F/C/L | Chaos |");
 console.log("|---|---|---|---|---|---|---|---|---|");
 for (const label of labels) {
   const s = data[label];
-  const oc = ELEM.map((e) => signed(s[e].overcap)).join(" / ");
-  const bad = ELEM.filter((e) => s[e].total !== null && s[e].cap !== null && s[e].total < s[e].cap);
-  const thinSet = ELEM.filter((e) => s[e].overcap !== null && s[e].overcap < OVERCAP_TARGET);
-  const flag = bad.length ? ` ⚠uncapped(${bad.join(",")})` : thinSet.length ? ` ⚠thin(${thinSet.join(",")})` : "";
+  const oc = ELEM.map((e) => ocTxt(s, e)).join(" / ");
+  const bad = shortOf(s);
+  const thinSet = thinOf(s);
+  const flag = bad.length ? ` ⚠uncapped(${bad.map((e) => `${e} short ${s[e].missing}`).join(",")})` : thinSet.length ? ` ⚠thin(${thinSet.join(",")})` : "";
   console.log(
     `| ${label}${label === pick ? " **(pick)**" : ""}${flag} | ${s.cost ?? "–"} | ${signed(delta(base.life, s.life))} | ` +
       `${signed(delta(base.ehp, s.ehp))} (${pct(base.ehp, s.ehp)}) | ${signed(delta(base.armour, s.armour))} | ` +
@@ -71,15 +78,13 @@ for (const label of labels) {
 }
 
 console.log(`\n## Res before / after (${pick})\n`);
-console.log("| Res | Trước total / cap / overcap | Sau total / cap / overcap | Δ overcap |");
+console.log("| Res | Trước total / overcap | Sau total / overcap | Δ |");
 console.log("|---|---|---|---|");
 for (const e of SET_KEYS) {
   const b = base[e], a = pickSet[e];
-  const bTxt = `${b.total} / ${b.cap ?? "–"} / ${b.overcap === null ? "–" : (b.overcap > 0 ? "+" : "") + b.overcap}`;
-  const aTxt = `${a.total} / ${a.cap ?? "–"} / ${a.overcap === null ? "–" : (a.overcap > 0 ? "+" : "") + a.overcap}`;
-  const anyB = b.overcap === null ? b.total : b.overcap;
-  const anyA = a.overcap === null ? a.total : a.overcap;
-  console.log(`| ${e[0].toUpperCase() + e.slice(1)} | ${bTxt} | ${aTxt} | ${signed(anyA - anyB)} |`);
+  const txt = (x) => `${x.total} / ${short({ [e]: x }, e) ? `short ${x.missing}` : signed(x.overcap)}`;
+  const change = e === "chaos" ? (a.total ?? 0) - (b.total ?? 0) : short(pickSet, e) || short(base, e) ? (a.total ?? 0) - (b.total ?? 0) : (a.overcap ?? 0) - (b.overcap ?? 0);
+  console.log(`| ${e[0].toUpperCase() + e.slice(1)} | ${txt(b)} | ${txt(a)} | ${signed(change)} |`);
 }
 
 console.log(`\n_bleed chance ${pickSet.bleedChance}% · baseline life ${base.life} · base DPS ${base.dps}_`);

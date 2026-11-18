@@ -108,11 +108,34 @@ const page = `(async function () {
       mods: mods
     };
   });
-  return JSON.stringify({ qid: window.__p.qid, total: window.__p.total, idsAvailable: window.__p.ids.length, fetched: rows.length, rows: rows });
+  window.__p.full = function (indexes) {
+    return JSON.stringify(indexes.map(function (n) { return rows[n]; }));
+  };
+  // The compact digest is what travels back through the model: 60 full rows (~30KB)
+  // would not survive, and only the chosen few need their mod text.
+  var sum = function (text, re) { var s = 0, x, rr = new RegExp(re, "g"); while ((x = rr.exec(text)) !== null) { s += Number(x[1]); } return s; };
+  var digest = rows.map(function (r) {
+    var t = (r.mods || []).join(" | ");
+    var one = function (re) { var m = new RegExp(re).exec(t); return m ? Number(m[1]) : 0; };
+    var elemAll = sum(t, "[+](\\\\d+)% to all Elemental Resistances");
+    return {
+      n: r.name, b: r.base, p: r.priceAmount, seller: r.seller, ar: r.armour,
+      life: one("[+](\\\\d+) to maximum Life"),
+      fire: one("[+](\\\\d+)% to Fire Resistance") + elemAll + sum(t, "[+](\\\\d+)% to Fire and (?:Cold|Lightning)"),
+      cold: one("[+](\\\\d+)% to Cold Resistance") + elemAll + sum(t, "[+](\\\\d+)% to Cold and (?:Fire|Lightning)") + sum(t, "[+](\\\\d+)% to Fire and Cold"),
+      lightning: one("[+](\\\\d+)% to Lightning Resistance") + elemAll + sum(t, "[+](\\\\d+)% to (?:Fire|Cold) and Lightning"),
+      chaos: one("[+](\\\\d+)% to Chaos Resistance"),
+      phys: (t.match(/Adds (\\d+) to (\\d+) Physical Damage/) || [0, 0, 0]).slice(1, 3).join("-")
+    };
+  });
+  return JSON.stringify({ qid: window.__p.qid, total: window.__p.total, idsAvailable: window.__p.ids.length, fetched: rows.length, digest: digest });
 })()`;
 
 console.log("=== expression (paste verbatim as the browse.eval `expression` argument)");
 console.log(JSON.stringify(page));
+console.log("");
+console.log("=== full mod text for chosen rows lives in the page: paste this as a second browse.eval expression");
+console.log('window.__p.full([0,1,2])');
 console.log("");
 console.log("=== then save the returned rows to the pool");
 console.log(`node scripts/pool.mjs save --league ${league} --slot ${slot} --file /tmp/opencode/${slot}-rows.json`);

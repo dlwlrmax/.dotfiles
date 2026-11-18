@@ -45,10 +45,12 @@ const snap = async () => {
   const a = String(await tools.pob.lua_get_stats({}));
   const res = String(await tools.pob.export_full_stats({ filter: "Resist" }));
   const bleed = String(await tools.pob.export_full_stats({ filter: "Bleed" }));
+  // The cap must come from Missing<El>Resist, never from lua_get_stats: that value is
+  // already clamped to the cap, so a build 1% short reads as "capped" there.
   const r = (el) => ({
     total: n(res, el + "ResistTotal"),
-    cap: g(a, el + "Resist"),
     overcap: n(res, el + "ResistOverCap"),
+    missing: n(res, "Missing" + el + "Resist"),
   });
   return {
     life: g(a, "Life"),

@@ -59,6 +59,27 @@ function resist(mods, elements) {
 }
 
 function derive(row) {
+  // Two shapes reach here: full API rows (from search.mjs in earlier form) and the
+  // compact digest that search.mjs now returns. The digest already carries the derived
+  // numbers, so only normalise the keys.
+  if (row.n !== undefined || row.mods === undefined) {
+    return {
+      name: row.n ?? row.name,
+      base: row.b ?? row.base,
+      priceAmount: row.p ?? row.priceAmount,
+      price: row.price ?? (row.p !== undefined ? `${row.p} chaos` : null),
+      seller: row.seller,
+      armour: row.ar ?? row.armour ?? 0,
+      evasion: row.evasion ?? 0,
+      life: row.life ?? 0,
+      fire: row.fire ?? 0,
+      cold: row.cold ?? 0,
+      lightning: row.lightning ?? 0,
+      chaos: row.chaos ?? 0,
+      phys: row.phys ?? "",
+      mods: row.mods ?? null,
+    };
+  }
   const mods = row.mods || [];
   const life = num((mods.find((m) => /maximum Life$/.test(m)) || "").replace(/^\+/, ""));
   const join = mods.join(" | ");

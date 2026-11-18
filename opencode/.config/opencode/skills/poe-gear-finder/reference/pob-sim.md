@@ -74,8 +74,10 @@ same swap, chaos always shown).
 - Base names must be exact (`Lacquered Helmet`, not `Lacquer Helmet`) or
   `add_item` fails with `failed to parse item`.
 - `lua_get_stats` returns **capped** resistances (`FireResist` = 78 even with 200%
-  over). Overcap lives in `*ResistOverCap` from `export_full_stats`, which is
-  truncated for an unfiltered call — always pass `filter`.
+  over) and, worse, it is **clamped**: a build 1% short of the cap prints `76 / 76` and
+  looks capped. Judge capping only from `export_full_stats({filter: "Resist"})`:
+  `Missing<Element>Resist` must be `0`, and `*ResistOverCap` is the headroom (also
+  clamped at 0, so pair it with `Missing`).
 - `export_full_stats` with `filter: "Bleed"` gives `BleedChance`; use it instead of
   inferring from gem text (a bleed build at 100% gains nothing from more bleed chance).
 - **Attribute check is mandatory.** `get_build_issues` is not enough — PoB applies

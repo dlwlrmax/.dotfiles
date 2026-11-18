@@ -78,7 +78,7 @@ merge into "mcp", keep existing keys). Rewrite `pob` to exactly:
 "PoB Lua Bridge started successfully." Do not use `bash -lc` in `command`; it
 breaks MCP stdio registration.
 
-STEP 5 — write the skill (11 files, exact content):
+STEP 5 — write the skill (12 files, exact content):
 
 5a) ~/.config/opencode/skills/poe-gear-finder/SKILL.md
 
@@ -139,10 +139,12 @@ freshness gates for you.
    (`~/pob/setup-pob.sh`, then the references) — never fall back to judging mods by eye
    or to a trade-only answer with no PoB numbers.
 2. **Baseline** — captured for you: the sim program returns `base` next to every
-   candidate set, and `table.mjs` diffs against it. The rule that matters: overcap lives
-   in `*ResistOverCap` from `export_full_stats({filter: "Resist"})`, **never** in the
-   capped `FireResist` that `lua_get_stats` prints — a capped `78` can hide `+33`. The
-   res before/after table is mandatory output, not an optional extra.
+   candidate set, and `table.mjs` diffs against it. Two keys matter, both from
+   `export_full_stats({filter: "Resist"})`: `*ResistOverCap` (how far above the cap) and
+   `Missing<Element>Resist` (**0 means capped**; anything else is how much you are short).
+   Never judge capping from `lua_get_stats` — its `FireResist` is **clamped to the cap**, so
+   a build 1% short prints `76 / 76` and looks capped. The res before/after table is
+   mandatory output, not an optional extra.
 3. **Search** — `node scripts/search.mjs --league <L> --slot <slot> --spec specs/<slot>.json`.
    It refuses to run inside 10 s of the previous search and inside the 4-per-30-min cap,
    then prints the `expression` to paste into `browse.eval` (instant buyout, 60 ids
@@ -342,8 +344,10 @@ same swap, chaos always shown).
 - Base names must be exact (`Lacquered Helmet`, not `Lacquer Helmet`) or
   `add_item` fails with `failed to parse item`.
 - `lua_get_stats` returns **capped** resistances (`FireResist` = 78 even with 200%
-  over). Overcap lives in `*ResistOverCap` from `export_full_stats`, which is
-  truncated for an unfiltered call — always pass `filter`.
+  over) and, worse, it is **clamped**: a build 1% short of the cap prints `76 / 76` and
+  looks capped. Judge capping only from `export_full_stats({filter: "Resist"})`:
+  `Missing<Element>Resist` must be `0`, and `*ResistOverCap` is the headroom (also
+  clamped at 0, so pair it with `Missing`).
 - `export_full_stats` with `filter: "Bleed"` gives `BleedChance`; use it instead of
   inferring from gem text (a bleed build at 100% gains nothing from more bleed chance).
 - **Attribute check is mandatory.** `get_build_issues` is not enough — PoB applies
@@ -642,6 +646,27 @@ function resist(mods, elements) {
 }
 
 function derive(row) {
+  // Two shapes reach here: full API rows (from search.mjs in earlier form) and the
+  // compact digest that search.mjs now returns. The digest already carries the derived
+  // numbers, so only normalise the keys.
+  if (row.n !== undefined || row.mods === undefined) {
+    return {
+      name: row.n ?? row.name,
+      base: row.b ?? row.base,
+      priceAmount: row.p ?? row.priceAmount,
+      price: row.price ?? (row.p !== undefined ? `${row.p} chaos` : null),
+      seller: row.seller,
+      armour: row.ar ?? row.armour ?? 0,
+      evasion: row.evasion ?? 0,
+      life: row.life ?? 0,
+      fire: row.fire ?? 0,
+      cold: row.cold ?? 0,
+      lightning: row.lightning ?? 0,
+      chaos: row.chaos ?? 0,
+      phys: row.phys ?? "",
+      mods: row.mods ?? null,
+    };
+  }
   const mods = row.mods || [];
   const life = num((mods.find((m) => /maximum Life$/.test(m)) || "").replace(/^\+/, ""));
   const join = mods.join(" | ");
@@ -821,11 +846,34 @@ const page = `(async function () {
       mods: mods
     };
   });
-  return JSON.stringify({ qid: window.__p.qid, total: window.__p.total, idsAvailable: window.__p.ids.length, fetched: rows.length, rows: rows });
+  window.__p.full = function (indexes) {
+    return JSON.stringify(indexes.map(function (n) { return rows[n]; }));
+  };
+  // The compact digest is what travels back through the model: 60 full rows (~30KB)
+  // would not survive, and only the chosen few need their mod text.
+  var sum = function (text, re) { var s = 0, x, rr = new RegExp(re, "g"); while ((x = rr.exec(text)) !== null) { s += Number(x[1]); } return s; };
+  var digest = rows.map(function (r) {
+    var t = (r.mods || []).join(" | ");
+    var one = function (re) { var m = new RegExp(re).exec(t); return m ? Number(m[1]) : 0; };
+    var elemAll = sum(t, "[+](\\\\d+)% to all Elemental Resistances");
+    return {
+      n: r.name, b: r.base, p: r.priceAmount, seller: r.seller, ar: r.armour,
+      life: one("[+](\\\\d+) to maximum Life"),
+      fire: one("[+](\\\\d+)% to Fire Resistance") + elemAll + sum(t, "[+](\\\\d+)% to Fire and (?:Cold|Lightning)"),
+      cold: one("[+](\\\\d+)% to Cold Resistance") + elemAll + sum(t, "[+](\\\\d+)% to Cold and (?:Fire|Lightning)") + sum(t, "[+](\\\\d+)% to Fire and Cold"),
+      lightning: one("[+](\\\\d+)% to Lightning Resistance") + elemAll + sum(t, "[+](\\\\d+)% to (?:Fire|Cold) and Lightning"),
+      chaos: one("[+](\\\\d+)% to Chaos Resistance"),
+      phys: (t.match(/Adds (\\d+) to (\\d+) Physical Damage/) || [0, 0, 0]).slice(1, 3).join("-")
+    };
+  });
+  return JSON.stringify({ qid: window.__p.qid, total: window.__p.total, idsAvailable: window.__p.ids.length, fetched: rows.length, digest: digest });
 })()`;
 
 console.log("=== expression (paste verbatim as the browse.eval `expression` argument)");
 console.log(JSON.stringify(page));
+console.log("");
+console.log("=== full mod text for chosen rows lives in the page: paste this as a second browse.eval expression");
+console.log('window.__p.full([0,1,2])');
 console.log("");
 console.log("=== then save the returned rows to the pool");
 console.log(`node scripts/pool.mjs save --league ${league} --slot ${slot} --file /tmp/opencode/${slot}-rows.json`);
@@ -879,10 +927,12 @@ const snap = async () => {
   const a = String(await tools.pob.lua_get_stats({}));
   const res = String(await tools.pob.export_full_stats({ filter: "Resist" }));
   const bleed = String(await tools.pob.export_full_stats({ filter: "Bleed" }));
+  // The cap must come from Missing<El>Resist, never from lua_get_stats: that value is
+  // already clamped to the cap, so a build 1% short reads as "capped" there.
   const r = (el) => ({
     total: n(res, el + "ResistTotal"),
-    cap: g(a, el + "Resist"),
     overcap: n(res, el + "ResistOverCap"),
+    missing: n(res, "Missing" + el + "Resist"),
   });
   return {
     life: g(a, "Life"),
@@ -987,9 +1037,16 @@ const SET_KEYS = ["fire", "cold", "lightning", "chaos"];
 const ELEM = ["fire", "cold", "lightning"];
 const OVERCAP_TARGET = 20;
 
+// Capped can only be judged from Missing<El>Resist: the baseline `FireResist` value is
+// clamped to the cap, so a build 1% short of the cap reads as "capped" there.
+const short = (s, e) => (s[e].missing ?? 0) > 0;
+const thinOf = (s) => ELEM.filter((e) => !short(s, e) && (s[e].overcap ?? 0) < OVERCAP_TARGET);
+const shortOf = (s) => ELEM.filter((e) => short(s, e));
+
 const delta = (a, b) => (a === null || b === null ? null : b - a);
 const signed = (v) => (v === null ? "–" : (v > 0 ? "+" : "") + v);
 const pct = (a, b) => (a ? signed(Math.round(((b / a) - 1) * 1000) / 10) + "%" : "–");
+const ocTxt = (s, e) => (short(s, e) ? `⚠short ${s[e].missing}` : signed(s[e].overcap));
 
 const labels = Object.keys(data).filter((k) => !["build", "own", "reqs", "base"].includes(k));
 const base = data.base;
@@ -1005,21 +1062,21 @@ if (badReqs.length) {
   for (const [k, r] of badReqs) console.log(`  - ${k}: ${r && r.error ? r.error : `needs S${r.str} D${r.dex} I${r.int}`}`);
 }
 const pickSet = data[pick];
-const uncapped = ELEM.filter((e) => pickSet[e].total !== null && pickSet[e].cap !== null && pickSet[e].total < pickSet[e].cap);
-const thin = ELEM.filter((e) => pickSet[e].overcap !== null && pickSet[e].overcap < OVERCAP_TARGET);
-console.log(`- res caps (${pick}): ${uncapped.length ? "**FAIL** " + uncapped.map((e) => `${e} ${pickSet[e].total}<${pickSet[e].cap}`).join(", ") : "all elements capped"}`);
-console.log(`- overcap >= ${OVERCAP_TARGET} (${pick}): ${thin.length ? "**thin** " + thin.map((e) => `${e} +${pickSet[e].overcap}`).join(", ") : "ok"}`);
-console.log(`- chaos (${pick}): ${pickSet.chaos.total} (informational; negative is normal)`);
+const shortPick = shortOf(pickSet);
+const thinPick = thinOf(pickSet);
+console.log(`- res caps (${pick}): ${shortPick.length ? "**FAIL** " + shortPick.map((e) => `${e} short ${pickSet[e].missing}`).join(", ") : "all elements capped"}`);
+console.log(`- overcap >= ${OVERCAP_TARGET} (${pick}): ${thinPick.length ? "**thin** " + thinPick.map((e) => `${e} +${pickSet[e].overcap}`).join(", ") : "ok"}`);
+console.log(`- chaos (${pick}): total ${pickSet.chaos.total}, still short ${pickSet.chaos.missing} of the cap (informational; negative is normal)`);
 
 console.log("\n## Sets\n");
 console.log("| Set | Cost | Life | EHP | Armour | DPS | BleedDPS | Overcap F/C/L | Chaos |");
 console.log("|---|---|---|---|---|---|---|---|---|");
 for (const label of labels) {
   const s = data[label];
-  const oc = ELEM.map((e) => signed(s[e].overcap)).join(" / ");
-  const bad = ELEM.filter((e) => s[e].total !== null && s[e].cap !== null && s[e].total < s[e].cap);
-  const thinSet = ELEM.filter((e) => s[e].overcap !== null && s[e].overcap < OVERCAP_TARGET);
-  const flag = bad.length ? ` ⚠uncapped(${bad.join(",")})` : thinSet.length ? ` ⚠thin(${thinSet.join(",")})` : "";
+  const oc = ELEM.map((e) => ocTxt(s, e)).join(" / ");
+  const bad = shortOf(s);
+  const thinSet = thinOf(s);
+  const flag = bad.length ? ` ⚠uncapped(${bad.map((e) => `${e} short ${s[e].missing}`).join(",")})` : thinSet.length ? ` ⚠thin(${thinSet.join(",")})` : "";
   console.log(
     `| ${label}${label === pick ? " **(pick)**" : ""}${flag} | ${s.cost ?? "–"} | ${signed(delta(base.life, s.life))} | ` +
       `${signed(delta(base.ehp, s.ehp))} (${pct(base.ehp, s.ehp)}) | ${signed(delta(base.armour, s.armour))} | ` +
@@ -1028,15 +1085,13 @@ for (const label of labels) {
 }
 
 console.log(`\n## Res before / after (${pick})\n`);
-console.log("| Res | Trước total / cap / overcap | Sau total / cap / overcap | Δ overcap |");
+console.log("| Res | Trước total / overcap | Sau total / overcap | Δ |");
 console.log("|---|---|---|---|");
 for (const e of SET_KEYS) {
   const b = base[e], a = pickSet[e];
-  const bTxt = `${b.total} / ${b.cap ?? "–"} / ${b.overcap === null ? "–" : (b.overcap > 0 ? "+" : "") + b.overcap}`;
-  const aTxt = `${a.total} / ${a.cap ?? "–"} / ${a.overcap === null ? "–" : (a.overcap > 0 ? "+" : "") + a.overcap}`;
-  const anyB = b.overcap === null ? b.total : b.overcap;
-  const anyA = a.overcap === null ? a.total : a.overcap;
-  console.log(`| ${e[0].toUpperCase() + e.slice(1)} | ${bTxt} | ${aTxt} | ${signed(anyA - anyB)} |`);
+  const txt = (x) => `${x.total} / ${short({ [e]: x }, e) ? `short ${x.missing}` : signed(x.overcap)}`;
+  const change = e === "chaos" ? (a.total ?? 0) - (b.total ?? 0) : short(pickSet, e) || short(base, e) ? (a.total ?? 0) - (b.total ?? 0) : (a.overcap ?? 0) - (b.overcap ?? 0);
+  console.log(`| ${e[0].toUpperCase() + e.slice(1)} | ${txt(b)} | ${txt(a)} | ${signed(change)} |`);
 }
 
 console.log(`\n_bleed chance ${pickSet.bleedChance}% · baseline life ${base.life} · base DPS ${base.dps}_`);
@@ -1072,7 +1127,24 @@ console.log(`\n_bleed chance ${pickSet.bleedChance}% · baseline life ${base.lif
   "sort": { "price": "asc" }
 }
 
-5k) ~/.config/opencode/skills/poe-gear-finder/specs/ring.json
+5k) ~/.config/opencode/skills/poe-gear-finder/specs/ring-chaos.json
+
+{
+  "status": "securable",
+  "filters": {
+    "type_filters": { "filters": { "category": { "option": "accessory.ring" } } },
+    "trade_filters": { "filters": { "price": { "option": "chaos", "max": 20 } } }
+  },
+  "stats": [
+    { "type": "and", "filters": [
+      { "id": "explicit.stat_2923486259", "value": { "min": 20 }, "disabled": false },
+      { "id": "explicit.stat_3299347043", "value": { "min": 65 }, "disabled": false }
+    ]}
+  ],
+  "sort": { "price": "asc" }
+}
+
+5l) ~/.config/opencode/skills/poe-gear-finder/specs/ring.json
 
 {
   "status": "securable",
