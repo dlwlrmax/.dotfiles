@@ -66,6 +66,10 @@ freshness gates for you.
    then prints the `expression` to paste into `browse.eval` (instant buyout, 60 ids
    fetched, so the pool is a pool). Save it with `node scripts/pool.mjs save …` and read
    candidates with `node scripts/pool.mjs show …`, which exits 4 on a stale pool.
+   The expression returns a compact **digest** (60 rows with full mod text is ~30KB and
+   will not survive the trip back); the full mod text stays in the page, so pull it for
+   the few picks with a second expression, `window.__p.full([i,j,k])` — no extra request —
+   and use that to build `items.json`.
 4. **Simulate** — `node scripts/sim.mjs --items <items.json> --sets <sets.json> > /tmp/opencode/sim.js`,
    then paste that program into the code-mode `execute` tool. It reloads the build per
    set, snapshots stats and resistances, and returns the attribute check. See

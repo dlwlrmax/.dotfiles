@@ -14,23 +14,36 @@ Everything is plain Node, no dependencies. Scratch files go in `/tmp/opencode`.
    → prints a ready-to-paste `expression` for tools.browse.eval (60 ids fetched)
 
 2  paste that expression into tools.browse.eval on an open trade tab
-   → returns { qid, total, fetched, rows[] }
+   → returns { qid, total, idsAvailable, fetched, digest[] }
+     `digest` is one compact row per listing (life / fire / cold / lightning / chaos /
+     phys / price / seller / armour). Full mod text stays in the page: 60 rows with mods
+     is ~30KB and does not survive the trip back through the model.
 
 3  node scripts/pool.mjs save --league <L> --slot <slot> --file /tmp/opencode/<slot>-rows.json
-   → normalises mods, derives life/res, writes ~/pob/pool/<L>/<slot>.json
+   → accepts the digest as-is (or full API rows), derives life/res, writes
+     ~/pob/pool/<L>/<slot>.json
 
 4  node scripts/pool.mjs show --league <L> --slot <slot> [--sort life] [--max-age 15]
    → the candidate table; exits 4 when the pool is stale
 
-5  node scripts/sim.mjs --build current.xml --items items.json --sets sets.json > /tmp/opencode/sim.js
+5  pick the candidates, then get their full mod text for the sim — paste this as a
+   second browse.eval expression on the same tab (no request, the page already has it):
+       window.__p.full([3, 12, 27])
+   → returns [{ n, b, p, seller, m:[mods] }, …] ready to become items.json
+
+6  node scripts/sim.mjs --build current.xml --items items.json --sets sets.json > /tmp/opencode/sim.js
    → emits a complete code-mode program (all sets, attribute check, res snapshot)
 
-6  paste /tmp/opencode/sim.js into the `execute` tool
+7  paste /tmp/opencode/sim.js into the `execute` tool
    → returns { own, reqs, base, <set>: {...} }
 
-7  node scripts/table.mjs --pick <set> --file /tmp/opencode/sim-out.json
+8  node scripts/table.mjs --pick <set> --file /tmp/opencode/sim-out.json
    → gates (caps, overcap >= 20, attributes) + the two report tables
 ```
+
+The sim program and the sim output are both several KB. Getting them in and out of the
+model is the slowest part of a run: keep item texts to the picks, and read the emitted
+program as a file rather than re-typing it.
 
 ## Rules the scripts enforce mechanically
 
@@ -50,7 +63,16 @@ Everything is plain Node, no dependencies. Scratch files go in `/tmp/opencode`.
 | `pool.mjs` | save/show/list + freshness gate; the only place rows are parsed |
 | `sim.mjs` | items + sets → code-mode PoB program with attribute checks |
 | `table.mjs` | sim output → gates + markdown report tables |
-| `../specs/*.json` | trade filter specs passed to `search.mjs` |
+
+## Specs shipped
+
+| Spec | What it finds |
+|---|---|
+| `ring.json` | rare ring, life 90+, total elemental res 90+, ≤10c |
+| `ring-chaos.json` | rare ring with chaos res 20+ and life 65+, ≤20c |
+| `ring-exact-rapture.json` | one ring pinned by exact rolls (life 103, cold 36) |
+| `gloves-chaos-cold.json` | armour gloves, chaos 20+ / cold 25+ / life 80+, ≤20c |
+| `belt-ryslatha.json` | the unique by name, ≤60c |
 
 ## Adding a slot
 

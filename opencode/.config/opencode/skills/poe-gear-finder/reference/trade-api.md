@@ -131,11 +131,31 @@ const j = await (await fetch("https://www.pathofexile.com/api/trade/data/stats")
 The rendered page already holds the results; scrape instead of re-searching:
 
 ```js
-[...document.querySelectorAll(".row")].slice(0,20).map(r => r.innerText)
+[...document.querySelectorAll(".resultset .row")].slice(0, 20).map(r => r.innerText)
 ```
 
-Each row's text is `name | base | properties | mods | ~b/o N chaos | seller`.
-Cheap and needs no API call — use it for follow-up questions on the same search.
+Use `.resultset .row`, **not** `.row` — on this site version a bare `.row` matches the
+Bootstrap layout rows first and returns the page header instead of listings (verified:
+9 "rows" for a page showing 8 results).
+
+Inside a row: `a[href*='/account/view-profile/']` is the seller, `button.copy` is the
+whisper, and a `direct-btn` labelled "Travel to Hideout" means the listing is instant
+buyout. Each row's text is `name | base | properties | mods | ~b/o N chaos | seller`.
+
+### Marking the row you want the user to buy
+
+The buyer's "I can't tell which one is mine" is solved by marking it, not describing it:
+
+```js
+var row = [...document.querySelectorAll(".resultset .row")].find(
+  r => (r.querySelector("a[href*='/account/view-profile/']") || {}).innerText === "Seller#1234");
+row.style.outline = "4px solid #ff2d55";
+row.style.background = "rgba(255,45,85,0.18)";
+row.scrollIntoView({ block: "center" });   // then screenshot to confirm
+```
+
+Match on the **seller** plus price: an exact-roll filter is not unique on its own (life 103
++ cold 36 exact still returned six rings). The marks are cosmetic and vanish on reload.
 
 ## Travel to Hideout (instant buyout)
 

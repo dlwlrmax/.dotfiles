@@ -150,6 +150,10 @@ freshness gates for you.
    then prints the `expression` to paste into `browse.eval` (instant buyout, 60 ids
    fetched, so the pool is a pool). Save it with `node scripts/pool.mjs save …` and read
    candidates with `node scripts/pool.mjs show …`, which exits 4 on a stale pool.
+   The expression returns a compact **digest** (60 rows with full mod text is ~30KB and
+   will not survive the trip back); the full mod text stays in the page, so pull it for
+   the few picks with a second expression, `window.__p.full([i,j,k])` — no extra request —
+   and use that to build `items.json`.
 4. **Simulate** — `node scripts/sim.mjs --items <items.json> --sets <sets.json> > /tmp/opencode/sim.js`,
    then paste that program into the code-mode `execute` tool. It reloads the build per
    set, snapshots stats and resistances, and returns the attribute check. See
@@ -514,11 +518,31 @@ const j = await (await fetch("https://www.pathofexile.com/api/trade/data/stats")
 The rendered page already holds the results; scrape instead of re-searching:
 
 ```js
-[...document.querySelectorAll(".row")].slice(0,20).map(r => r.innerText)
+[...document.querySelectorAll(".resultset .row")].slice(0, 20).map(r => r.innerText)
 ```
 
-Each row's text is `name | base | properties | mods | ~b/o N chaos | seller`.
-Cheap and needs no API call — use it for follow-up questions on the same search.
+Use `.resultset .row`, **not** `.row` — on this site version a bare `.row` matches the
+Bootstrap layout rows first and returns the page header instead of listings (verified:
+9 "rows" for a page showing 8 results).
+
+Inside a row: `a[href*='/account/view-profile/']` is the seller, `button.copy` is the
+whisper, and a `direct-btn` labelled "Travel to Hideout" means the listing is instant
+buyout. Each row's text is `name | base | properties | mods | ~b/o N chaos | seller`.
+
+### Marking the row you want the user to buy
+
+The buyer's "I can't tell which one is mine" is solved by marking it, not describing it:
+
+```js
+var row = [...document.querySelectorAll(".resultset .row")].find(
+  r => (r.querySelector("a[href*='/account/view-profile/']") || {}).innerText === "Seller#1234");
+row.style.outline = "4px solid #ff2d55";
+row.style.background = "rgba(255,45,85,0.18)";
+row.scrollIntoView({ block: "center" });   // then screenshot to confirm
+```
+
+Match on the **seller** plus price: an exact-roll filter is not unique on its own (life 103
++ cold 36 exact still returned six rings). The marks are cosmetic and vanish on reload.
 
 ## Travel to Hideout (instant buyout)
 
@@ -588,23 +612,36 @@ Everything is plain Node, no dependencies. Scratch files go in `/tmp/opencode`.
    → prints a ready-to-paste `expression` for tools.browse.eval (60 ids fetched)
 
 2  paste that expression into tools.browse.eval on an open trade tab
-   → returns { qid, total, fetched, rows[] }
+   → returns { qid, total, idsAvailable, fetched, digest[] }
+     `digest` is one compact row per listing (life / fire / cold / lightning / chaos /
+     phys / price / seller / armour). Full mod text stays in the page: 60 rows with mods
+     is ~30KB and does not survive the trip back through the model.
 
 3  node scripts/pool.mjs save --league <L> --slot <slot> --file /tmp/opencode/<slot>-rows.json
-   → normalises mods, derives life/res, writes ~/pob/pool/<L>/<slot>.json
+   → accepts the digest as-is (or full API rows), derives life/res, writes
+     ~/pob/pool/<L>/<slot>.json
 
 4  node scripts/pool.mjs show --league <L> --slot <slot> [--sort life] [--max-age 15]
    → the candidate table; exits 4 when the pool is stale
 
-5  node scripts/sim.mjs --build current.xml --items items.json --sets sets.json > /tmp/opencode/sim.js
+5  pick the candidates, then get their full mod text for the sim — paste this as a
+   second browse.eval expression on the same tab (no request, the page already has it):
+       window.__p.full([3, 12, 27])
+   → returns [{ n, b, p, seller, m:[mods] }, …] ready to become items.json
+
+6  node scripts/sim.mjs --build current.xml --items items.json --sets sets.json > /tmp/opencode/sim.js
    → emits a complete code-mode program (all sets, attribute check, res snapshot)
 
-6  paste /tmp/opencode/sim.js into the `execute` tool
+7  paste /tmp/opencode/sim.js into the `execute` tool
    → returns { own, reqs, base, <set>: {...} }
 
-7  node scripts/table.mjs --pick <set> --file /tmp/opencode/sim-out.json
+8  node scripts/table.mjs --pick <set> --file /tmp/opencode/sim-out.json
    → gates (caps, overcap >= 20, attributes) + the two report tables
 ```
+
+The sim program and the sim output are both several KB. Getting them in and out of the
+model is the slowest part of a run: keep item texts to the picks, and read the emitted
+program as a file rather than re-typing it.
 
 ## Rules the scripts enforce mechanically
 
@@ -624,7 +661,16 @@ Everything is plain Node, no dependencies. Scratch files go in `/tmp/opencode`.
 | `pool.mjs` | save/show/list + freshness gate; the only place rows are parsed |
 | `sim.mjs` | items + sets → code-mode PoB program with attribute checks |
 | `table.mjs` | sim output → gates + markdown report tables |
-| `../specs/*.json` | trade filter specs passed to `search.mjs` |
+
+## Specs shipped
+
+| Spec | What it finds |
+|---|---|
+| `ring.json` | rare ring, life 90+, total elemental res 90+, ≤10c |
+| `ring-chaos.json` | rare ring with chaos res 20+ and life 65+, ≤20c |
+| `ring-exact-rapture.json` | one ring pinned by exact rolls (life 103, cold 36) |
+| `gloves-chaos-cold.json` | armour gloves, chaos 20+ / cold 25+ / life 80+, ≤20c |
+| `belt-ryslatha.json` | the unique by name, ≤60c |
 
 ## Adding a slot
 
@@ -794,7 +840,7 @@ process.exit(2);
 // Prints a ready-to-paste `expression` argument for tools.browse.eval, plus the
 // shell command that saves the result into the pool. Nothing here performs a
 // request; only the browser does, from the user's logged-in session.
-import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 

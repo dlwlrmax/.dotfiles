@@ -7,7 +7,7 @@
 // Prints a ready-to-paste `expression` argument for tools.browse.eval, plus the
 // shell command that saves the result into the pool. Nothing here performs a
 // request; only the browser does, from the user's logged-in session.
-import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
