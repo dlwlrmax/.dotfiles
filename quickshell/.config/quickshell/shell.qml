@@ -210,6 +210,11 @@ ShellRoot {
                 implicitHeight: theme.barHeight
                 WlrLayershell.layer: WlrLayer.Top
                 WlrLayershell.namespace: "quickshell-bar"
+                // Layer surfaces draw over normal windows, and Path of Exile runs as a
+                // borderless window sized to the monitor (hypr/lua/windowrules.lua), so
+                // the bar would sit on the game's top rows. Gaming profile = no bar on
+                // that screen; it comes back when the game loses focus.
+                visible: !ShellState.quietOn(screenScope.screenData.name)
 
                 Bar {
                     id: barItem

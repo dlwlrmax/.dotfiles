@@ -18,12 +18,29 @@ local KEYS = { "animations.enabled", "decoration.blur.enabled", "decoration.shad
 
 local S = { active = false, forced = nil, saved = nil }
 
+local vars = require("lua/variables")
+
 local function is_game(w)
   if not w then return false end
   local cls = w.class or ""
   return cls:match("^steam_app_") ~= nil
     or cls == "gamescope"
     or w.content_type == "game"
+    or vars.is_poe_game(w)
+end
+
+-- Awakened PoE Trade is a separate window that steals focus for a second on
+-- every price check. Treat it as part of the game session (while the game is
+-- up) instead of flipping the profile off — that would flash the bar back over
+-- the game and re-enable blur mid-map.
+local function is_trade_overlay(w)
+  if not w or tostring(w.class or "") ~= vars.poeTradeClass then return false end
+  local ok, wins = pcall(hl.get_windows)
+  if not ok or not wins then return false end
+  for _, other in ipairs(wins) do
+    if vars.is_poe_game(other) then return true end
+  end
+  return false
 end
 
 local function nest(key, value, into)
@@ -64,7 +81,13 @@ end
 local function evaluate()
   if S.forced ~= nil then return apply(S.forced) end
   local ok, w = pcall(hl.get_active_window)
-  apply(ok and is_game(w) and (w.fullscreen or 0) ~= 0 or false)
+  if not ok or not w then return apply(false) end
+  if is_trade_overlay(w) then return apply(true) end
+  if not is_game(w) then return apply(false) end
+  -- Every game must be Hyprland-fullscreen except Path of Exile: that one runs
+  -- as a monitor-sized borderless window so the Awakened PoE Trade overlay can
+  -- draw on top (lua/windowrules.lua), so it never reports fullscreen.
+  apply((w.fullscreen or 0) ~= 0 or vars.is_poe_game(w))
 end
 
 function M.force(on)
