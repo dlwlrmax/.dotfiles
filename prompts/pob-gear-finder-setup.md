@@ -78,7 +78,9 @@ merge into "mcp", keep existing keys). Rewrite `pob` to exactly:
 "PoB Lua Bridge started successfully." Do not use `bash -lc` in `command`; it
 breaks MCP stdio registration.
 
-STEP 5 — write ~/.config/opencode/skills/poe-gear-finder/SKILL.md with this content:
+STEP 5 — write the skill (3 files, exact content):
+
+5a) ~/.config/opencode/skills/poe-gear-finder/SKILL.md
 
 ---
 name: poe-gear-finder
@@ -87,213 +89,231 @@ description: Find and verify Path of Exile 1 gear upgrades on a budget using the
 
 # PoE gear finder (headless PoB + live trade)
 
-Answers "what do I buy with N chaos" with **measured** numbers, not guesses: every
-candidate listing is equipped in the build and re-calculated by Path of Building.
+Every candidate is **equipped in the build and recalculated by PoB** — never judged
+from mod text. Whole run is ~90s; see *Speed rules* for why and how.
 
-## Prerequisites (already installed)
+References: `reference/trade-api.md` (query shapes, stat ids, rate limits),
+`reference/pob-sim.md` (simulation recipe).
 
-Everything lives under `~/pob` so the setup works on any machine with the same
-home-relative layout (`$HOME` is interpolated by opencode, no absolute paths):
+## Ask once, at the start (one message)
 
-| Thing | Path / value |
-|---|---|
-| PoB source (dev branch, 3.30 tree) | `~/pob/PathOfBuilding/src` |
-| PoB MCP server (MCP name `pob`) | `~/pob/pob-mcp/build/index.js` |
-| Launcher used by the config | `~/pob/mcp-launch.sh` |
-| Bootstrap / update (idempotent) | `~/pob/setup-pob.sh` |
-| LuaJIT | `luajit` on PATH (needs `+=` support — 2026 builds do) |
-| Lua modules (`xml`, `dkjson`, `socket`) | `src/lua/`, `src/dkjson.lua` |
-| `lua-utf8.so` | `src/lua-utf8.so` (compiled locally) |
+1. Build: import code / XML / pobb.in link.
+2. Budget: amount + currency.
+3. Slots: which ones (default: ask, do not assume all).
+4. Base preference: **armour / evasion / ES / any** — this changes every search.
+5. Priority order: life → elemental res overcap → chaos res → DPS, unless they say otherwise.
 
-Fresh machine: `~/pob/setup-pob.sh` clones PoB + pob-mcp, fetches the runtime Lua
-modules, compiles `lua-utf8`, builds the server and smoke-tests it. It needs git,
-node ≥ 20, luajit, gcc and the LuaJIT headers; no sudo.
+Never re-ask mid-run because a filter returned nothing — relax filters instead
+(drop the rarest requirement first, tell them what you dropped).
 
-If any `pob` tool fails with a `Lua bridge` error, run `~/pob/setup-pob.sh` (safe to
-re-run, it pulls and re-patches), then restart the MCP server. PoB's dev branch
-ships files starting with `#@`, which LuaJIT rejects; the script rewrites that
-header to `--@`.
+## Flow
 
-## Step 1 — get the build in
+1. **Load** `pob.lua_load_build({build_name})` (cache the XML under `~/pob/builds/`)
+   or `lua_import_code({code})`. The load reply already carries life/DPS/EHP/resists.
+2. **Baseline**: one `lua_get_stats({})` for the keys you will diff, plus
+   `export_full_stats({filter: "Resist"})` for `*ResistOverCap` (the visible
+   `FireResist` is **capped** — it hides overcap; overcap lives in
+   `FireResistOverCap` / `ColdResistOverCap` / `LightningResistOverCap`).
+3. **Search every slot once** — `status: {option: "securable"}` = instant buyout.
+   Batch all slots in one `execute` block; the IP budget is 8 requests / 10s.
+4. **Simulate all candidates in one `execute` block**: reload build → `add_item`
+   for each slot → snapshot → diff. See `reference/pob-sim.md`.
+5. **Report** one table (price | item | Δlife | ΔEHP | Δarmour | overcap F/C/L | ΔDPS),
+   one recommendation, and leave the trade tabs open.
 
-Ask the user for one of:
+## Targets to encode as filters
 
-- the PoB import code (long base64 blob), then `pob.lua_import_code({ code })`
-- a saved XML, then `pob.lua_load_build({ ... })`
-- `pobb.in` / `poedb` share link, then `pob.lua_import_pobb({ url })`
+- Life: `+# to maximum Life` min ≈ 1.2 × level (100+ at 84).
+- Elemental res: aim **overcap ≥ 20%** per element; filter the element the build is
+  thinnest on, not "total resistance" (total hides a hole in one element).
+- Chaos res: only if the user says it matters.
+- Armour builds: `armour_filters: {filters: {ar: {min: 300}}}` for helm,
+  `ar: {min: 200}` for gloves; pick armour bases (Burgonet, Gauntlets, Plate).
+- Bleed: the DPS lever is **base/flat physical damage** on the weapon. Do not
+  filter or reason about bleed chance if the build already shows `BleedChance: 100`
+  in `export_full_stats({filter: "Bleed"})` — check the number, don't guess.
 
-`lua_import_code` / `lua_load_build` return a summary (life, DPS, EHP, resists,
-top issues) — read it, do **not** immediately re-call `lua_get_stats` for the same
-numbers.
+## Speed rules (the whole point)
 
-Confirm the league while this runs: `GET https://www.pathofexile.com/api/leagues`
-returns ids (`Covens`, `Standard`, ...) — that id, lowercase-sensitive, is the
-trade URL segment. Never guess it.
+- **No blanket sleeps.** Read `x-rate-limit-ip-state` from the search response:
+  `8:10:60` means 8 requests per 10s per IP. Four slots = 4 searches + 4 fetches
+  and fits in one 10s window. Only sleep when a state counter reaches its limit.
+  Blanket `sleep 60` between slots wastes 4 minutes per run.
+- **One search per slot, ever.** Iterating on candidates = re-`fetch` by id
+  (12 per 4s), never re-search.
+- **Cache listings**: write `{fetchedAt, query, rows}` to
+  `~/pob/pool/<League>/<slot>.json`; reuse if younger than 15 minutes. Re-searching
+  the same slot three times to "confirm" is what made early runs slow.
+- **One `execute` block per phase** (all searches, or all simulations). Each extra
+  round trip costs more wall clock than the PoB math does.
+- PoB import is ~7s; re-`add_item` is ~1s. Cache the XML, don't re-import.
 
-## Step 2 — baseline
+## Report
 
-Only pull the stats you will diff:
+| Price | Item | Base | ΔLife | ΔEHP | ΔArmour | Overcap F/C/L | ΔDPS |
+|---|---|---|---|---|---|---|---|
 
+Then: the single pick, the total spend vs budget, what is left to upgrade.
+Never whisper or buy without explicit confirmation.
+
+5b) ~/.config/opencode/skills/poe-gear-finder/reference/trade-api.md
+
+# Trade API reference
+
+Call it from the user's logged-in Chrome via `tools.browse.eval` — plain `fetch`
+from the sandbox gets Cloudflare 403.
+
+```js
+const r = await fetch(`/api/trade/search/${league}`, {
+  method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(q)
+});
+const { id, result, total, error } = await r.json();
+const f = await fetch(`/api/trade/fetch/${result.slice(0,10).join(",")}?query=${id}`);
 ```
-pob.lua_get_stats({})
+
+League id comes from `https://www.pathofexile.com/api/leagues` (`Covens`, `Standard`…).
+
+## Rate limits (from response headers, do not guess)
+
+| Endpoint | Header | Meaning |
+|---|---|---|
+| search | `x-rate-limit-ip: 8:10:60,15:60:120,60:300:1800` | 8 per 10s, 15 per 60s, 60 per 300s |
+| search | `x-rate-limit-account: 3:5:60` | 3 per 5s per account |
+| fetch | `x-rate-limit-ip: 12:4:60,16:12:60,100:300:300` | 12 per 4s |
+| both | `x-rate-limit-*-state` | same shape, current usage |
+
+The **account** rule binds first: 3 searches per 5s. A 4th search inside 5s returns
+`{"code":3,"message":"Rate limit exceeded; Please wait 45/60 seconds"}` and the
+account state then reads `0:5:45` — the window escalates, so a burst costs 45-60s.
+Space searches ~2s apart and 4 slots never trip it.
+
+Sleep only when a state counter reaches its limit. IP headroom is large (8/10s); do
+not impose a fixed 60s pause per slot.
+
+## Query shape
+
+```js
+{ query: {
+    status: { option: "securable" },        // "securable" = instant buyout only
+                                            // "online" = in person, "any" = both
+    filters: {
+      type_filters:  { filters: { category: { option: "armour.helmet" } } },
+      armour_filters:{ filters: { ar: { min: 300 } } },   // ar / ev / es
+      trade_filters: { filters: { price: { option: "chaos", max: 15 } } },
+    },
+    stats: [{ type: "and", filters: [
+      { id: "explicit.stat_3299347043", value: { min: 100 }, disabled: false },
+    ]}],
+  },
+  sort: { price: "asc" } }
 ```
 
-Keys worth capturing: `Life`, `TotalEHP`, `Armour`, `FireResist`, `ColdResist`,
-`LightningResist`, `ChaosResist`, `ManaUnreserved`, `TotalDPS`, `BleedDPS`,
-`CombinedDPS`.
+Categories: `armour.helmet`, `armour.gloves`, `armour.boots`, `armour.chest`,
+`armour.shield`, `accessory.ring`, `accessory.amulet`, `accessory.belt`,
+`weapon.oneaxe`, `weapon.twoaxe`, `flask`.
 
-For defence purchases prefer `pob.analyze_defenses({ build_name, sweep_resistances: true })`
-— it reports the **binding** max hit per damage type, not the EHP average, and can
-drive a resistance sweep on the real engine. `TotalEHP` alone will happily recommend
-patching the damage type that is already strongest.
-
-## Step 3 — ask the budget
-
-Always ask before searching: amount + currency (chaos / divine) and which slot(s).
-Never assume "budget" means cheap. Convert: 1 divine ≈ use `pob.get_currency_rates`
-or ask, not a hardcoded number.
-
-## Step 4 — derive the filters from the build's gaps
-
-Rules of thumb for a life/armour melee build (adjust to the actual numbers):
-
-- `Life` under ~100 life per level → `+# to maximum Life` min 90-100 on the purchase
-- any resistance overcap < 20 → take 40%+ of that resistance
-- `ChaosResist` below 0 → 20-30% chaos res is worth more than 10% DPS here
-- `ManaUnreserved` negative → do not buy mana-cost gear; fix reservation first
-- weapons/bleed: the lever is **base physical damage** and added flat phys, not
-  support-gem swaps; verify with the engine, never by reasoning about gem text
-
-`pob.find_item_upgrades({ slot, priority })` produces a shopping spec from the
-loaded build if you want PoB's own read before writing filters.
-
-## Step 5 — search the trade site
-
-The trade API rejects plain `fetch` (Cloudflare 403) and the search UI needs a
-session, so **drive it through the user's logged-in Chrome** via the `browse`
-tools (`tools.browse.navigate` + `tools.browse.eval` + `tools.browse.screenshot`).
-
-Verified stat IDs (from `/api/trade/data/stats`; the `explicit.` prefix works, the
-`pseudo.total_*` variants are equivalent for resistances):
+## Stat ids (verified against /api/trade/data/stats)
 
 | Mod | id |
 |---|---|
 | `+# to maximum Life` | `explicit.stat_3299347043` |
-| `+#% to Lightning Resistance` | `explicit.stat_1671376347` |
-| `+#% to Chaos Resistance` | `explicit.stat_2923486259` |
-| `+#% total to Lightning Resistance` (pseudo) | `pseudo.pseudo_total_lightning_resistance` |
-| `+#% total to Chaos Resistance` (pseudo) | `pseudo.pseudo_total_chaos_resistance` |
 | `+#% to Fire Resistance` | `explicit.stat_3372524247` |
 | `+#% to Cold Resistance` | `explicit.stat_4220027924` |
-| `#% increased Physical Damage` (local weapon) | `explicit.stat_1509134228` |
-| `Adds # to # Physical Damage` | `explicit.stat_3032590688` |
+| `+#% to Lightning Resistance` | `explicit.stat_1671376347` |
+| `+#% to Chaos Resistance` | `explicit.stat_2923486259` |
+| `#% increased Physical Damage` (local) | `explicit.stat_1509134228` |
+| `Adds # to # Physical Damage to Attacks` | `explicit.stat_3032590688` |
 | `+#% to Damage over Time Multiplier` | `explicit.stat_3988349707` |
+| `#% increased Attack Speed` | `explicit.stat_681332047` |
+| total elemental resistance (pseudo) | `pseudo.pseudo_total_elemental_resistance` |
+| total lightning / chaos (pseudo) | `pseudo.pseudo_total_lightning_resistance`, `pseudo.pseudo_total_chaos_resistance` |
 
-Build the query — **`type_filters` goes inside `filters`, never at query level**:
+`pseudo_total_elemental_resistance` sums all elements — it hides a single-element
+hole. Filter the element you actually need.
 
-```js
-const q = {
-  query: {
-    status: { option: "online" },
-    filters: {
-      type_filters: { filters: { category: { option: "armour.helmet" } } },
-      // local defence value uses the short key: ar / ev / es  (NOT "armour")
-      armour_filters: { filters: { ar: { min: 300 } } },
-      // price cap
-      // trade_filters: { filters: { price: { min: null, max: 10, option: "chaos" } } },
-    },
-    stats: [{ type: "and", filters: [
-      { id: "explicit.stat_3299347043", value: { min: 90 }, disabled: false },
-      { id: "explicit.stat_1671376347", value: { min: 40 }, disabled: false },
-      { id: "explicit.stat_2923486259", value: { min: 20 }, disabled: false },
-    ]}],
-  },
-  sort: { price: "asc" },
-};
-```
-
-Then, inside the page:
+Discover an id instead of guessing:
 
 ```js
-fetch("/api/trade/search/<LeagueId>", { method: "POST",
-  headers: { "Content-Type": "application/json" }, body: JSON.stringify(q) })
-  .then(r => r.json())          // -> { id, result: [...hashes], total }
-fetch(`/api/trade/fetch/${ids.join(",")}?query=${id}`)
+const j = await (await fetch("https://www.pathofexile.com/api/trade/data/stats")).json();
+// j.result[].entries[] -> { id, text }
 ```
 
-Load the finished URL in the tab so the user can click through:
-`https://www.pathofexile.com/trade/search/<LeagueId>?q=<encodeURIComponent(JSON.stringify(q))>`.
+## Reading listings without another request
 
-Rate limit: ~1 search per 60s per session (`{"code":3,"message":"Rate limit
-exceeded"}`). Batch — one search + one fetch per slot, then stop.
+The rendered page already holds the results; scrape instead of re-searching:
 
-If `POE_TRADE_ENABLED=true` and `POE_SESSION_ID` are configured, `pob.search_trade_items`
-and `pob.find_weighted_trade_items` can do the same in-server; the browser path
-needs no session plumbing and always matches what the user sees.
-
-## Step 6 — simulate every candidate (this is the point)
-
-For each listing, convert it to PoE item text and equip it:
-
-```
-pob.add_item({ item_text, slot_name: "Helmet" })
-pob.lua_get_stats({})
+```js
+[...document.querySelectorAll(".row")].slice(0,20).map(r => r.innerText)
 ```
 
-Diff against baseline. Item text template:
+Each row's text is `name | base | properties | mods | ~b/o N chaos | seller`.
+Cheap and needs no API call — use it for follow-up questions on the same search.
 
-```
-Rarity: RARE
-<name>
-<base type>
---------
-Quality: +20% (augmented)
-Armour: 413 (augmented)
---------
-Requirements:
-Level: 69
-Str: 138
---------
-Sockets: R-R-R-R
---------
-Item Level: 85
---------
-<mod lines exactly as listed>
-```
-
-Notes:
-
-- `add_item` replaces whatever is in that slot, so candidates can be simulated
-  back to back — but keep the baseline numbers from before the first swap.
-- Levels/attributes can invalidate an item (e.g. `Str: 138` unmet) — PoB will show
-  the requirement error; check `Life`/DPS actually moved before trusting a row.
-- Re-import the original code if a run gets polluted; imports take ~7s.
-- Percentage-based "increased damage" mods on a weapon are **local**; copy the
-  listing's mod text verbatim instead of re-typing values.
-
-## Step 7 — report
-
-Rank by what the user asked to optimise, one row per listing:
-
-| Price | Item | Base | ΔDPS | ΔLife | ΔEHP | ΔRes |
-|---|---|---|---|---|---|---|
-
-Then: the single pick, why, and the search URL sorted by price. Offer to whisper
-the seller — do not whisper or buy without explicit confirmation.
-
-## Pitfalls that already cost time here
+## Pitfalls
 
 - `type_filters` at query level → `400 Unknown or invalid top-level filter`.
-- `armour_filters.filters.armour` → `400 Invalid filter: armour`; the key is `ar`
-  (`ev`, `es` likewise).
-- A stale trade tab shows previously unknown stats as "unavailable stat"; hard
-  reload before concluding an id is wrong. Validate ids against
-  `/api/trade/data/stats` instead of guessing.
-- Bleed/hit claims must come from the engine. Gem-text reasoning has produced
-  wrong advice before (Fortify Support and Fist of War both scale ailments; Alira
-  is +15% all elemental res only since 3.25).
-- The user's PoB XML may carry an older `treeVersion` than the local PoB tree;
-  imports still work but say so when numbers look off.
+- `armour_filters.filters.armour` → `400 Invalid filter: armour`; keys are `ar`, `ev`, `es`.
+- `sort` with an unknown key silently falls back; `{price:"asc"}` is correct.
+- `listing.price.amount/currency` (not `price.value`) in `/api/trade/fetch` results.
+- Some listings carry `item.explicitMods` as objects `{description, hash, mods}`;
+  use `m.description || m`.
+- Price 0 / no `listing.price` = unpriced; skip for instant buyout.
+- Item mod text from the site is authoritative — copy it verbatim into PoB. Values
+  are rolled min-max in `mods[].magnitudes`, the row text shows the real roll.
+
+5c) ~/.config/opencode/skills/poe-gear-finder/reference/pob-sim.md
+
+# Simulating candidates in PoB
+
+One `execute` block. Never one tool call per candidate.
+
+```js
+const it = (name, base, mods) =>
+  ["Rarity: RARE", name, base, "--------", "Item Level: 85", "--------", ...mods].join("\n");
+
+const g = (t, k) => { const m = t.match(new RegExp(k + ":\\s*(-?[\\d.]+)")); return m ? +m[1] : null; };
+const n = (t, k) => { const m = t.match(new RegExp('"' + k + '":\\s*(-?[\\d.]+)')); return m ? +m[1] : null; };
+
+const snap = async () => {
+  const a = String(await tools.pob.lua_get_stats({}));
+  const b = String(await tools.pob.export_full_stats({ filter: "Resist" }));
+  return {
+    life: g(a, "Life"), ehp: Math.round(g(a, "TotalEHP")), dps: Math.round(g(a, "CombinedDPS")),
+    arm: Math.round(g(a, "Armour")), mana: g(a, "ManaUnreserved"),
+    F: n(b, "FireResistOverCap"), C: n(b, "ColdResistOverCap"),
+    L: n(b, "LightningResistOverCap"), Ch: n(b, "ChaosResistOverCap"),
+  };
+};
+
+await tools.pob.lua_load_build({ build_name: "current.xml" });
+const out = { base: await snap() };
+for (const [slot, text] of Object.entries(set)) {           // one set = 5 slots
+  await tools.pob.lua_load_build({ build_name: "current.xml" });   // reset first
+  await tools.pob.add_item({ item_text: text, slot_name: slot });
+}
+out.set = await snap();
+```
+
+## Rules learned the hard way
+
+- **Reload before every set.** `add_item` replaces the slot but keeps everything
+  else from the previous set; without a reload you diff against polluted state.
+- **Slots that remove stats matter.** Replacing a belt that gave 48% fire res
+  silently drops fire — the diff shows it, reasoning does not.
+- **Item text format**: `Rarity / name / base / -------- / Item Level: N /
+  -------- / mods`. Do **not** emit an `Implicits: N` header — PoB's parser
+  reports it as unparseable and can mis-assign the following lines. List implicit
+  mods as ordinary mod lines instead; the numeric effect is identical.
+- Base names must be exact (`Lacquered Helmet`, not `Lacquer Helmet`) or
+  `add_item` fails with `failed to parse item`.
+- `lua_get_stats` returns **capped** resistances (`FireResist` = 78 even with 200%
+  over). Overcap lives in `*ResistOverCap` from `export_full_stats`, which is
+  truncated for an unfiltered call — always pass `filter`.
+- `export_full_stats` with `filter: "Bleed"` gives `BleedChance`; use it instead of
+  inferring from gem text (a bleed build at 100% gains nothing from more bleed chance).
+- Requirements are checked: an unmet Str/Dex/Int prints a build issue but still
+  applies stats — read `get_build_issues` before recommending.
+- Reload the original build when done, so the cached XML stays the baseline.
 
 STEP 6 — restart opencode so the MCP registers, then prove it: load any build with
 pob.lua_import_code and print Life/TotalEHP. Report the paths you created, the PoB
