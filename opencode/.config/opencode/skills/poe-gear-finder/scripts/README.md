@@ -73,6 +73,36 @@ program as a file rather than re-typing it.
 | `ring-exact-rapture.json` | one ring pinned by exact rolls (life 103, cold 36) |
 | `gloves-chaos-cold.json` | armour gloves, chaos 20+ / cold 25+ / life 80+, ≤20c |
 | `belt-ryslatha.json` | the unique by name, ≤60c |
+| `axe-cheap.json` | two-hand axe ≤10c, sorted by pDPS desc |
+
+## What the digest gives you
+
+One shape for every item class. Keys present for all items:
+
+`n` name · `b` base · `p` price (chaos) · `seller` · `q` quality · `ilvl` · `soc` sockets ·
+`st` stack size · `cor` corrupted · `x` any property not listed below (flask charges,
+gem lines, weapon range...) · `life` / `fire` / `cold` / `lightning` / `chaos` resistances ·
+`phys` the `Adds X to Y Physical Damage` roll as text.
+
+Class-specific, non-zero only when the item has them:
+
+`ar` armour · `ev` evasion · `es` energy shield · `pdps` physical DPS ·
+`edps` elemental DPS · `aps` attacks per second · `crit` crit chance · `pdmg` / `edmg`
+the raw damage ranges.
+
+`pool.mjs show` picks its columns from the pool: a pool with any `pdps` prints the weapon
+table, otherwise the armour/ring table. Sort with `--sort pdps` (weapons) or `--sort life`.
+
+## Retrying without spending a search
+
+```
+node scripts/search.mjs --league <L> --slot <slot> --spec <spec> --reuse
+```
+
+Emits the same expression minus the search POST: it re-reads `window.__p.ids` already in
+the tab and re-fetches. Use it when the mapping failed, the digest needs a new field, or
+you want the full mod text again. It skips the spacing/burst gates because it is not a
+search. `--reuse` fails cleanly if the tab holds no stored query.
 
 ## Adding a slot
 

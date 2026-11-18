@@ -70,7 +70,20 @@ function derive(row) {
       price: row.price ?? (row.p !== undefined ? `${row.p} chaos` : null),
       seller: row.seller,
       armour: row.ar ?? row.armour ?? 0,
-      evasion: row.evasion ?? 0,
+      evasion: row.ev ?? row.evasion ?? 0,
+      es: row.es ?? 0,
+      pdps: row.pdps ?? 0,
+      edps: row.edps ?? 0,
+      aps: row.aps ?? 0,
+      crit: row.crit ?? 0,
+      pdmg: row.pdmg ?? null,
+      edmg: row.edmg ?? null,
+      quality: row.q ?? row.quality ?? null,
+      ilvl: row.ilvl ?? null,
+      sockets: row.soc ?? null,
+      stack: row.st ?? null,
+      corrupted: row.cor ?? 0,
+      extra: row.x ?? null,
       life: row.life ?? 0,
       fire: row.fire ?? 0,
       cold: row.cold ?? 0,
@@ -134,12 +147,20 @@ if (cmd === "show") {
     process.exit(4);
   }
   const pool = JSON.parse(readFileSync(file, "utf8"));
-  const key = args.sort || "life";
+  const isWeapon = pool.rows.some((r) => (r.pdps || 0) > 0 || (r.edps || 0) > 0);
+  const key = args.sort || (isWeapon ? "pdps" : "life");
   const rows = [...pool.rows].sort((a, b) => Number(b[key] || 0) - Number(a[key] || 0)).slice(0, Number(args.limit || 15));
-  console.log(`# ${args.slot} · total ${pool.total} · fetched ${pool.rows.length} · ${ageMin.toFixed(1)}min old\n`);
-  console.log("price | item | base | armour | life | res F/C/L | chaos | seller");
-  for (const r of rows) {
-    console.log(`${r.priceAmount}c | ${r.name} | ${r.base} | ${r.armour} | ${r.life} | ${r.fire}/${r.cold}/${r.lightning} | ${r.chaos} | ${r.seller}`);
+  console.log(`# ${args.slot} · total ${pool.total} · fetched ${pool.rows.length} · ${ageMin.toFixed(1)}min old · sorted by ${key}\n`);
+  if (isWeapon) {
+    console.log("price | item | base | pDPS | eDPS | phys range | aps | crit | q | ilvl | seller");
+    for (const r of rows) {
+      console.log(`${r.priceAmount}c | ${r.name} | ${r.base} | ${r.pdps || 0} | ${r.edps || 0} | ${r.pdmg || "–"} | ${r.aps || 0} | ${r.crit || 0} | ${r.quality ?? 0} | ${r.ilvl ?? "–"} | ${r.seller}`);
+    }
+  } else {
+    console.log("price | item | base | armour | ev | es | life | res F/C/L | chaos | ilvl | seller");
+    for (const r of rows) {
+      console.log(`${r.priceAmount}c | ${r.name} | ${r.base} | ${r.armour} | ${r.evasion} | ${r.es || 0} | ${r.life} | ${r.fire}/${r.cold}/${r.lightning} | ${r.chaos} | ${r.ilvl ?? "–"} | ${r.seller}`);
+    }
   }
   process.exit(0);
 }

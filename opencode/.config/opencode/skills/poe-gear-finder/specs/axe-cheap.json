@@ -1,0 +1,9 @@
+{
+  "status": "securable",
+  "filters": {
+    "type_filters": { "filters": { "category": { "option": "weapon.twoaxe" } } },
+    "trade_filters": { "filters": { "price": { "option": "chaos", "max": 10 } } }
+  },
+  "stats": [],
+  "sort": { "pdps": "desc" }
+}

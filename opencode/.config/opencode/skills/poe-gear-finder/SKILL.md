@@ -121,6 +121,14 @@ Rules for that table:
 - Bleed: the DPS lever is **base/flat physical damage** on the weapon. Do not
   filter or reason about bleed chance if the build already shows `BleedChance: 100`
   in `export_full_stats({filter: "Bleed"})` — check the number, don't guess.
+- **On a bleed build, pDPS is the wrong sort.** Sorting two-hand axes by physical DPS
+  promotes the highest hit damage and hides the modifiers bleed actually reads, such as
+  "Bleeding you inflict deals Damage #% Faster". Measured this session: a 779-pDPS axe
+  gave +16.4% bleed, while a 712-pDPS axe with 21% faster bleeding gave **+32.2%** at a
+  third of the price. Sort by pDPS only to find a pool, then read the mods and simulate.
+- Cheap uniques are worth checking before rares: a league-variant unique axe carried
+  `309% increased Physical Damage` for 3c, which no rare sequence is going to match at
+  that price. Search the unique by name with a price cap before assuming rares win.
 
 ## Speed rules (the whole point)
 
