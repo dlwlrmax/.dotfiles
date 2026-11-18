@@ -11,6 +11,25 @@ from mod text. Whole run is ~90s; see *Speed rules* for why and how.
 References: `reference/trade-api.md` (query shapes, stat ids, rate limits),
 `reference/pob-sim.md` (simulation recipe).
 
+## Definition of done — re-read this before sending the final message
+
+A run is not finished until the answer contains, in this order:
+
+1. **Buy list, scarcest first** — per item: name · base · price · **seller account** ·
+   tab/link · **listing count** for that filter.
+2. **Stat table** (price | item | base | req | Δlife | ΔEHP | Δarmour | overcap F/C/L |
+   Δchaos | ΔDPS).
+3. **Res before/after table** — total / cap / overcap for fire, cold, lightning, chaos.
+4. **Budget line** — spent / budget / left.
+5. **Alternatives** — the pick **plus 2-3 rejected sets**, each labelled with the axis it
+   differs on (cheaper / more res / more DPS / more chaos), so the user can trade off.
+6. **Nothing raw.** Tool JSON, item text and `eval` output never appear in the answer —
+   everything goes through the tables above.
+
+Then stop. Do not run another search to "improve" an answer the user has not asked to
+change, and do not re-verify a listing you already handed over unless asked.
+
+
 ## Ask once, at the start (one message)
 
 1. Build: import code / XML / pobb.in link.
@@ -24,8 +43,11 @@ Never re-ask mid-run because a filter returned nothing — relax filters instead
 
 ## Flow
 
-1. **Load** `pob.lua_load_build({build_name})` (cache the XML under `~/pob/builds/`)
-   or `lua_import_code({code})`. The load reply already carries life/DPS/EHP/resists.
+1. **Load the build** — `lua_load_build({build_name})` (cache the XML under
+   `~/pob/builds/`) or `lua_import_code({code})`. The load reply carries
+   life/DPS/EHP/resistances. If the PoB MCP errors, **stop and fix the tool**
+   (`~/pob/setup-pob.sh`, then the references) — never fall back to judging mods by eye
+   or to a trade-only answer with no PoB numbers.
 2. **Baseline**: one `lua_get_stats({})` for the keys you will diff, plus
    `export_full_stats({filter: "Resist"})` for `*ResistTotal` **and**
    `*ResistOverCap` of all four elements (fire/cold/lightning/chaos). The visible
@@ -34,8 +56,7 @@ Never re-ask mid-run because a filter returned nothing — relax filters instead
    `ChaosResistOverCap`.
    Keep this baseline object and diff the final set against it — the res
    before/after table below is mandatory output, not an optional extra.
-3. **Search every slot once** — `status: {option: "securable"}` = instant buyout.
-   Batch all slots in one `execute` block; the IP budget is 8 requests / 10s.
+3. **Search every slot once, ≥10 s apart** (never batched in one burst) — `status: {option: "securable"}` = instant buyout. After each search, **paginate the fetch to 40+ ids** so the candidate pool is long, not just the 8 cheapest.
 4. **Simulate all candidates in one `execute` block**: reload build → `add_item`
    for each slot → snapshot → diff. See `reference/pob-sim.md`.
 5. **Attribute check, every candidate** — mandatory, not optional. `parse_item`
@@ -89,23 +110,64 @@ Rules for that table:
 
 ## Speed rules (the whole point)
 
-- **No blanket sleeps.** Read `x-rate-limit-ip-state` from the search response:
-  `8:10:60` means 8 requests per 10s per IP. Four slots = 4 searches + 4 fetches
-  and fits in one 10s window. Only sleep when a state counter reaches its limit.
-  Blanket `sleep 60` between slots wastes 4 minutes per run.
-- **One search per slot, ever.** Iterating on candidates = re-`fetch` by id
-  (12 per 4s), never re-search.
-- **Cache listings**: write `{fetchedAt, query, rows}` to
-  `~/pob/pool/<League>/<slot>.json`; reuse if younger than 15 minutes. Re-searching
-  the same slot three times to "confirm" is what made early runs slow.
-- **One `execute` block per phase** (all searches, or all simulations). Each extra
-  round trip costs more wall clock than the PoB math does.
-- PoB import is ~7s; re-`add_item` is ~1s. Cache the XML, don't re-import.
+Rate limits are the scarce resource, fetches are cheap. **Numbers live in
+`reference/trade-api.md` only** — that file is the single source of truth; do not
+restate limits here (two copies drift into contradiction).
+
+- **One search per slot, per run. Hard cap: 4 searches per run.** A re-search to
+  "confirm" a listing is the biggest time sink and the main way to trip the limit.
+  To iterate on candidates, re-`fetch` by id (cheap) — never re-search.
+- **Space searches ≥10 s apart. Never batch them.** Four slots = four searches, ten
+  seconds apart. Fetches may run back-to-back inside that window.
+- **Re-navigating a stored `qid` URL costs a search request.** The query id is not a
+  cache: loading `trade/search/<league>/<qid>` re-runs the search server-side. Read the
+  tab that is already open; navigate only when you mean to spend a search.
+- **Search returns 0 rows?** The filter was too strict, or the listing sold. Relax the
+  rarest requirement and re-search — that is the *one* legitimate re-search, and you
+  must tell the user what you dropped.
+- **Fetch long lists — 40+ ids, not the top 8.** Price-ascending top 8 routinely misses
+  better items. Paginate in chunks of 10 before judging anything.
+- **Rare item names are not unique.** Ten different rares are called `Blood Loop`.
+  A name-only tab is the reason the user "can't tell which one to buy". To hand over a
+  listing unambiguously: use an **exact-roll filter** (`value: {min: N, max: N}` on the
+  distinctive mods) so the tab shows one row, and name the seller account next to it.
+- **Listings expire mid-run.** Before telling the user to buy, re-read the tab and
+  confirm it still has rows and the same price. A 1c rare found two hours ago is usually
+  gone — re-derive the candidate from live results instead of pinning to it.
+- **Persist the pool to disk as you go**: `~/pob/pool/<League>/<slot>.json` with
+  `{fetchedAt, query, rows}`, TTL 15 minutes. Agent context is not storage — tab ids and
+  in-page state (`window.__p`) die with the tab, and a closed tab must not cost a search.
+- **One `execute` block per phase for the PoB side** (all simulations together, one
+  reload per set). PoB import is ~7 s, re-`add_item` ~1 s; cache the XML, don't re-import.
+
 
 ## Report
 
-| Price | Item | Base | ΔLife | ΔEHP | ΔArmour | Overcap F/C/L | ΔDPS |
-|---|---|---|---|---|---|---|---|
+| Price | Item | Base | Req | ΔLife | ΔEHP | ΔArmour | Overcap F/C/L | ΔChaos | ΔDPS |
+|---|---|---|---|---|---|---|---|---|---|
 
 Then: the single pick, the total spend vs budget, what is left to upgrade.
+
+### Buy order = scarcity order, not value order
+
+Present **the hardest-to-replace item first**, not the cheapest or the biggest upgrade.
+A player shopping over an hour will lose the rare listing long before the common one,
+so the scarce item must be bought while it exists:
+
+- Rank by **how many comparable listings exist** — the search `total` for that slot and
+  filter set is the number to quote. `total: 1` is buy-it-now or lose-it; `total: 6593`
+  can wait.
+- Uniques with a specific roll, and rares needing several exact mods together (life +
+  cold res + chaos res on gloves), are scarce. Armour helm with life + one res is not.
+- Say the count next to each item so the user can see the risk, and put a whole-budget
+  warning first if the sum exceeds it.
+
+For **every** item handed over, give the buyer an unambiguous pointer — item name and
+base are not enough (rare names repeat):
+
+- the open tab, **plus** the seller account and the price, e.g.
+  `helm tab · row 2 · gujin1987#4540 · 1c`;
+- and confirm the tab still has rows. "No results found" means the filter was too
+  strict for that listing or it sold — rebuild the query, do not hand over an empty tab.
+
 Never whisper or buy without explicit confirmation.

@@ -48,9 +48,57 @@ not impose a fixed 60s pause per slot.
   sort: { price: "asc" } }
 ```
 
+## Sort options
+
+| Sort value | Meaning |
+|---|---|
+| `price: "asc"` | cheapest first (default) |
+| `price: "desc"` | most expensive first |
+| `quality: "desc"` | highest quality first, regardless of price |
+
+Use `quality: "desc"` when you want the best items regardless of price, then take the first few candidates.
+
+## Getting a long candidate list
+
+One search returns the whole id list — `sj.result` holds up to ~100 ids, there is no
+"page" parameter to advance. Take as many ids as you want from it and fetch them in
+chunks of 10 (10 ids per `/api/trade/fetch` call, 12 calls per 4 s):
+
+```js
+const ids = sj.result;                       // ~100 ids available
+const rows = [];
+for (let i = 0; i < Math.min(ids.length, 60); i += 10) {   // 40-60 candidates
+  const chunk = ids.slice(i, i + 10);
+  const fj = await (await fetch(`/api/trade/fetch/${chunk.join(",")}?query=${sj.id}`)).json();
+  rows.push(...(fj.result || []));
+}
+```
+
+60 ids = 6 fetch calls, comfortably inside the fetch budget (12 per 4 s). **Always do
+this** — the 8 cheapest are not a candidate pool.
+
+Always keep the same `queryId` (from the `/api/trade/search/<league>` response) so the
+filter stays applied.
+
+## Spacing searches
+
+Searches are the scarce, escalating resource; fetches are cheap. Space searches ≥10 s:
+
+```js
+// in shell, between two search phases — never a burst
+// sleep 12
+```
+
+Two searches back to back inside one `execute` block will trip the account rule
+(`3:5` → state `0:5:45` → "wait 60 seconds"). Fetch calls in the same window are fine.
+
+**A stored `qid` is not a cache.** Loading
+`https://www.pathofexile.com/trade/search/<league>/<qid>` in a tab re-runs that search
+server-side and costs one search request — same as searching again. Reading a tab that
+is already open costs nothing. So: keep the tab, read the DOM, and only navigate to a
+`qid` when you intend to spend a search.
+
 Categories: `armour.helmet`, `armour.gloves`, `armour.boots`, `armour.chest`,
-`armour.shield`, `accessory.ring`, `accessory.amulet`, `accessory.belt`,
-`weapon.oneaxe`, `weapon.twoaxe`, `flask`.
 
 ## Stat ids (verified against /api/trade/data/stats)
 

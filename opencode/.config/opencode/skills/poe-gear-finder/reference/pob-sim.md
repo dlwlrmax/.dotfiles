@@ -51,6 +51,18 @@ same swap, chaos always shown).
 
 ## Rules learned the hard way
 
+- **Unique roll ranges live in PoB's own data, not in your sample.** Grep
+  `PathOfBuilding/src/Data/Uniques/<slot>.lua` before quoting a max/min roll — e.g.
+  Ryslatha's Coil is `(30-40)% more Maximum Physical Attack Damage`. Inferring the range
+  from the listings you happened to fetch is wrong: a ≤60c sample topped out at 36% and
+  missed the real 40% ceiling. League-modified uniques can also roll outside PoB's data
+  (observed `54% less Minimum` against a listed `(30-40)` range) — say which source the
+  number came from.
+- **Measure a roll's value by holding everything else fixed.** To price a mod roll,
+  simulate the same item text twice with only that number changed, so the delta is
+  attributable. A whole-range delta is the useful number ("more Maximum 30→40 = +7.7%
+  DPS"), not one arbitrary listing.
+
 - **Reload before every set.** `add_item` replaces the slot but keeps everything
   else from the previous set; without a reload you diff against polluted state.
 - **Slots that remove stats matter.** Replacing a belt that gave 48% fire res
