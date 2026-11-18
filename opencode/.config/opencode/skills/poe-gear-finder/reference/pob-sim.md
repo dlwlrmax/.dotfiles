@@ -12,22 +12,42 @@ const n = (t, k) => { const m = t.match(new RegExp('"' + k + '":\\s*(-?[\\d.]+)'
 const snap = async () => {
   const a = String(await tools.pob.lua_get_stats({}));
   const b = String(await tools.pob.export_full_stats({ filter: "Resist" }));
+  const r = (el) => ({                                  // total / cap / overcap
+    t: n(b, el + "ResistTotal"),
+    cap: g(a, el + "Resist"),                           // capped value from lua_get_stats
+    oc: n(b, el + "ResistOverCap"),
+  });
   return {
     life: g(a, "Life"), ehp: Math.round(g(a, "TotalEHP")), dps: Math.round(g(a, "CombinedDPS")),
     arm: Math.round(g(a, "Armour")), mana: g(a, "ManaUnreserved"),
-    F: n(b, "FireResistOverCap"), C: n(b, "ColdResistOverCap"),
-    L: n(b, "LightningResistOverCap"), Ch: n(b, "ChaosResistOverCap"),
+    F: r("Fire"), C: r("Cold"), L: r("Lightning"), Ch: r("Chaos"),
   };
 };
 
 await tools.pob.lua_load_build({ build_name: "current.xml" });
-const out = { base: await snap() };
-for (const [slot, text] of Object.entries(set)) {           // one set = 5 slots
-  await tools.pob.lua_load_build({ build_name: "current.xml" });   // reset first
+const before = await snap();                            // equipped build, untouched
+for (const [slot, text] of Object.entries(set)) {
   await tools.pob.add_item({ item_text: text, slot_name: slot });
 }
-out.set = await snap();
+const after = await snap();                             // newly equipped set
+await tools.pob.lua_load_build({ build_name: "current.xml" });   // leave baseline clean
+return { before, after };
 ```
+
+`snap()` must be the **same function** for before and after, otherwise the two
+res readings use different keys and the diff is meaningless.
+
+`overcap` comes back `0` when the element is **at or below** its cap — chaos at
+`−37` reads `cap −37 / overcap 0`. Report the total for chaos, the overcap for
+elements above cap.
+
+## Reporting res (mandatory)
+
+Print before → after per element as `total / cap / overcap` plus the overcap
+delta; see the *Res before / after* section of `SKILL.md` for the exact table and
+the flags to raise (element falling below +20 overcap, element starved by the
+same swap, chaos always shown).
+
 
 ## Rules learned the hard way
 

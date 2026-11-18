@@ -111,9 +111,13 @@ Never re-ask mid-run because a filter returned nothing — relax filters instead
 1. **Load** `pob.lua_load_build({build_name})` (cache the XML under `~/pob/builds/`)
    or `lua_import_code({code})`. The load reply already carries life/DPS/EHP/resists.
 2. **Baseline**: one `lua_get_stats({})` for the keys you will diff, plus
-   `export_full_stats({filter: "Resist"})` for `*ResistOverCap` (the visible
+   `export_full_stats({filter: "Resist"})` for `*ResistTotal` **and**
+   `*ResistOverCap` of all four elements (fire/cold/lightning/chaos). The visible
    `FireResist` is **capped** — it hides overcap; overcap lives in
-   `FireResistOverCap` / `ColdResistOverCap` / `LightningResistOverCap`).
+   `FireResistOverCap` / `ColdResistOverCap` / `LightningResistOverCap` /
+   `ChaosResistOverCap`.
+   Keep this baseline object and diff the final set against it — the res
+   before/after table below is mandatory output, not an optional extra.
 3. **Search every slot once** — `status: {option: "securable"}` = instant buyout.
    Batch all slots in one `execute` block; the IP budget is 8 requests / 10s.
 4. **Simulate all candidates in one `execute` block**: reload build → `add_item`
@@ -124,7 +128,33 @@ Never re-ask mid-run because a filter returned nothing — relax filters instead
    stats when a requirement is unmet (it only prints a build issue), so a green
    Life/DPS delta does **not** mean the item is wearable.
 6. **Report** one table (price | item | base | req | Δlife | ΔEHP | Δarmour |
-   overcap F/C/L | ΔDPS), one recommendation, and leave the trade tabs open.
+   overcap F/C/L | ΔDPS), **plus the res before/after table below**, one
+   recommendation, and leave the trade tabs open.
+
+## Res before / after (always print, every run)
+
+One snapshot of the equipped build, one of the final set, same `snap()` for both.
+Never quote a single number — res is where a swap silently breaks a build.
+
+| Res | Trước total / cap / overcap | Sau total / cap / overcap | Δ overcap |
+|---|---|---|---|
+| Fire | 111 / 78 / **+33** | 120 / 78 / **+42** | +9 |
+| Cold | 124 / 77 / **+47** | 98 / 77 / **+21** | −26 |
+| Lightning | 94 / 77 / **+17** | 142 / 77 / **+65** | +48 |
+| Chaos | −37 / 75 / — | −60 / 75 / — | −23 |
+
+Rules for that table:
+
+- Print **total, cap and overcap** per element — overcap alone hides whether the
+  build was even capped before (chaos is often negative and has no overcap).
+- `overcap: 0` means **at or below cap**, not "fine". Chaos typically reads
+  `total −37 / cap −37 / overcap 0`; the number that matters is the total.
+- Flag any element that **drops** below +20 overcap, and say which item change
+  caused it (the replaced item's mods are the reason — check the XML, don't guess).
+- Flag any element that moves at all, even upward: a huge lightning gain usually
+  means another element got starved by the same swap.
+- If the user's priority did not include chaos, still print the row — it is
+  informational, not a filter.
 
 ## Targets to encode as filters
 
@@ -285,22 +315,42 @@ const n = (t, k) => { const m = t.match(new RegExp('"' + k + '":\\s*(-?[\\d.]+)'
 const snap = async () => {
   const a = String(await tools.pob.lua_get_stats({}));
   const b = String(await tools.pob.export_full_stats({ filter: "Resist" }));
+  const r = (el) => ({                                  // total / cap / overcap
+    t: n(b, el + "ResistTotal"),
+    cap: g(a, el + "Resist"),                           // capped value from lua_get_stats
+    oc: n(b, el + "ResistOverCap"),
+  });
   return {
     life: g(a, "Life"), ehp: Math.round(g(a, "TotalEHP")), dps: Math.round(g(a, "CombinedDPS")),
     arm: Math.round(g(a, "Armour")), mana: g(a, "ManaUnreserved"),
-    F: n(b, "FireResistOverCap"), C: n(b, "ColdResistOverCap"),
-    L: n(b, "LightningResistOverCap"), Ch: n(b, "ChaosResistOverCap"),
+    F: r("Fire"), C: r("Cold"), L: r("Lightning"), Ch: r("Chaos"),
   };
 };
 
 await tools.pob.lua_load_build({ build_name: "current.xml" });
-const out = { base: await snap() };
-for (const [slot, text] of Object.entries(set)) {           // one set = 5 slots
-  await tools.pob.lua_load_build({ build_name: "current.xml" });   // reset first
+const before = await snap();                            // equipped build, untouched
+for (const [slot, text] of Object.entries(set)) {
   await tools.pob.add_item({ item_text: text, slot_name: slot });
 }
-out.set = await snap();
+const after = await snap();                             // newly equipped set
+await tools.pob.lua_load_build({ build_name: "current.xml" });   // leave baseline clean
+return { before, after };
 ```
+
+`snap()` must be the **same function** for before and after, otherwise the two
+res readings use different keys and the diff is meaningless.
+
+`overcap` comes back `0` when the element is **at or below** its cap — chaos at
+`−37` reads `cap −37 / overcap 0`. Report the total for chaos, the overcap for
+elements above cap.
+
+## Reporting res (mandatory)
+
+Print before → after per element as `total / cap / overcap` plus the overcap
+delta; see the *Res before / after* section of `SKILL.md` for the exact table and
+the flags to raise (element falling below +20 overcap, element starved by the
+same swap, chaos always shown).
+
 
 ## Rules learned the hard way
 
