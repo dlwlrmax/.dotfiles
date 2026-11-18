@@ -9,7 +9,8 @@ Every candidate is **equipped in the build and recalculated by PoB** — never j
 from mod text. Whole run is ~90s; see *Speed rules* for why and how.
 
 References: `reference/trade-api.md` (query shapes, stat ids, rate limits),
-`reference/pob-sim.md` (simulation recipe).
+`reference/pob-sim.md` (simulation recipe), `scripts/README.md` (the runners),
+`specs/*.json` (trade filter specs).
 
 ## Definition of done — re-read this before sending the final message
 
@@ -43,30 +44,37 @@ Never re-ask mid-run because a filter returned nothing — relax filters instead
 
 ## Flow
 
+Runner: `scripts/*.mjs` + `specs/*.json` — see `scripts/README.md`. **Do not hand-write
+the browser or PoB code**: JS typed inline is where the escaping bugs and the
+rate-limit bursts came from. The scripts also enforce the spacing, burst and
+freshness gates for you.
+
 1. **Load the build** — `lua_load_build({build_name})` (cache the XML under
    `~/pob/builds/`) or `lua_import_code({code})`. The load reply carries
    life/DPS/EHP/resistances. If the PoB MCP errors, **stop and fix the tool**
    (`~/pob/setup-pob.sh`, then the references) — never fall back to judging mods by eye
    or to a trade-only answer with no PoB numbers.
-2. **Baseline**: one `lua_get_stats({})` for the keys you will diff, plus
-   `export_full_stats({filter: "Resist"})` for `*ResistTotal` **and**
-   `*ResistOverCap` of all four elements (fire/cold/lightning/chaos). The visible
-   `FireResist` is **capped** — it hides overcap; overcap lives in
-   `FireResistOverCap` / `ColdResistOverCap` / `LightningResistOverCap` /
-   `ChaosResistOverCap`.
-   Keep this baseline object and diff the final set against it — the res
-   before/after table below is mandatory output, not an optional extra.
-3. **Search every slot once, ≥10 s apart** (never batched in one burst) — `status: {option: "securable"}` = instant buyout. After each search, **paginate the fetch to 40+ ids** so the candidate pool is long, not just the 8 cheapest.
-4. **Simulate all candidates in one `execute` block**: reload build → `add_item`
-   for each slot → snapshot → diff. See `reference/pob-sim.md`.
-5. **Attribute check, every candidate** — mandatory, not optional. `parse_item`
-   returns `requirements {str, dex, int, level}`; compare with the build's own
-   `Str`/`Dex`/`Int` (`export_full_stats({filter: "Str"})`). PoB still applies the
-   stats when a requirement is unmet (it only prints a build issue), so a green
+2. **Baseline** — captured for you: the sim program returns `base` next to every
+   candidate set, and `table.mjs` diffs against it. The rule that matters: overcap lives
+   in `*ResistOverCap` from `export_full_stats({filter: "Resist"})`, **never** in the
+   capped `FireResist` that `lua_get_stats` prints — a capped `78` can hide `+33`. The
+   res before/after table is mandatory output, not an optional extra.
+3. **Search** — `node scripts/search.mjs --league <L> --slot <slot> --spec specs/<slot>.json`.
+   It refuses to run inside 10 s of the previous search and inside the 4-per-30-min cap,
+   then prints the `expression` to paste into `browse.eval` (instant buyout, 60 ids
+   fetched, so the pool is a pool). Save it with `node scripts/pool.mjs save …` and read
+   candidates with `node scripts/pool.mjs show …`, which exits 4 on a stale pool.
+4. **Simulate** — `node scripts/sim.mjs --items <items.json> --sets <sets.json> > /tmp/opencode/sim.js`,
+   then paste that program into the code-mode `execute` tool. It reloads the build per
+   set, snapshots stats and resistances, and returns the attribute check. See
+   `reference/pob-sim.md` for why each rule exists.
+5. **Attribute check, every candidate** — mandatory, and already baked into the program:
+   an item needing more `str/dex/int` than the build has shows as FAIL. PoB still applies
+   the stats when a requirement is unmet (it only prints a build issue), so a green
    Life/DPS delta does **not** mean the item is wearable.
-6. **Report** one table (price | item | base | req | Δlife | ΔEHP | Δarmour |
-   overcap F/C/L | ΔDPS), **plus the res before/after table below**, one
-   recommendation, and leave the trade tabs open.
+6. **Report** — `node scripts/table.mjs --pick <set> --file <sim output>` renders the
+   gates (caps, overcap ≥ 20, attributes — flagged per set) plus both tables. Add the buy
+   list from `pool.mjs show`. Satisfy the Definition of done at the top of this file.
 
 ## Res before / after (always print, every run)
 
@@ -143,10 +151,10 @@ restate limits here (two copies drift into contradiction).
 
 ## Report
 
-| Price | Item | Base | Req | ΔLife | ΔEHP | ΔArmour | Overcap F/C/L | ΔChaos | ΔDPS |
-|---|---|---|---|---|---|---|---|---|---|
-
-Then: the single pick, the total spend vs budget, what is left to upgrade.
+`node scripts/table.mjs --pick <set> --file <sim output>` renders the gates and both
+tables; the buy list comes from `pool.mjs show`. Every item handed over carries:
+price · item · base · **req** · Δlife · ΔEHP · Δarmour · overcap F/C/L · Δchaos · ΔDPS.
+Then the pick, the total spend vs budget, and what is left to upgrade.
 
 ### Buy order = scarcity order, not value order
 

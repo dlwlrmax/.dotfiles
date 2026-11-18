@@ -21,13 +21,21 @@ def read(name):
     p = skill_dir / name
     return p.read_text().rstrip("\n")
 
-files = [
-    ("5a", "~/.config/opencode/skills/poe-gear-finder/SKILL.md", read("SKILL.md")),
-    ("5b", "~/.config/opencode/skills/poe-gear-finder/reference/trade-api.md", read("reference/trade-api.md")),
-    ("5c", "~/.config/opencode/skills/poe-gear-finder/reference/pob-sim.md", read("reference/pob-sim.md")),
-]
+# Everything the skill needs to run, not just the prose: the runners and specs are
+# part of the skill, so the setup prompt must recreate them too.
+names = ["SKILL.md"]
+names += sorted(str(p.relative_to(skill_dir)) for p in (skill_dir / "reference").glob("*.md"))
+names += ["scripts/README.md"]
+names += sorted(str(p.relative_to(skill_dir)) for p in (skill_dir / "scripts").glob("*.mjs"))
+names += sorted(str(p.relative_to(skill_dir)) for p in (skill_dir / "specs").glob("*.json"))
 
-block = ["STEP 5 — write the skill (3 files, exact content):", ""]
+letters = "abcdefghijklmnopqrstuvwxyz"
+files = []
+for i, name in enumerate(names):
+    tag = "5" + letters[i] if i < len(letters) else f"5_{i}"
+    files.append((tag, f"~/.config/opencode/skills/poe-gear-finder/{name}", read(name)))
+
+block = [f"STEP 5 — write the skill ({len(files)} files, exact content):", ""]
 for tag, path, body in files:
     block += [f"{tag}) {path}", ""] + body.split("\n") + [""]
 

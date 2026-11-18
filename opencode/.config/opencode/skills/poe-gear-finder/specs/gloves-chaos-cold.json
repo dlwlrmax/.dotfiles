@@ -1,0 +1,16 @@
+{
+  "status": "securable",
+  "filters": {
+    "type_filters": { "filters": { "category": { "option": "armour.gloves" } } },
+    "armour_filters": { "filters": { "ar": { "min": 100 } } },
+    "trade_filters": { "filters": { "price": { "option": "chaos", "max": 20 } } }
+  },
+  "stats": [
+    { "type": "and", "filters": [
+      { "id": "explicit.stat_2923486259", "value": { "min": 20 }, "disabled": false },
+      { "id": "explicit.stat_4220027924", "value": { "min": 25 }, "disabled": false },
+      { "id": "explicit.stat_3299347043", "value": { "min": 80 }, "disabled": false }
+    ]}
+  ],
+  "sort": { "price": "asc" }
+}

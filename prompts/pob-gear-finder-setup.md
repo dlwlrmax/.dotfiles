@@ -78,7 +78,7 @@ merge into "mcp", keep existing keys). Rewrite `pob` to exactly:
 "PoB Lua Bridge started successfully." Do not use `bash -lc` in `command`; it
 breaks MCP stdio registration.
 
-STEP 5 — write the skill (3 files, exact content):
+STEP 5 — write the skill (11 files, exact content):
 
 5a) ~/.config/opencode/skills/poe-gear-finder/SKILL.md
 
@@ -93,7 +93,8 @@ Every candidate is **equipped in the build and recalculated by PoB** — never j
 from mod text. Whole run is ~90s; see *Speed rules* for why and how.
 
 References: `reference/trade-api.md` (query shapes, stat ids, rate limits),
-`reference/pob-sim.md` (simulation recipe).
+`reference/pob-sim.md` (simulation recipe), `scripts/README.md` (the runners),
+`specs/*.json` (trade filter specs).
 
 ## Definition of done — re-read this before sending the final message
 
@@ -127,30 +128,37 @@ Never re-ask mid-run because a filter returned nothing — relax filters instead
 
 ## Flow
 
+Runner: `scripts/*.mjs` + `specs/*.json` — see `scripts/README.md`. **Do not hand-write
+the browser or PoB code**: JS typed inline is where the escaping bugs and the
+rate-limit bursts came from. The scripts also enforce the spacing, burst and
+freshness gates for you.
+
 1. **Load the build** — `lua_load_build({build_name})` (cache the XML under
    `~/pob/builds/`) or `lua_import_code({code})`. The load reply carries
    life/DPS/EHP/resistances. If the PoB MCP errors, **stop and fix the tool**
    (`~/pob/setup-pob.sh`, then the references) — never fall back to judging mods by eye
    or to a trade-only answer with no PoB numbers.
-2. **Baseline**: one `lua_get_stats({})` for the keys you will diff, plus
-   `export_full_stats({filter: "Resist"})` for `*ResistTotal` **and**
-   `*ResistOverCap` of all four elements (fire/cold/lightning/chaos). The visible
-   `FireResist` is **capped** — it hides overcap; overcap lives in
-   `FireResistOverCap` / `ColdResistOverCap` / `LightningResistOverCap` /
-   `ChaosResistOverCap`.
-   Keep this baseline object and diff the final set against it — the res
-   before/after table below is mandatory output, not an optional extra.
-3. **Search every slot once, ≥10 s apart** (never batched in one burst) — `status: {option: "securable"}` = instant buyout. After each search, **paginate the fetch to 40+ ids** so the candidate pool is long, not just the 8 cheapest.
-4. **Simulate all candidates in one `execute` block**: reload build → `add_item`
-   for each slot → snapshot → diff. See `reference/pob-sim.md`.
-5. **Attribute check, every candidate** — mandatory, not optional. `parse_item`
-   returns `requirements {str, dex, int, level}`; compare with the build's own
-   `Str`/`Dex`/`Int` (`export_full_stats({filter: "Str"})`). PoB still applies the
-   stats when a requirement is unmet (it only prints a build issue), so a green
+2. **Baseline** — captured for you: the sim program returns `base` next to every
+   candidate set, and `table.mjs` diffs against it. The rule that matters: overcap lives
+   in `*ResistOverCap` from `export_full_stats({filter: "Resist"})`, **never** in the
+   capped `FireResist` that `lua_get_stats` prints — a capped `78` can hide `+33`. The
+   res before/after table is mandatory output, not an optional extra.
+3. **Search** — `node scripts/search.mjs --league <L> --slot <slot> --spec specs/<slot>.json`.
+   It refuses to run inside 10 s of the previous search and inside the 4-per-30-min cap,
+   then prints the `expression` to paste into `browse.eval` (instant buyout, 60 ids
+   fetched, so the pool is a pool). Save it with `node scripts/pool.mjs save …` and read
+   candidates with `node scripts/pool.mjs show …`, which exits 4 on a stale pool.
+4. **Simulate** — `node scripts/sim.mjs --items <items.json> --sets <sets.json> > /tmp/opencode/sim.js`,
+   then paste that program into the code-mode `execute` tool. It reloads the build per
+   set, snapshots stats and resistances, and returns the attribute check. See
+   `reference/pob-sim.md` for why each rule exists.
+5. **Attribute check, every candidate** — mandatory, and already baked into the program:
+   an item needing more `str/dex/int` than the build has shows as FAIL. PoB still applies
+   the stats when a requirement is unmet (it only prints a build issue), so a green
    Life/DPS delta does **not** mean the item is wearable.
-6. **Report** one table (price | item | base | req | Δlife | ΔEHP | Δarmour |
-   overcap F/C/L | ΔDPS), **plus the res before/after table below**, one
-   recommendation, and leave the trade tabs open.
+6. **Report** — `node scripts/table.mjs --pick <set> --file <sim output>` renders the
+   gates (caps, overcap ≥ 20, attributes — flagged per set) plus both tables. Add the buy
+   list from `pool.mjs show`. Satisfy the Definition of done at the top of this file.
 
 ## Res before / after (always print, every run)
 
@@ -227,10 +235,10 @@ restate limits here (two copies drift into contradiction).
 
 ## Report
 
-| Price | Item | Base | Req | ΔLife | ΔEHP | ΔArmour | Overcap F/C/L | ΔChaos | ΔDPS |
-|---|---|---|---|---|---|---|---|---|---|
-
-Then: the single pick, the total spend vs budget, what is left to upgrade.
+`node scripts/table.mjs --pick <set> --file <sim output>` renders the gates and both
+tables; the buy list comes from `pool.mjs show`. Every item handed over carries:
+price · item · base · **req** · Δlife · ΔEHP · Δarmour · overcap F/C/L · Δchaos · ΔDPS.
+Then the pick, the total spend vs budget, and what is left to upgrade.
 
 ### Buy order = scarcity order, not value order
 
@@ -256,7 +264,107 @@ base are not enough (rare names repeat):
 
 Never whisper or buy without explicit confirmation.
 
-5b) ~/.config/opencode/skills/poe-gear-finder/reference/trade-api.md
+5b) ~/.config/opencode/skills/poe-gear-finder/reference/pob-sim.md
+
+# Simulating candidates in PoB
+
+One `execute` block. Never one tool call per candidate.
+
+```js
+const it = (name, base, mods) =>
+  ["Rarity: RARE", name, base, "--------", "Item Level: 85", "--------", ...mods].join("\n");
+
+const g = (t, k) => { const m = t.match(new RegExp(k + ":\\s*(-?[\\d.]+)")); return m ? +m[1] : null; };
+const n = (t, k) => { const m = t.match(new RegExp('"' + k + '":\\s*(-?[\\d.]+)')); return m ? +m[1] : null; };
+
+const snap = async () => {
+  const a = String(await tools.pob.lua_get_stats({}));
+  const b = String(await tools.pob.export_full_stats({ filter: "Resist" }));
+  const r = (el) => ({                                  // total / cap / overcap
+    t: n(b, el + "ResistTotal"),
+    cap: g(a, el + "Resist"),                           // capped value from lua_get_stats
+    oc: n(b, el + "ResistOverCap"),
+  });
+  return {
+    life: g(a, "Life"), ehp: Math.round(g(a, "TotalEHP")), dps: Math.round(g(a, "CombinedDPS")),
+    arm: Math.round(g(a, "Armour")), mana: g(a, "ManaUnreserved"),
+    F: r("Fire"), C: r("Cold"), L: r("Lightning"), Ch: r("Chaos"),
+  };
+};
+
+await tools.pob.lua_load_build({ build_name: "current.xml" });
+const before = await snap();                            // equipped build, untouched
+for (const [slot, text] of Object.entries(set)) {
+  await tools.pob.add_item({ item_text: text, slot_name: slot });
+}
+const after = await snap();                             // newly equipped set
+await tools.pob.lua_load_build({ build_name: "current.xml" });   // leave baseline clean
+return { before, after };
+```
+
+`snap()` must be the **same function** for before and after, otherwise the two
+res readings use different keys and the diff is meaningless.
+
+`overcap` comes back `0` when the element is **at or below** its cap — chaos at
+`−37` reads `cap −37 / overcap 0`. Report the total for chaos, the overcap for
+elements above cap.
+
+## Reporting res (mandatory)
+
+Print before → after per element as `total / cap / overcap` plus the overcap
+delta; see the *Res before / after* section of `SKILL.md` for the exact table and
+the flags to raise (element falling below +20 overcap, element starved by the
+same swap, chaos always shown).
+
+
+## Rules learned the hard way
+
+- **Unique roll ranges live in PoB's own data, not in your sample.** Grep
+  `PathOfBuilding/src/Data/Uniques/<slot>.lua` before quoting a max/min roll — e.g.
+  Ryslatha's Coil is `(30-40)% more Maximum Physical Attack Damage`. Inferring the range
+  from the listings you happened to fetch is wrong: a ≤60c sample topped out at 36% and
+  missed the real 40% ceiling. League-modified uniques can also roll outside PoB's data
+  (observed `54% less Minimum` against a listed `(30-40)` range) — say which source the
+  number came from.
+- **Measure a roll's value by holding everything else fixed.** To price a mod roll,
+  simulate the same item text twice with only that number changed, so the delta is
+  attributable. A whole-range delta is the useful number ("more Maximum 30→40 = +7.7%
+  DPS"), not one arbitrary listing.
+
+- **Reload before every set.** `add_item` replaces the slot but keeps everything
+  else from the previous set; without a reload you diff against polluted state.
+- **Slots that remove stats matter.** Replacing a belt that gave 48% fire res
+  silently drops fire — the diff shows it, reasoning does not.
+- **Item text format**: `Rarity / name / base / -------- / Item Level: N /
+  -------- / mods`. Do **not** emit an `Implicits: N` header — PoB's parser
+  reports it as unparseable and can mis-assign the following lines. List implicit
+  mods as ordinary mod lines instead; the numeric effect is identical.
+- Base names must be exact (`Lacquered Helmet`, not `Lacquer Helmet`) or
+  `add_item` fails with `failed to parse item`.
+- `lua_get_stats` returns **capped** resistances (`FireResist` = 78 even with 200%
+  over). Overcap lives in `*ResistOverCap` from `export_full_stats`, which is
+  truncated for an unfiltered call — always pass `filter`.
+- `export_full_stats` with `filter: "Bleed"` gives `BleedChance`; use it instead of
+  inferring from gem text (a bleed build at 100% gains nothing from more bleed chance).
+- **Attribute check is mandatory.** `get_build_issues` is not enough — PoB applies
+  the item's stats even when the requirement is unmet, so a healthy Life/DPS delta
+  can hide an unusable item. Check the numbers directly:
+
+  ```js
+  const p = String(await tools.pob.parse_item({ text }));
+  const req = JSON.parse(p.match(/\{[\s\S]*"requirements"[\s\S]*?\}(?=\s*\n\})/)[0]);
+  const own = {};                                   // Str / Dex / Int of the build
+  for (const k of ["Str", "Dex", "Int"]) {
+    const s = String(await tools.pob.export_full_stats({ filter: k }));
+    own[k] = Number(s.match(new RegExp('"' + k + '":\\s*(-?[\\d.]+)'))[1]);
+  }
+  const ok = req.str <= own.Str && req.dex <= own.Dex && req.int <= own.Int;
+  ```
+
+  Report the requirement next to the item (`S85 D62`) so the user can see it passes.
+- Reload the original build when done, so the cached XML stays the baseline.
+
+5c) ~/.config/opencode/skills/poe-gear-finder/reference/trade-api.md
 
 # Trade API reference
 
@@ -409,107 +517,584 @@ Cheap and needs no API call — use it for follow-up questions on the same searc
 - Item mod text from the site is authoritative — copy it verbatim into PoB. Values
   are rolled min-max in `mods[].magnitudes`, the row text shows the real roll.
 
-5c) ~/.config/opencode/skills/poe-gear-finder/reference/pob-sim.md
+5d) ~/.config/opencode/skills/poe-gear-finder/scripts/README.md
 
-# Simulating candidates in PoB
+# Scripts — the mechanics, not the prose
 
-One `execute` block. Never one tool call per candidate.
+The rules in `SKILL.md` describe *what* must hold. These scripts are *how* it is done,
+so a run never re-derives the code (hand-written inline JS is where escaping bugs and
+rate-limit bursts came from).
 
-```js
-const it = (name, base, mods) =>
-  ["Rarity: RARE", name, base, "--------", "Item Level: 85", "--------", ...mods].join("\n");
+Everything is plain Node, no dependencies. Scratch files go in `/tmp/opencode`.
 
-const g = (t, k) => { const m = t.match(new RegExp(k + ":\\s*(-?[\\d.]+)")); return m ? +m[1] : null; };
-const n = (t, k) => { const m = t.match(new RegExp('"' + k + '":\\s*(-?[\\d.]+)')); return m ? +m[1] : null; };
+## Pipeline
+
+```
+1  node scripts/search.mjs --league <L> --slot <slot> --spec specs/<spec>.json
+   → enforces >=10s since the last search and the 4-searches-per-30min cap
+   → prints a ready-to-paste `expression` for tools.browse.eval (60 ids fetched)
+
+2  paste that expression into tools.browse.eval on an open trade tab
+   → returns { qid, total, fetched, rows[] }
+
+3  node scripts/pool.mjs save --league <L> --slot <slot> --file /tmp/opencode/<slot>-rows.json
+   → normalises mods, derives life/res, writes ~/pob/pool/<L>/<slot>.json
+
+4  node scripts/pool.mjs show --league <L> --slot <slot> [--sort life] [--max-age 15]
+   → the candidate table; exits 4 when the pool is stale
+
+5  node scripts/sim.mjs --build current.xml --items items.json --sets sets.json > /tmp/opencode/sim.js
+   → emits a complete code-mode program (all sets, attribute check, res snapshot)
+
+6  paste /tmp/opencode/sim.js into the `execute` tool
+   → returns { own, reqs, base, <set>: {...} }
+
+7  node scripts/table.mjs --pick <set> --file /tmp/opencode/sim-out.json
+   → gates (caps, overcap >= 20, attributes) + the two report tables
+```
+
+## Rules the scripts enforce mechanically
+
+- **Spacing**: `search.mjs` refuses to run less than 10 s after the previous search
+  (`~/pob/pool/<L>/.lastsearch`). `--force` overrides, deliberately.
+- **Burst cap**: more than 4 searches in 30 min is refused (`~/pob/pool/<L>/.searchlog`).
+- **Freshness**: `pool.mjs show` exits 4 on a pool older than `--max-age` (default
+  15 min), so a stale price never reaches the user.
+- **Attribute requirements**: `sim.mjs` bakes the `parse_item` check into the program,
+  so an unwearable item shows up as a FAIL instead of a healthy looking stat delta.
+
+## Files
+
+| File | Role |
+|---|---|
+| `search.mjs` | spec → browser expression + spacing/burst gates |
+| `pool.mjs` | save/show/list + freshness gate; the only place rows are parsed |
+| `sim.mjs` | items + sets → code-mode PoB program with attribute checks |
+| `table.mjs` | sim output → gates + markdown report tables |
+| `../specs/*.json` | trade filter specs passed to `search.mjs` |
+
+## Adding a slot
+
+Write `specs/<slot>.json` (same shape as the existing ones: `status`, `filters`, `stats`,
+`sort`), then run `search.mjs` with the spec. A spec with `"term"` searches by unique
+name; leave `term` out and filter by stat ids when the item is a rare.
+
+5e) ~/.config/opencode/skills/poe-gear-finder/scripts/pool.mjs
+
+#!/usr/bin/env node
+// Persist and read the candidate pool. Agent context is not storage: a closed tab
+// or a compacted context must never cost a new search.
+//
+//   node scripts/pool.mjs save --league Covens --slot ring --file /tmp/opencode/ring-rows.json
+//   node scripts/pool.mjs show --league Covens --slot ring [--max-age 15] [--sort life]
+//   node scripts/pool.mjs list --league Covens
+//
+// `save` also accepts the raw output of the printed eval expression, including the
+// double-encoded string form, so the file can be the tool result verbatim.
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+
+const argv = process.argv.slice(2);
+const cmd = argv[0];
+const args = {};
+for (let i = 1; i < argv.length; i++) {
+  const a = argv[i];
+  if (a.startsWith("--")) {
+    const k = a.slice(2).replace(/-/g, "_");
+    args[k] = argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[++i] : true;
+  }
+}
+const league = args.league;
+if (!league || !cmd) {
+  console.error("usage: pool.mjs <save|show|list> --league <L> [--slot <s>] [--file f] [--max-age min] [--sort life]");
+  process.exit(2);
+}
+const dir = join(homedir(), "pob", "pool", league);
+mkdirSync(dir, { recursive: true });
+
+/** Unwrap however many layers of JSON-string encoding the tool result picked up. */
+function unwrap(raw) {
+  let v = raw;
+  for (let i = 0; i < 4 && typeof v === "string"; i++) {
+    try { v = JSON.parse(v); } catch { break; }
+  }
+  return v;
+}
+
+const num = (s) => {
+  const m = /([+-]?\d+(?:\.\d+)?)/.exec(String(s));
+  return m ? Number(m[1]) : 0;
+};
+
+/** Sum every "+N% to X Resistance" style mod, honouring multi-element mods. */
+function resist(mods, elements) {
+  let total = 0;
+  for (const raw of mods) {
+    const m = /^\+(\d+)% to (.*Resistance[s]?)$/.exec(raw.trim());
+    if (!m) continue;
+    const value = Number(m[1]);
+    const words = m[2];
+    if (/all Elemental/.test(words)) { total += value; continue; }
+    if (elements.some((e) => words.startsWith(e))) total += value;
+  }
+  return total;
+}
+
+function derive(row) {
+  const mods = row.mods || [];
+  const life = num((mods.find((m) => /maximum Life$/.test(m)) || "").replace(/^\+/, ""));
+  const join = mods.join(" | ");
+  return {
+    ...row,
+    life,
+    fire: resist(mods, ["Fire"]),
+    cold: resist(mods, ["Cold"]),
+    lightning: resist(mods, ["Lightning"]),
+    chaos: num((mods.find((m) => /to Chaos Resistance/.test(m)) || "").replace(/^\+/, "")),
+    dotMulti: num((join.match(/\+(\d+)% to Damage over Time Multiplier/) || [0, 0])[1]),
+    physAdd: (join.match(/Adds (\d+) to (\d+) Physical Damage/) || [0, 0, 0]).slice(1, 3).map(Number),
+  };
+}
+
+if (cmd === "save") {
+  if (!args.slot || !args.file) { console.error("save needs --slot and --file"); process.exit(2); }
+  const payload = unwrap(readFileSync(args.file, "utf8"));
+  const rows = Array.isArray(payload) ? payload : payload.rows;
+  if (!Array.isArray(rows)) { console.error("no rows array in the input file"); process.exit(2); }
+  const out = {
+    fetchedAt: new Date().toISOString(),
+    slot: args.slot,
+    qid: payload && payload.qid,
+    total: payload && payload.total,
+    idsAvailable: payload && payload.idsAvailable,
+    rows: rows.map(derive),
+  };
+  const file = join(dir, `${args.slot}.json`);
+  writeFileSync(file, JSON.stringify(out, null, 1));
+  console.log(`saved ${out.rows.length} rows (total ${out.total}) -> ${file}`);
+  process.exit(0);
+}
+
+if (cmd === "list") {
+  const files = readdirSync(dir).filter((f) => f.endsWith(".json"));
+  for (const f of files) {
+    const j = JSON.parse(readFileSync(join(dir, f), "utf8"));
+    const age = ((Date.now() - statSync(join(dir, f)).mtimeMs) / 60000).toFixed(1);
+    console.log(`${f.padEnd(18)} ${String(j.rows.length).padStart(3)} rows  total ${j.total}  age ${age}min`);
+  }
+  process.exit(0);
+}
+
+if (cmd === "show") {
+  const file = join(dir, `${args.slot}.json`);
+  if (!existsSync(file)) { console.error(`no pool for ${args.slot}; search first`); process.exit(4); }
+  const maxAge = Number(args.max_age || 15);
+  const ageMin = (Date.now() - statSync(file).mtimeMs) / 60000;
+  if (ageMin > maxAge) {
+    console.error(`STALE: ${args.slot} pool is ${ageMin.toFixed(1)}min old (max ${maxAge}). Listing prices move; re-search or accept the risk explicitly.`);
+    process.exit(4);
+  }
+  const pool = JSON.parse(readFileSync(file, "utf8"));
+  const key = args.sort || "life";
+  const rows = [...pool.rows].sort((a, b) => Number(b[key] || 0) - Number(a[key] || 0)).slice(0, Number(args.limit || 15));
+  console.log(`# ${args.slot} · total ${pool.total} · fetched ${pool.rows.length} · ${ageMin.toFixed(1)}min old\n`);
+  console.log("price | item | base | armour | life | res F/C/L | chaos | seller");
+  for (const r of rows) {
+    console.log(`${r.priceAmount}c | ${r.name} | ${r.base} | ${r.armour} | ${r.life} | ${r.fire}/${r.cold}/${r.lightning} | ${r.chaos} | ${r.seller}`);
+  }
+  process.exit(0);
+}
+
+console.error(`unknown command: ${cmd}`);
+process.exit(2);
+
+5f) ~/.config/opencode/skills/poe-gear-finder/scripts/search.mjs
+
+#!/usr/bin/env node
+// Build the browser-side expression for a trade search, and enforce the search
+// spacing rule mechanically (mtime lock) so it cannot be violated by accident.
+//
+//   node scripts/search.mjs --league Covens --slot ring --spec specs/ring.json
+//
+// Prints a ready-to-paste `expression` argument for tools.browse.eval, plus the
+// shell command that saves the result into the pool. Nothing here performs a
+// request; only the browser does, from the user's logged-in session.
+import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+
+const MIN_GAP_MS = 10_000;      // searches must be >= 10s apart
+const BURST_WINDOW_MS = 30 * 60_000;
+const BURST_MAX = 4;            // more than this in 30min needs --force
+
+const args = {};
+for (let i = 2; i < process.argv.length; i++) {
+  const a = process.argv[i];
+  if (a.startsWith("--")) {
+    const k = a.slice(2).replace(/-/g, "_");
+    const v = process.argv[i + 1] && !process.argv[i + 1].startsWith("--") ? process.argv[++i] : true;
+    args[k] = v;
+  }
+}
+const league = args.league;
+const slot = args.slot;
+const specPath = args.spec;
+const maxIds = Number(args.max || 60);
+if (!league || !slot || !specPath) {
+  console.error("usage: search.mjs --league <L> --slot <slot> --spec <spec.json> [--max 60] [--force]");
+  process.exit(2);
+}
+
+const dir = join(homedir(), "pob", "pool", league);
+mkdirSync(dir, { recursive: true });
+const gapFile = join(dir, ".lastsearch");
+const logFile = join(dir, ".searchlog");
+const readIf = (p) => (existsSync(p) ? readFileSync(p, "utf8") : "");
+
+const now = Date.now();
+if (!args.force && existsSync(gapFile)) {
+  const last = Number(readFileSync(gapFile, "utf8").trim()) || 0;
+  const wait = MIN_GAP_MS - (now - last);
+  if (wait > 0) {
+    console.error(`BLOCKED: last search was ${((now - last) / 1000).toFixed(1)}s ago. Wait ${Math.ceil(wait / 1000)}s, then rerun.`);
+    process.exit(3);
+  }
+}
+if (!args.force && existsSync(logFile)) {
+  const stamps = readFileSync(logFile, "utf8").split("\n").filter(Boolean).map(Number);
+  const recent = stamps.filter((t) => now - t < BURST_WINDOW_MS);
+  if (recent.length >= BURST_MAX) {
+    console.error(`BLOCKED: ${recent.length} searches in the last 30min (cap ${BURST_MAX}). Spend a fetch or read a cached pool instead; --force to override.`);
+    process.exit(3);
+  }
+}
+
+const spec = JSON.parse(readFileSync(specPath, "utf8"));
+const query = {
+  query: {
+    status: { option: spec.status || "securable" },   // instant buyout only
+    ...(spec.term ? { term: spec.term } : {}),
+    filters: spec.filters || {},
+    ...(spec.stats ? { stats: spec.stats } : {}),
+  },
+  sort: spec.sort || { price: "asc" },
+};
+
+// Reserve the slot before emitting, so a failed run still counts.
+writeFileSync(gapFile, String(now));
+writeFileSync(logFile, [...readIf(logFile).split("\n").filter(Boolean), String(now)].join("\n") + "\n");
+
+const page = `(async function () {
+  window.__p = { qid: null, ids: [], rows: [], total: null };
+  var r = await fetch("/api/trade/search/${league}", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(${JSON.stringify(query)})
+  });
+  var sj = await r.json();
+  if (sj.error) return JSON.stringify({ err: sj.error });
+  window.__p.qid = sj.id;
+  window.__p.total = sj.total;
+  window.__p.ids = sj.result || [];
+  var take = Math.min(window.__p.ids.length, ${maxIds});
+  for (var i = 0; i < take; i += 10) {
+    var chunk = window.__p.ids.slice(i, i + 10);
+    var fj = await (await fetch("/api/trade/fetch/" + chunk.join(",") + "?query=" + encodeURIComponent(sj.id))).json();
+    window.__p.rows = window.__p.rows.concat(fj.result || []);
+  }
+  var clean = function (s) { return String(s && s.description !== undefined ? s.description : s).replace(/\\[([^\\]|]*)\\|([^\\]]*)\\]/g, "$2"); };
+  var rows = window.__p.rows.map(function (i) {
+    var mods = [].concat(i.item.implicitMods || [], i.item.explicitMods || []).map(clean);
+    var props = {};
+    (i.item.properties || []).forEach(function (p) { props[p.name] = p.values[0][0]; });
+    return {
+      name: i.item.name,
+      base: i.item.baseType,
+      price: i.listing && i.listing.price ? i.listing.price.amount + " " + i.listing.price.currency : null,
+      priceAmount: i.listing && i.listing.price ? i.listing.price.amount : null,
+      seller: i.listing && i.listing.account ? i.listing.account.name : null,
+      armour: props["Armour"] ? Number(String(props["Armour"]).replace(/[^0-9]/g, "")) : 0,
+      evasion: props["Evasion Rating"] ? Number(String(props["Evasion Rating"]).replace(/[^0-9]/g, "")) : 0,
+      quality: props["Quality"] || null,
+      requirements: (i.item.requirements || []).map(function (r) { return r.name + " " + r.values[0][0]; }),
+      mods: mods
+    };
+  });
+  return JSON.stringify({ qid: window.__p.qid, total: window.__p.total, idsAvailable: window.__p.ids.length, fetched: rows.length, rows: rows });
+})()`;
+
+console.log("=== expression (paste verbatim as the browse.eval `expression` argument)");
+console.log(JSON.stringify(page));
+console.log("");
+console.log("=== then save the returned rows to the pool");
+console.log(`node scripts/pool.mjs save --league ${league} --slot ${slot} --file /tmp/opencode/${slot}-rows.json`);
+
+5g) ~/.config/opencode/skills/poe-gear-finder/scripts/sim.mjs
+
+#!/usr/bin/env node
+// Emit a complete, ready-to-paste code-mode program that simulates every gear set
+// in PoB, snapshots the stats and resistances, and checks attribute requirements.
+// The model never hand-writes the sim code, so escaping cannot bite.
+//
+//   node scripts/sim.mjs --build current.xml --items items.json --sets sets.json > /tmp/opencode/sim.js
+//
+// items.json: { "<key>": { "name": "...", "base": "...", "mods": ["..."], "rarity": "RARE" } }
+// sets.json:  { "<label>": { "cost": 67, "Helmet": "<key>", "Belt": "<key>", ... } }
+//             slot names are PoB's: Helmet Gloves Belt "Ring 1" "Ring 2" Boots Body Armour
+import { readFileSync } from "node:fs";
+
+const argv = process.argv.slice(2);
+const args = {};
+for (let i = 0; i < argv.length; i++) {
+  const a = argv[i];
+  if (a.startsWith("--")) {
+    const k = a.slice(2).replace(/-/g, "_");
+    args[k] = argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[++i] : true;
+  }
+}
+if (!args.items || !args.sets) {
+  console.error("usage: sim.mjs --build <build.xml> --items items.json --sets sets.json");
+  process.exit(2);
+}
+const build = args.build || "current.xml";
+const items = JSON.parse(readFileSync(args.items, "utf8"));
+const sets = JSON.parse(readFileSync(args.sets, "utf8"));
+
+// Build each item's PoB text here; no Implicits header, implicits are ordinary mods.
+const texts = {};
+for (const [key, it] of Object.entries(items)) {
+  const head = [`Rarity: ${it.rarity || "RARE"}`, it.name, it.base, "--------", `Item Level: ${it.ilvl || 85}`, "--------"];
+  texts[key] = head.concat(it.mods).join("\n");
+}
+
+const program = `const ITEMS = ${JSON.stringify(texts, null, 2)};
+const SETS = ${JSON.stringify(sets, null, 2)};
+const BUILD = ${JSON.stringify(build)};
+
+const g = (t, k) => { const m = t.match(new RegExp(k + ":\\\\s*(-?[\\\\d.]+)")); return m ? +m[1] : null; };
+const n = (t, k) => { const m = t.match(new RegExp('"' + k + '":\\\\s*(-?[\\\\d.]+)')); return m ? +m[1] : null; };
 
 const snap = async () => {
   const a = String(await tools.pob.lua_get_stats({}));
-  const b = String(await tools.pob.export_full_stats({ filter: "Resist" }));
-  const r = (el) => ({                                  // total / cap / overcap
-    t: n(b, el + "ResistTotal"),
-    cap: g(a, el + "Resist"),                           // capped value from lua_get_stats
-    oc: n(b, el + "ResistOverCap"),
+  const res = String(await tools.pob.export_full_stats({ filter: "Resist" }));
+  const bleed = String(await tools.pob.export_full_stats({ filter: "Bleed" }));
+  const r = (el) => ({
+    total: n(res, el + "ResistTotal"),
+    cap: g(a, el + "Resist"),
+    overcap: n(res, el + "ResistOverCap"),
   });
   return {
-    life: g(a, "Life"), ehp: Math.round(g(a, "TotalEHP")), dps: Math.round(g(a, "CombinedDPS")),
-    arm: Math.round(g(a, "Armour")), mana: g(a, "ManaUnreserved"),
-    F: r("Fire"), C: r("Cold"), L: r("Lightning"), Ch: r("Chaos"),
+    life: g(a, "Life"),
+    ehp: g(a, "TotalEHP") === null ? null : Math.round(g(a, "TotalEHP")),
+    armour: g(a, "Armour") === null ? null : Math.round(g(a, "Armour")),
+    dps: g(a, "CombinedDPS") === null ? null : Math.round(g(a, "CombinedDPS")),
+    bleedDps: n(bleed, "BleedDPS") === null ? null : Math.round(n(bleed, "BleedDPS")),
+    bleedChance: n(bleed, "BleedChance"),
+    fire: r("Fire"), cold: r("Cold"), lightning: r("Lightning"), chaos: r("Chaos"),
   };
 };
 
-await tools.pob.lua_load_build({ build_name: "current.xml" });
-const before = await snap();                            // equipped build, untouched
-for (const [slot, text] of Object.entries(set)) {
-  await tools.pob.add_item({ item_text: text, slot_name: slot });
+await tools.pob.lua_load_build({ build_name: BUILD });
+
+// Gate: attribute requirements, checked on the build as loaded.
+const own = {};
+for (const k of ["Str", "Dex", "Int"]) {
+  const s = String(await tools.pob.export_full_stats({ filter: k }));
+  own[k] = n(s, k);
 }
-const after = await snap();                             // newly equipped set
-await tools.pob.lua_load_build({ build_name: "current.xml" });   // leave baseline clean
-return { before, after };
-```
-
-`snap()` must be the **same function** for before and after, otherwise the two
-res readings use different keys and the diff is meaningless.
-
-`overcap` comes back `0` when the element is **at or below** its cap — chaos at
-`−37` reads `cap −37 / overcap 0`. Report the total for chaos, the overcap for
-elements above cap.
-
-## Reporting res (mandatory)
-
-Print before → after per element as `total / cap / overcap` plus the overcap
-delta; see the *Res before / after* section of `SKILL.md` for the exact table and
-the flags to raise (element falling below +20 overcap, element starved by the
-same swap, chaos always shown).
-
-
-## Rules learned the hard way
-
-- **Unique roll ranges live in PoB's own data, not in your sample.** Grep
-  `PathOfBuilding/src/Data/Uniques/<slot>.lua` before quoting a max/min roll — e.g.
-  Ryslatha's Coil is `(30-40)% more Maximum Physical Attack Damage`. Inferring the range
-  from the listings you happened to fetch is wrong: a ≤60c sample topped out at 36% and
-  missed the real 40% ceiling. League-modified uniques can also roll outside PoB's data
-  (observed `54% less Minimum` against a listed `(30-40)` range) — say which source the
-  number came from.
-- **Measure a roll's value by holding everything else fixed.** To price a mod roll,
-  simulate the same item text twice with only that number changed, so the delta is
-  attributable. A whole-range delta is the useful number ("more Maximum 30→40 = +7.7%
-  DPS"), not one arbitrary listing.
-
-- **Reload before every set.** `add_item` replaces the slot but keeps everything
-  else from the previous set; without a reload you diff against polluted state.
-- **Slots that remove stats matter.** Replacing a belt that gave 48% fire res
-  silently drops fire — the diff shows it, reasoning does not.
-- **Item text format**: `Rarity / name / base / -------- / Item Level: N /
-  -------- / mods`. Do **not** emit an `Implicits: N` header — PoB's parser
-  reports it as unparseable and can mis-assign the following lines. List implicit
-  mods as ordinary mod lines instead; the numeric effect is identical.
-- Base names must be exact (`Lacquered Helmet`, not `Lacquer Helmet`) or
-  `add_item` fails with `failed to parse item`.
-- `lua_get_stats` returns **capped** resistances (`FireResist` = 78 even with 200%
-  over). Overcap lives in `*ResistOverCap` from `export_full_stats`, which is
-  truncated for an unfiltered call — always pass `filter`.
-- `export_full_stats` with `filter: "Bleed"` gives `BleedChance`; use it instead of
-  inferring from gem text (a bleed build at 100% gains nothing from more bleed chance).
-- **Attribute check is mandatory.** `get_build_issues` is not enough — PoB applies
-  the item's stats even when the requirement is unmet, so a healthy Life/DPS delta
-  can hide an unusable item. Check the numbers directly:
-
-  ```js
-  const p = String(await tools.pob.parse_item({ text }));
-  const req = JSON.parse(p.match(/\{[\s\S]*"requirements"[\s\S]*?\}(?=\s*\n\})/)[0]);
-  const own = {};                                   // Str / Dex / Int of the build
-  for (const k of ["Str", "Dex", "Int"]) {
-    const s = String(await tools.pob.export_full_stats({ filter: k }));
-    own[k] = Number(s.match(new RegExp('"' + k + '":\\s*(-?[\\d.]+)'))[1]);
+const reqs = {};
+for (const [key, text] of Object.entries(ITEMS)) {
+  try {
+    const p = String(await tools.pob.parse_item({ text }));
+    const m = p.match(/"requirements":\\s*\\{[^}]*\\}/);
+    const req = m ? JSON.parse("{" + m[0] + "}").requirements : null;
+    reqs[key] = req ? {
+      str: req.str || 0, dex: req.dex || 0, int: req.int || 0, level: req.level || 0,
+      ok: (req.str || 0) <= own.Str && (req.dex || 0) <= own.Dex && (req.int || 0) <= own.Int,
+    } : null;
+  } catch (e) {
+    reqs[key] = { error: String(e).slice(0, 80) };
   }
-  const ok = req.str <= own.Str && req.dex <= own.Dex && req.int <= own.Int;
-  ```
+}
 
-  Report the requirement next to the item (`S85 D62`) so the user can see it passes.
-- Reload the original build when done, so the cached XML stays the baseline.
+const out = { build: BUILD, own, reqs, base: await snap() };
+for (const [label, set] of Object.entries(SETS)) {
+  await tools.pob.lua_load_build({ build_name: BUILD });   // reload: add_item keeps prior sets
+  for (const [slot, key] of Object.entries(set)) {
+    if (slot === "cost" || !ITEMS[key]) continue;
+    await tools.pob.add_item({ item_text: ITEMS[key], slot_name: slot });
+  }
+  out[label] = { cost: set.cost, ...(await snap()) };
+}
+await tools.pob.lua_load_build({ build_name: BUILD });
+return out;`;
 
-STEP 6 — restart opencode so the MCP registers, then prove it: load any build with
-pob.lua_import_code and print Life/TotalEHP. Report the paths you created, the PoB
-tree version loaded in the smoke test, and anything that needed a workaround.
+// Self-check: the program is written for the code-mode runtime (top-level await,
+// top-level return). Wrap it in a function so `node --check` can validate the syntax
+// here, rather than discovering a broken program after pasting it.
+try {
+  const { execFileSync } = await import("node:child_process");
+  const { mkdtempSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const check = join(mkdtempSync(join(tmpdir(), "pobsim-")), "check.mjs");
+  writeFileSync(check, "async function __run() {\n" + program + "\n}\n");
+  execFileSync("node", ["--check", check], { stdio: "pipe" });
+  console.error("syntax check: ok");
+} catch (e) {
+  console.error("SYNTAX CHECK FAILED — do not paste this program:");
+  console.error(String(e.stderr || e.message).slice(0, 400));
+  process.exit(1);
+}
+
+process.stdout.write(program + "\n");
+console.error(`sim program ready: ${Object.keys(items).length} items, ${Object.keys(sets).length} sets, build ${build}`);
+console.error(`paste it into the code-mode \`execute\` tool, then:`);
+console.error(`  node scripts/table.mjs --pick <label> --file /tmp/opencode/sim-out.json`);
+
+5h) ~/.config/opencode/skills/poe-gear-finder/scripts/table.mjs
+
+#!/usr/bin/env node
+// Render the sim output as the report tables, and run the mechanical gates:
+// resistance caps, overcap >= 20, and attribute requirements. Prints markdown.
+//
+//   node scripts/table.mjs --pick A < /tmp/opencode/sim-out.json
+//
+// Input is the raw return value of the sim program, double-encoded or not.
+import { readFileSync } from "node:fs";
+
+const argv = process.argv.slice(2);
+const args = {};
+for (let i = 0; i < argv.length; i++) {
+  const a = argv[i];
+  if (a.startsWith("--")) {
+    const k = a.slice(2).replace(/-/g, "_");
+    args[k] = argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[++i] : true;
+  }
+}
+const raw = args.file ? readFileSync(args.file, "utf8") : readFileSync(0, "utf8");
+let data = raw;
+for (let i = 0; i < 4 && typeof data === "string"; i++) {
+  try { data = JSON.parse(data); } catch { break; }
+}
+if (!data || typeof data !== "object" || !data.base) {
+  console.error("could not read sim output: expected an object with a `base` key");
+  process.exit(2);
+}
+
+const SET_KEYS = ["fire", "cold", "lightning", "chaos"];
+const ELEM = ["fire", "cold", "lightning"];
+const OVERCAP_TARGET = 20;
+
+const delta = (a, b) => (a === null || b === null ? null : b - a);
+const signed = (v) => (v === null ? "–" : (v > 0 ? "+" : "") + v);
+const pct = (a, b) => (a ? signed(Math.round(((b / a) - 1) * 1000) / 10) + "%" : "–");
+
+const labels = Object.keys(data).filter((k) => !["build", "own", "reqs", "base"].includes(k));
+const base = data.base;
+const pick = args.pick && data[args.pick] ? args.pick : labels[labels.length - 1];
+
+console.log("## Gate\n");
+const badReqs = Object.entries(data.reqs || {}).filter(([, r]) => !r || r.error || !r.ok);
+console.log(
+  `- attributes: ${badReqs.length ? "**FAIL** " + badReqs.map(([k]) => k).join(", ") : "pass"} ` +
+    `(build Str ${data.own.Str} / Dex ${data.own.Dex} / Int ${data.own.Int})`
+);
+if (badReqs.length) {
+  for (const [k, r] of badReqs) console.log(`  - ${k}: ${r && r.error ? r.error : `needs S${r.str} D${r.dex} I${r.int}`}`);
+}
+const pickSet = data[pick];
+const uncapped = ELEM.filter((e) => pickSet[e].total !== null && pickSet[e].cap !== null && pickSet[e].total < pickSet[e].cap);
+const thin = ELEM.filter((e) => pickSet[e].overcap !== null && pickSet[e].overcap < OVERCAP_TARGET);
+console.log(`- res caps (${pick}): ${uncapped.length ? "**FAIL** " + uncapped.map((e) => `${e} ${pickSet[e].total}<${pickSet[e].cap}`).join(", ") : "all elements capped"}`);
+console.log(`- overcap >= ${OVERCAP_TARGET} (${pick}): ${thin.length ? "**thin** " + thin.map((e) => `${e} +${pickSet[e].overcap}`).join(", ") : "ok"}`);
+console.log(`- chaos (${pick}): ${pickSet.chaos.total} (informational; negative is normal)`);
+
+console.log("\n## Sets\n");
+console.log("| Set | Cost | Life | EHP | Armour | DPS | BleedDPS | Overcap F/C/L | Chaos |");
+console.log("|---|---|---|---|---|---|---|---|---|");
+for (const label of labels) {
+  const s = data[label];
+  const oc = ELEM.map((e) => signed(s[e].overcap)).join(" / ");
+  const bad = ELEM.filter((e) => s[e].total !== null && s[e].cap !== null && s[e].total < s[e].cap);
+  const thinSet = ELEM.filter((e) => s[e].overcap !== null && s[e].overcap < OVERCAP_TARGET);
+  const flag = bad.length ? ` ⚠uncapped(${bad.join(",")})` : thinSet.length ? ` ⚠thin(${thinSet.join(",")})` : "";
+  console.log(
+    `| ${label}${label === pick ? " **(pick)**" : ""}${flag} | ${s.cost ?? "–"} | ${signed(delta(base.life, s.life))} | ` +
+      `${signed(delta(base.ehp, s.ehp))} (${pct(base.ehp, s.ehp)}) | ${signed(delta(base.armour, s.armour))} | ` +
+      `${signed(delta(base.dps, s.dps))} (${pct(base.dps, s.dps)}) | ${signed(delta(base.bleedDps, s.bleedDps))} | ${oc} | ${s.chaos.total} |`
+  );
+}
+
+console.log(`\n## Res before / after (${pick})\n`);
+console.log("| Res | Trước total / cap / overcap | Sau total / cap / overcap | Δ overcap |");
+console.log("|---|---|---|---|");
+for (const e of SET_KEYS) {
+  const b = base[e], a = pickSet[e];
+  const bTxt = `${b.total} / ${b.cap ?? "–"} / ${b.overcap === null ? "–" : (b.overcap > 0 ? "+" : "") + b.overcap}`;
+  const aTxt = `${a.total} / ${a.cap ?? "–"} / ${a.overcap === null ? "–" : (a.overcap > 0 ? "+" : "") + a.overcap}`;
+  const anyB = b.overcap === null ? b.total : b.overcap;
+  const anyA = a.overcap === null ? a.total : a.overcap;
+  console.log(`| ${e[0].toUpperCase() + e.slice(1)} | ${bTxt} | ${aTxt} | ${signed(anyA - anyB)} |`);
+}
+
+console.log(`\n_bleed chance ${pickSet.bleedChance}% · baseline life ${base.life} · base DPS ${base.dps}_`);
+
+5i) ~/.config/opencode/skills/poe-gear-finder/specs/belt-ryslatha.json
+
+{
+  "status": "securable",
+  "term": "Ryslatha's Coil",
+  "filters": {
+    "trade_filters": { "filters": { "price": { "option": "chaos", "max": 60 } } }
+  },
+  "stats": [],
+  "sort": { "price": "asc" }
+}
+
+5j) ~/.config/opencode/skills/poe-gear-finder/specs/gloves-chaos-cold.json
+
+{
+  "status": "securable",
+  "filters": {
+    "type_filters": { "filters": { "category": { "option": "armour.gloves" } } },
+    "armour_filters": { "filters": { "ar": { "min": 100 } } },
+    "trade_filters": { "filters": { "price": { "option": "chaos", "max": 20 } } }
+  },
+  "stats": [
+    { "type": "and", "filters": [
+      { "id": "explicit.stat_2923486259", "value": { "min": 20 }, "disabled": false },
+      { "id": "explicit.stat_4220027924", "value": { "min": 25 }, "disabled": false },
+      { "id": "explicit.stat_3299347043", "value": { "min": 80 }, "disabled": false }
+    ]}
+  ],
+  "sort": { "price": "asc" }
+}
+
+5k) ~/.config/opencode/skills/poe-gear-finder/specs/ring.json
+
+{
+  "status": "securable",
+  "filters": {
+    "type_filters": { "filters": { "category": { "option": "accessory.ring" } } },
+    "trade_filters": { "filters": { "price": { "option": "chaos", "max": 10 } } }
+  },
+  "stats": [
+    { "type": "and", "filters": [
+      { "id": "explicit.stat_3299347043", "value": { "min": 90 }, "disabled": false },
+      { "id": "pseudo.pseudo_total_elemental_resistance", "value": { "min": 90 }, "disabled": false }
+    ]}
+  ],
+  "sort": { "price": "asc" }
+}
+
+STEP 6 — restart opencode so the MCP registers, then prove BOTH halves:
+  a) PoB: load any build with pob.lua_import_code and print Life/TotalEHP.
+  b) runners: `node ~/.config/opencode/skills/poe-gear-finder/scripts/search.mjs
+     --league Smoke --slot ring --spec .../specs/ring.json` must print an expression
+     and exit 0; a second run within 10s must exit 3 with "BLOCKED". Then
+     `rm -rf ~/pob/pool/Smoke` so the spacing lock does not leak into real runs.
+Report the paths you created, the PoB tree version loaded in the smoke test, and
+anything that needed a workaround.
 ```

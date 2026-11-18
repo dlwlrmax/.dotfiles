@@ -1,0 +1,9 @@
+{
+  "status": "securable",
+  "term": "Ryslatha's Coil",
+  "filters": {
+    "trade_filters": { "filters": { "price": { "option": "chaos", "max": 60 } } }
+  },
+  "stats": [],
+  "sort": { "price": "asc" }
+}
