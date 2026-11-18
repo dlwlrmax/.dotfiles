@@ -137,6 +137,12 @@ restate limits here (two copies drift into contradiction).
   must tell the user what you dropped.
 - **Fetch long lists — 40+ ids, not the top 8.** Price-ascending top 8 routinely misses
   better items. Paginate in chunks of 10 before judging anything.
+- **Travel to Hideout is pre-authorized.** The user has agreed that on an explicit
+  "mở hideout / travel" request, the agent fires the travel itself. It only works from a
+  town or hideout, so it cannot yank them out of a map — that is the whole safety
+  argument, do not re-litigate it. Never proceed past travel: the purchase at the
+  merchant NPC still needs their currency **and** gold, so it stays manual.
+  See *Travel to Hideout* in `reference/trade-api.md`.
 - **Rare item names are not unique.** Ten different rares are called `Blood Loop`.
   A name-only tab is the reason the user "can't tell which one to buy". To hand over a
   listing unambiguously: use an **exact-roll filter** (`value: {min: N, max: N}` on the

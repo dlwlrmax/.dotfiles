@@ -221,6 +221,12 @@ restate limits here (two copies drift into contradiction).
   must tell the user what you dropped.
 - **Fetch long lists — 40+ ids, not the top 8.** Price-ascending top 8 routinely misses
   better items. Paginate in chunks of 10 before judging anything.
+- **Travel to Hideout is pre-authorized.** The user has agreed that on an explicit
+  "mở hideout / travel" request, the agent fires the travel itself. It only works from a
+  town or hideout, so it cannot yank them out of a map — that is the whole safety
+  argument, do not re-litigate it. Never proceed past travel: the purchase at the
+  merchant NPC still needs their currency **and** gold, so it stays manual.
+  See *Travel to Hideout* in `reference/trade-api.md`.
 - **Rare item names are not unique.** Ten different rares are called `Blood Loop`.
   A name-only tab is the reason the user "can't tell which one to buy". To hand over a
   listing unambiguously: use an **exact-roll filter** (`value: {min: N, max: N}` on the
@@ -508,6 +514,39 @@ The rendered page already holds the results; scrape instead of re-searching:
 
 Each row's text is `name | base | properties | mods | ~b/o N chaos | seller`.
 Cheap and needs no API call — use it for follow-up questions on the same search.
+
+## Travel to Hideout (instant buyout)
+
+Each fetched listing carries what the button needs:
+
+| field | meaning |
+|---|---|
+| `listing.hideout_token` | signed JWT; the travel token. Present on every instant-buyout listing |
+| `listing.fee` | **gold** the buyer pays on purchase (separate from the chaos price) |
+| `listing.method` | `psapi` for instant buyout |
+| `listing.indexed` | when it entered the index — old timestamp = price may be stale |
+
+The button is a single authenticated POST from the logged-in session:
+
+```js
+// inside the page that fetched the listing, so the session cookies apply
+const r = await fetch("/api/trade/whisper", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ token: listing.hideout_token }),
+});
+```
+
+Rules:
+
+- **Only works from a town or hideout.** That is why it is safe to fire on request — it
+  cannot pull the character out of a map or a boss fight. If the response is an error,
+  report it; do not retry blindly.
+- **Travel is not a purchase.** The buyer still talks to the merchant NPC (Faustus) and
+  pays currency + the gold `fee`. Never claim an item is bought after firing the token.
+- **The token lives only in the page state that fetched the listing** (`window.__p.rows`).
+  If that tab is gone, the token is gone — re-fetch the listing (a fetch, not a search).
+- Report the `fee` before firing, so the user knows the gold they need on hand.
 
 ## Pitfalls
 

@@ -137,6 +137,39 @@ The rendered page already holds the results; scrape instead of re-searching:
 Each row's text is `name | base | properties | mods | ~b/o N chaos | seller`.
 Cheap and needs no API call — use it for follow-up questions on the same search.
 
+## Travel to Hideout (instant buyout)
+
+Each fetched listing carries what the button needs:
+
+| field | meaning |
+|---|---|
+| `listing.hideout_token` | signed JWT; the travel token. Present on every instant-buyout listing |
+| `listing.fee` | **gold** the buyer pays on purchase (separate from the chaos price) |
+| `listing.method` | `psapi` for instant buyout |
+| `listing.indexed` | when it entered the index — old timestamp = price may be stale |
+
+The button is a single authenticated POST from the logged-in session:
+
+```js
+// inside the page that fetched the listing, so the session cookies apply
+const r = await fetch("/api/trade/whisper", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ token: listing.hideout_token }),
+});
+```
+
+Rules:
+
+- **Only works from a town or hideout.** That is why it is safe to fire on request — it
+  cannot pull the character out of a map or a boss fight. If the response is an error,
+  report it; do not retry blindly.
+- **Travel is not a purchase.** The buyer still talks to the merchant NPC (Faustus) and
+  pays currency + the gold `fee`. Never claim an item is bought after firing the token.
+- **The token lives only in the page state that fetched the listing** (`window.__p.rows`).
+  If that tab is gone, the token is gone — re-fetch the listing (a fetch, not a search).
+- Report the `fee` before firing, so the user knows the gold they need on hand.
+
 ## Pitfalls
 
 - `type_filters` at query level → `400 Unknown or invalid top-level filter`.
