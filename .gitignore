@@ -39,5 +39,11 @@ opencode/.config/opencode/skills/*
 !opencode/.config/opencode/skills/sql-langmaster/**
 !opencode/.config/opencode/skills/figma-mcp/
 !opencode/.config/opencode/skills/figma-mcp/**
+!opencode/.config/opencode/skills/poe-gear-finder/
+!opencode/.config/opencode/skills/poe-gear-finder/**
+!opencode/.config/opencode/skills/context7/
+!opencode/.config/opencode/skills/context7/**
+!opencode/.config/opencode/skills/task-management/
+!opencode/.config/opencode/skills/task-management/**
 .ocx
 nvim/.config/nvim/lazy-lock.json

@@ -118,8 +118,13 @@ Never re-ask mid-run because a filter returned nothing — relax filters instead
    Batch all slots in one `execute` block; the IP budget is 8 requests / 10s.
 4. **Simulate all candidates in one `execute` block**: reload build → `add_item`
    for each slot → snapshot → diff. See `reference/pob-sim.md`.
-5. **Report** one table (price | item | Δlife | ΔEHP | Δarmour | overcap F/C/L | ΔDPS),
-   one recommendation, and leave the trade tabs open.
+5. **Attribute check, every candidate** — mandatory, not optional. `parse_item`
+   returns `requirements {str, dex, int, level}`; compare with the build's own
+   `Str`/`Dex`/`Int` (`export_full_stats({filter: "Str"})`). PoB still applies the
+   stats when a requirement is unmet (it only prints a build issue), so a green
+   Life/DPS delta does **not** mean the item is wearable.
+6. **Report** one table (price | item | base | req | Δlife | ΔEHP | Δarmour |
+   overcap F/C/L | ΔDPS), one recommendation, and leave the trade tabs open.
 
 ## Targets to encode as filters
 
@@ -129,6 +134,9 @@ Never re-ask mid-run because a filter returned nothing — relax filters instead
 - Chaos res: only if the user says it matters.
 - Armour builds: `armour_filters: {filters: {ar: {min: 300}}}` for helm,
   `ar: {min: 200}` for gloves; pick armour bases (Burgonet, Gauntlets, Plate).
+- Attribute ownership: armour bases are also the cheapest way to satisfy
+  requirements — a Lion Pelt wants 120 Dex and a Hubris Circlet 154 Int, which a
+  Str-stacked melee build cannot wear. Check the numbers before recommending.
 - Bleed: the DPS lever is **base/flat physical damage** on the weapon. Do not
   filter or reason about bleed chance if the build already shows `BleedChance: 100`
   in `export_full_stats({filter: "Bleed"})` — check the number, don't guess.
@@ -311,8 +319,22 @@ out.set = await snap();
   truncated for an unfiltered call — always pass `filter`.
 - `export_full_stats` with `filter: "Bleed"` gives `BleedChance`; use it instead of
   inferring from gem text (a bleed build at 100% gains nothing from more bleed chance).
-- Requirements are checked: an unmet Str/Dex/Int prints a build issue but still
-  applies stats — read `get_build_issues` before recommending.
+- **Attribute check is mandatory.** `get_build_issues` is not enough — PoB applies
+  the item's stats even when the requirement is unmet, so a healthy Life/DPS delta
+  can hide an unusable item. Check the numbers directly:
+
+  ```js
+  const p = String(await tools.pob.parse_item({ text }));
+  const req = JSON.parse(p.match(/\{[\s\S]*"requirements"[\s\S]*?\}(?=\s*\n\})/)[0]);
+  const own = {};                                   // Str / Dex / Int of the build
+  for (const k of ["Str", "Dex", "Int"]) {
+    const s = String(await tools.pob.export_full_stats({ filter: k }));
+    own[k] = Number(s.match(new RegExp('"' + k + '":\\s*(-?[\\d.]+)'))[1]);
+  }
+  const ok = req.str <= own.Str && req.dex <= own.Dex && req.int <= own.Int;
+  ```
+
+  Report the requirement next to the item (`S85 D62`) so the user can see it passes.
 - Reload the original build when done, so the cached XML stays the baseline.
 
 STEP 6 — restart opencode so the MCP registers, then prove it: load any build with
