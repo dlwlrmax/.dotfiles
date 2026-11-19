@@ -12,7 +12,7 @@ valid, and which mechanics are missing. Run it **before** `poe-gear-finder` sear
 and hand its output to that skill.
 
 Contract rule, same as the gear skill: `SKILL.md` and `reference/*` state rules only.
-Numbers from a session go to `findings.md`.
+Numbers from a session go to `findings.md` — a local per-machine log, not tracked in git.
 
 ## Flow
 

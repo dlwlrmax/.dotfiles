@@ -61,6 +61,26 @@ import sys, pathlib
 skill_dir, prompt_path, mode = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]), sys.argv[3]
 skills_root = skill_dir.parent
 
+# The findings notebook is local per-machine evidence, never shipped: the prompt
+# installs a fresh template instead of any machine's log content.
+FINDINGS_TEMPLATE = """# Findings — evidence log
+
+**Append-only, local, and not instructions.** This file is NOT committed to git —
+it is per-machine scratch. Rules live in `SKILL.md` and `reference/*`: copy a finding
+into the contract only when it changes an answer, and strip the listing specifics
+(seller, price, that one item's name) on the way in.
+
+## Friction (patch queue)
+
+One line each, added during a run, cleared when the contract is patched:
+
+- (nothing pending)
+
+## Log
+
+- YYYY-MM-DD · <slot> · <measurement> → <rule it implies>
+"""
+
 def collect(skill):
     """Every file the skill needs to run on a fresh machine, in a stable order."""
     d = skills_root / skill
@@ -83,7 +103,7 @@ letters = "abcdefghijklmnopqrstuvwxyz"
 files = []
 for i, (skill, name) in enumerate(names):
     tag = "5" + letters[i] if i < len(letters) else f"5_{i}"
-    body = (skills_root / skill / name).read_text().rstrip("\n")
+    body = FINDINGS_TEMPLATE.rstrip("\n") if name == "findings.md" else (skills_root / skill / name).read_text().rstrip("\n")
     files.append((tag, f"~/.config/opencode/skills/{skill}/{name}", body))
 
 block = [f"STEP 5 — write the skills ({len(files)} files, exact content):", ""]

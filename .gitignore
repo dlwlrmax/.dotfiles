@@ -49,3 +49,8 @@ opencode/.config/opencode/skills/*
 !opencode/.config/opencode/skills/task-management/**
 .ocx
 nvim/.config/nvim/lazy-lock.json
+
+# PoE skills: the findings notebook is local session evidence, not contract.
+# Rules graduate into SKILL.md/reference; the log itself stays per-machine.
+opencode/.config/opencode/skills/poe-gear-finder/findings.md
+opencode/.config/opencode/skills/poe-build-profile/findings.md
