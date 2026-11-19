@@ -31,6 +31,16 @@ Keys absent from the project entry (host/port/user/password, timeout) are inheri
 global. Restart OpenCode after the change.
 Figma specifics (tools, URLs, gotchas): see `figma-mcp` skill.
 
+## ast_grep rule
+
+`ast_grep_search` is heavy — unscoped AST scans burn CPU and flood context. On machines
+where it is denied by config (`opencode.jsonc` permission rule) the call is rejected;
+don't attempt it there. Everywhere: code discovery goes through `grep`/`glob` first.
+Only when a query is truly structural (match AST shapes, not text) use
+`ast_grep_replace` with `dryRun` to locate matches — always with explicit `paths` or
+`globs`, never a whole-tree scan. `ast_grep_replace` rewrites: keep `dryRun` first,
+confirm matches, then apply.
+
 ## PoE gear rule
 
 Any "find gear / what should I buy / gear up this slot / check this item" request for
