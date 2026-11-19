@@ -35,6 +35,8 @@ Figma specifics (tools, URLs, gotchas): see `figma-mcp` skill.
 
 Any "find gear / what should I buy / gear up this slot / check this item" request for
 Path of Exile: **load the `poe-gear-finder` skill first** (`skill` tool) and run its flow.
+That flow starts by loading `poe-build-profile`, which decides what the build actually
+scales — never rank items before it has named the metric.
 Never ad-hoc search the trade site or reason about mod text from memory — every price
 and DPS/EHP number must come from that flow (real PoB calc + live trade listings).
 If the skill errors, fix the skill (`~/pob/setup-pob.sh`, references) instead of bypassing it,

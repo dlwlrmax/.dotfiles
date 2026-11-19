@@ -68,6 +68,14 @@ the browser or PoB code**: JS typed inline is where the escaping bugs and the
 rate-limit bursts came from. The scripts also enforce the spacing, burst and
 freshness gates for you.
 
+0. **Profile the build first** — load the `poe-build-profile` skill and run
+   `node scripts/profile.mjs --build <name.xml>`. It returns the archetype, the metric
+   that ranks this build, the support audit and the defects (unreserved mana, life,
+   chaos res, missing curse) **before** any search. Every comparison below inherits that
+   metric: a bleed build is ranked by `BleedDPS` + `AverageDamage`, and ranking it by
+   pDPS hands the user a worse item with a bigger number on it. Its defects outrank any
+   gear purchase — do not shop damage around a build that cannot cast its skills.
+
 1. **Load the build** — `lua_load_build({build_name})` (cache the XML under
    `~/pob/builds/`) or `lua_import_code({code})`. The load reply carries
    life/DPS/EHP/resistances. If the PoB MCP errors, **stop and fix the tool**

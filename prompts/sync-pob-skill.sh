@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Re-splice the live poe-gear-finder skill into the setup prompt, so the prompt
-# never carries a stale copy. Run after editing SKILL.md or any reference file.
+# Re-splice the live PoE skills into the setup prompt, so the prompt never carries a
+# stale copy. Run after editing SKILL.md or any reference file.
 #
 #   prompts/sync-pob-skill.sh            # update in place
 #   prompts/sync-pob-skill.sh --check    # exit 1 if the prompt is out of date
@@ -15,35 +15,47 @@ MODE="${1:-}"
 
 # Contract lint travels with the sync: this script is what the pre-commit hook runs,
 # so run data leaking into SKILL.md/reference/scripts blocks the commit here.
-if [ -f "$SKILL_DIR/scripts/check.mjs" ]; then
-  node "$SKILL_DIR/scripts/check.mjs" || exit 1
+CHECK="$SKILL_DIR/scripts/check.mjs"
+if [ -f "$CHECK" ]; then
+  node "$CHECK" || exit 1
+  for other in "$(dirname "$SKILL_DIR")"/poe-*; do
+    [ "$other" = "$SKILL_DIR" ] && continue
+    [ -f "$other/SKILL.md" ] || continue
+    node "$CHECK" --root "$other" || exit 1
+  done
 fi
 
 python3 - "$SKILL_DIR" "$PROMPT" "$MODE" <<'PY'
 import sys, pathlib
 skill_dir, prompt_path, mode = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]), sys.argv[3]
+skills_root = skill_dir.parent
 
-def read(name):
-    p = skill_dir / name
-    return p.read_text().rstrip("\n")
+def collect(skill):
+    """Every file the skill needs to run on a fresh machine, in a stable order."""
+    d = skills_root / skill
+    if not (d / "SKILL.md").exists():
+        return []
+    out = ["SKILL.md"]
+    out += sorted(str(p.relative_to(d)) for p in (d / "reference").glob("*.md"))
+    if (d / "scripts" / "README.md").exists():
+        out.append("scripts/README.md")
+    out += sorted(str(p.relative_to(d)) for p in (d / "scripts").glob("*.mjs"))
+    out += sorted(str(p.relative_to(d)) for p in (d / "specs").glob("*.json"))
+    if (d / "findings.md").exists():
+        out.append("findings.md")
+    return [(skill, n) for n in out]
 
-# Everything the skill needs to run, not just the prose: the runners and specs are
-# part of the skill, so the setup prompt must recreate them too. findings.md ships as
-# an empty log so a fresh machine has somewhere to write friction.
-names = ["SKILL.md"]
-names += sorted(str(p.relative_to(skill_dir)) for p in (skill_dir / "reference").glob("*.md"))
-names += ["scripts/README.md"]
-names += sorted(str(p.relative_to(skill_dir)) for p in (skill_dir / "scripts").glob("*.mjs"))
-names += sorted(str(p.relative_to(skill_dir)) for p in (skill_dir / "specs").glob("*.json"))
-names += ["findings.md"]
+# The gear skill starts every run by profiling the build, so both ship together.
+names = collect("poe-gear-finder") + collect("poe-build-profile")
 
 letters = "abcdefghijklmnopqrstuvwxyz"
 files = []
-for i, name in enumerate(names):
+for i, (skill, name) in enumerate(names):
     tag = "5" + letters[i] if i < len(letters) else f"5_{i}"
-    files.append((tag, f"~/.config/opencode/skills/poe-gear-finder/{name}", read(name)))
+    body = (skills_root / skill / name).read_text().rstrip("\n")
+    files.append((tag, f"~/.config/opencode/skills/{skill}/{name}", body))
 
-block = [f"STEP 5 — write the skill ({len(files)} files, exact content):", ""]
+block = [f"STEP 5 — write the skills ({len(files)} files, exact content):", ""]
 for tag, path, body in files:
     block += [f"{tag}) {path}", ""] + body.split("\n") + [""]
 

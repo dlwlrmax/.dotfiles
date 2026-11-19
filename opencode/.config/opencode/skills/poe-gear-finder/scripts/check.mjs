@@ -10,20 +10,24 @@
 //
 // Wired into the repo's pre-commit hook.
 
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+// --root lets one checker guard several skills; default is this skill.
+const rootIdx = process.argv.indexOf("--root");
+const root = rootIdx > -1 ? process.argv[rootIdx + 1] : join(dirname(fileURLToPath(import.meta.url)), "..");
 const problems = [];
 const warn = [];
 
 const read = (rel) => readFileSync(join(root, rel), "utf8");
 const list = (rel, ext) =>
-  readdirSync(join(root, rel))
-    .filter((f) => f.endsWith(ext))
-    .sort()
-    .map((f) => `${rel}/${f}`);
+  existsSync(join(root, rel))
+    ? readdirSync(join(root, rel))
+        .filter((f) => f.endsWith(ext))
+        .sort()
+        .map((f) => `${rel}/${f}`)
+    : [];
 
 // findings.md is the notebook: numbers, dates and sellers are its whole point.
 // This file is the checker; it necessarily names the patterns it rejects.
@@ -91,10 +95,12 @@ for (const rel of list("specs", ".json")) {
 }
 
 // Soft signal: a spec nobody documents is probably a leftover run artifact.
-const readme = read("scripts/README.md");
-for (const rel of list("specs", ".json")) {
-  const name = rel.slice("specs/".length);
-  if (!readme.includes(name)) warn.push(`${rel}: not listed in scripts/README.md`);
+if (existsSync(join(root, "scripts/README.md"))) {
+  const readme = read("scripts/README.md");
+  for (const rel of list("specs", ".json")) {
+    const name = rel.slice("specs/".length);
+    if (!readme.includes(name)) warn.push(`${rel}: not listed in scripts/README.md`);
+  }
 }
 
 if (problems.length) {

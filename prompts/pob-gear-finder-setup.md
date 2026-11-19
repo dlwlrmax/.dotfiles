@@ -78,7 +78,7 @@ merge into "mcp", keep existing keys). Rewrite `pob` to exactly:
 "PoB Lua Bridge started successfully." Do not use `bash -lc` in `command`; it
 breaks MCP stdio registration.
 
-STEP 5 — write the skill (15 files, exact content):
+STEP 5 — write the skills (20 files, exact content):
 
 5a) ~/.config/opencode/skills/poe-gear-finder/SKILL.md
 
@@ -151,6 +151,14 @@ Runner: `scripts/*.mjs` + `specs/*.json` — see `scripts/README.md`. **Do not h
 the browser or PoB code**: JS typed inline is where the escaping bugs and the
 rate-limit bursts came from. The scripts also enforce the spacing, burst and
 freshness gates for you.
+
+0. **Profile the build first** — load the `poe-build-profile` skill and run
+   `node scripts/profile.mjs --build <name.xml>`. It returns the archetype, the metric
+   that ranks this build, the support audit and the defects (unreserved mana, life,
+   chaos res, missing curse) **before** any search. Every comparison below inherits that
+   metric: a bleed build is ranked by `BleedDPS` + `AverageDamage`, and ranking it by
+   pDPS hands the user a worse item with a bigger number on it. Its defects outrank any
+   gear purchase — do not shop damage around a build that cannot cast its skills.
 
 1. **Load the build** — `lua_load_build({build_name})` (cache the XML under
    `~/pob/builds/`) or `lua_import_code({code})`. The load reply carries
@@ -767,20 +775,24 @@ name; leave `term` out and filter by stat ids when the item is a rare.
 //
 // Wired into the repo's pre-commit hook.
 
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+// --root lets one checker guard several skills; default is this skill.
+const rootIdx = process.argv.indexOf("--root");
+const root = rootIdx > -1 ? process.argv[rootIdx + 1] : join(dirname(fileURLToPath(import.meta.url)), "..");
 const problems = [];
 const warn = [];
 
 const read = (rel) => readFileSync(join(root, rel), "utf8");
 const list = (rel, ext) =>
-  readdirSync(join(root, rel))
-    .filter((f) => f.endsWith(ext))
-    .sort()
-    .map((f) => `${rel}/${f}`);
+  existsSync(join(root, rel))
+    ? readdirSync(join(root, rel))
+        .filter((f) => f.endsWith(ext))
+        .sort()
+        .map((f) => `${rel}/${f}`)
+    : [];
 
 // findings.md is the notebook: numbers, dates and sellers are its whole point.
 // This file is the checker; it necessarily names the patterns it rejects.
@@ -848,10 +860,12 @@ for (const rel of list("specs", ".json")) {
 }
 
 // Soft signal: a spec nobody documents is probably a leftover run artifact.
-const readme = read("scripts/README.md");
-for (const rel of list("specs", ".json")) {
-  const name = rel.slice("specs/".length);
-  if (!readme.includes(name)) warn.push(`${rel}: not listed in scripts/README.md`);
+if (existsSync(join(root, "scripts/README.md"))) {
+  const readme = read("scripts/README.md");
+  for (const rel of list("specs", ".json")) {
+    const name = rel.slice("specs/".length);
+    if (!readme.includes(name)) warn.push(`${rel}: not listed in scripts/README.md`);
+  }
 }
 
 if (problems.length) {
@@ -1585,6 +1599,417 @@ One line each, added during a run, cleared when the contract is patched:
 - 2026-11-19 · rings · an exact-roll filter (`life 103`, `cold 36`) still returned 6 rows;
   rare names repeat across accounts → pin the row by seller match as well.
 
+5p) ~/.config/opencode/skills/poe-build-profile/SKILL.md
+
+---
+name: poe-build-profile
+description: Identify what a Path of Exile 1 build actually scales, from the real Path of Building numbers, before any gear advice. Use at the start of a gear/upgrade request, when a build import or pobb.in link is shared, when the user asks "what does this build need", or when a guide is compared against the character. Produces archetype, the correct metric, support-gem audit and a gap checklist.
+---
+
+# PoE build profile — identify before advising
+
+Gear advice is wrong when the build is misread: ranking a bleed build by pDPS, a crit
+build by average damage, or suggesting crit multi on a Resolute Technique character.
+This skill reads the **loaded PoB build** and prints what it scales, which metric is
+valid, and which mechanics are missing. Run it **before** `poe-gear-finder` searches,
+and hand its output to that skill.
+
+Contract rule, same as the gear skill: `SKILL.md` and `reference/*` state rules only.
+Numbers from a session go to `findings.md`.
+
+## Flow
+
+1. **Have the build loaded.** `lua_import_pobb({url_or_id})`, `lua_import_code({code})` or
+   `lua_load_build({build_name})`. Save it: `lua_save_build({build_name})` — `analyze_build`
+   reads the saved file, and the profiler needs a name.
+2. **Emit the profiler program**:
+   `node scripts/profile.mjs --build <name.xml> > /tmp/opencode/profile.js`
+   The script syntax-checks what it emits; if it prints `SYNTAX CHECK FAILED`, stop and fix
+   the script instead of pasting.
+3. **Paste it into the code-mode `execute` tool.** The returned string **is** the report:
+   archetype, metric, support audit, defects, free levers. No intermediate file, no second
+   script — the classifier is inlined into the emitted program.
+4. **Hand over**: the metric decides every later comparison. A bleed build is ranked by
+   `BleedDPS` and `AverageDamage`; `CombinedDPS` and pDPS are context, not targets.
+
+## What the profile is built from
+
+`analyze_build` is the source: it returns PoB's own numbers (`BleedDPS`, `TotalDotDPS`,
+`AverageDamage`, `Speed`, `CritChance`, `HitChance`, `ManaUnreserved`, resistances,
+charges) plus the skill groups (`Sunder (19/18) - ...`) and every equipped item with its
+mods. Nothing is inferred from mod text, and nothing is copied from a guide.
+
+The only value taken outside it is the DoT component pair from `export_full_stats`, because
+that dump keeps `BleedDPS`/`IgniteDPS`/`PoisonDPS` raw; `analyze_build` renames nothing but
+does not always carry every component. If a field is missing the report says so instead of
+guessing.
+
+## Rules it applies
+
+- **Archetype from numbers, not from names.** Bleed/ignite/poison DoT components decide
+  it; a skill name like "Sunder" does not.
+- **Crit builds need `CritChance > 0`.** At 0 (Resolute Technique, or no investment) crit
+  multi and crit chance are dead stats — never recommend them.
+- **Attribute headroom is a gear constraint.** `Str/Dex/Int` vs `ReqStr/ReqDex/ReqInt`
+  decides whether an armour base is wearable at all.
+- **Unreserved mana below zero is a build defect**, not a gear preference: PoB keeps
+  computing DPS for auras that cannot run in game. Report it first.
+- **Support audit** compares the main link against the archetype's priority list in
+  `reference/archetypes.md`, and flags combinations that fight each other (e.g.
+  Ryslatha's Coil with Volatility Support, Swift Affliction's reduced bleed duration).
+
+See `reference/archetypes.md` for the per-archetype metric table and the mechanics each
+one must have (aggravate sources for bleed, exposure for elemental DoT, ...).
+
+5q) ~/.config/opencode/skills/poe-build-profile/reference/archetypes.md
+
+# Archetypes — what each build actually scales
+
+The classifier picks one of these from PoB's own DPS components, then applies its
+metric. Never re-label a build from its skill name: "Sunder" can be a hit build, a bleed
+build or a stun build, and only the numbers say which.
+
+## Metric table
+
+| Archetype | Signal in PoB | Metric to optimise | Dead stats |
+|---|---|---|---|
+| **bleed** | `BleedDPS > 0`, `TotalDotDPS > 0` | `BleedDPS` + `AverageDamage` | pDPS, attack speed, crit (unless invested), elemental added damage |
+| **ignite** | `IgniteDPS > 0` | `IgniteDPS` | attack speed, crit, physical damage |
+| **poison** | `PoisonDPS > 0` | `PoisonDPS` (stacks scale with hit rate) | crit multi unless invested |
+| **hit** | no DoT component | `CombinedDPS` with `HitChance = 100` | ailment duration/magnitude |
+
+`CombinedDPS` is a summary, not a target: it mixes hit and DoT and hides which half moved.
+Always quote the component the archetype scales, next to the hit damage.
+
+## Bleed (physical DoT attacks)
+
+- Bleed does **not stack**; only the largest bleed on a target deals damage. Damage is set
+  by the hit that applied it — hence damage per hit, not pDPS.
+- **Aggravate** is the largest untapped multiplier: a bleeding enemy that is *moving* takes
+  triple bleed damage, and aggravating an existing bleed makes a stationary enemy count as
+  moving. Sources: the bleed mastery "chance to Aggravate Bleeding on targets you hit with
+  Exerted Attacks", Vulnerability quality, Bloodletting, and any fast extra hit
+  (Static Strike, or Hydrosphere with a slam).
+- Slam supports in priority order: Fist of War, Fortify, Brutality, Melee Physical Damage,
+  then one of Cruelty / Damage on Full Life / Volatility. Fortify is a support *and* a
+  defensive buff — price its removal as defence, not just DPS.
+- **Ryslatha's Coil** raises maximum and lowers minimum hit damage. With Volatility
+  Support the low rolls become visible while mapping; the pair is a bossing setup.
+- Vulnerability is the curse: increased physical damage taken, plus aggravate on quality.
+- Traps: sorting by pDPS; assuming a unique is worse than a rare; trusting the `Quality:`
+  line in item text (read the listing's property instead).
+
+## Ignite
+
+- Ignite takes the **fire damage of the hit** that applied it; `IgniteDPS` is the target.
+- Needs exposure and fire penetration on the hit, and ignite duration for uptime.
+- Flammability + Combustion are the cheap multipliers.
+
+## Poison
+
+- Poison **stacks**, so hit rate multiplies with hit size; `PoisonDPS` already accounts for
+  both. Wither and chaos resistance reduction are the big levers.
+
+## Hit
+
+- `CombinedDPS` with `HitChance` at 100. If `CritChance` is 0 (e.g. Resolute Technique),
+  crit chance and multi are dead — recommend flat damage, attack speed, gem levels.
+- If hit chance is below 100, accuracy is the cheapest damage in the build.
+
+## Build defects to report before any purchase
+
+- `ManaUnreserved < 0`: reservation exceeds the pool, so PoB's DPS includes auras that
+  cannot run. Fixes: reduced reservation (Enlighten, reservation cluster, aura efficiency),
+  mana cost efficiency on rings/helmet, Life/Attack masteries that pay mana costs with
+  life, or dropping an aura deliberately.
+- Life under ~4.5k for red maps; negative chaos resistance; elemental overcap under +20
+  (curses reach −30).
+- Attribute totals must clear the item you are about to buy: `Str/Dex/Int` vs
+  `ReqStr/ReqDex/ReqInt`, not the base name's typical requirement.
+
+5r) ~/.config/opencode/skills/poe-build-profile/scripts/classify-core.mjs
+
+// Pure classifier: takes the analyze_build dump and returns the report string.
+// No filesystem, no PoB access — profile.mjs inlines this into the emitted program,
+// so the whole profile is one code-mode paste with no intermediate file.
+
+export function classify(dump) {
+  const text = String(dump.analyze || "");
+  if (!text.includes("=== Stats ===")) {
+    return "profile has no analyze_build dump — check that the build was saved with lua_save_build";
+  }
+
+  const section = (name) => {
+    const m = text.match(new RegExp("=== " + name + " ===\\n([\\s\\S]*?)(?=\\n=== |$)"));
+    return m ? m[1] : "";
+  };
+  const meta = {};
+  for (const m of text.matchAll(/^(Class|Ascendancy|Level): (.+)$/gm)) meta[m[1]] = m[2].trim();
+
+  const stats = {};
+  for (const m of section("Stats").matchAll(/^([A-Za-z:]+): (-?[\d.]+)$/gm)) stats[m[1]] = +m[2];
+
+  const groups = section("Skills")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.includes("("))
+    .map((l) => l.split(" - ").map((g) => {
+      const m = g.match(/^(.*?) \((\d+)\/(\d+)\)$/);
+      return m ? { name: m[1], level: +m[2], quality: +m[3] } : { name: g.trim(), level: 0, quality: 0 };
+    }));
+
+  const items = [];
+  for (const m of section("Items").matchAll(/^(.+?): \[(\w+)\] (.+?) \((.+?)\)$/gm)) {
+    items.push({ slot: m[1], rarity: m[2], name: m[3], base: m[4] });
+  }
+
+  const s = { ...stats, ...(dump.components || {}) };
+  const num = (k) => (typeof s[k] === "number" ? s[k] : null);
+  const combined = num("CombinedDPS") || 0;
+  const bleed = num("BleedDPS") || 0;
+  const ignite = num("IgniteDPS") || 0;
+  const poison = num("PoisonDPS") || 0;
+  const dot = num("TotalDotDPS") || 0;
+  const crit = num("CritChance") || 0;
+  const hit = num("HitChance");
+
+  let archetype = "hit";
+  if (poison > 0 && poison >= bleed && poison >= ignite) archetype = "poison";
+  else if (ignite > 0 && ignite >= bleed) archetype = "ignite";
+  else if (bleed > 0) archetype = "bleed";
+
+  const dotShare = combined > 0 ? (dot / combined) * 100 : 0;
+  const mainGroup = groups[0] || [];
+  const mainSkill = mainGroup.find((g) => g.level > 0) || { name: "?", level: 0, quality: 0 };
+  const supports = mainGroup.slice(1).map((g) => g.name);
+  const allSkills = new Set(groups.flat().map((g) => g.name));
+  const belt = items.find((i) => i.slot === "Belt");
+  const hasBelt = (n) => !!belt && new RegExp(n, "i").test(belt.name);
+
+  const ARCHETYPES = {
+    bleed: {
+      metric: "BleedDPS + AverageDamage (damage per hit). Never pDPS, never attack speed.",
+      levers: ["damage per hit", "+% Damage over Time Multiplier", "flat physical damage",
+        "aggravate / forced-move uptime", "gem levels and quality"],
+      required: ["Fist of War", "Brutality", "Melee Physical Damage"],
+      wants: [["Vulnerability", "curse: increased physical damage taken + aggravate on quality"]],
+    },
+    ignite: {
+      metric: "IgniteDPS. Fire damage per hit sets the ignite; attack/cast speed does not.",
+      levers: ["fire damage per hit", "+% Fire Damage over Time Multiplier", "exposure",
+        "ignite duration", "gem levels"],
+      required: ["Combustion", "Immolate"],
+      wants: [["Flammability", "curse: fire resistance reduction"]],
+    },
+    poison: {
+      metric: "PoisonDPS. Stacks multiply, so hit rate matters as much as hit size.",
+      levers: ["chaos damage per hit", "+% Chaos Damage over Time Multiplier", "poison stacks",
+        "wither", "gem levels"],
+      required: ["Deadly Ailments", "Void Manipulation"],
+      wants: [["Despair", "curse: chaos resistance reduction"]],
+    },
+    hit: {
+      metric: "CombinedDPS with HitChance at 100. Average hit x rate; ailment stats are noise.",
+      levers: ["added damage", "% increased damage", "crit chance and multi (only if crit > 0)",
+        "attack/cast speed", "gem levels"],
+      required: [],
+      wants: [],
+    },
+  };
+  const rule = ARCHETYPES[archetype];
+
+  const flags = [];
+  const notes = [];
+  const add = (level, msg) => flags.push({ level, msg });
+
+  const unreserved = num("ManaUnreserved");
+  if (unreserved !== null && unreserved < 0) {
+    add("critical", `unreserved mana ${unreserved} — the reservation cannot run in game, ` +
+      `so PoB's DPS includes auras you cannot sustain. Fix reservation before buying damage.`);
+  }
+  const life = num("Life");
+  if (life !== null && life < 4500) add("warn", `life ${life} — under the 4.5k floor for T16 mapping`);
+  if ((num("ChaosResist") ?? 0) < 0) add("warn", `chaos resist ${num("ChaosResist")} — negative chaos is a one-shot risk`);
+  for (const el of ["Fire", "Cold", "Lightning"]) {
+    const oc = num(`${el}ResistOverCap`);
+    if (oc !== null && oc < 20) add("warn", `${el.toLowerCase()} overcap +${oc} — under the +20 target (curses reach −30)`);
+  }
+  if (hit !== null && hit < 100) add("warn", `hit chance ${hit}% — accuracy is costing damage`);
+
+  if (crit === 0) {
+    notes.push("crit chance is 0 (Resolute Technique or no investment): crit chance/multi gear is dead weight");
+  }
+  for (const [needle, why] of rule.wants) {
+    if (!allSkills.has(needle)) add("warn", `no ${needle} in any socket group — ${why}`);
+  }
+  const missingSupports = rule.required.filter((r) => !supports.some((sp) => sp.startsWith(r)));
+  if (missingSupports.length) {
+    add("warn", `main link is missing archetype supports: ${missingSupports.join(", ")}`);
+  }
+
+  if (archetype === "bleed") {
+    if (supports.some((x) => x.startsWith("Swift Affliction"))) {
+      notes.push("Swift Affliction cuts bleed duration by 25%: more DoT DPS, shorter window — " +
+        "re-simulate it against the incumbent support instead of assuming it wins");
+    }
+    if (supports.some((x) => x.startsWith("Volatility")) && hasBelt("Ryslatha")) {
+      add("warn", "Volatility + Ryslatha's Coil: low-roll hits can leave a mob almost unhurt while mapping");
+    }
+    if (hasBelt("Ryslatha")) notes.push("Ryslatha's Coil is a damage belt: quality it with Abrasive Catalysts");
+  }
+
+  const under20 = groups.flat().filter((g) => g.level > 0 && g.level < 20);
+  const mainUnder20 = mainGroup.filter((g) => g.level > 0 && g.level < 20);
+  const otherUnder20 = under20.length - mainUnder20.length;
+  if (mainUnder20.length) {
+    notes.push(`main link below level 20: ${mainUnder20.map((g) => `${g.name} ${g.level}/${g.quality}`).join(", ")} — leveling is free`);
+  }
+  if (otherUnder20 > 0) notes.push(`${otherUnder20} other gem(s) below level 20 — level the ones that are actually in use`);
+  const poorQuality = mainGroup.filter((g) => g.level >= 20 && g.quality < 20);
+  if (poorQuality.length) {
+    notes.push(`${poorQuality.length} main-link gem(s) at 20 with quality below 20 — Gemcutter's Prism is the cheap part`);
+  }
+
+  const headroom = ["Str", "Dex", "Int"].map((k) => {
+    const own = num(k), req = num("Req" + k);
+    return own === null || req === null ? null : `${k} ${own} (req ${req}, +${own - req})`;
+  }).filter(Boolean);
+
+  const out = [];
+  out.push(`# Build profile — ${meta.Class || "?"} / ${meta.Ascendancy || "?"} ${meta.Level || "?"}`, "");
+  out.push(`main skill   ${mainSkill.name} (${mainSkill.level}/${mainSkill.quality})`);
+  out.push(`supports     ${supports.join(", ") || "none"}`);
+  out.push(`archetype    ${archetype.toUpperCase()}${dot > 0 ? ` — DoT is ${dotShare.toFixed(0)}% of CombinedDPS` : ""}`);
+  out.push(`metric       ${rule.metric}`, "");
+  out.push("## Scales with", "");
+  for (const l of rule.levers) out.push(`- ${l}`);
+  if (flags.length) {
+    out.push("", "## Fix before buying damage", "");
+    for (const f of flags) out.push(`${f.level === "critical" ? "!!" : "! "}${f.msg}`);
+  }
+  if (notes.length) {
+    out.push("", "## Free / cheap levers", "");
+    for (const n of notes) out.push(`- ${n}`);
+  }
+  if (headroom.length) out.push("", "## Attribute headroom", "", headroom.join(" · "));
+  out.push("", `_${combined ? `CombinedDPS ${Math.round(combined)} · BleedDPS ${Math.round(bleed)} · ` : ""}` +
+    `life ${life ?? "?"} · EHP ${num("TotalEHP") ? Math.round(num("TotalEHP")) : "?"}_`);
+  return out.join("\n");
+}
+
+5s) ~/.config/opencode/skills/poe-build-profile/scripts/profile.mjs
+
+#!/usr/bin/env node
+// Emit a ready-to-paste code-mode program that identifies a build from PoB's own numbers.
+// The program returns the finished report as a string: no intermediate file, no
+// hand-written statistics, no guessing from mod text.
+//
+//   node scripts/profile.mjs --build current88.xml > /tmp/opencode/profile.js
+//
+// Then paste it into the code-mode `execute` tool. The return value IS the answer.
+//
+// The classifier logic lives in scripts/classify-core.mjs and is inlined below, so the
+// pure function stays unit-testable while the emitted program stays one self-contained
+// paste.
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const here = dirname(fileURLToPath(import.meta.url));
+
+const argv = process.argv.slice(2);
+const args = {};
+for (let i = 0; i < argv.length; i++) {
+  const a = argv[i];
+  if (a.startsWith("--")) {
+    const k = a.slice(2).replace(/-/g, "_");
+    args[k] = argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[++i] : true;
+  }
+}
+if (!args.build) {
+  console.error("usage: profile.mjs --build <build.xml>");
+  console.error("the build must already be saved with lua_save_build({build_name})");
+  process.exit(2);
+}
+
+const core = readFileSync(join(here, "classify-core.mjs"), "utf8")
+  .replace(/^export /gm, "")
+  .trim();
+
+const program = `const BUILD = ${JSON.stringify(args.build)};
+
+// analyze_build needs a saved build. It returns PoB's own stat sheet, skill groups and
+// equipped items — everything the classifier reads.
+const analyze = String(await tools.pob.analyze_build({ build_name: BUILD }));
+
+// The DoT components are the archetype signal; keep them raw so a rename in the summary
+// text cannot hide them.
+const components = {};
+for (const filter of ["Bleed", "Ignite", "Poison", "Dot"]) {
+  try {
+    const s = String(await tools.pob.export_full_stats({ filter }));
+    for (const key of ["BleedDPS", "BleedChance", "IgniteDPS", "PoisonDPS", "TotalDotDPS", "TotalDot"]) {
+      const m = s.match(new RegExp('"' + key + '":\\\\s*(-?[\\\\d.]+)'));
+      if (m) components[key] = +m[1];
+    }
+  } catch (e) { /* a filter PoB does not expose is fine */ }
+}
+
+${core}
+
+return classify({ build: BUILD, analyze, components });`;
+
+// Self-check before the model ever pastes it: the program uses top-level await/return,
+// so validate it inside an async wrapper.
+try {
+  const check = join(mkdtempSync(join(tmpdir(), "pobprofile-")), "check.mjs");
+  writeFileSync(check, "async function __run() {\n" + program + "\n}\n");
+  execFileSync("node", ["--check", check], { stdio: "pipe" });
+  console.error("syntax check: ok");
+} catch (e) {
+  console.error("SYNTAX CHECK FAILED — do not paste this program:");
+  console.error(String(e.stderr || e.message).slice(0, 600));
+  process.exit(1);
+}
+
+process.stdout.write(program + "\n");
+console.error(`profile program ready for ${args.build}`);
+console.error("paste it into code-mode `execute`; the returned string is the report");
+
+5t) ~/.config/opencode/skills/poe-build-profile/findings.md
+
+# Findings — evidence log
+
+Append-only, and **not instructions**. Rules live in `SKILL.md` and `reference/*`; this
+file records the sessions that produced them.
+
+```
+- YYYY-MM-DD · <build> · <measurement> → <rule it implies>
+```
+
+## Friction (patch queue)
+
+- (nothing pending)
+
+## Log
+
+- 2026-11-19 · bleed slam · pDPS and attack speed moved the number the wrong way: a
+  756-pDPS axe gave less bleed than a 686-pDPS one, and a faster base lost to a slower
+  hard-hitting one. `AverageDamage` tracked every result correctly → the classifier ranks
+  bleed by hit damage, never pDPS.
+- 2026-11-19 · bleed slam · PoB ran happily with unreserved mana at −778 and still printed
+  full DPS, because reservation is not validated → a negative pool must be reported as a
+  defect before damage advice, not treated as a gear preference.
+- 2026-11-19 · bleed slam · `analyze_build` needs a saved build name; `lua_get_stats` alone
+  has too few keys to classify → the profiler reads the saved file and parses that dump.
+- 2026-11-19 · any build · `export_full_stats` is **not** JSON (leading `===` header), so
+  `JSON.parse` throws → read single values with a `"Key":\s*value` regex, and keep the
+  classifier inlined in the emitted program so no intermediate file is needed.
+- 2026-11-19 · any build · a gem below level 20 in a utility group (Frostblink 9, Molten
+  Shell 10) is not a lever → report the main link's gems by name and only count the rest.
+
 STEP 6 — restart opencode so the MCP registers, then prove BOTH halves:
   a) PoB: load any build with pob.lua_import_code and print Life/TotalEHP.
   b) runners: `node ~/.config/opencode/skills/poe-gear-finder/scripts/search.mjs
@@ -1592,8 +2017,13 @@ STEP 6 — restart opencode so the MCP registers, then prove BOTH halves:
      and exit 0; a second run within 10s must exit 3 with "BLOCKED". Then
      `rm -rf ~/pob/pool/Smoke` so the spacing lock does not leak into real runs.
   c) contract lint: `node ~/.config/opencode/skills/poe-gear-finder/scripts/check.mjs`
-     must exit 0. It rejects prices, seller handles, dates and run references in
-     SKILL.md/reference/scripts, and specs that pin one listing's exact rolls.
+     must exit 0, and again with
+     `--root ~/.config/opencode/skills/poe-build-profile`. It rejects prices, seller
+     handles, dates and run references in SKILL.md/reference/scripts, and specs that
+     pin one listing's exact rolls.
+  d) profiler: `node ~/.config/opencode/skills/poe-build-profile/scripts/profile.mjs
+     --build <the build you loaded>` must print `syntax check: ok` on stderr and the
+     program on stdout, e.g. `> /tmp/opencode/profile.js`.
 Report the paths you created, the PoB tree version loaded in the smoke test, and
 anything that needed a workaround.
 ```
