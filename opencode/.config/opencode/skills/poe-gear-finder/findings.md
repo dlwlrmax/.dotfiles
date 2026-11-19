@@ -16,10 +16,29 @@ specifics on the way in (seller, price, that one item's name).
 
 One line each, added during a run, cleared when the contract is patched:
 
-- (nothing pending)
+- eval-driven pools cannot be persisted: browse.eval results return through the model,
+  so pool.mjs save never receives a file — the run survived on in-tab `window.__p` rows
+  plus immediate per-pick extracts; loading a stored qid to show rows would cost a search.
+- browse.eval does not execute a pasted string expression: the runner's chunk output must
+  be wrapped in an inner `eval(...)` to run — and its result is double-encoded JSON
+  (unwrap-style parse needed on the way back).
 
 ## Log
 
+- 2026-11-19 · gloves filter · chaos 20 + cold 25 + life 80 + armour 200 within 20c
+  returned 0 listings → cold was the rarest requirement; relaxing to chaos + life +
+  armour returned 7 (still scarce — buy-first). An emitted-but-never-pasted search burns
+  a 30-min slot; `--unmark` releases it.
+- 2026-11-19 · helm/gloves pool ≤20c · every helm swap LOST net life (the equipped helm
+  ~+150 life beats the pool) and every helm+gloves combo broke cold caps; only the
+  gloves-only swap kept all caps → the pool's 1c Sol Talons (+30 chaos, EHP +15%) is the
+  single purchase, and the cold overcap cushion falls +53→+8, so the next purchase must
+  answer cold exposure → sim per-slot before combining: the equipped slot's res ownership
+  decides cap survival, not the candidate's own mods.
+- 2026-11-19 · axe pool ≤10c · the price-asc first-100 ids carry no DoT-multi/faster
+  weapons; the best per-hit candidate (83% inc phys, q20, 1c, half its mods dead under
+  Brutality/RT) simmed −29.8% bleed → a cheap weapon pool routinely loses to an invested
+  bleed weapon; spend the next search on rings instead of re-ranking it.
 - 2026-11-18 · res · `lua_get_stats` reports `FireResist` clamped to the cap; a build 1%
   short printed `76 / 76` and looked capped → cap checks must read
   `Missing<Element>Resist` + `*ResistOverCap` from `export_full_stats({filter:"Resist"})`.
