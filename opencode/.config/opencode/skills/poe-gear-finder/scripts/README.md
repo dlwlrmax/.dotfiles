@@ -26,12 +26,13 @@ Everything is plain Node, no dependencies. Scratch files go in `/tmp/opencode`.
      model.
 
 2b shortlist without writing any eval: the page installs `window.__p.top(n, key)` —
-   ranks digest rows by any digest key (`top(10, "life")`, `top(10, "dotMulti")`, a
-   truthy 3rd argument sorts highest first) and returns just
-   { i, n, b, p, seller, v }, where `i` is the digest index to feed step 3.
+   ranks digest rows by any digest key, **highest first by default** (a truthy 3rd
+   argument sorts ascending) and returns just
+   { i, n, b, p, seller, v }, where `i` is the digest index to feed step 5.
 
 3  node scripts/pool.mjs save --league <L> --slot <slot> --file /tmp/opencode/<slot>-rows.json
-   → accepts the digest as-is (or full API rows), derives life/res, writes
+   → accepts the digest as-is (rows saved from the emitted search expression;
+     raw fetch rows from older runs also load and are normalized), writes
      ~/pob/pool/<L>/<slot>.json
 
 4  node scripts/pool.mjs show --league <L> --slot <slot> [--sort life] [--max-age 15] [--limit 15]
@@ -105,7 +106,7 @@ and leave it out of the repo; `check.mjs` rejects it.
 
 One shape for every item class. Keys present for all items:
 
-`n` name · `b` base · `p` price (chaos) · `seller` · `req` requirement text · `q` quality ·
+`n` name · `b` base · `p` price amount (currency unit only in full()'s `price`) · `seller` · `req` requirement text · `q` quality ·
 `ilvl` · `soc` sockets · `st` stack size · `cor` corrupted · `x` any property not listed
 below (flask charges, gem lines, weapon range...) · `life` / `fire` / `cold` / `lightning` /
 `chaos` resistances · `dotMulti` DoT multiplier · `faster` bleeding-deals-damage-faster roll ·

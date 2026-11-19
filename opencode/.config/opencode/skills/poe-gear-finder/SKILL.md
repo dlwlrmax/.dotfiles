@@ -187,6 +187,9 @@ restate limits here (two copies drift into contradiction).
 - **One search per slot, per run. Hard cap: 4 searches per run.** A re-search to
   "confirm" a listing is the biggest time sink and the main way to trip the limit.
   To iterate on candidates, re-`fetch` by id (cheap) — never re-search.
+  More slots than the cap allows? Slots defer in the profile's defect-severity order
+  (life, then thinnest resistance, then chaos, then damage), and the report names the
+  deferred slots so the next run can start on them.
 - **Space the searches out; never batch them.** search.mjs enforces the spacing and burst
   gates mechanically, and the numbers are in `reference/trade-api.md`. Never bypass them
   with `--force` for convenience: a run whose paste was aborted can be unmarked with
@@ -250,6 +253,11 @@ base are not enough (rare names repeat):
 
 - the open tab, **plus** the seller account and the price, e.g.
   `helm tab · row 2 · <account> · <price>`;
+- **API-driven tab with no rendered rows?** Hand over the qid URL
+  (`https://www.pathofexile.com/trade/search/<league>/<qid>`) **plus** seller, price and
+  the exact rolls — the buyer clicking it spends one deliberate search, which is theirs
+  to spend at buy time. Rendering it yourself mid-run costs a search from the budget,
+  so only navigate when you mean to;
 - **highlight the row in the page** rather than describing where it is: outline it, insert
   a label with name/price/seller, `scrollIntoView`, then screenshot to confirm. Prose does
   not answer "which row do I buy" — one highlighted row does. The marks are cosmetic DOM

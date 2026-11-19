@@ -48,7 +48,7 @@ const num = (s) => {
 function resist(mods, elements) {
   let total = 0;
   for (const raw of mods) {
-    const m = /^\+(\d+)% to (.*Resistance[s]?)$/.exec(raw.trim());
+    const m = /^\+(\d+)% to (.*Resistance)/.exec(raw.trim());
     if (!m) continue;
     const value = Number(m[1]);
     const words = m[2];
@@ -96,10 +96,13 @@ function derive(row) {
     };
   }
   const mods = row.mods || [];
-  const life = num((mods.find((m) => /maximum Life$/.test(m)) || "").replace(/^\+/, ""));
+  const life = num((mods.find((m) => /^\+\d+ to maximum Life/.test(m)) || "").replace(/^\+/, ""));
   const join = mods.join(" | ");
   return {
     ...row,
+    armour: row.armour ?? 0,
+    evasion: row.evasion ?? 0,
+    es: row.es ?? 0,
     life,
     fire: resist(mods, ["Fire"]),
     cold: resist(mods, ["Cold"]),
@@ -168,12 +171,12 @@ if (cmd === "show") {
   if (isWeapon) {
     console.log("price | item | base | pDPS | eDPS | phys range | aps | crit | q | ilvl | seller");
     for (const r of rows) {
-      console.log(`${r.priceAmount}c | ${r.name} | ${r.base} | ${r.pdps || 0} | ${r.edps || 0} | ${r.pdmg || "–"} | ${r.aps || 0} | ${r.crit || 0} | ${r.quality ?? 0} | ${r.ilvl ?? "–"} | ${r.seller}`);
+      console.log(`${r.priceAmount ?? "–"}c | ${r.name} | ${r.base} | ${r.pdps || 0} | ${r.edps || 0} | ${r.pdmg || "–"} | ${r.aps || 0} | ${r.crit || 0} | ${r.quality ?? 0} | ${r.ilvl ?? "–"} | ${r.seller}`);
     }
   } else {
     console.log("price | item | base | armour | ev | es | life | res F/C/L | chaos | ilvl | seller");
     for (const r of rows) {
-      console.log(`${r.priceAmount}c | ${r.name} | ${r.base} | ${r.armour} | ${r.evasion} | ${r.es || 0} | ${r.life} | ${r.fire}/${r.cold}/${r.lightning} | ${r.chaos} | ${r.ilvl ?? "–"} | ${r.seller}`);
+      console.log(`${r.priceAmount ?? "–"}c | ${r.name} | ${r.base} | ${r.armour} | ${r.evasion} | ${r.es || 0} | ${r.life} | ${r.fire}/${r.cold}/${r.lightning} | ${r.chaos} | ${r.ilvl ?? "–"} | ${r.seller}`);
     }
   }
   process.exit(0);

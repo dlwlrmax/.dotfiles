@@ -20,6 +20,15 @@ One line each, added during a run, cleared when the contract is patched:
 
 ## Log
 
+- 2026-11-19 · emitted page · the bracket-strip regex was structurally broken from the
+  first version (`([^\]|]*)` closes its class early): pipe-free brackets corrupted to
+  literal `$2` and `[x|y]` roll descriptions never stripped, under-crediting the digest
+  and carrying corrupted text into `full()`/parse_item → emitted regexes must be
+  byte-verified against bracket-bearing canned items in the offline harness —
+  `node --check` cannot see a class that closes early.
+- 2026-11-19 · digest attrs · `.*Strength.*` credited `+1 to Level of all Strength Skill
+  Gems` as a Str grant → grant regexes must anchor right after `to `
+  (`to (all attributes|Strength.*|...)`); hybrids and `all attributes` credit every side.
 - 2026-11-19 · gloves filter · chaos 20 + cold 25 + life 80 + armour 200 within 20c
   returned 0 listings → cold was the rarest requirement; relaxing to chaos + life +
   armour returned 7 (still scarce — buy-first). An emitted-but-never-pasted search burns

@@ -271,6 +271,9 @@ restate limits here (two copies drift into contradiction).
 - **One search per slot, per run. Hard cap: 4 searches per run.** A re-search to
   "confirm" a listing is the biggest time sink and the main way to trip the limit.
   To iterate on candidates, re-`fetch` by id (cheap) — never re-search.
+  More slots than the cap allows? Slots defer in the profile's defect-severity order
+  (life, then thinnest resistance, then chaos, then damage), and the report names the
+  deferred slots so the next run can start on them.
 - **Space the searches out; never batch them.** search.mjs enforces the spacing and burst
   gates mechanically, and the numbers are in `reference/trade-api.md`. Never bypass them
   with `--force` for convenience: a run whose paste was aborted can be unmarked with
@@ -334,6 +337,11 @@ base are not enough (rare names repeat):
 
 - the open tab, **plus** the seller account and the price, e.g.
   `helm tab · row 2 · <account> · <price>`;
+- **API-driven tab with no rendered rows?** Hand over the qid URL
+  (`https://www.pathofexile.com/trade/search/<league>/<qid>`) **plus** seller, price and
+  the exact rolls — the buyer clicking it spends one deliberate search, which is theirs
+  to spend at buy time. Rendering it yourself mid-run costs a search from the budget,
+  so only navigate when you mean to;
 - **highlight the row in the page** rather than describing where it is: outline it, insert
   a label with name/price/seller, `scrollIntoView`, then screenshot to confirm. Prose does
   not answer "which row do I buy" — one highlighted row does. The marks are cosmetic DOM
@@ -755,12 +763,13 @@ Everything is plain Node, no dependencies. Scratch files go in `/tmp/opencode`.
      model.
 
 2b shortlist without writing any eval: the page installs `window.__p.top(n, key)` —
-   ranks digest rows by any digest key (`top(10, "life")`, `top(10, "dotMulti")`, a
-   truthy 3rd argument sorts highest first) and returns just
-   { i, n, b, p, seller, v }, where `i` is the digest index to feed step 3.
+   ranks digest rows by any digest key, **highest first by default** (a truthy 3rd
+   argument sorts ascending) and returns just
+   { i, n, b, p, seller, v }, where `i` is the digest index to feed step 5.
 
 3  node scripts/pool.mjs save --league <L> --slot <slot> --file /tmp/opencode/<slot>-rows.json
-   → accepts the digest as-is (or full API rows), derives life/res, writes
+   → accepts the digest as-is (rows saved from the emitted search expression;
+     raw fetch rows from older runs also load and are normalized), writes
      ~/pob/pool/<L>/<slot>.json
 
 4  node scripts/pool.mjs show --league <L> --slot <slot> [--sort life] [--max-age 15] [--limit 15]
@@ -834,7 +843,7 @@ and leave it out of the repo; `check.mjs` rejects it.
 
 One shape for every item class. Keys present for all items:
 
-`n` name · `b` base · `p` price (chaos) · `seller` · `req` requirement text · `q` quality ·
+`n` name · `b` base · `p` price amount (currency unit only in full()'s `price`) · `seller` · `req` requirement text · `q` quality ·
 `ilvl` · `soc` sockets · `st` stack size · `cor` corrupted · `x` any property not listed
 below (flask charges, gem lines, weapon range...) · `life` / `fire` / `cold` / `lightning` /
 `chaos` resistances · `dotMulti` DoT multiplier · `faster` bleeding-deals-damage-faster roll ·
@@ -1065,7 +1074,7 @@ const num = (s) => {
 function resist(mods, elements) {
   let total = 0;
   for (const raw of mods) {
-    const m = /^\+(\d+)% to (.*Resistance[s]?)$/.exec(raw.trim());
+    const m = /^\+(\d+)% to (.*Resistance)/.exec(raw.trim());
     if (!m) continue;
     const value = Number(m[1]);
     const words = m[2];
@@ -1113,10 +1122,13 @@ function derive(row) {
     };
   }
   const mods = row.mods || [];
-  const life = num((mods.find((m) => /maximum Life$/.test(m)) || "").replace(/^\+/, ""));
+  const life = num((mods.find((m) => /^\+\d+ to maximum Life/.test(m)) || "").replace(/^\+/, ""));
   const join = mods.join(" | ");
   return {
     ...row,
+    armour: row.armour ?? 0,
+    evasion: row.evasion ?? 0,
+    es: row.es ?? 0,
     life,
     fire: resist(mods, ["Fire"]),
     cold: resist(mods, ["Cold"]),
@@ -1185,12 +1197,12 @@ if (cmd === "show") {
   if (isWeapon) {
     console.log("price | item | base | pDPS | eDPS | phys range | aps | crit | q | ilvl | seller");
     for (const r of rows) {
-      console.log(`${r.priceAmount}c | ${r.name} | ${r.base} | ${r.pdps || 0} | ${r.edps || 0} | ${r.pdmg || "–"} | ${r.aps || 0} | ${r.crit || 0} | ${r.quality ?? 0} | ${r.ilvl ?? "–"} | ${r.seller}`);
+      console.log(`${r.priceAmount ?? "–"}c | ${r.name} | ${r.base} | ${r.pdps || 0} | ${r.edps || 0} | ${r.pdmg || "–"} | ${r.aps || 0} | ${r.crit || 0} | ${r.quality ?? 0} | ${r.ilvl ?? "–"} | ${r.seller}`);
     }
   } else {
     console.log("price | item | base | armour | ev | es | life | res F/C/L | chaos | ilvl | seller");
     for (const r of rows) {
-      console.log(`${r.priceAmount}c | ${r.name} | ${r.base} | ${r.armour} | ${r.evasion} | ${r.es || 0} | ${r.life} | ${r.fire}/${r.cold}/${r.lightning} | ${r.chaos} | ${r.ilvl ?? "–"} | ${r.seller}`);
+      console.log(`${r.priceAmount ?? "–"}c | ${r.name} | ${r.base} | ${r.armour} | ${r.evasion} | ${r.es || 0} | ${r.life} | ${r.fire}/${r.cold}/${r.lightning} | ${r.chaos} | ${r.ilvl ?? "–"} | ${r.seller}`);
     }
   }
   process.exit(0);
@@ -1307,7 +1319,7 @@ const query = {
 // that is the retry path after a mapping bug or a closed tab.
 if (!args.reuse) {
   writeFileSync(gapFile, String(now));
-  writeFileSync(logFile, [...readIf(logFile).split("\n").filter(Boolean), String(now)].join("\n") + "\n");
+  writeFileSync(logFile, [...readIf(logFile).split("\n").filter(Boolean).filter((t) => now - t < BURST_WINDOW_MS), String(now)].join("\n") + "\n");
 }
 
 const head = args.reuse
@@ -1333,7 +1345,7 @@ for (var i = 0; i < take; i += 10) {
 var ch = ids.slice(i, i + 10);
 P.rows = P.rows.concat((await (await fetch("/api/trade/fetch/" + ch.join(",") + "?query=" + encodeURIComponent(sj.id))).json()).result || []);
 }
-var tx=function(s){return String(s&&s.description!==undefined?s.description:s).replace(/\\[([^\\]|]*)\\|([^\\]]*)\\]/g,"$2")};
+var tx=function(s){return String(s&&s.description!==undefined?s.description:s).replace(/\\[([^\\]]*)\\|([^\\]]*)\\]/g,"$2")};
 var n0=function(v){var m=/(\\d+(?:\\.\\d+)?)/.exec(String(v==null?"":v));return m?Number(m[1]):0};
 var K="|Armour|Evasion Rating|Energy Shield|Quality|Physical Damage|Attacks per Second|Elemental Damage|Critical Strike Chance|Item Level|Stack Size|Sockets|";
 var sm=function(t,re){var s=0,x,r=new RegExp(re,"g");while((x=r.exec(t))!==null){s+=Number(x[1])}return s};
@@ -1347,11 +1359,11 @@ for(k in pq){if(K.indexOf("|"+k+"|")<0){ex=ex||{};ex[k]=pq[k]}}
 var mm=mods(it),t=mm.join(" | "),res={F:0,C:0,L:0,X:0},at={S:0,D:0,I:0};
 var one=function(re){var m=new RegExp(re).exec(t);return m?Number(m[1]):0};
 mm.forEach(function(m){var g=/[+](\\d+)% to (.*Resistance)/.exec(m);if(!g){return}var v=Number(g[1]),w=g[2];if(/all Elemental/.test(w)){res.F+=v;res.C+=v;res.L+=v}if(/Fire/.test(w)){res.F+=v}if(/Cold/.test(w)){res.C+=v}if(/Lightning/.test(w)){res.L+=v}if(/Chaos/.test(w)){res.X+=v}});
-mm.forEach(function(m){var g=/[+](\\d+) to (all attributes|.*Strength.*|.*Dexterity.*|.*Intelligence.*)/.exec(m);if(!g){return}var v=Number(g[1]),w=g[2];if(/all attributes/.test(w)){at.S+=v;at.D+=v;at.I+=v}if(/Strength/.test(w)){at.S+=v}if(/Dexterity/.test(w)){at.D+=v}if(/Intelligence/.test(w)){at.I+=v}});
+mm.forEach(function(m){var g=/[+](\\d+) to (all attributes|Strength.*|Dexterity.*|Intelligence.*)/.exec(m);if(!g){return}var v=Number(g[1]),w=g[2];if(/all attributes/.test(w)){at.S+=v;at.D+=v;at.I+=v}if(/Strength/.test(w)){at.S+=v}if(/Dexterity/.test(w)){at.D+=v}if(/Intelligence/.test(w)){at.I+=v}});
 var an=parseFloat(pq["Attacks per Second"]||"")||0;
 return {
 n:it.name,b:it.baseType,p:pr?pr.amount:null,seller:l.account?l.account.name:null,
-req:(it.requirements||[]).map(function(r){return r.name+" "+r.values[0][0]}).join(" "),
+req:(it.requirements||[]).map(function(r){return r.values&&r.values[0]?r.name+" "+r.values[0][0]:r.name}).join(" "),
 ar:n0(pq["Armour"]),ev:n0(pq["Evasion Rating"]),es:n0(pq["Energy Shield"]),
 pdps:Math.round(rg(pq["Physical Damage"])*an),edps:Math.round(rg(pq["Elemental Damage"])*an),
 aps:an,crit:n0(pq["Critical Strike Chance"]),pdmg:pq["Physical Damage"]||null,edmg:pq["Elemental Damage"]||null,
@@ -1814,6 +1826,15 @@ One line each, added during a run, cleared when the contract is patched:
 
 ## Log
 
+- 2026-11-19 · emitted page · the bracket-strip regex was structurally broken from the
+  first version (`([^\]|]*)` closes its class early): pipe-free brackets corrupted to
+  literal `$2` and `[x|y]` roll descriptions never stripped, under-crediting the digest
+  and carrying corrupted text into `full()`/parse_item → emitted regexes must be
+  byte-verified against bracket-bearing canned items in the offline harness —
+  `node --check` cannot see a class that closes early.
+- 2026-11-19 · digest attrs · `.*Strength.*` credited `+1 to Level of all Strength Skill
+  Gems` as a Str grant → grant regexes must anchor right after `to `
+  (`to (all attributes|Strength.*|...)`); hybrids and `all attributes` credit every side.
 - 2026-11-19 · gloves filter · chaos 20 + cold 25 + life 80 + armour 200 within 20c
   returned 0 listings → cold was the rarest requirement; relaxing to chaos + life +
   armour returned 7 (still scarce — buy-first). An emitted-but-never-pasted search burns

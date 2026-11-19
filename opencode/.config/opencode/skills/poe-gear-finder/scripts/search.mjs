@@ -104,7 +104,7 @@ const query = {
 // that is the retry path after a mapping bug or a closed tab.
 if (!args.reuse) {
   writeFileSync(gapFile, String(now));
-  writeFileSync(logFile, [...readIf(logFile).split("\n").filter(Boolean), String(now)].join("\n") + "\n");
+  writeFileSync(logFile, [...readIf(logFile).split("\n").filter(Boolean).filter((t) => now - t < BURST_WINDOW_MS), String(now)].join("\n") + "\n");
 }
 
 const head = args.reuse
@@ -130,7 +130,7 @@ for (var i = 0; i < take; i += 10) {
 var ch = ids.slice(i, i + 10);
 P.rows = P.rows.concat((await (await fetch("/api/trade/fetch/" + ch.join(",") + "?query=" + encodeURIComponent(sj.id))).json()).result || []);
 }
-var tx=function(s){return String(s&&s.description!==undefined?s.description:s).replace(/\\[([^\\]|]*)\\|([^\\]]*)\\]/g,"$2")};
+var tx=function(s){return String(s&&s.description!==undefined?s.description:s).replace(/\\[([^\\]]*)\\|([^\\]]*)\\]/g,"$2")};
 var n0=function(v){var m=/(\\d+(?:\\.\\d+)?)/.exec(String(v==null?"":v));return m?Number(m[1]):0};
 var K="|Armour|Evasion Rating|Energy Shield|Quality|Physical Damage|Attacks per Second|Elemental Damage|Critical Strike Chance|Item Level|Stack Size|Sockets|";
 var sm=function(t,re){var s=0,x,r=new RegExp(re,"g");while((x=r.exec(t))!==null){s+=Number(x[1])}return s};
@@ -144,11 +144,11 @@ for(k in pq){if(K.indexOf("|"+k+"|")<0){ex=ex||{};ex[k]=pq[k]}}
 var mm=mods(it),t=mm.join(" | "),res={F:0,C:0,L:0,X:0},at={S:0,D:0,I:0};
 var one=function(re){var m=new RegExp(re).exec(t);return m?Number(m[1]):0};
 mm.forEach(function(m){var g=/[+](\\d+)% to (.*Resistance)/.exec(m);if(!g){return}var v=Number(g[1]),w=g[2];if(/all Elemental/.test(w)){res.F+=v;res.C+=v;res.L+=v}if(/Fire/.test(w)){res.F+=v}if(/Cold/.test(w)){res.C+=v}if(/Lightning/.test(w)){res.L+=v}if(/Chaos/.test(w)){res.X+=v}});
-mm.forEach(function(m){var g=/[+](\\d+) to (all attributes|.*Strength.*|.*Dexterity.*|.*Intelligence.*)/.exec(m);if(!g){return}var v=Number(g[1]),w=g[2];if(/all attributes/.test(w)){at.S+=v;at.D+=v;at.I+=v}if(/Strength/.test(w)){at.S+=v}if(/Dexterity/.test(w)){at.D+=v}if(/Intelligence/.test(w)){at.I+=v}});
+mm.forEach(function(m){var g=/[+](\\d+) to (all attributes|Strength.*|Dexterity.*|Intelligence.*)/.exec(m);if(!g){return}var v=Number(g[1]),w=g[2];if(/all attributes/.test(w)){at.S+=v;at.D+=v;at.I+=v}if(/Strength/.test(w)){at.S+=v}if(/Dexterity/.test(w)){at.D+=v}if(/Intelligence/.test(w)){at.I+=v}});
 var an=parseFloat(pq["Attacks per Second"]||"")||0;
 return {
 n:it.name,b:it.baseType,p:pr?pr.amount:null,seller:l.account?l.account.name:null,
-req:(it.requirements||[]).map(function(r){return r.name+" "+r.values[0][0]}).join(" "),
+req:(it.requirements||[]).map(function(r){return r.values&&r.values[0]?r.name+" "+r.values[0][0]:r.name}).join(" "),
 ar:n0(pq["Armour"]),ev:n0(pq["Evasion Rating"]),es:n0(pq["Energy Shield"]),
 pdps:Math.round(rg(pq["Physical Damage"])*an),edps:Math.round(rg(pq["Elemental Damage"])*an),
 aps:an,crit:n0(pq["Critical Strike Chance"]),pdmg:pq["Physical Damage"]||null,edmg:pq["Elemental Damage"]||null,
