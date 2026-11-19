@@ -16,7 +16,13 @@ specifics on the way in (seller, price, that one item's name).
 
 One line each, added during a run, cleared when the contract is patched:
 
-- (nothing pending)
+- `add_item` needs the jewel slot name from `get_equipped_items` (it can be
+  `Jewel <passive-node-id>`, not `Jewel 1`); a wrong slot adds the item unequipped.
+- trade `category: jewel` + `explicit.stat_3988349707` (DoT multi) returns 0, while the
+  same stat without the category matches weapons; the jewel stat id differs — verify
+  against `/api/trade/data/stats` before trusting an empty result.
+- `type_filters` category `accessory.amulet` + DoT multi + life returned 0 within 60c;
+  suspected category-name mismatch, not an empty market.
 
 ## Log
 
