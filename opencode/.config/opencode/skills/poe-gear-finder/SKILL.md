@@ -95,9 +95,15 @@ freshness gates for you.
    `ring` and `helm` (see the spec table in `scripts/README.md`); `--spec` takes the
    spec's file name, which is not always the slot.
    It enforces the search spacing and burst gates from `reference/trade-api.md`, then
-   prints the `expression` to paste into `browse.eval` (instant buyout, 60 ids
-   fetched, so the pool is a pool). Save it with `node scripts/pool.mjs save …` and read
-   candidates with `node scripts/pool.mjs show …`, which exits 4 on a stale pool.
+   prints the `expression` to paste into `browse.eval` — it is eval-wrapped, paste it
+   verbatim and unwrap the double-encoded result (recipe in `reference/trade-api.md`).
+   Rank the returned digest with `window.__p.top(<n>, "<key>")` (no code), then pull
+   full mod text for the few picks with a second expression, `window.__p.full([i,j,k])` —
+   no extra request — and use that to build `items.json`. **Extract picks immediately**:
+   in-page state (`window.__p`) dies with the tab. `pool.mjs save` persists the digest
+   for cross-session resume; while the run continues in the same session it is optional
+   (the eval result reaches the model, not the disk — write the file only when the
+   session might end before the report).
    Re-reading the ids already in the open tab is `search.mjs --reuse` — a fetch, not a
    search; that is the retry path after a mapping bug or a closed tab, and it costs
    no search request.

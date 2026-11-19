@@ -12,13 +12,23 @@ Everything is plain Node, no dependencies. Scratch files go in `/tmp/opencode`.
 1  node scripts/search.mjs --league <L> --slot <slot> --spec specs/<spec>.json [--max 60]
    → enforces >=10s since the last search and the 4-searches-per-30min cap
    → prints a ready-to-paste `expression` for tools.browse.eval (60 ids fetched by
-     default; `--max` sets how many ids the page fetches)
+     default; `--max` sets how many ids the page fetches). The expression is already
+     `eval("…" + "…")`-wrapped, so paste it verbatim: browse.eval returns the value of
+     a pasted string-producing expression, which would otherwise be the page source
+     itself. Its result is double-encoded JSON — parse in a loop until a value is no
+     longer a string.
 
 2  paste that expression into tools.browse.eval on an open trade tab
    → returns { qid, total, idsAvailable, fetched, digest[] }
      `digest` is one compact row per listing (life / fire / cold / lightning / chaos /
-     phys / price / seller / armour). Full mod text stays in the page: 60 rows with mods
-     is ~30KB and does not survive the trip back through the model.
+     dotMulti / price / seller / requirements / armour). Full mod text stays in the
+     page: 60 rows with mods is ~30KB and does not survive the trip back through the
+     model.
+
+2b shortlist without writing any eval: the page installs `window.__p.top(n, key)` —
+   ranks digest rows by any digest key (`top(10, "life")`, `top(10, "dotMulti")`, a
+   truthy 3rd argument sorts highest first) and returns just
+   { i, n, b, p, seller, v }, where `i` is the digest index to feed step 3.
 
 3  node scripts/pool.mjs save --league <L> --slot <slot> --file /tmp/opencode/<slot>-rows.json
    → accepts the digest as-is (or full API rows), derives life/res, writes
@@ -95,10 +105,11 @@ and leave it out of the repo; `check.mjs` rejects it.
 
 One shape for every item class. Keys present for all items:
 
-`n` name · `b` base · `p` price (chaos) · `seller` · `q` quality · `ilvl` · `soc` sockets ·
-`st` stack size · `cor` corrupted · `x` any property not listed below (flask charges,
-gem lines, weapon range...) · `life` / `fire` / `cold` / `lightning` / `chaos` resistances ·
-`phys` the `Adds X to Y Physical Damage` roll as text.
+`n` name · `b` base · `p` price (chaos) · `seller` · `req` requirement text · `q` quality ·
+`ilvl` · `soc` sockets · `st` stack size · `cor` corrupted · `x` any property not listed
+below (flask charges, gem lines, weapon range...) · `life` / `fire` / `cold` / `lightning` /
+`chaos` resistances · `dotMulti` DoT multiplier · `faster` bleeding-deals-damage-faster roll ·
+`manaCraft` the `-N to Mana Cost` craft · `phys` the `Adds X to Y Physical Damage` roll as text.
 
 Class-specific, non-zero only when the item has them:
 

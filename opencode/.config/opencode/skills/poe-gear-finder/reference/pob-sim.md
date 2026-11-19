@@ -2,6 +2,15 @@
 
 One `execute` block. Never one tool call per candidate.
 
+## Singles first
+
+Sim each candidate item **alone** (one set per item) before combining. A combination set
+that breaks a cap tells you nothing about which item did it, and a single-item sim is the
+only way to learn what the equipped slot actually carries — the equipped helm can own
+half the build's cold res, and only a helm-only swap reveals that. Combine only items
+whose single-set sims pass the gates, and expect combinations to redistribute res:
+re-check the caps on every combined set, not just the singles.
+
 ```js
 const it = (name, base, mods, { quality = 0, price = null } = {}) =>
   ["Rarity: RARE", name, base, "--------", "Item Level: 85", "Quality: " + quality,

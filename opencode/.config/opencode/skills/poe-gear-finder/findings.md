@@ -16,12 +16,7 @@ specifics on the way in (seller, price, that one item's name).
 
 One line each, added during a run, cleared when the contract is patched:
 
-- eval-driven pools cannot be persisted: browse.eval results return through the model,
-  so pool.mjs save never receives a file — the run survived on in-tab `window.__p` rows
-  plus immediate per-pick extracts; loading a stored qid to show rows would cost a search.
-- browse.eval does not execute a pasted string expression: the runner's chunk output must
-  be wrapped in an inner `eval(...)` to run — and its result is double-encoded JSON
-  (unwrap-style parse needed on the way back).
+- (nothing pending)
 
 ## Log
 

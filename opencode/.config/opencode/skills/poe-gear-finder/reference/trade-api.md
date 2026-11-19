@@ -52,6 +52,24 @@ An empty result can be a category or stat-id mismatch, not an empty market — v
 category name and stat ids against `/api/trade/data/*` before relaxing filters. Only a
 query whose ids match the data (and still returns nothing) is a thin market.
 
+## Pasting the emitted expression into browse.eval
+
+`search.mjs` prints the page code as an **eval-wrapped** chunk literal — paste it
+verbatim as the `expression` argument and it executes; pasted unwrapped it just returns
+its own source string. Results from the page (the search digest, `window.__p.full(...)`,
+`window.__p.top(...)`) come back **double-encoded**: the page returns a JSON string and
+the tool stringifies it again, so unwrap by parsing in a loop:
+
+```js
+let v = result;
+for (let k = 0; k < 4 && typeof v === "string"; k++) {
+  try { v = JSON.parse(v); } catch { break; }
+}
+```
+
+Never hand-write page code around this: the escaping is exactly what the runner exists
+to own. Ranking is `window.__p.top(<n>, "<key>")` — no second custom eval per tab.
+
 ## Sort options
 
 | Sort value | Meaning |

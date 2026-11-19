@@ -179,9 +179,15 @@ freshness gates for you.
    `ring` and `helm` (see the spec table in `scripts/README.md`); `--spec` takes the
    spec's file name, which is not always the slot.
    It enforces the search spacing and burst gates from `reference/trade-api.md`, then
-   prints the `expression` to paste into `browse.eval` (instant buyout, 60 ids
-   fetched, so the pool is a pool). Save it with `node scripts/pool.mjs save …` and read
-   candidates with `node scripts/pool.mjs show …`, which exits 4 on a stale pool.
+   prints the `expression` to paste into `browse.eval` — it is eval-wrapped, paste it
+   verbatim and unwrap the double-encoded result (recipe in `reference/trade-api.md`).
+   Rank the returned digest with `window.__p.top(<n>, "<key>")` (no code), then pull
+   full mod text for the few picks with a second expression, `window.__p.full([i,j,k])` —
+   no extra request — and use that to build `items.json`. **Extract picks immediately**:
+   in-page state (`window.__p`) dies with the tab. `pool.mjs save` persists the digest
+   for cross-session resume; while the run continues in the same session it is optional
+   (the eval result reaches the model, not the disk — write the file only when the
+   session might end before the report).
    Re-reading the ids already in the open tab is `search.mjs --reuse` — a fetch, not a
    search; that is the retry path after a mapping bug or a closed tab, and it costs
    no search request.
@@ -344,6 +350,15 @@ Never whisper or buy without explicit confirmation.
 # Simulating candidates in PoB
 
 One `execute` block. Never one tool call per candidate.
+
+## Singles first
+
+Sim each candidate item **alone** (one set per item) before combining. A combination set
+that breaks a cap tells you nothing about which item did it, and a single-item sim is the
+only way to learn what the equipped slot actually carries — the equipped helm can own
+half the build's cold res, and only a helm-only swap reveals that. Combine only items
+whose single-set sims pass the gates, and expect combinations to redistribute res:
+re-check the caps on every combined set, not just the singles.
 
 ```js
 const it = (name, base, mods, { quality = 0, price = null } = {}) =>
@@ -525,6 +540,24 @@ not impose a fixed 60s pause per slot.
 An empty result can be a category or stat-id mismatch, not an empty market — verify the
 category name and stat ids against `/api/trade/data/*` before relaxing filters. Only a
 query whose ids match the data (and still returns nothing) is a thin market.
+
+## Pasting the emitted expression into browse.eval
+
+`search.mjs` prints the page code as an **eval-wrapped** chunk literal — paste it
+verbatim as the `expression` argument and it executes; pasted unwrapped it just returns
+its own source string. Results from the page (the search digest, `window.__p.full(...)`,
+`window.__p.top(...)`) come back **double-encoded**: the page returns a JSON string and
+the tool stringifies it again, so unwrap by parsing in a loop:
+
+```js
+let v = result;
+for (let k = 0; k < 4 && typeof v === "string"; k++) {
+  try { v = JSON.parse(v); } catch { break; }
+}
+```
+
+Never hand-write page code around this: the escaping is exactly what the runner exists
+to own. Ranking is `window.__p.top(<n>, "<key>")` — no second custom eval per tab.
 
 ## Sort options
 
@@ -708,13 +741,23 @@ Everything is plain Node, no dependencies. Scratch files go in `/tmp/opencode`.
 1  node scripts/search.mjs --league <L> --slot <slot> --spec specs/<spec>.json [--max 60]
    → enforces >=10s since the last search and the 4-searches-per-30min cap
    → prints a ready-to-paste `expression` for tools.browse.eval (60 ids fetched by
-     default; `--max` sets how many ids the page fetches)
+     default; `--max` sets how many ids the page fetches). The expression is already
+     `eval("…" + "…")`-wrapped, so paste it verbatim: browse.eval returns the value of
+     a pasted string-producing expression, which would otherwise be the page source
+     itself. Its result is double-encoded JSON — parse in a loop until a value is no
+     longer a string.
 
 2  paste that expression into tools.browse.eval on an open trade tab
    → returns { qid, total, idsAvailable, fetched, digest[] }
      `digest` is one compact row per listing (life / fire / cold / lightning / chaos /
-     phys / price / seller / armour). Full mod text stays in the page: 60 rows with mods
-     is ~30KB and does not survive the trip back through the model.
+     dotMulti / price / seller / requirements / armour). Full mod text stays in the
+     page: 60 rows with mods is ~30KB and does not survive the trip back through the
+     model.
+
+2b shortlist without writing any eval: the page installs `window.__p.top(n, key)` —
+   ranks digest rows by any digest key (`top(10, "life")`, `top(10, "dotMulti")`, a
+   truthy 3rd argument sorts highest first) and returns just
+   { i, n, b, p, seller, v }, where `i` is the digest index to feed step 3.
 
 3  node scripts/pool.mjs save --league <L> --slot <slot> --file /tmp/opencode/<slot>-rows.json
    → accepts the digest as-is (or full API rows), derives life/res, writes
@@ -791,10 +834,11 @@ and leave it out of the repo; `check.mjs` rejects it.
 
 One shape for every item class. Keys present for all items:
 
-`n` name · `b` base · `p` price (chaos) · `seller` · `q` quality · `ilvl` · `soc` sockets ·
-`st` stack size · `cor` corrupted · `x` any property not listed below (flask charges,
-gem lines, weapon range...) · `life` / `fire` / `cold` / `lightning` / `chaos` resistances ·
-`phys` the `Adds X to Y Physical Damage` roll as text.
+`n` name · `b` base · `p` price (chaos) · `seller` · `req` requirement text · `q` quality ·
+`ilvl` · `soc` sockets · `st` stack size · `cor` corrupted · `x` any property not listed
+below (flask charges, gem lines, weapon range...) · `life` / `fire` / `cold` / `lightning` /
+`chaos` resistances · `dotMulti` DoT multiplier · `faster` bleeding-deals-damage-faster roll ·
+`manaCraft` the `-N to Mana Cost` craft · `phys` the `Adds X to Y Physical Damage` roll as text.
 
 Class-specific, non-zero only when the item has them:
 
@@ -1267,101 +1311,74 @@ if (!args.reuse) {
 
 const head = args.reuse
   ? `window.__p = window.__p || { rows: [] };
-  var sj = { id: window.__p.qid, total: window.__p.total, result: window.__p.ids || [] };
-  if (!sj.id) return JSON.stringify({ err: "no stored query in this tab — run a search first" });
-  window.__p.rows = [];`
+var sj = { id: window.__p.qid, total: window.__p.total, result: window.__p.ids || [] };
+if (!sj.id) { return JSON.stringify({ err: "no stored query in this tab — run a search first" }) }
+window.__p.rows = [];`
   : `window.__p = { qid: null, ids: [], rows: [], total: null };
-  var r = await fetch("/api/trade/search/" + LEAGUE, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(${JSON.stringify(query)})
-  });
-  var sj = await r.json();
-  if (sj.error) return JSON.stringify({ err: sj.error });
-  window.__p.qid = sj.id;
-  window.__p.total = sj.total;
-  window.__p.ids = sj.result || [];`;
+var r = await fetch("/api/trade/search/" + LEAGUE, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(${JSON.stringify(query)}) });
+var sj = await r.json();
+if (sj.error) { return JSON.stringify({ err: sj.error }) }
+window.__p.qid = sj.id; window.__p.total = sj.total; window.__p.ids = sj.result || [];`;
 
+// One digest shape for every item class: generic defensives, weapon numbers when the item
+// has them, and an "x" map for any property not named above (flask charges, gem lines,
+// stack sizes...). 60 full rows with mod text is ~30KB and would not survive the trip back
+// through the model; the mod text stays in the page for window.__p.full([...]).
 const page = `(async function () {
-  var LEAGUE = ${JSON.stringify(league)};
-  ${head}
-  var take = Math.min(window.__p.ids.length, ${maxIds});
-  for (var i = 0; i < take; i += 10) {
-    var chunk = window.__p.ids.slice(i, i + 10);
-    var fj = await (await fetch("/api/trade/fetch/" + chunk.join(",") + "?query=" + encodeURIComponent(sj.id))).json();
-    window.__p.rows = window.__p.rows.concat(fj.result || []);
-  }
-  var clean = function (s) { return String(s && s.description !== undefined ? s.description : s).replace(/\\[([^\\]|]*)\\|([^\\]]*)\\]/g, "$2"); };
-  var n0 = function (v) { var m = /(\\d+(?:\\.\\d+)?)/.exec(String(v === null || v === undefined ? "" : v)); return m ? Number(m[1]) : 0; };
-  var KNOWN = ["Armour", "Evasion Rating", "Energy Shield", "Quality", "Physical Damage",
-    "Attacks per Second", "Elemental Damage", "Critical Strike Chance", "Item Level", "Stack Size", "Sockets"];
-  var rows = window.__p.rows.map(function (i) {
-    var mods = [].concat(i.item.implicitMods || [], i.item.explicitMods || []).map(clean);
-    var props = {};
-    (i.item.properties || []).forEach(function (p) { if (p.values && p.values[0]) props[p.name] = p.values[0][0]; });
-    var extra = {};
-    Object.keys(props).forEach(function (k) { if (KNOWN.indexOf(k) < 0) extra[k] = props[k]; });
-    return {
-      name: i.item.name,
-      base: i.item.baseType,
-      price: i.listing && i.listing.price ? i.listing.price.amount + " " + i.listing.price.currency : null,
-      priceAmount: i.listing && i.listing.price ? i.listing.price.amount : null,
-      seller: i.listing && i.listing.account ? i.listing.account.name : null,
-      armour: n0(props["Armour"]), evasion: n0(props["Evasion Rating"]), es: n0(props["Energy Shield"]),
-      pdmg: props["Physical Damage"] || null,
-      aps: props["Attacks per Second"] || null,
-      edmg: props["Elemental Damage"] || null,
-      crit: props["Critical Strike Chance"] || null,
-      quality: props["Quality"] || null,
-      ilvl: n0(props["Item Level"]),
-      stack: n0(props["Stack Size"]),
-      sockets: props["Sockets"] || null,
-      corrupted: i.item.corrupted ? 1 : 0,
-      extra: Object.keys(extra).length ? extra : null,
-      requirements: (i.item.requirements || []).map(function (r) { return r.name + " " + r.values[0][0]; }),
-      mods: mods
-    };
-  });
-  window.__p.full = function (indexes) {
-    return JSON.stringify(indexes.map(function (n) { return rows[n]; }));
-  };
-  // One digest shape for every item class: generic defensives, weapon numbers when the
-  // item has them, and an "x" map for any property not named above (flask charges, gem
-  // lines, stack sizes...). 60 full rows with mod text is ~30KB and would not survive the
-  // trip back through the model; full text stays in the page for window.__p.full([...]).
-  var sum = function (text, re) { var s = 0, x, rr = new RegExp(re, "g"); while ((x = rr.exec(text)) !== null) { s += Number(x[1]); } return s; };
-  var range = function (v) { var m = /(\\d+(?:\\.\\d+)?)-(\\d+(?:\\.\\d+)?)/.exec(String(v || "")); return m ? (Number(m[1]) + Number(m[2])) / 2 : 0; };
-  var digest = rows.map(function (r) {
-    var t = (r.mods || []).join(" | ");
-    var one = function (re) { var m = new RegExp(re).exec(t); return m ? Number(m[1]) : 0; };
-    var elemAll = sum(t, "[+](\\\\d+)% to all Elemental Resistances");
-    var apsN = parseFloat(r.aps || "") || 0;
-    return {
-      n: r.name, b: r.base, p: r.priceAmount, seller: r.seller,
-      ar: r.armour, ev: r.evasion, es: r.es,
-      pdps: Math.round(range(r.pdmg) * apsN), edps: Math.round(range(r.edmg) * apsN),
-      aps: apsN, crit: n0(r.crit), pdmg: r.pdmg, edmg: r.edmg,
-      q: n0(r.quality), ilvl: r.ilvl, soc: r.sockets, st: r.stack, cor: r.corrupted, x: r.extra,
-      life: one("[+](\\\\d+) to maximum Life"),
-      fire: one("[+](\\\\d+)% to Fire Resistance") + elemAll + sum(t, "[+](\\\\d+)% to Fire and (?:Cold|Lightning)"),
-      cold: one("[+](\\\\d+)% to Cold Resistance") + elemAll + sum(t, "[+](\\\\d+)% to Cold and (?:Fire|Lightning)") + sum(t, "[+](\\\\d+)% to Fire and Cold"),
-      lightning: one("[+](\\\\d+)% to Lightning Resistance") + elemAll + sum(t, "[+](\\\\d+)% to (?:Fire|Cold) and Lightning"),
-      chaos: one("[+](\\\\d+)% to Chaos Resistance"),
-      phys: (t.match(/Adds (\\d+) to (\\d+) Physical Damage/) || [0, 0, 0]).slice(1, 3).join("-")
-    };
-  });
-  return JSON.stringify({ qid: window.__p.qid, total: window.__p.total, idsAvailable: window.__p.ids.length, fetched: rows.length, digest: digest });
+var LEAGUE = ${JSON.stringify(league)};
+${head}
+var P = window.__p, ids = P.ids || [], take = Math.min(ids.length, ${maxIds});
+for (var i = 0; i < take; i += 10) {
+var ch = ids.slice(i, i + 10);
+P.rows = P.rows.concat((await (await fetch("/api/trade/fetch/" + ch.join(",") + "?query=" + encodeURIComponent(sj.id))).json()).result || []);
+}
+var tx=function(s){return String(s&&s.description!==undefined?s.description:s).replace(/\\[([^\\]|]*)\\|([^\\]]*)\\]/g,"$2")};
+var n0=function(v){var m=/(\\d+(?:\\.\\d+)?)/.exec(String(v==null?"":v));return m?Number(m[1]):0};
+var K="|Armour|Evasion Rating|Energy Shield|Quality|Physical Damage|Attacks per Second|Elemental Damage|Critical Strike Chance|Item Level|Stack Size|Sockets|";
+var sm=function(t,re){var s=0,x,r=new RegExp(re,"g");while((x=r.exec(t))!==null){s+=Number(x[1])}return s};
+var rg=function(v){var m=/(\\d+(?:\\.\\d+)?)-(\\d+(?:\\.\\d+)?)/.exec(String(v||""));return m?(Number(m[1])+Number(m[2]))/2:0};
+var mods=function(it){return [].concat(it.implicitMods||[],it.explicitMods||[]).map(tx)};
+var digest=P.rows.map(function(it0){
+var it=it0.item,l=it0.listing||{},pr=l.price||null,pq={};
+(it.properties||[]).forEach(function(p){if(p.values&&p.values[0]){pq[p.name]=p.values[0][0]}});
+var ex=null,k;
+for(k in pq){if(K.indexOf("|"+k+"|")<0){ex=ex||{};ex[k]=pq[k]}}
+var mm=mods(it),t=mm.join(" | "),res={F:0,C:0,L:0,X:0};
+var one=function(re){var m=new RegExp(re).exec(t);return m?Number(m[1]):0};
+mm.forEach(function(m){var g=/[+](\\d+)% to (.*Resistance)/.exec(m);if(!g){return}var v=Number(g[1]),w=g[2];if(/all Elemental/.test(w)){res.F+=v;res.C+=v;res.L+=v}if(/Fire/.test(w)){res.F+=v}if(/Cold/.test(w)){res.C+=v}if(/Lightning/.test(w)){res.L+=v}if(/Chaos/.test(w)){res.X+=v}});
+var an=parseFloat(pq["Attacks per Second"]||"")||0;
+return {
+n:it.name,b:it.baseType,p:pr?pr.amount:null,seller:l.account?l.account.name:null,
+req:(it.requirements||[]).map(function(r){return r.name+" "+r.values[0][0]}).join(" "),
+ar:n0(pq["Armour"]),ev:n0(pq["Evasion Rating"]),es:n0(pq["Energy Shield"]),
+pdps:Math.round(rg(pq["Physical Damage"])*an),edps:Math.round(rg(pq["Elemental Damage"])*an),
+aps:an,crit:n0(pq["Critical Strike Chance"]),pdmg:pq["Physical Damage"]||null,edmg:pq["Elemental Damage"]||null,
+q:n0(pq["Quality"]),ilvl:n0(pq["Item Level"]),soc:pq["Sockets"]||null,st:n0(pq["Stack Size"]),cor:it.corrupted?1:0,x:ex,
+life:one("[+](\\\\d+) to maximum Life"),
+dotMulti:sm(t,"[+](\\\\d+)% to (?:Physical )?Damage over Time Multiplier"),
+faster:one("Bleeding you inflict deals Damage (\\\\d+)% Faster"),
+manaCraft:one("[-](\\\\d+) to Mana Cost"),
+fire:res.F,cold:res.C,lightning:res.L,chaos:res.X,
+phys:(t.match(/Adds (\\d+) to (\\d+) Physical Damage/)||[0,0,0]).slice(1,3).join("-")
+};
+});
+P.full=function(ix){return JSON.stringify(ix.map(function(n){var i=P.rows[n],it=i.item,l=i.listing||{},pr=l.price||null;return {name:it.name,base:it.baseType,price:pr?pr.amount+" "+pr.currency:null,priceAmount:pr?pr.amount:null,seller:l.account?l.account.name:null,mods:mods(it)}}))};
+window.__p.top = function (n, key, asc) { var a = digest.map(function (d, i) { return { d: d, i: i }; }).sort(function (x, y) { return (Number(y.d[key]) || 0) - (Number(x.d[key]) || 0); }); if (asc) { a.reverse(); } return JSON.stringify(a.slice(0, n).map(function (z) { return { i: z.i, n: z.d.n, b: z.d.b, p: z.d.p, seller: z.d.seller, v: z.d[key] }; })); };
+return JSON.stringify({qid:P.qid,total:P.total,idsAvailable:ids.length,fetched:P.rows.length,digest:digest});
 })()`;
 
 // Self-check before printing: escaping bugs in the emitted page code (a stray backtick,
 // a bad regex escape) would only surface in the browser, as a silent wrong result.
 {
   const { execFileSync } = await import("node:child_process");
-  const { mkdtempSync, writeFileSync } = await import("node:fs");
+  const { mkdtempSync, writeFileSync, rmSync } = await import("node:fs");
   const { tmpdir } = await import("node:os");
   const { join } = await import("node:path");
-  const check = join(mkdtempSync(join(tmpdir(), "pobsearch-")), "check.mjs");
-  writeFileSync(check, "async function __r() {\nconst x = " + JSON.stringify(page) + ";\nreturn x;\n}\n");
+  const tmp = mkdtempSync(join(tmpdir(), "pobsearch-"));
+  const check = join(tmp, "check.mjs");
+  // The page is an async IIFE expression: valid as a statement inside a function body.
+  // Checking the page itself (not a JSON literal of it) catches regex/escape breakage.
+  writeFileSync(check, "async function __run() {\n" + page + "\n}\n");
   try {
     execFileSync("node", ["--check", check], { stdio: "pipe" });
     console.error("expression syntax check: ok");
@@ -1369,20 +1386,24 @@ const page = `(async function () {
     console.error("SYNTAX CHECK FAILED — do not paste this expression:");
     console.error(String(e.stderr || e.message).slice(0, 400));
     process.exit(1);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
   }
 }
 
 console.log("=== expression (paste verbatim as the browse.eval `expression` argument)");
-// Emit the literal in chunks joined with `+` so no line exceeds a reader's per-line
-// limit: string literals concatenate, so the pasted value is byte-identical.
+// Emit `eval("chunk" + "chunk" ...)`: browse.eval returns the value of a pasted
+// string-producing expression, so the page code has to be eval'd to run. Chunks keep
+// every line short; string literals concatenate, so the eval'd value is byte-identical.
 {
   const pieces = [];
   for (let i = 0; i < page.length; i += 1400) pieces.push(JSON.stringify(page.slice(i, i + 1400)));
-  console.log(pieces.join(" +\n"));
+  console.log("eval(" + pieces.join(" +\n") + ")");
 }
 console.log("");
-console.log("=== full mod text for chosen rows lives in the page: paste this as a second browse.eval expression");
-console.log('window.__p.full([0,1,2])');
+console.log("=== second browse.eval expressions on the same tab (no request, page already holds the rows)");
+console.log('window.__p.top(10, "life")     // rank digest rows by any digest key, highest first (3rd truthy arg = ascending)');
+console.log('window.__p.full([0,1,2])       // full row + mod text for the chosen digest indexes');
 console.log("");
 console.log("=== then save the returned rows to the pool");
 console.log(`node scripts/pool.mjs save --league ${league} --slot ${slot} --file /tmp/opencode/${slot}-rows.json`);
@@ -1786,12 +1807,7 @@ specifics on the way in (seller, price, that one item's name).
 
 One line each, added during a run, cleared when the contract is patched:
 
-- eval-driven pools cannot be persisted: browse.eval results return through the model,
-  so pool.mjs save never receives a file — the run survived on in-tab `window.__p` rows
-  plus immediate per-pick extracts; loading a stored qid to show rows would cost a search.
-- browse.eval does not execute a pasted string expression: the runner's chunk output must
-  be wrapped in an inner `eval(...)` to run — and its result is double-encoded JSON
-  (unwrap-style parse needed on the way back).
+- (nothing pending)
 
 ## Log
 
