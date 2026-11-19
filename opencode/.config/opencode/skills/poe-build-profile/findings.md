@@ -23,7 +23,8 @@ file records the sessions that produced them.
 - 2026-11-19 · bleed slam · `analyze_build` needs a saved build name; `lua_get_stats` alone
   has too few keys to classify → the profiler reads the saved file and parses that dump.
 - 2026-11-19 · any build · `export_full_stats` is **not** JSON (leading `===` header), so
-  `JSON.parse` throws → read single values with a `"Key":\s*value` regex, and keep the
-  classifier inlined in the emitted program so no intermediate file is needed.
+  `JSON.parse` throws → JSON.parse throws on the `===` header; the Key-regex read survives
+  (rule in SKILL.md).
 - 2026-11-19 · any build · a gem below level 20 in a utility group (Frostblink 9, Molten
-  Shell 10) is not a lever → report the main link's gems by name and only count the rest.
+  Shell 10) did not move the metric → utility-gem levels do not move the metric (rule in
+  SKILL.md).

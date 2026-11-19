@@ -11,7 +11,7 @@
 // pure function stays unit-testable while the emitted program stays one self-contained
 // paste.
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,7 +27,7 @@ for (let i = 0; i < argv.length; i++) {
     args[k] = argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[++i] : true;
   }
 }
-if (!args.build) {
+if (typeof args.build !== "string" || !args.build) {
   console.error("usage: profile.mjs --build <build.xml>");
   console.error("the build must already be saved with lua_save_build({build_name})");
   process.exit(2);
@@ -41,7 +41,12 @@ const program = `const BUILD = ${JSON.stringify(args.build)};
 
 // analyze_build needs a saved build. It returns PoB's own stat sheet, skill groups and
 // equipped items — everything the classifier reads.
-const analyze = String(await tools.pob.analyze_build({ build_name: BUILD }));
+let analyze;
+try {
+  analyze = String(await tools.pob.analyze_build({ build_name: BUILD }));
+} catch (e) {
+  return "profile failed: " + String(e && e.message || e) + " — check that the build was saved with lua_save_build({build_name: ...})";
+}
 
 // The DoT components are the archetype signal; keep them raw so a rename in the summary
 // text cannot hide them.
@@ -49,9 +54,9 @@ const components = {};
 for (const filter of ["Bleed", "Ignite", "Poison", "Dot"]) {
   try {
     const s = String(await tools.pob.export_full_stats({ filter }));
-    for (const key of ["BleedDPS", "BleedChance", "IgniteDPS", "PoisonDPS", "TotalDotDPS", "TotalDot"]) {
-      const m = s.match(new RegExp('"' + key + '":\\\\s*(-?[\\\\d.]+)'));
-      if (m) components[key] = +m[1];
+    for (const key of ["BleedDPS", "IgniteDPS", "PoisonDPS", "TotalDotDPS"]) {
+      const m = s.match(new RegExp('"' + key + '":\\\\s*(-?[\\\\d.,]+)'));
+      if (m) components[key] = +(m[1].replace(/,/g, ""));
     }
   } catch (e) { /* a filter PoB does not expose is fine */ }
 }
@@ -62,16 +67,24 @@ return classify({ build: BUILD, analyze, components });`;
 
 // Self-check before the model ever pastes it: the program uses top-level await/return,
 // so validate it inside an async wrapper.
+let failed = false;
 try {
-  const check = join(mkdtempSync(join(tmpdir(), "pobprofile-")), "check.mjs");
-  writeFileSync(check, "async function __run() {\n" + program + "\n}\n");
-  execFileSync("node", ["--check", check], { stdio: "pipe" });
-  console.error("syntax check: ok");
+  const dir = mkdtempSync(join(tmpdir(), "pobprofile-"));
+  try {
+    const check = join(dir, "check.mjs");
+    writeFileSync(check, "async function __run() {\n" + program + "\n}\n");
+    execFileSync("node", ["--check", check], { stdio: "pipe" });
+    console.error("syntax check: ok");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 } catch (e) {
-  console.error("SYNTAX CHECK FAILED — do not paste this program:");
+  console.error("SYNTAX CHECK FAILED");
+  console.error("do not paste this program:");
   console.error(String(e.stderr || e.message).slice(0, 600));
-  process.exit(1);
+  failed = true;
 }
+if (failed) process.exit(1);
 
 process.stdout.write(program + "\n");
 console.error(`profile program ready for ${args.build}`);

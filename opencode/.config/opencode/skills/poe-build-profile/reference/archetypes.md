@@ -25,9 +25,9 @@ Always quote the component the archetype scales, next to the hit damage.
   moving. Sources: the bleed mastery "chance to Aggravate Bleeding on targets you hit with
   Exerted Attacks", Vulnerability quality, Bloodletting, and any fast extra hit
   (Static Strike, or Hydrosphere with a slam).
-- Slam supports in priority order: Fist of War, Fortify, Brutality, Melee Physical Damage,
-  then one of Cruelty / Damage on Full Life / Volatility. Fortify is a support *and* a
-  defensive buff — price its removal as defence, not just DPS.
+- Audited supports (hard requirements): Fist of War, Brutality, Melee Physical Damage.
+  Fortify is defence priced as support — removing it costs defence, not just DPS. One of
+  Cruelty / Damage on Full Life / Volatility completes the link.
 - **Ryslatha's Coil** raises maximum and lowers minimum hit damage. With Volatility
   Support the low rolls become visible while mapping; the pair is a bossing setup.
 - Vulnerability is the curse: increased physical damage taken, plus aggravate on quality.
@@ -39,11 +39,13 @@ Always quote the component the archetype scales, next to the hit damage.
 - Ignite takes the **fire damage of the hit** that applied it; `IgniteDPS` is the target.
 - Needs exposure and fire penetration on the hit, and ignite duration for uptime.
 - Flammability + Combustion are the cheap multipliers.
+- Audited supports: Combustion, Immolate. Flammability is the curse.
 
 ## Poison
 
 - Poison **stacks**, so hit rate multiplies with hit size; `PoisonDPS` already accounts for
   both. Wither and chaos resistance reduction are the big levers.
+- Audited supports: Deadly Ailments, Void Manipulation. Despair is the curse.
 
 ## Hit
 

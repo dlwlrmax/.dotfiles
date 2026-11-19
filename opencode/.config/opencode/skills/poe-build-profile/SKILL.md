@@ -36,10 +36,13 @@ Numbers from a session go to `findings.md`.
 charges) plus the skill groups (`Sunder (19/18) - ...`) and every equipped item with its
 mods. Nothing is inferred from mod text, and nothing is copied from a guide.
 
-The only value taken outside it is the DoT component pair from `export_full_stats`, because
+The only value taken outside it is the DoT components from `export_full_stats`, because
 that dump keeps `BleedDPS`/`IgniteDPS`/`PoisonDPS` raw; `analyze_build` renames nothing but
 does not always carry every component. If a field is missing the report says so instead of
 guessing.
+
+Read single values with a `"Key":\s*value` regex — the dump is not JSON (leading `===`
+header) and `JSON.parse` throws on it.
 
 ## Rules it applies
 
@@ -54,6 +57,8 @@ guessing.
 - **Support audit** compares the main link against the archetype's priority list in
   `reference/archetypes.md`, and flags combinations that fight each other (e.g.
   Ryslatha's Coil with Volatility Support, Swift Affliction's reduced bleed duration).
+- **Gem levers are the main link's.** Name the main link's below-level-20 gems; other
+  groups' gems are reported as a count only — a utility gem's level is not a lever.
 
 See `reference/archetypes.md` for the per-archetype metric table and the mechanics each
 one must have (aggravate sources for bleed, exposure for elemental DoT, ...).

@@ -16,7 +16,9 @@ export function classify(dump) {
   for (const m of text.matchAll(/^(Class|Ascendancy|Level): (.+)$/gm)) meta[m[1]] = m[2].trim();
 
   const stats = {};
-  for (const m of section("Stats").matchAll(/^([A-Za-z:]+): (-?[\d.]+)$/gm)) stats[m[1]] = +m[2];
+  for (const m of section("Stats").matchAll(/^([A-Za-z:]+): (-?[\d.,]+)$/gm)) {
+    stats[m[1]] = +(m[2].replace(/,/g, ""));
+  }
 
   const groups = section("Skills")
     .split("\n")
@@ -39,7 +41,7 @@ export function classify(dump) {
   const ignite = num("IgniteDPS") || 0;
   const poison = num("PoisonDPS") || 0;
   const dot = num("TotalDotDPS") || 0;
-  const crit = num("CritChance") || 0;
+  const crit = num("CritChance");
   const hit = num("HitChance");
 
   let archetype = "hit";
@@ -96,6 +98,10 @@ export function classify(dump) {
     add("critical", `unreserved mana ${unreserved} — the reservation cannot run in game, ` +
       `so PoB's DPS includes auras you cannot sustain. Fix reservation before buying damage.`);
   }
+  if (!["BleedDPS", "IgniteDPS", "PoisonDPS"].some((k) => typeof s[k] === "number")) {
+    add("warn", "no BleedDPS/IgniteDPS/PoisonDPS in either dump — archetype 'hit' is a default, " +
+      "not evidence; check the export_full_stats filters");
+  }
   const life = num("Life");
   if (life !== null && life < 4500) add("warn", `life ${life} — under the 4.5k floor for T16 mapping`);
   if ((num("ChaosResist") ?? 0) < 0) add("warn", `chaos resist ${num("ChaosResist")} — negative chaos is a one-shot risk`);
@@ -107,6 +113,9 @@ export function classify(dump) {
 
   if (crit === 0) {
     notes.push("crit chance is 0 (Resolute Technique or no investment): crit chance/multi gear is dead weight");
+  }
+  if (crit === null) {
+    notes.push("CritChance is not in the dump — crit investment unknown; do not recommend crit gear");
   }
   for (const [needle, why] of rule.wants) {
     if (!allSkills.has(needle)) add("warn", `no ${needle} in any socket group — ${why}`);
@@ -145,7 +154,7 @@ export function classify(dump) {
   }).filter(Boolean);
 
   const out = [];
-  out.push(`# Build profile — ${meta.Class || "?"} / ${meta.Ascendancy || "?"} ${meta.Level || "?"}`, "");
+  out.push(`# Build profile — ${dump.build || "?"} · ${meta.Class || "?"} / ${meta.Ascendancy || "?"} ${meta.Level || "?"}`, "");
   out.push(`main skill   ${mainSkill.name} (${mainSkill.level}/${mainSkill.quality})`);
   out.push(`supports     ${supports.join(", ") || "none"}`);
   out.push(`archetype    ${archetype.toUpperCase()}${dot > 0 ? ` — DoT is ${dotShare.toFixed(0)}% of CombinedDPS` : ""}`);
@@ -161,7 +170,17 @@ export function classify(dump) {
     for (const n of notes) out.push(`- ${n}`);
   }
   if (headroom.length) out.push("", "## Attribute headroom", "", headroom.join(" · "));
-  out.push("", `_${combined ? `CombinedDPS ${Math.round(combined)} · BleedDPS ${Math.round(bleed)} · ` : ""}` +
+  const ARCHETYPE_COMPONENT = { bleed: "BleedDPS", ignite: "IgniteDPS", poison: "PoisonDPS" };
+  const metrics = [];
+  if (combined) metrics.push(`CombinedDPS ${Math.round(combined)}`);
+  const archComp = ARCHETYPE_COMPONENT[archetype];
+  if (archComp) {
+    const v = num(archComp);
+    metrics.push(v === null ? `${archComp} missing` : `${archComp} ${Math.round(v)}`);
+  }
+  const avgDamage = num("AverageDamage");
+  if (avgDamage !== null) metrics.push(`AverageDamage ${Math.round(avgDamage)}`);
+  out.push("", `_${metrics.length ? metrics.join(" · ") + " · " : ""}` +
     `life ${life ?? "?"} · EHP ${num("TotalEHP") ? Math.round(num("TotalEHP")) : "?"}_`);
   return out.join("\n");
 }

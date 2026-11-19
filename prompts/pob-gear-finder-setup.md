@@ -152,8 +152,10 @@ the browser or PoB code**: JS typed inline is where the escaping bugs and the
 rate-limit bursts came from. The scripts also enforce the spacing, burst and
 freshness gates for you.
 
-0. **Profile the build first** — load the `poe-build-profile` skill and run
-   `node scripts/profile.mjs --build <name.xml>`. It returns the archetype, the metric
+0. **Profile the build first** — load the `poe-build-profile` skill and run its runner by
+   absolute path, `node ~/.config/opencode/skills/poe-build-profile/scripts/profile.mjs
+   --build <name.xml>` (`profile.mjs` lives in that sibling skill, not in this one's
+   `scripts/`). It returns the archetype, the metric
    that ranks this build, the support audit and the defects (unreserved mana, life,
    chaos res, missing curse) **before** any search. Every comparison below inherits that
    metric: a bleed build is ranked by `BleedDPS` + `AverageDamage`, and ranking it by
@@ -172,11 +174,17 @@ freshness gates for you.
    Never judge capping from `lua_get_stats` — its `FireResist` is **clamped to the cap**, so
    a build 1% short prints `76 / 76` and looks capped. The res before/after table is
    mandatory output, not an optional extra.
-3. **Search** — `node scripts/search.mjs --league <L> --slot <slot> --spec specs/<slot>.json`.
-   It refuses to run inside 10 s of the previous search and inside the 4-per-30-min cap,
-   then prints the `expression` to paste into `browse.eval` (instant buyout, 60 ids
+3. **Search** — `node scripts/search.mjs --league <L> --slot <slot> --spec specs/<spec>.json`.
+   Shipped specs are `axe-cheap`, `belt-ryslatha`, `gloves-chaos-cold`, `ring-chaos`,
+   `ring` and `helm` (see the spec table in `scripts/README.md`); `--spec` takes the
+   spec's file name, which is not always the slot.
+   It enforces the search spacing and burst gates from `reference/trade-api.md`, then
+   prints the `expression` to paste into `browse.eval` (instant buyout, 60 ids
    fetched, so the pool is a pool). Save it with `node scripts/pool.mjs save …` and read
    candidates with `node scripts/pool.mjs show …`, which exits 4 on a stale pool.
+   Re-reading the ids already in the open tab is `search.mjs --reuse` — a fetch, not a
+   search; that is the retry path after a mapping bug or a closed tab, and it costs
+   no search request.
    The expression returns a compact **digest** (60 rows with full mod text is ~30KB and
    will not survive the trip back); the full mod text stays in the page, so pull it for
    the few picks with a second expression, `window.__p.full([i,j,k])` — no extra request —
@@ -198,19 +206,19 @@ freshness gates for you.
 One snapshot of the equipped build, one of the final set, same `snap()` for both.
 Never quote a single number — res is where a swap silently breaks a build.
 
-| Res | Trước total / cap / overcap | Sau total / cap / overcap | Δ overcap |
+| Res | Before total / cap / overcap | After total / cap / overcap | Δ overcap |
 |---|---|---|---|
-| Fire | 111 / 78 / **+33** | 120 / 78 / **+42** | +9 |
-| Cold | 124 / 77 / **+47** | 98 / 77 / **+21** | −26 |
-| Lightning | 94 / 77 / **+17** | 142 / 77 / **+65** | +48 |
-| Chaos | −37 / 75 / — | −60 / 75 / — | −23 |
+| Fire | 111 / 75 / **+33** | 120 / 75 / **+45** | +12 |
+| Cold | 124 / 75 / **+49** | 98 / 75 / **+23** | −26 |
+| Lightning | 94 / 75 / **+19** | 142 / 75 / **+67** | +48 |
+| Chaos | −37 / 75 / — | −60 / 75 / — | — |
 
 Rules for that table:
 
 - Print **total, cap and overcap** per element — overcap alone hides whether the
   build was even capped before (chaos is often negative and has no overcap).
-- `overcap: 0` means **at or below cap**, not "fine". Chaos typically reads
-  `total −37 / cap −37 / overcap 0`; the number that matters is the total.
+- `overcap: 0` means **at or below cap**, not "fine". Chaos typically reads total
+  −37 against the 75 cap — no overcap column; the total is the number that matters.
 - Flag any element that **drops** below +20 overcap, and say which item change
   caused it (the replaced item's mods are the reason — check the XML, don't guess).
 - Flag any element that moves at all, even upward: a huge lightning gain usually
@@ -256,8 +264,11 @@ restate limits here (two copies drift into contradiction).
 - **One search per slot, per run. Hard cap: 4 searches per run.** A re-search to
   "confirm" a listing is the biggest time sink and the main way to trip the limit.
   To iterate on candidates, re-`fetch` by id (cheap) — never re-search.
-- **Space searches ≥10 s apart. Never batch them.** Four slots = four searches, ten
-  seconds apart. Fetches may run back-to-back inside that window.
+- **Space the searches out; never batch them.** search.mjs enforces the spacing and burst
+  gates mechanically, and the numbers are in `reference/trade-api.md`. Never bypass them
+  with `--force` for convenience: a run whose paste was aborted can be unmarked with
+  `search.mjs --unmark` and retried inside the gates instead. Fetches may run
+  back-to-back.
 - **Re-navigating a stored `qid` URL costs a search request.** The query id is not a
   cache: loading `trade/search/<league>/<qid>` re-runs the search server-side. Read the
   tab that is already open; navigate only when you mean to spend a search.
@@ -279,8 +290,9 @@ restate limits here (two copies drift into contradiction).
   confirm it still has rows and the same price. A cheap rare found two hours ago is usually
   gone — re-derive the candidate from live results instead of pinning to it.
 - **Persist the pool to disk as you go**: `~/pob/pool/<League>/<slot>.json` with
-  `{fetchedAt, query, rows}`, TTL 15 minutes. Agent context is not storage — tab ids and
-  in-page state (`window.__p`) die with the tab, and a closed tab must not cost a search.
+  `{fetchedAt, slot, qid, total, idsAvailable, rows}`, TTL 15 minutes. Agent context is
+  not storage — tab ids and in-page state (`window.__p`) die with the tab, and a closed
+  tab must not cost a search.
 - **One `execute` block per phase for the PoB side** (all simulations together, one
   reload per set). PoB import is ~7 s, re-`add_item` ~1 s; cache the XML, don't re-import.
 
@@ -288,7 +300,10 @@ restate limits here (two copies drift into contradiction).
 ## Report
 
 `node scripts/table.mjs --pick <set> --file <sim output>` renders the gates and both
-tables; the buy list comes from `pool.mjs show`. Every item handed over carries:
+tables; the buy list comes from `pool.mjs show`. table.mjs renders the per-item table as
+the `## Items (pick)` block (item · base · price · req · wear), and the full stat columns
+(Δlife/ΔEHP/Δarmour/overcap F/C/L/Δchaos/ΔDPS) come from the Sets table deltas. Every item
+handed over carries:
 price · item · base · **req** · Δlife · ΔEHP · Δarmour · overcap F/C/L · Δchaos · ΔDPS.
 Then the pick, the total spend vs budget, and what is left to upgrade.
 
@@ -299,8 +314,8 @@ A player shopping over an hour will lose the rare listing long before the common
 so the scarce item must be bought while it exists:
 
 - Rank by **how many comparable listings exist** — the search `total` for that slot and
-  filter set is the number to quote. `total: 1` is buy-it-now or lose-it; `total: 6593`
-  can wait.
+  filter set is the number to quote. A `total` of one is buy-it-now or lose-it; a total in
+  the thousands can wait.
 - Uniques with a specific roll, and rares needing several exact mods together (life +
   cold res + chaos res on gloves), are scarce. Armour helm with life + one res is not.
 - Say the count next to each item so the user can see the risk, and put a whole-budget
@@ -312,11 +327,11 @@ base are not enough (rare names repeat):
 - the open tab, **plus** the seller account and the price, e.g.
   `helm tab · row 2 · <account> · <price>`;
 - **highlight the row in the page** rather than describing where it is: outline it, insert
-  a label with name/price/seller, `scrollIntoView`, then screenshot to confirm. One glowing
-  row is what answers "mở link cũng không biết mua item nào" — prose does not. The marks
-  are cosmetic DOM injection and vanish on reload, so re-apply if the page refreshes;
-- an exact-roll filter is **not** guaranteed unique either (life 103 + cold 36 exact still
-  returned 6 rows) — combine it with the seller match to pin the row;
+  a label with name/price/seller, `scrollIntoView`, then screenshot to confirm. Prose does
+  not answer "which row do I buy" — one highlighted row does. The marks are cosmetic DOM
+  injection and vanish on reload, so re-apply if the page refreshes;
+- an exact-roll filter is **not** guaranteed unique either — combine it with the seller
+  match to pin the row;
 - and confirm the tab still has rows. "No results found" means the filter was too
   strict for that listing or it sold — rebuild the query, do not hand over an empty tab.
 
@@ -459,7 +474,7 @@ League id comes from `https://www.pathofexile.com/api/leagues` (`Covens`, `Stand
 The **account** rule binds first: 3 searches per 5s. A 4th search inside 5s returns
 `{"code":3,"message":"Rate limit exceeded; Please wait 45/60 seconds"}` and the
 account state then reads `0:5:45` — the window escalates, so a burst costs 45-60s.
-Space searches ~2s apart and 4 slots never trip it.
+Four slots spaced per *Spacing searches* below never trip it.
 
 Sleep only when a state counter reaches its limit. IP headroom is large (8/10s); do
 not impose a fixed 60s pause per slot.
@@ -491,6 +506,10 @@ not impose a fixed 60s pause per slot.
 | `quality: "desc"` | highest quality first, regardless of price |
 
 Use `quality: "desc"` when you want the best items regardless of price, then take the first few candidates.
+
+Unknown sort keys **silently fall back** to the default instead of erroring — only use the
+documented keys above. Ranking by pDPS is done client-side from the fetched pool, never
+through the sort field.
 
 ## Getting a long candidate list
 
@@ -1645,10 +1664,13 @@ Numbers from a session go to `findings.md`.
 charges) plus the skill groups (`Sunder (19/18) - ...`) and every equipped item with its
 mods. Nothing is inferred from mod text, and nothing is copied from a guide.
 
-The only value taken outside it is the DoT component pair from `export_full_stats`, because
+The only value taken outside it is the DoT components from `export_full_stats`, because
 that dump keeps `BleedDPS`/`IgniteDPS`/`PoisonDPS` raw; `analyze_build` renames nothing but
 does not always carry every component. If a field is missing the report says so instead of
 guessing.
+
+Read single values with a `"Key":\s*value` regex — the dump is not JSON (leading `===`
+header) and `JSON.parse` throws on it.
 
 ## Rules it applies
 
@@ -1663,6 +1685,8 @@ guessing.
 - **Support audit** compares the main link against the archetype's priority list in
   `reference/archetypes.md`, and flags combinations that fight each other (e.g.
   Ryslatha's Coil with Volatility Support, Swift Affliction's reduced bleed duration).
+- **Gem levers are the main link's.** Name the main link's below-level-20 gems; other
+  groups' gems are reported as a count only — a utility gem's level is not a lever.
 
 See `reference/archetypes.md` for the per-archetype metric table and the mechanics each
 one must have (aggravate sources for bleed, exposure for elemental DoT, ...).
@@ -1696,9 +1720,9 @@ Always quote the component the archetype scales, next to the hit damage.
   moving. Sources: the bleed mastery "chance to Aggravate Bleeding on targets you hit with
   Exerted Attacks", Vulnerability quality, Bloodletting, and any fast extra hit
   (Static Strike, or Hydrosphere with a slam).
-- Slam supports in priority order: Fist of War, Fortify, Brutality, Melee Physical Damage,
-  then one of Cruelty / Damage on Full Life / Volatility. Fortify is a support *and* a
-  defensive buff — price its removal as defence, not just DPS.
+- Audited supports (hard requirements): Fist of War, Brutality, Melee Physical Damage.
+  Fortify is defence priced as support — removing it costs defence, not just DPS. One of
+  Cruelty / Damage on Full Life / Volatility completes the link.
 - **Ryslatha's Coil** raises maximum and lowers minimum hit damage. With Volatility
   Support the low rolls become visible while mapping; the pair is a bossing setup.
 - Vulnerability is the curse: increased physical damage taken, plus aggravate on quality.
@@ -1710,11 +1734,13 @@ Always quote the component the archetype scales, next to the hit damage.
 - Ignite takes the **fire damage of the hit** that applied it; `IgniteDPS` is the target.
 - Needs exposure and fire penetration on the hit, and ignite duration for uptime.
 - Flammability + Combustion are the cheap multipliers.
+- Audited supports: Combustion, Immolate. Flammability is the curse.
 
 ## Poison
 
 - Poison **stacks**, so hit rate multiplies with hit size; `PoisonDPS` already accounts for
   both. Wither and chaos resistance reduction are the big levers.
+- Audited supports: Deadly Ailments, Void Manipulation. Despair is the curse.
 
 ## Hit
 
@@ -1753,7 +1779,9 @@ export function classify(dump) {
   for (const m of text.matchAll(/^(Class|Ascendancy|Level): (.+)$/gm)) meta[m[1]] = m[2].trim();
 
   const stats = {};
-  for (const m of section("Stats").matchAll(/^([A-Za-z:]+): (-?[\d.]+)$/gm)) stats[m[1]] = +m[2];
+  for (const m of section("Stats").matchAll(/^([A-Za-z:]+): (-?[\d.,]+)$/gm)) {
+    stats[m[1]] = +(m[2].replace(/,/g, ""));
+  }
 
   const groups = section("Skills")
     .split("\n")
@@ -1776,7 +1804,7 @@ export function classify(dump) {
   const ignite = num("IgniteDPS") || 0;
   const poison = num("PoisonDPS") || 0;
   const dot = num("TotalDotDPS") || 0;
-  const crit = num("CritChance") || 0;
+  const crit = num("CritChance");
   const hit = num("HitChance");
 
   let archetype = "hit";
@@ -1833,6 +1861,10 @@ export function classify(dump) {
     add("critical", `unreserved mana ${unreserved} — the reservation cannot run in game, ` +
       `so PoB's DPS includes auras you cannot sustain. Fix reservation before buying damage.`);
   }
+  if (!["BleedDPS", "IgniteDPS", "PoisonDPS"].some((k) => typeof s[k] === "number")) {
+    add("warn", "no BleedDPS/IgniteDPS/PoisonDPS in either dump — archetype 'hit' is a default, " +
+      "not evidence; check the export_full_stats filters");
+  }
   const life = num("Life");
   if (life !== null && life < 4500) add("warn", `life ${life} — under the 4.5k floor for T16 mapping`);
   if ((num("ChaosResist") ?? 0) < 0) add("warn", `chaos resist ${num("ChaosResist")} — negative chaos is a one-shot risk`);
@@ -1844,6 +1876,9 @@ export function classify(dump) {
 
   if (crit === 0) {
     notes.push("crit chance is 0 (Resolute Technique or no investment): crit chance/multi gear is dead weight");
+  }
+  if (crit === null) {
+    notes.push("CritChance is not in the dump — crit investment unknown; do not recommend crit gear");
   }
   for (const [needle, why] of rule.wants) {
     if (!allSkills.has(needle)) add("warn", `no ${needle} in any socket group — ${why}`);
@@ -1882,7 +1917,7 @@ export function classify(dump) {
   }).filter(Boolean);
 
   const out = [];
-  out.push(`# Build profile — ${meta.Class || "?"} / ${meta.Ascendancy || "?"} ${meta.Level || "?"}`, "");
+  out.push(`# Build profile — ${dump.build || "?"} · ${meta.Class || "?"} / ${meta.Ascendancy || "?"} ${meta.Level || "?"}`, "");
   out.push(`main skill   ${mainSkill.name} (${mainSkill.level}/${mainSkill.quality})`);
   out.push(`supports     ${supports.join(", ") || "none"}`);
   out.push(`archetype    ${archetype.toUpperCase()}${dot > 0 ? ` — DoT is ${dotShare.toFixed(0)}% of CombinedDPS` : ""}`);
@@ -1898,7 +1933,17 @@ export function classify(dump) {
     for (const n of notes) out.push(`- ${n}`);
   }
   if (headroom.length) out.push("", "## Attribute headroom", "", headroom.join(" · "));
-  out.push("", `_${combined ? `CombinedDPS ${Math.round(combined)} · BleedDPS ${Math.round(bleed)} · ` : ""}` +
+  const ARCHETYPE_COMPONENT = { bleed: "BleedDPS", ignite: "IgniteDPS", poison: "PoisonDPS" };
+  const metrics = [];
+  if (combined) metrics.push(`CombinedDPS ${Math.round(combined)}`);
+  const archComp = ARCHETYPE_COMPONENT[archetype];
+  if (archComp) {
+    const v = num(archComp);
+    metrics.push(v === null ? `${archComp} missing` : `${archComp} ${Math.round(v)}`);
+  }
+  const avgDamage = num("AverageDamage");
+  if (avgDamage !== null) metrics.push(`AverageDamage ${Math.round(avgDamage)}`);
+  out.push("", `_${metrics.length ? metrics.join(" · ") + " · " : ""}` +
     `life ${life ?? "?"} · EHP ${num("TotalEHP") ? Math.round(num("TotalEHP")) : "?"}_`);
   return out.join("\n");
 }
@@ -1918,7 +1963,7 @@ export function classify(dump) {
 // pure function stays unit-testable while the emitted program stays one self-contained
 // paste.
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -1934,7 +1979,7 @@ for (let i = 0; i < argv.length; i++) {
     args[k] = argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[++i] : true;
   }
 }
-if (!args.build) {
+if (typeof args.build !== "string" || !args.build) {
   console.error("usage: profile.mjs --build <build.xml>");
   console.error("the build must already be saved with lua_save_build({build_name})");
   process.exit(2);
@@ -1948,7 +1993,12 @@ const program = `const BUILD = ${JSON.stringify(args.build)};
 
 // analyze_build needs a saved build. It returns PoB's own stat sheet, skill groups and
 // equipped items — everything the classifier reads.
-const analyze = String(await tools.pob.analyze_build({ build_name: BUILD }));
+let analyze;
+try {
+  analyze = String(await tools.pob.analyze_build({ build_name: BUILD }));
+} catch (e) {
+  return "profile failed: " + String(e && e.message || e) + " — check that the build was saved with lua_save_build({build_name: ...})";
+}
 
 // The DoT components are the archetype signal; keep them raw so a rename in the summary
 // text cannot hide them.
@@ -1956,9 +2006,9 @@ const components = {};
 for (const filter of ["Bleed", "Ignite", "Poison", "Dot"]) {
   try {
     const s = String(await tools.pob.export_full_stats({ filter }));
-    for (const key of ["BleedDPS", "BleedChance", "IgniteDPS", "PoisonDPS", "TotalDotDPS", "TotalDot"]) {
-      const m = s.match(new RegExp('"' + key + '":\\\\s*(-?[\\\\d.]+)'));
-      if (m) components[key] = +m[1];
+    for (const key of ["BleedDPS", "IgniteDPS", "PoisonDPS", "TotalDotDPS"]) {
+      const m = s.match(new RegExp('"' + key + '":\\\\s*(-?[\\\\d.,]+)'));
+      if (m) components[key] = +(m[1].replace(/,/g, ""));
     }
   } catch (e) { /* a filter PoB does not expose is fine */ }
 }
@@ -1969,16 +2019,24 @@ return classify({ build: BUILD, analyze, components });`;
 
 // Self-check before the model ever pastes it: the program uses top-level await/return,
 // so validate it inside an async wrapper.
+let failed = false;
 try {
-  const check = join(mkdtempSync(join(tmpdir(), "pobprofile-")), "check.mjs");
-  writeFileSync(check, "async function __run() {\n" + program + "\n}\n");
-  execFileSync("node", ["--check", check], { stdio: "pipe" });
-  console.error("syntax check: ok");
+  const dir = mkdtempSync(join(tmpdir(), "pobprofile-"));
+  try {
+    const check = join(dir, "check.mjs");
+    writeFileSync(check, "async function __run() {\n" + program + "\n}\n");
+    execFileSync("node", ["--check", check], { stdio: "pipe" });
+    console.error("syntax check: ok");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 } catch (e) {
-  console.error("SYNTAX CHECK FAILED — do not paste this program:");
+  console.error("SYNTAX CHECK FAILED");
+  console.error("do not paste this program:");
   console.error(String(e.stderr || e.message).slice(0, 600));
-  process.exit(1);
+  failed = true;
 }
+if (failed) process.exit(1);
 
 process.stdout.write(program + "\n");
 console.error(`profile program ready for ${args.build}`);
@@ -2011,10 +2069,11 @@ file records the sessions that produced them.
 - 2026-11-19 · bleed slam · `analyze_build` needs a saved build name; `lua_get_stats` alone
   has too few keys to classify → the profiler reads the saved file and parses that dump.
 - 2026-11-19 · any build · `export_full_stats` is **not** JSON (leading `===` header), so
-  `JSON.parse` throws → read single values with a `"Key":\s*value` regex, and keep the
-  classifier inlined in the emitted program so no intermediate file is needed.
+  `JSON.parse` throws → JSON.parse throws on the `===` header; the Key-regex read survives
+  (rule in SKILL.md).
 - 2026-11-19 · any build · a gem below level 20 in a utility group (Frostblink 9, Molten
-  Shell 10) is not a lever → report the main link's gems by name and only count the rest.
+  Shell 10) did not move the metric → utility-gem levels do not move the metric (rule in
+  SKILL.md).
 
 STEP 6 — restart opencode so the MCP registers, then prove BOTH halves:
   a) PoB: load any build with pob.lua_import_code and print Life/TotalEHP.
