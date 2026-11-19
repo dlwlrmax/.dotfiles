@@ -9,9 +9,10 @@ Everything is plain Node, no dependencies. Scratch files go in `/tmp/opencode`.
 ## Pipeline
 
 ```
-1  node scripts/search.mjs --league <L> --slot <slot> --spec specs/<spec>.json
+1  node scripts/search.mjs --league <L> --slot <slot> --spec specs/<spec>.json [--max 60]
    → enforces >=10s since the last search and the 4-searches-per-30min cap
-   → prints a ready-to-paste `expression` for tools.browse.eval (60 ids fetched)
+   → prints a ready-to-paste `expression` for tools.browse.eval (60 ids fetched by
+     default; `--max` sets how many ids the page fetches)
 
 2  paste that expression into tools.browse.eval on an open trade tab
    → returns { qid, total, idsAvailable, fetched, digest[] }
@@ -23,8 +24,9 @@ Everything is plain Node, no dependencies. Scratch files go in `/tmp/opencode`.
    → accepts the digest as-is (or full API rows), derives life/res, writes
      ~/pob/pool/<L>/<slot>.json
 
-4  node scripts/pool.mjs show --league <L> --slot <slot> [--sort life] [--max-age 15]
-   → the candidate table; exits 4 when the pool is stale
+4  node scripts/pool.mjs show --league <L> --slot <slot> [--sort life] [--max-age 15] [--limit 15]
+   → the candidate table; exits 4 when the pool is stale (age comes from the stored
+     `fetchedAt`, falling back to file mtime for older pools), exits 2 without --slot
 
 5  pick the candidates, then get their full mod text for the sim — paste this as a
    second browse.eval expression on the same tab (no request, the page already has it):
@@ -33,12 +35,18 @@ Everything is plain Node, no dependencies. Scratch files go in `/tmp/opencode`.
 
 6  node scripts/sim.mjs --build current.xml --items items.json --sets sets.json > /tmp/opencode/sim.js
    → emits a complete code-mode program (all sets, attribute check, res snapshot)
+   → items.json entries also take optional `quality` (emitted next to Item Level) and
+     `price` (carried into the output for the per-item table). An unknown item key in
+     sets.json is a hard error (exit 1) naming the set and slot.
 
 7  paste /tmp/opencode/sim.js into the `execute` tool
    → returns { own, reqs, base, <set>: {...} }
 
 8  node scripts/table.mjs --pick <set> --file /tmp/opencode/sim-out.json
    → gates (caps, overcap >= 20, attributes) + the two report tables
+   → after the Sets table it renders `## Items (pick)`: one row per item with base,
+     price, requirement and wear verdict. Exits 2 on an unknown --pick or when run
+     with no --file on a TTY.
 ```
 
 The sim program and the sim output are both several KB. Getting them in and out of the
@@ -48,7 +56,8 @@ program as a file rather than re-typing it.
 ## Rules the scripts enforce mechanically
 
 - **Spacing**: `search.mjs` refuses to run less than 10 s after the previous search
-  (`~/pob/pool/<L>/.lastsearch`). `--force` overrides, deliberately.
+  (`~/pob/pool/<L>/.lastsearch`). `--force` overrides, deliberately. A failed paste is
+  reversible: `search.mjs --unmark --league <L>` gives the slot back.
 - **Burst cap**: more than 4 searches in 30 min is refused (`~/pob/pool/<L>/.searchlog`).
 - **Freshness**: `pool.mjs show` exits 4 on a pool older than `--max-age` (default
   15 min), so a stale price never reaches the user.
@@ -63,7 +72,7 @@ program as a file rather than re-typing it.
 | `pool.mjs` | save/show/list + freshness gate; the only place rows are parsed |
 | `sim.mjs` | items + sets → code-mode PoB program with attribute checks |
 | `table.mjs` | sim output → gates + markdown report tables |
-| `check.mjs` | contract lint: no run data in `SKILL.md`/`reference/*`/`scripts/*`, no single-listing specs |
+| `check.mjs` | contract lint: no run data in `SKILL.md`/`reference/*`/`scripts/*`, no single-listing specs (`--root` lints another skill) |
 
 `check.mjs` runs in the repo's pre-commit hook; run it by hand after editing the skill.
 
@@ -77,9 +86,10 @@ and leave it out of the repo; `check.mjs` rejects it.
 |---|---|
 | `ring.json` | rare ring, life 90+, total elemental res 90+, ≤10c |
 | `ring-chaos.json` | rare ring with chaos res 20+ and life 65+, ≤20c |
-| `gloves-chaos-cold.json` | armour gloves, chaos 20+ / cold 25+ / life 80+, ≤20c |
+| `gloves-chaos-cold.json` | armour gloves (armour 200+), chaos 20+ / cold 25+ / life 80+, ≤20c |
+| `helm.json` | armour helmet (armour 300+), life 100+, total elemental res 30+, ≤20c |
 | `belt-ryslatha.json` | the unique by name, ≤60c |
-| `axe-cheap.json` | two-hand axe ≤10c, sorted by pDPS desc |
+| `axe-cheap.json` | two-hand axe ≤10c; the trade query sorts price asc, pDPS ranking is client-side |
 
 ## What the digest gives you
 
@@ -97,7 +107,24 @@ Class-specific, non-zero only when the item has them:
 the raw damage ranges.
 
 `pool.mjs show` picks its columns from the pool: a pool with any `pdps` prints the weapon
-table, otherwise the armour/ring table. Sort with `--sort pdps` (weapons) or `--sort life`.
+table, otherwise the armour/ring table. Sort with `--sort pdps` (weapons) or `--sort life`;
+`--limit` caps the rows (default 15). The trade query itself sorts by price asc — pDPS
+ranking happens client-side in `pool.mjs show`, because `pdps` is not a trade sort key.
+
+## Items and the Items block
+
+`items.json` keys are referenced by `sets.json`:
+
+```json
+{ "axe1": { "name": "Woe Bite", "base": "Vaal Axe", "mods": ["..."], "quality": 0, "price": 3 } }
+```
+
+`name`, `base`, `mods` are required; `rarity` defaults to RARE and `ilvl` to 85.
+`quality` is optional and emits `Quality: <n>` in the item head, right after Item Level.
+`price` is optional and is echoed in the sim output's `items` map.
+
+`table.mjs` renders that map as `## Items (pick)` / `| item | base | price | req | wear |`
+after the Sets table. It is skipped when an older sim output has no `items` key.
 
 ## Retrying without spending a search
 
@@ -109,6 +136,16 @@ Emits the same expression minus the search POST: it re-reads `window.__p.ids` al
 the tab and re-fetches. Use it when the mapping failed, the digest needs a new field, or
 you want the full mod text again. It skips the spacing/burst gates because it is not a
 search. `--reuse` fails cleanly if the tab holds no stored query.
+
+To give back the reservation from a failed paste:
+
+```
+node scripts/search.mjs --unmark --league <L>
+```
+
+It removes the newest stamp from `.searchlog` and rewinds `.lastsearch` to the previous
+remaining stamp (deleting both files when no stamps remain). It prints what it removed,
+emits no expression, and makes no request.
 
 ## Adding a slot
 

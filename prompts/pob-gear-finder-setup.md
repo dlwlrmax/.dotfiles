@@ -78,7 +78,7 @@ merge into "mcp", keep existing keys). Rewrite `pob` to exactly:
 "PoB Lua Bridge started successfully." Do not use `bash -lc` in `command`; it
 breaks MCP stdio registration.
 
-STEP 5 — write the skills (20 files, exact content):
+STEP 5 — write the skills (21 files, exact content):
 
 5a) ~/.config/opencode/skills/poe-gear-finder/SKILL.md
 
@@ -208,17 +208,18 @@ Never quote a single number — res is where a swap silently breaks a build.
 
 | Res | Before total / cap / overcap | After total / cap / overcap | Δ overcap |
 |---|---|---|---|
-| Fire | 111 / 75 / **+33** | 120 / 75 / **+45** | +12 |
+| Fire | 108 / 75 / **+33** | 120 / 75 / **+45** | +12 |
 | Cold | 124 / 75 / **+49** | 98 / 75 / **+23** | −26 |
 | Lightning | 94 / 75 / **+19** | 142 / 75 / **+67** | +48 |
-| Chaos | −37 / 75 / — | −60 / 75 / — | — |
+| Chaos | −37 / — / — | −60 / — / — | −23 |
 
 Rules for that table:
 
 - Print **total, cap and overcap** per element — overcap alone hides whether the
   build was even capped before (chaos is often negative and has no overcap).
-- `overcap: 0` means **at or below cap**, not "fine". Chaos typically reads total
-  −37 against the 75 cap — no overcap column; the total is the number that matters.
+- `overcap: 0` means **at or below cap**, not "fine". Chaos has no tracked cap or
+  overcap in the sim output — its cells print dashes and the total is the number that
+  matters.
 - Flag any element that **drops** below +20 overcap, and say which item change
   caused it (the replaced item's mods are the reason — check the XML, don't guess).
 - Flag any element that moves at all, even upward: a huge lightning gain usually
@@ -285,7 +286,8 @@ restate limits here (two copies drift into contradiction).
 - **Rare item names are not unique.** Ten different rares are called `Blood Loop`.
   A name-only tab is the reason the user "can't tell which one to buy". To hand over a
   listing unambiguously: use an **exact-roll filter** (`value: {min: N, max: N}` on the
-  distinctive mods) so the tab shows one row, and name the seller account next to it.
+  distinctive mods) to narrow the tab, and name the seller account next to it — the exact
+  roll on its own still may not leave a single row.
 - **Listings expire mid-run.** Before telling the user to buy, re-read the tab and
   confirm it still has rows and the same price. A cheap rare found two hours ago is usually
   gone — re-derive the candidate from live results instead of pinning to it.
@@ -344,9 +346,9 @@ Never whisper or buy without explicit confirmation.
 One `execute` block. Never one tool call per candidate.
 
 ```js
-const it = (name, base, mods, quality = 0) =>
-  ["Rarity: RARE", name, base, "--------", "Quality: " + quality,
-   "Item Level: 85", "--------", ...mods].join("\n");
+const it = (name, base, mods, { quality = 0, price = null } = {}) =>
+  ["Rarity: RARE", name, base, "--------", "Item Level: 85", "Quality: " + quality,
+   "--------", ...mods].join("\n");
 
 const g = (t, k) => { const m = t.match(new RegExp(k + ":\\s*(-?[\\d.]+)")); return m ? +m[1] : null; };
 const n = (t, k) => { const m = t.match(new RegExp('"' + k + '":\\s*(-?[\\d.]+)')); return m ? +m[1] : null; };
@@ -379,9 +381,17 @@ return { before, after };
 `snap()` must be the **same function** for before and after, otherwise the two
 res readings use different keys and the diff is meaningless.
 
+`items.json` (the file `sim.mjs` consumes) is `{ "<key>": { name, base, mods } }` plus the
+optional `rarity`, `ilvl`, **`quality`** and **`price`** fields. `quality` is emitted as the
+`Quality:` line in the item text, so it changes the simulated item — read it from the
+listing (see *Quality* below). `price` is never simulated; it is carried through to the
+per-item report so the buy list and the numbers come from one file. The helper mirrors
+that: `it(name, base, mods, { quality, price })`.
+
+
 `overcap` comes back `0` when the element is **at or below** its cap — chaos at
-`−37` reads `cap −37 / overcap 0`. Report the total for chaos, the overcap for
-elements above cap.
+`−37` reads `total −37 / overcap 0`, with `MissingChaosResist` carrying the gap against
+the 75 cap. Report the total for chaos, the overcap for elements above cap.
 
 ## Reporting res (mandatory)
 
@@ -443,7 +453,22 @@ same swap, chaos always shown).
   ```
 
   Report the requirement next to the item (`S85 D62`) so the user can see it passes.
+- **Jewel slots are named `Jewel <passive-node-id>`, not `Jewel 1`.** Read the exact slot
+  name from `get_equipped_items` before calling `add_item` — a wrong slot name silently
+  adds the item unequipped, so the sim reports no change and looks like the jewel does
+  nothing.
 - Reload the original build when done, so the cached XML stays the baseline.
+
+## Known conservative gaps
+
+- **The attribute gate uses the BASE build's attributes.** Each item's requirement is
+  compared against `Str/Dex/Int` as the build stands before any swap, so a set whose items
+  grant each other `+Str/+Dex/+Int` can false-FAIL even though the equipped set is
+  wearable. Re-check such picks by hand (or simulate and read the requirement again) —
+  never reject a candidate on the gate alone in that case.
+- **Item level requirements are not checked by the gate.** Only `str/dex/int` are
+  compared; a listing whose `ilvl` is below the item's level requirement passes silently.
+  Read the level from the listing when the base is high-tier.
 
 5c) ~/.config/opencode/skills/poe-gear-finder/reference/trade-api.md
 
@@ -496,6 +521,10 @@ not impose a fixed 60s pause per slot.
   },
   sort: { price: "asc" } }
 ```
+
+An empty result can be a category or stat-id mismatch, not an empty market — verify the
+category name and stat ids against `/api/trade/data/*` before relaxing filters. Only a
+query whose ids match the data (and still returns nothing) is a thin market.
 
 ## Sort options
 
@@ -552,6 +581,8 @@ is already open costs nothing. So: keep the tab, read the DOM, and only navigate
 `qid` when you intend to spend a search.
 
 Categories: `armour.helmet`, `armour.gloves`, `armour.boots`, `armour.chest`,
+`accessory.ring`, `accessory.amulet`, `weapon.twoaxe`. The full list lives at
+`/api/trade/data/categories`.
 
 ## Stat ids (verified against /api/trade/data/stats)
 
@@ -607,8 +638,9 @@ row.style.background = "rgba(255,45,85,0.18)";
 row.scrollIntoView({ block: "center" });   // then screenshot to confirm
 ```
 
-Match on the **seller** plus price: an exact-roll filter is not unique on its own (life 103
-+ cold 36 exact still returned six rings). The marks are cosmetic and vanish on reload.
+Match on the **seller** plus price: an exact-roll filter is not unique on its own — the
+same name, base and rolls appear across accounts. The marks are cosmetic and vanish on
+reload.
 
 ## Travel to Hideout (instant buyout)
 
@@ -673,9 +705,10 @@ Everything is plain Node, no dependencies. Scratch files go in `/tmp/opencode`.
 ## Pipeline
 
 ```
-1  node scripts/search.mjs --league <L> --slot <slot> --spec specs/<spec>.json
+1  node scripts/search.mjs --league <L> --slot <slot> --spec specs/<spec>.json [--max 60]
    → enforces >=10s since the last search and the 4-searches-per-30min cap
-   → prints a ready-to-paste `expression` for tools.browse.eval (60 ids fetched)
+   → prints a ready-to-paste `expression` for tools.browse.eval (60 ids fetched by
+     default; `--max` sets how many ids the page fetches)
 
 2  paste that expression into tools.browse.eval on an open trade tab
    → returns { qid, total, idsAvailable, fetched, digest[] }
@@ -687,8 +720,9 @@ Everything is plain Node, no dependencies. Scratch files go in `/tmp/opencode`.
    → accepts the digest as-is (or full API rows), derives life/res, writes
      ~/pob/pool/<L>/<slot>.json
 
-4  node scripts/pool.mjs show --league <L> --slot <slot> [--sort life] [--max-age 15]
-   → the candidate table; exits 4 when the pool is stale
+4  node scripts/pool.mjs show --league <L> --slot <slot> [--sort life] [--max-age 15] [--limit 15]
+   → the candidate table; exits 4 when the pool is stale (age comes from the stored
+     `fetchedAt`, falling back to file mtime for older pools), exits 2 without --slot
 
 5  pick the candidates, then get their full mod text for the sim — paste this as a
    second browse.eval expression on the same tab (no request, the page already has it):
@@ -697,12 +731,18 @@ Everything is plain Node, no dependencies. Scratch files go in `/tmp/opencode`.
 
 6  node scripts/sim.mjs --build current.xml --items items.json --sets sets.json > /tmp/opencode/sim.js
    → emits a complete code-mode program (all sets, attribute check, res snapshot)
+   → items.json entries also take optional `quality` (emitted next to Item Level) and
+     `price` (carried into the output for the per-item table). An unknown item key in
+     sets.json is a hard error (exit 1) naming the set and slot.
 
 7  paste /tmp/opencode/sim.js into the `execute` tool
    → returns { own, reqs, base, <set>: {...} }
 
 8  node scripts/table.mjs --pick <set> --file /tmp/opencode/sim-out.json
    → gates (caps, overcap >= 20, attributes) + the two report tables
+   → after the Sets table it renders `## Items (pick)`: one row per item with base,
+     price, requirement and wear verdict. Exits 2 on an unknown --pick or when run
+     with no --file on a TTY.
 ```
 
 The sim program and the sim output are both several KB. Getting them in and out of the
@@ -712,7 +752,8 @@ program as a file rather than re-typing it.
 ## Rules the scripts enforce mechanically
 
 - **Spacing**: `search.mjs` refuses to run less than 10 s after the previous search
-  (`~/pob/pool/<L>/.lastsearch`). `--force` overrides, deliberately.
+  (`~/pob/pool/<L>/.lastsearch`). `--force` overrides, deliberately. A failed paste is
+  reversible: `search.mjs --unmark --league <L>` gives the slot back.
 - **Burst cap**: more than 4 searches in 30 min is refused (`~/pob/pool/<L>/.searchlog`).
 - **Freshness**: `pool.mjs show` exits 4 on a pool older than `--max-age` (default
   15 min), so a stale price never reaches the user.
@@ -727,7 +768,7 @@ program as a file rather than re-typing it.
 | `pool.mjs` | save/show/list + freshness gate; the only place rows are parsed |
 | `sim.mjs` | items + sets → code-mode PoB program with attribute checks |
 | `table.mjs` | sim output → gates + markdown report tables |
-| `check.mjs` | contract lint: no run data in `SKILL.md`/`reference/*`/`scripts/*`, no single-listing specs |
+| `check.mjs` | contract lint: no run data in `SKILL.md`/`reference/*`/`scripts/*`, no single-listing specs (`--root` lints another skill) |
 
 `check.mjs` runs in the repo's pre-commit hook; run it by hand after editing the skill.
 
@@ -741,9 +782,10 @@ and leave it out of the repo; `check.mjs` rejects it.
 |---|---|
 | `ring.json` | rare ring, life 90+, total elemental res 90+, ≤10c |
 | `ring-chaos.json` | rare ring with chaos res 20+ and life 65+, ≤20c |
-| `gloves-chaos-cold.json` | armour gloves, chaos 20+ / cold 25+ / life 80+, ≤20c |
+| `gloves-chaos-cold.json` | armour gloves (armour 200+), chaos 20+ / cold 25+ / life 80+, ≤20c |
+| `helm.json` | armour helmet (armour 300+), life 100+, total elemental res 30+, ≤20c |
 | `belt-ryslatha.json` | the unique by name, ≤60c |
-| `axe-cheap.json` | two-hand axe ≤10c, sorted by pDPS desc |
+| `axe-cheap.json` | two-hand axe ≤10c; the trade query sorts price asc, pDPS ranking is client-side |
 
 ## What the digest gives you
 
@@ -761,7 +803,24 @@ Class-specific, non-zero only when the item has them:
 the raw damage ranges.
 
 `pool.mjs show` picks its columns from the pool: a pool with any `pdps` prints the weapon
-table, otherwise the armour/ring table. Sort with `--sort pdps` (weapons) or `--sort life`.
+table, otherwise the armour/ring table. Sort with `--sort pdps` (weapons) or `--sort life`;
+`--limit` caps the rows (default 15). The trade query itself sorts by price asc — pDPS
+ranking happens client-side in `pool.mjs show`, because `pdps` is not a trade sort key.
+
+## Items and the Items block
+
+`items.json` keys are referenced by `sets.json`:
+
+```json
+{ "axe1": { "name": "Woe Bite", "base": "Vaal Axe", "mods": ["..."], "quality": 0, "price": 3 } }
+```
+
+`name`, `base`, `mods` are required; `rarity` defaults to RARE and `ilvl` to 85.
+`quality` is optional and emits `Quality: <n>` in the item head, right after Item Level.
+`price` is optional and is echoed in the sim output's `items` map.
+
+`table.mjs` renders that map as `## Items (pick)` / `| item | base | price | req | wear |`
+after the Sets table. It is skipped when an older sim output has no `items` key.
 
 ## Retrying without spending a search
 
@@ -773,6 +832,16 @@ Emits the same expression minus the search POST: it re-reads `window.__p.ids` al
 the tab and re-fetches. Use it when the mapping failed, the digest needs a new field, or
 you want the full mod text again. It skips the spacing/burst gates because it is not a
 search. `--reuse` fails cleanly if the tab holds no stored query.
+
+To give back the reservation from a failed paste:
+
+```
+node scripts/search.mjs --unmark --league <L>
+```
+
+It removes the newest stamp from `.searchlog` and rewinds `.lastsearch` to the previous
+remaining stamp (deleting both files when no stamps remain). It prints what it removed,
+emits no expression, and makes no request.
 
 ## Adding a slot
 
@@ -956,7 +1025,9 @@ function resist(mods, elements) {
     const value = Number(m[1]);
     const words = m[2];
     if (/all Elemental/.test(words)) { total += value; continue; }
-    if (elements.some((e) => words.startsWith(e))) total += value;
+    // Every element the mod names counts, not just the one it starts with: a
+    // "Fire and Cold" roll must credit both sides, as the digest path does.
+    if (elements.some((e) => new RegExp(`\\b${e}\\b`).test(words))) total += value;
   }
   return total;
 }
@@ -1011,10 +1082,18 @@ function derive(row) {
   };
 }
 
+/** Age in minutes: the stored fetch time when present, file mtime only as a fallback. */
+function ageMinutes(json, file) {
+  const t = json && json.fetchedAt ? Date.parse(json.fetchedAt) : NaN;
+  return (Date.now() - (Number.isFinite(t) ? t : statSync(file).mtimeMs)) / 60000;
+}
+
 if (cmd === "save") {
   if (!args.slot || !args.file) { console.error("save needs --slot and --file"); process.exit(2); }
   const payload = unwrap(readFileSync(args.file, "utf8"));
-  const rows = Array.isArray(payload) ? payload : payload.rows;
+  // search.mjs returns { qid, total, idsAvailable, fetched, digest }, not `rows`;
+  // derive() already normalises the compact digest rows.
+  const rows = Array.isArray(payload) ? payload : (payload.rows ?? payload.digest);
   if (!Array.isArray(rows)) { console.error("no rows array in the input file"); process.exit(2); }
   const out = {
     fetchedAt: new Date().toISOString(),
@@ -1034,22 +1113,26 @@ if (cmd === "list") {
   const files = readdirSync(dir).filter((f) => f.endsWith(".json"));
   for (const f of files) {
     const j = JSON.parse(readFileSync(join(dir, f), "utf8"));
-    const age = ((Date.now() - statSync(join(dir, f)).mtimeMs) / 60000).toFixed(1);
+    const age = ageMinutes(j, join(dir, f)).toFixed(1);
     console.log(`${f.padEnd(18)} ${String(j.rows.length).padStart(3)} rows  total ${j.total}  age ${age}min`);
   }
   process.exit(0);
 }
 
 if (cmd === "show") {
+  if (!args.slot) {
+    console.error("show needs --slot; run pool.mjs list to see the slots");
+    process.exit(2);
+  }
   const file = join(dir, `${args.slot}.json`);
   if (!existsSync(file)) { console.error(`no pool for ${args.slot}; search first`); process.exit(4); }
+  const pool = JSON.parse(readFileSync(file, "utf8"));
   const maxAge = Number(args.max_age || 15);
-  const ageMin = (Date.now() - statSync(file).mtimeMs) / 60000;
+  const ageMin = ageMinutes(pool, file);
   if (ageMin > maxAge) {
     console.error(`STALE: ${args.slot} pool is ${ageMin.toFixed(1)}min old (max ${maxAge}). Listing prices move; re-search or accept the risk explicitly.`);
     process.exit(4);
   }
-  const pool = JSON.parse(readFileSync(file, "utf8"));
   const isWeapon = pool.rows.some((r) => (r.pdps || 0) > 0 || (r.edps || 0) > 0);
   const key = args.sort || (isWeapon ? "pdps" : "life");
   const rows = [...pool.rows].sort((a, b) => Number(b[key] || 0) - Number(a[key] || 0)).slice(0, Number(args.limit || 15));
@@ -1082,7 +1165,7 @@ process.exit(2);
 // Prints a ready-to-paste `expression` argument for tools.browse.eval, plus the
 // shell command that saves the result into the pool. Nothing here performs a
 // request; only the browser does, from the user's logged-in session.
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -1103,8 +1186,39 @@ const league = args.league;
 const slot = args.slot;
 const specPath = args.spec;
 const maxIds = Number(args.max || 60);
+
+// --unmark: release the most recent reservation. A failed paste otherwise burns one of
+// the four 30-min slots with no recourse short of --force. Emits no expression, makes no
+// request, and bypasses the gates because it only edits the bookkeeping files.
+if (args.unmark) {
+  if (!league) {
+    console.error("usage: search.mjs --unmark --league <L>");
+    process.exit(2);
+  }
+  const uDir = join(homedir(), "pob", "pool", league);
+  const uGap = join(uDir, ".lastsearch");
+  const uLog = join(uDir, ".searchlog");
+  const stamps = (existsSync(uLog) ? readFileSync(uLog, "utf8") : "").split("\n").filter(Boolean);
+  if (!stamps.length) {
+    console.log(`nothing to unmark: ${uLog} holds no stamps`);
+    process.exit(0);
+  }
+  const removed = stamps.pop();
+  if (stamps.length) {
+    writeFileSync(uLog, stamps.join("\n") + "\n");
+    writeFileSync(uGap, stamps[stamps.length - 1]);
+  } else {
+    unlinkSync(uLog);
+    if (existsSync(uGap)) unlinkSync(uGap);
+  }
+  console.log(
+    `unmarked ${new Date(Number(removed)).toISOString()} (${stamps.length} stamp(s) left in ${league})`
+  );
+  process.exit(0);
+}
+
 if (!league || !slot || !specPath) {
-  console.error("usage: search.mjs --league <L> --slot <slot> --spec <spec.json> [--max 60] [--force]");
+  console.error("usage: search.mjs --league <L> --slot <slot> --spec <spec.json> [--max 60] [--force] [--reuse] [--unmark]");
   process.exit(2);
 }
 
@@ -1157,7 +1271,7 @@ const head = args.reuse
   if (!sj.id) return JSON.stringify({ err: "no stored query in this tab — run a search first" });
   window.__p.rows = [];`
   : `window.__p = { qid: null, ids: [], rows: [], total: null };
-  var r = await fetch("/api/trade/search/${league}", {
+  var r = await fetch("/api/trade/search/" + LEAGUE, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(${JSON.stringify(query)})
@@ -1169,6 +1283,7 @@ const head = args.reuse
   window.__p.ids = sj.result || [];`;
 
 const page = `(async function () {
+  var LEAGUE = ${JSON.stringify(league)};
   ${head}
   var take = Math.min(window.__p.ids.length, ${maxIds});
   for (var i = 0; i < take; i += 10) {
@@ -1281,7 +1396,8 @@ console.log(`node scripts/pool.mjs save --league ${league} --slot ${slot} --file
 //
 //   node scripts/sim.mjs --build current.xml --items items.json --sets sets.json > /tmp/opencode/sim.js
 //
-// items.json: { "<key>": { "name": "...", "base": "...", "mods": ["..."], "rarity": "RARE" } }
+// items.json: { "<key>": { "name": "...", "base": "...", "mods": ["..."], "rarity": "RARE",
+//                          "quality": 0, "price": 3 } }   quality/price optional
 // sets.json:  { "<label>": { "cost": 67, "Helmet": "<key>", "Belt": "<key>", ... } }
 //             slot names are PoB's: Helmet Gloves Belt "Ring 1" "Ring 2" Boots Body Armour
 import { readFileSync } from "node:fs";
@@ -1303,16 +1419,37 @@ const build = args.build || "current.xml";
 const items = JSON.parse(readFileSync(args.items, "utf8"));
 const sets = JSON.parse(readFileSync(args.sets, "utf8"));
 
+// A typo'd key used to be skipped silently, so the set looked cheaper/weaker with no
+// explanation. Fail loudly, across every set, before anything is emitted.
+const unknown = [];
+for (const [label, set] of Object.entries(sets)) {
+  for (const [slot, key] of Object.entries(set)) {
+    if (slot === "cost" || items[key]) continue;
+    unknown.push(`${key} (in set "${label}", slot "${slot}")`);
+  }
+}
+if (unknown.length) {
+  console.error("unknown item key(s) referenced by sets.json:");
+  for (const u of unknown) console.error("  - " + u);
+  console.error(`known keys: ${Object.keys(items).join(", ") || "(none)"}`);
+  process.exit(1);
+}
+
 // Build each item's PoB text here; no Implicits header, implicits are ordinary mods.
 const texts = {};
+const meta = {};
 for (const [key, it] of Object.entries(items)) {
-  const head = [`Rarity: ${it.rarity || "RARE"}`, it.name, it.base, "--------", `Item Level: ${it.ilvl || 85}`, "--------"];
+  const head = [`Rarity: ${it.rarity || "RARE"}`, it.name, it.base, "--------", `Item Level: ${it.ilvl || 85}`];
+  if (it.quality !== undefined && it.quality !== null) head.push(`Quality: ${it.quality}`);
+  head.push("--------");
   texts[key] = head.concat(it.mods).join("\n");
+  meta[key] = { name: it.name, base: it.base, price: it.price ?? null };
 }
 
 const program = `const ITEMS = ${JSON.stringify(texts, null, 2)};
 const SETS = ${JSON.stringify(sets, null, 2)};
 const BUILD = ${JSON.stringify(build)};
+const ITEM_META = ${JSON.stringify(meta, null, 2)};
 
 const g = (t, k) => { const m = t.match(new RegExp(k + ":\\\\s*(-?[\\\\d.]+)")); return m ? +m[1] : null; };
 const n = (t, k) => { const m = t.match(new RegExp('"' + k + '":\\\\s*(-?[\\\\d.]+)')); return m ? +m[1] : null; };
@@ -1330,6 +1467,7 @@ const snap = async () => {
   });
   return {
     life: g(a, "Life"),
+    mana: g(a, "ManaUnreserved"),
     ehp: g(a, "TotalEHP") === null ? null : Math.round(g(a, "TotalEHP")),
     armour: g(a, "Armour") === null ? null : Math.round(g(a, "Armour")),
     dps: g(a, "CombinedDPS") === null ? null : Math.round(g(a, "CombinedDPS")),
@@ -1362,14 +1500,19 @@ for (const [key, text] of Object.entries(ITEMS)) {
   }
 }
 
-const out = { build: BUILD, own, reqs, base: await snap() };
+const out = { build: BUILD, own, reqs, items: ITEM_META, base: await snap() };
 for (const [label, set] of Object.entries(SETS)) {
   await tools.pob.lua_load_build({ build_name: BUILD });   // reload: add_item keeps prior sets
   for (const [slot, key] of Object.entries(set)) {
-    if (slot === "cost" || !ITEMS[key]) continue;
+    if (slot === "cost") continue;
     await tools.pob.add_item({ item_text: ITEMS[key], slot_name: slot });
   }
-  out[label] = { cost: set.cost, ...(await snap()) };
+  // gear: which item went in which slot, so the report can list the pick's items only.
+  out[label] = {
+    cost: set.cost,
+    gear: Object.fromEntries(Object.entries(set).filter(([s]) => s !== "cost")),
+    ...(await snap()),
+  };
 }
 await tools.pob.lua_load_build({ build_name: BUILD });
 return out;`;
@@ -1417,6 +1560,10 @@ for (let i = 0; i < argv.length; i++) {
     args[k] = argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[++i] : true;
   }
 }
+if (!args.file && process.stdin.isTTY) {
+  console.error("usage: table.mjs --pick <set> [--file <sim-out.json>]  (or pipe the sim output on stdin)");
+  process.exit(2);
+}
 const raw = args.file ? readFileSync(args.file, "utf8") : readFileSync(0, "utf8");
 let data = raw;
 for (let i = 0; i < 4 && typeof data === "string"; i++) {
@@ -1442,12 +1589,16 @@ const signed = (v) => (v === null ? "–" : (v > 0 ? "+" : "") + v);
 const pct = (a, b) => (a ? signed(Math.round(((b / a) - 1) * 1000) / 10) + "%" : "–");
 const ocTxt = (s, e) => (short(s, e) ? `⚠short ${s[e].missing}` : signed(s[e].overcap));
 
-const labels = Object.keys(data).filter((k) => !["build", "own", "reqs", "base"].includes(k));
+const labels = Object.keys(data).filter((k) => !["build", "own", "reqs", "items", "base"].includes(k));
 const base = data.base;
-const pick = args.pick && data[args.pick] ? args.pick : labels[labels.length - 1];
+if (args.pick && !data[args.pick]) {
+  console.error(`unknown set: ${args.pick} (available: ${labels.join(", ") || "(none)"})`);
+  process.exit(2);
+}
+const pick = args.pick || labels[labels.length - 1];
 
 console.log("## Gate\n");
-const badReqs = Object.entries(data.reqs || {}).filter(([, r]) => !r || r.error || !r.ok);
+const badReqs = Object.entries(data.reqs || {}).filter(([, r]) => r && (r.error || !r.ok));
 console.log(
   `- attributes: ${badReqs.length ? "**FAIL** " + badReqs.map(([k]) => k).join(", ") : "pass"} ` +
     `(build Str ${data.own.Str} / Dex ${data.own.Dex} / Int ${data.own.Int})`
@@ -1478,17 +1629,47 @@ for (const label of labels) {
   );
 }
 
-console.log(`\n## Res before / after (${pick})\n`);
-console.log("| Res | Trước total / overcap | Sau total / overcap | Δ |");
-console.log("|---|---|---|---|");
-for (const e of SET_KEYS) {
-  const b = base[e], a = pickSet[e];
-  const txt = (x) => `${x.total} / ${short({ [e]: x }, e) ? `short ${x.missing}` : signed(x.overcap)}`;
-  const change = e === "chaos" ? (a.total ?? 0) - (b.total ?? 0) : short(pickSet, e) || short(base, e) ? (a.total ?? 0) - (b.total ?? 0) : (a.overcap ?? 0) - (b.overcap ?? 0);
-  console.log(`| ${e[0].toUpperCase() + e.slice(1)} | ${txt(b)} | ${txt(a)} | ${signed(change)} |`);
+if (data.items && typeof data.items === "object") {
+  console.log(`\n## Items (${pick})\n`);
+  console.log("| item | base | price | req | wear |");
+  console.log("|---|---|---|---|---|");
+  // Prefer the pick's own composition when the sim output carries it; fall back to
+  // every item for older outputs that predate the gear map.
+  const picked = pickSet.gear ? Object.values(pickSet.gear) : Object.keys(data.items);
+  for (const key of picked) {
+    const it = data.items[key];
+    if (!it) continue;
+    const r = (data.reqs || {})[key];
+    const req = r === undefined ? "–" : r === null ? "no reqs" : r.error ? r.error : `S${r.str} D${r.dex} I${r.int}`;
+    const wear = r === undefined ? "–" : r === null ? "no reqs" : r.error || !r.ok ? "FAIL" : "ok";
+    const price = it.price === null || it.price === undefined ? "–" : it.price;
+    console.log(`| ${it.name || key} | ${it.base ?? "–"} | ${price} | ${req} | ${wear} |`);
+  }
 }
 
-console.log(`\n_bleed chance ${pickSet.bleedChance}% · baseline life ${base.life} · base DPS ${base.dps}_`);
+console.log(`\n## Res before / after (${pick})\n`);
+console.log("| Res | Before total / cap / overcap | After total / cap / overcap | Δ |");
+console.log("|---|---|---|---|");
+// cap = total + missing when short, total - overcap when capped; never the clamped
+// ResistTotal, which reads as capped for a build that is 1% short.
+const capOf = (s, e) =>
+  short(s, e) ? (s[e].total ?? 0) + (s[e].missing ?? 0) : (s[e].total ?? 0) - (s[e].overcap ?? 0);
+for (const e of SET_KEYS) {
+  const b = base[e], a = pickSet[e];
+  // Chaos has no tracked cap/overcap in the sim output (total - overcap would echo the
+  // total as a fake "cap") — print dashes and let the total carry the meaning.
+  const txt = (s) =>
+    e === "chaos"
+      ? `${s[e].total} / — / —`
+      : `${s[e].total} / ${capOf(s, e)} / ${short(s, e) ? `short ${s[e].missing}` : signed(s[e].overcap)}`;
+  const change = e === "chaos" ? (a.total ?? 0) - (b.total ?? 0) : short(pickSet, e) || short(base, e) ? (a.total ?? 0) - (b.total ?? 0) : (a.overcap ?? 0) - (b.overcap ?? 0);
+  console.log(`| ${e[0].toUpperCase() + e.slice(1)} | ${txt(base)} | ${txt(pickSet)} | ${signed(change)} |`);
+}
+
+console.log(
+  `\n_bleed chance ${pickSet.bleedChance === null || pickSet.bleedChance === undefined ? "–" : pickSet.bleedChance + "%"} · baseline life ${base.life} · base DPS ${base.dps} · ` +
+    `unreserved mana ${pickSet.mana ?? "–"}_`
+);
 
 5j) ~/.config/opencode/skills/poe-gear-finder/specs/axe-cheap.json
 
@@ -1499,7 +1680,7 @@ console.log(`\n_bleed chance ${pickSet.bleedChance}% · baseline life ${base.lif
     "trade_filters": { "filters": { "price": { "option": "chaos", "max": 10 } } }
   },
   "stats": [],
-  "sort": { "pdps": "desc" }
+  "sort": { "price": "asc" }
 }
 
 5k) ~/.config/opencode/skills/poe-gear-finder/specs/belt-ryslatha.json
@@ -1520,7 +1701,7 @@ console.log(`\n_bleed chance ${pickSet.bleedChance}% · baseline life ${base.lif
   "status": "securable",
   "filters": {
     "type_filters": { "filters": { "category": { "option": "armour.gloves" } } },
-    "armour_filters": { "filters": { "ar": { "min": 100 } } },
+    "armour_filters": { "filters": { "ar": { "min": 200 } } },
     "trade_filters": { "filters": { "price": { "option": "chaos", "max": 20 } } }
   },
   "stats": [
@@ -1533,7 +1714,25 @@ console.log(`\n_bleed chance ${pickSet.bleedChance}% · baseline life ${base.lif
   "sort": { "price": "asc" }
 }
 
-5m) ~/.config/opencode/skills/poe-gear-finder/specs/ring-chaos.json
+5m) ~/.config/opencode/skills/poe-gear-finder/specs/helm.json
+
+{
+  "status": "securable",
+  "filters": {
+    "type_filters": { "filters": { "category": { "option": "armour.helmet" } } },
+    "armour_filters": { "filters": { "ar": { "min": 300 } } },
+    "trade_filters": { "filters": { "price": { "option": "chaos", "max": 20 } } }
+  },
+  "stats": [
+    { "type": "and", "filters": [
+      { "id": "explicit.stat_3299347043", "value": { "min": 100 }, "disabled": false },
+      { "id": "pseudo.pseudo_total_elemental_resistance", "value": { "min": 30 }, "disabled": false }
+    ]}
+  ],
+  "sort": { "price": "asc" }
+}
+
+5n) ~/.config/opencode/skills/poe-gear-finder/specs/ring-chaos.json
 
 {
   "status": "securable",
@@ -1550,7 +1749,7 @@ console.log(`\n_bleed chance ${pickSet.bleedChance}% · baseline life ${base.lif
   "sort": { "price": "asc" }
 }
 
-5n) ~/.config/opencode/skills/poe-gear-finder/specs/ring.json
+5o) ~/.config/opencode/skills/poe-gear-finder/specs/ring.json
 
 {
   "status": "securable",
@@ -1567,7 +1766,7 @@ console.log(`\n_bleed chance ${pickSet.bleedChance}% · baseline life ${base.lif
   "sort": { "price": "asc" }
 }
 
-5o) ~/.config/opencode/skills/poe-gear-finder/findings.md
+5p) ~/.config/opencode/skills/poe-gear-finder/findings.md
 
 # Findings — evidence log
 
@@ -1587,13 +1786,7 @@ specifics on the way in (seller, price, that one item's name).
 
 One line each, added during a run, cleared when the contract is patched:
 
-- `add_item` needs the jewel slot name from `get_equipped_items` (it can be
-  `Jewel <passive-node-id>`, not `Jewel 1`); a wrong slot adds the item unequipped.
-- trade `category: jewel` + `explicit.stat_3988349707` (DoT multi) returns 0, while the
-  same stat without the category matches weapons; the jewel stat id differs — verify
-  against `/api/trade/data/stats` before trusting an empty result.
-- `type_filters` category `accessory.amulet` + DoT multi + life returned 0 within 60c;
-  suspected category-name mismatch, not an empty market.
+- (nothing pending)
 
 ## Log
 
@@ -1624,7 +1817,7 @@ One line each, added during a run, cleared when the contract is patched:
 - 2026-11-19 · rings · an exact-roll filter (`life 103`, `cold 36`) still returned 6 rows;
   rare names repeat across accounts → pin the row by seller match as well.
 
-5p) ~/.config/opencode/skills/poe-build-profile/SKILL.md
+5q) ~/.config/opencode/skills/poe-build-profile/SKILL.md
 
 ---
 name: poe-build-profile
@@ -1691,7 +1884,7 @@ header) and `JSON.parse` throws on it.
 See `reference/archetypes.md` for the per-archetype metric table and the mechanics each
 one must have (aggravate sources for bleed, exposure for elemental DoT, ...).
 
-5q) ~/.config/opencode/skills/poe-build-profile/reference/archetypes.md
+5r) ~/.config/opencode/skills/poe-build-profile/reference/archetypes.md
 
 # Archetypes — what each build actually scales
 
@@ -1759,7 +1952,7 @@ Always quote the component the archetype scales, next to the hit damage.
 - Attribute totals must clear the item you are about to buy: `Str/Dex/Int` vs
   `ReqStr/ReqDex/ReqInt`, not the base name's typical requirement.
 
-5r) ~/.config/opencode/skills/poe-build-profile/scripts/classify-core.mjs
+5s) ~/.config/opencode/skills/poe-build-profile/scripts/classify-core.mjs
 
 // Pure classifier: takes the analyze_build dump and returns the report string.
 // No filesystem, no PoB access — profile.mjs inlines this into the emitted program,
@@ -1948,7 +2141,7 @@ export function classify(dump) {
   return out.join("\n");
 }
 
-5s) ~/.config/opencode/skills/poe-build-profile/scripts/profile.mjs
+5t) ~/.config/opencode/skills/poe-build-profile/scripts/profile.mjs
 
 #!/usr/bin/env node
 // Emit a ready-to-paste code-mode program that identifies a build from PoB's own numbers.
@@ -2042,7 +2235,7 @@ process.stdout.write(program + "\n");
 console.error(`profile program ready for ${args.build}`);
 console.error("paste it into code-mode `execute`; the returned string is the report");
 
-5t) ~/.config/opencode/skills/poe-build-profile/findings.md
+5u) ~/.config/opencode/skills/poe-build-profile/findings.md
 
 # Findings — evidence log
 

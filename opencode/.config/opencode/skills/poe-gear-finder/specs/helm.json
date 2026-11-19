@@ -1,0 +1,15 @@
+{
+  "status": "securable",
+  "filters": {
+    "type_filters": { "filters": { "category": { "option": "armour.helmet" } } },
+    "armour_filters": { "filters": { "ar": { "min": 300 } } },
+    "trade_filters": { "filters": { "price": { "option": "chaos", "max": 20 } } }
+  },
+  "stats": [
+    { "type": "and", "filters": [
+      { "id": "explicit.stat_3299347043", "value": { "min": 100 }, "disabled": false },
+      { "id": "pseudo.pseudo_total_elemental_resistance", "value": { "min": 30 }, "disabled": false }
+    ]}
+  ],
+  "sort": { "price": "asc" }
+}

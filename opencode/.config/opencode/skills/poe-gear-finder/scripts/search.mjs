@@ -7,7 +7,7 @@
 // Prints a ready-to-paste `expression` argument for tools.browse.eval, plus the
 // shell command that saves the result into the pool. Nothing here performs a
 // request; only the browser does, from the user's logged-in session.
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -28,8 +28,39 @@ const league = args.league;
 const slot = args.slot;
 const specPath = args.spec;
 const maxIds = Number(args.max || 60);
+
+// --unmark: release the most recent reservation. A failed paste otherwise burns one of
+// the four 30-min slots with no recourse short of --force. Emits no expression, makes no
+// request, and bypasses the gates because it only edits the bookkeeping files.
+if (args.unmark) {
+  if (!league) {
+    console.error("usage: search.mjs --unmark --league <L>");
+    process.exit(2);
+  }
+  const uDir = join(homedir(), "pob", "pool", league);
+  const uGap = join(uDir, ".lastsearch");
+  const uLog = join(uDir, ".searchlog");
+  const stamps = (existsSync(uLog) ? readFileSync(uLog, "utf8") : "").split("\n").filter(Boolean);
+  if (!stamps.length) {
+    console.log(`nothing to unmark: ${uLog} holds no stamps`);
+    process.exit(0);
+  }
+  const removed = stamps.pop();
+  if (stamps.length) {
+    writeFileSync(uLog, stamps.join("\n") + "\n");
+    writeFileSync(uGap, stamps[stamps.length - 1]);
+  } else {
+    unlinkSync(uLog);
+    if (existsSync(uGap)) unlinkSync(uGap);
+  }
+  console.log(
+    `unmarked ${new Date(Number(removed)).toISOString()} (${stamps.length} stamp(s) left in ${league})`
+  );
+  process.exit(0);
+}
+
 if (!league || !slot || !specPath) {
-  console.error("usage: search.mjs --league <L> --slot <slot> --spec <spec.json> [--max 60] [--force]");
+  console.error("usage: search.mjs --league <L> --slot <slot> --spec <spec.json> [--max 60] [--force] [--reuse] [--unmark]");
   process.exit(2);
 }
 
@@ -82,7 +113,7 @@ const head = args.reuse
   if (!sj.id) return JSON.stringify({ err: "no stored query in this tab — run a search first" });
   window.__p.rows = [];`
   : `window.__p = { qid: null, ids: [], rows: [], total: null };
-  var r = await fetch("/api/trade/search/${league}", {
+  var r = await fetch("/api/trade/search/" + LEAGUE, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(${JSON.stringify(query)})
@@ -94,6 +125,7 @@ const head = args.reuse
   window.__p.ids = sj.result || [];`;
 
 const page = `(async function () {
+  var LEAGUE = ${JSON.stringify(league)};
   ${head}
   var take = Math.min(window.__p.ids.length, ${maxIds});
   for (var i = 0; i < take; i += 10) {

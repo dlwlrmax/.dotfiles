@@ -2,7 +2,7 @@
   "status": "securable",
   "filters": {
     "type_filters": { "filters": { "category": { "option": "armour.gloves" } } },
-    "armour_filters": { "filters": { "ar": { "min": 100 } } },
+    "armour_filters": { "filters": { "ar": { "min": 200 } } },
     "trade_filters": { "filters": { "price": { "option": "chaos", "max": 20 } } }
   },
   "stats": [

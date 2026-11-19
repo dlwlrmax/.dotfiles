@@ -5,5 +5,5 @@
     "trade_filters": { "filters": { "price": { "option": "chaos", "max": 10 } } }
   },
   "stats": [],
-  "sort": { "pdps": "desc" }
+  "sort": { "price": "asc" }
 }

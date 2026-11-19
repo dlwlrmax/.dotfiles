@@ -5,7 +5,8 @@
 //
 //   node scripts/sim.mjs --build current.xml --items items.json --sets sets.json > /tmp/opencode/sim.js
 //
-// items.json: { "<key>": { "name": "...", "base": "...", "mods": ["..."], "rarity": "RARE" } }
+// items.json: { "<key>": { "name": "...", "base": "...", "mods": ["..."], "rarity": "RARE",
+//                          "quality": 0, "price": 3 } }   quality/price optional
 // sets.json:  { "<label>": { "cost": 67, "Helmet": "<key>", "Belt": "<key>", ... } }
 //             slot names are PoB's: Helmet Gloves Belt "Ring 1" "Ring 2" Boots Body Armour
 import { readFileSync } from "node:fs";
@@ -27,16 +28,37 @@ const build = args.build || "current.xml";
 const items = JSON.parse(readFileSync(args.items, "utf8"));
 const sets = JSON.parse(readFileSync(args.sets, "utf8"));
 
+// A typo'd key used to be skipped silently, so the set looked cheaper/weaker with no
+// explanation. Fail loudly, across every set, before anything is emitted.
+const unknown = [];
+for (const [label, set] of Object.entries(sets)) {
+  for (const [slot, key] of Object.entries(set)) {
+    if (slot === "cost" || items[key]) continue;
+    unknown.push(`${key} (in set "${label}", slot "${slot}")`);
+  }
+}
+if (unknown.length) {
+  console.error("unknown item key(s) referenced by sets.json:");
+  for (const u of unknown) console.error("  - " + u);
+  console.error(`known keys: ${Object.keys(items).join(", ") || "(none)"}`);
+  process.exit(1);
+}
+
 // Build each item's PoB text here; no Implicits header, implicits are ordinary mods.
 const texts = {};
+const meta = {};
 for (const [key, it] of Object.entries(items)) {
-  const head = [`Rarity: ${it.rarity || "RARE"}`, it.name, it.base, "--------", `Item Level: ${it.ilvl || 85}`, "--------"];
+  const head = [`Rarity: ${it.rarity || "RARE"}`, it.name, it.base, "--------", `Item Level: ${it.ilvl || 85}`];
+  if (it.quality !== undefined && it.quality !== null) head.push(`Quality: ${it.quality}`);
+  head.push("--------");
   texts[key] = head.concat(it.mods).join("\n");
+  meta[key] = { name: it.name, base: it.base, price: it.price ?? null };
 }
 
 const program = `const ITEMS = ${JSON.stringify(texts, null, 2)};
 const SETS = ${JSON.stringify(sets, null, 2)};
 const BUILD = ${JSON.stringify(build)};
+const ITEM_META = ${JSON.stringify(meta, null, 2)};
 
 const g = (t, k) => { const m = t.match(new RegExp(k + ":\\\\s*(-?[\\\\d.]+)")); return m ? +m[1] : null; };
 const n = (t, k) => { const m = t.match(new RegExp('"' + k + '":\\\\s*(-?[\\\\d.]+)')); return m ? +m[1] : null; };
@@ -54,6 +76,7 @@ const snap = async () => {
   });
   return {
     life: g(a, "Life"),
+    mana: g(a, "ManaUnreserved"),
     ehp: g(a, "TotalEHP") === null ? null : Math.round(g(a, "TotalEHP")),
     armour: g(a, "Armour") === null ? null : Math.round(g(a, "Armour")),
     dps: g(a, "CombinedDPS") === null ? null : Math.round(g(a, "CombinedDPS")),
@@ -86,14 +109,19 @@ for (const [key, text] of Object.entries(ITEMS)) {
   }
 }
 
-const out = { build: BUILD, own, reqs, base: await snap() };
+const out = { build: BUILD, own, reqs, items: ITEM_META, base: await snap() };
 for (const [label, set] of Object.entries(SETS)) {
   await tools.pob.lua_load_build({ build_name: BUILD });   // reload: add_item keeps prior sets
   for (const [slot, key] of Object.entries(set)) {
-    if (slot === "cost" || !ITEMS[key]) continue;
+    if (slot === "cost") continue;
     await tools.pob.add_item({ item_text: ITEMS[key], slot_name: slot });
   }
-  out[label] = { cost: set.cost, ...(await snap()) };
+  // gear: which item went in which slot, so the report can list the pick's items only.
+  out[label] = {
+    cost: set.cost,
+    gear: Object.fromEntries(Object.entries(set).filter(([s]) => s !== "cost")),
+    ...(await snap()),
+  };
 }
 await tools.pob.lua_load_build({ build_name: BUILD });
 return out;`;

@@ -53,7 +53,9 @@ function resist(mods, elements) {
     const value = Number(m[1]);
     const words = m[2];
     if (/all Elemental/.test(words)) { total += value; continue; }
-    if (elements.some((e) => words.startsWith(e))) total += value;
+    // Every element the mod names counts, not just the one it starts with: a
+    // "Fire and Cold" roll must credit both sides, as the digest path does.
+    if (elements.some((e) => new RegExp(`\\b${e}\\b`).test(words))) total += value;
   }
   return total;
 }
@@ -108,10 +110,18 @@ function derive(row) {
   };
 }
 
+/** Age in minutes: the stored fetch time when present, file mtime only as a fallback. */
+function ageMinutes(json, file) {
+  const t = json && json.fetchedAt ? Date.parse(json.fetchedAt) : NaN;
+  return (Date.now() - (Number.isFinite(t) ? t : statSync(file).mtimeMs)) / 60000;
+}
+
 if (cmd === "save") {
   if (!args.slot || !args.file) { console.error("save needs --slot and --file"); process.exit(2); }
   const payload = unwrap(readFileSync(args.file, "utf8"));
-  const rows = Array.isArray(payload) ? payload : payload.rows;
+  // search.mjs returns { qid, total, idsAvailable, fetched, digest }, not `rows`;
+  // derive() already normalises the compact digest rows.
+  const rows = Array.isArray(payload) ? payload : (payload.rows ?? payload.digest);
   if (!Array.isArray(rows)) { console.error("no rows array in the input file"); process.exit(2); }
   const out = {
     fetchedAt: new Date().toISOString(),
@@ -131,22 +141,26 @@ if (cmd === "list") {
   const files = readdirSync(dir).filter((f) => f.endsWith(".json"));
   for (const f of files) {
     const j = JSON.parse(readFileSync(join(dir, f), "utf8"));
-    const age = ((Date.now() - statSync(join(dir, f)).mtimeMs) / 60000).toFixed(1);
+    const age = ageMinutes(j, join(dir, f)).toFixed(1);
     console.log(`${f.padEnd(18)} ${String(j.rows.length).padStart(3)} rows  total ${j.total}  age ${age}min`);
   }
   process.exit(0);
 }
 
 if (cmd === "show") {
+  if (!args.slot) {
+    console.error("show needs --slot; run pool.mjs list to see the slots");
+    process.exit(2);
+  }
   const file = join(dir, `${args.slot}.json`);
   if (!existsSync(file)) { console.error(`no pool for ${args.slot}; search first`); process.exit(4); }
+  const pool = JSON.parse(readFileSync(file, "utf8"));
   const maxAge = Number(args.max_age || 15);
-  const ageMin = (Date.now() - statSync(file).mtimeMs) / 60000;
+  const ageMin = ageMinutes(pool, file);
   if (ageMin > maxAge) {
     console.error(`STALE: ${args.slot} pool is ${ageMin.toFixed(1)}min old (max ${maxAge}). Listing prices move; re-search or accept the risk explicitly.`);
     process.exit(4);
   }
-  const pool = JSON.parse(readFileSync(file, "utf8"));
   const isWeapon = pool.rows.some((r) => (r.pdps || 0) > 0 || (r.edps || 0) > 0);
   const key = args.sort || (isWeapon ? "pdps" : "life");
   const rows = [...pool.rows].sort((a, b) => Number(b[key] || 0) - Number(a[key] || 0)).slice(0, Number(args.limit || 15));

@@ -68,8 +68,10 @@ the browser or PoB code**: JS typed inline is where the escaping bugs and the
 rate-limit bursts came from. The scripts also enforce the spacing, burst and
 freshness gates for you.
 
-0. **Profile the build first** — load the `poe-build-profile` skill and run
-   `node scripts/profile.mjs --build <name.xml>`. It returns the archetype, the metric
+0. **Profile the build first** — load the `poe-build-profile` skill and run its runner by
+   absolute path, `node ~/.config/opencode/skills/poe-build-profile/scripts/profile.mjs
+   --build <name.xml>` (`profile.mjs` lives in that sibling skill, not in this one's
+   `scripts/`). It returns the archetype, the metric
    that ranks this build, the support audit and the defects (unreserved mana, life,
    chaos res, missing curse) **before** any search. Every comparison below inherits that
    metric: a bleed build is ranked by `BleedDPS` + `AverageDamage`, and ranking it by
@@ -88,11 +90,17 @@ freshness gates for you.
    Never judge capping from `lua_get_stats` — its `FireResist` is **clamped to the cap**, so
    a build 1% short prints `76 / 76` and looks capped. The res before/after table is
    mandatory output, not an optional extra.
-3. **Search** — `node scripts/search.mjs --league <L> --slot <slot> --spec specs/<slot>.json`.
-   It refuses to run inside 10 s of the previous search and inside the 4-per-30-min cap,
-   then prints the `expression` to paste into `browse.eval` (instant buyout, 60 ids
+3. **Search** — `node scripts/search.mjs --league <L> --slot <slot> --spec specs/<spec>.json`.
+   Shipped specs are `axe-cheap`, `belt-ryslatha`, `gloves-chaos-cold`, `ring-chaos`,
+   `ring` and `helm` (see the spec table in `scripts/README.md`); `--spec` takes the
+   spec's file name, which is not always the slot.
+   It enforces the search spacing and burst gates from `reference/trade-api.md`, then
+   prints the `expression` to paste into `browse.eval` (instant buyout, 60 ids
    fetched, so the pool is a pool). Save it with `node scripts/pool.mjs save …` and read
    candidates with `node scripts/pool.mjs show …`, which exits 4 on a stale pool.
+   Re-reading the ids already in the open tab is `search.mjs --reuse` — a fetch, not a
+   search; that is the retry path after a mapping bug or a closed tab, and it costs
+   no search request.
    The expression returns a compact **digest** (60 rows with full mod text is ~30KB and
    will not survive the trip back); the full mod text stays in the page, so pull it for
    the few picks with a second expression, `window.__p.full([i,j,k])` — no extra request —
@@ -114,19 +122,20 @@ freshness gates for you.
 One snapshot of the equipped build, one of the final set, same `snap()` for both.
 Never quote a single number — res is where a swap silently breaks a build.
 
-| Res | Trước total / cap / overcap | Sau total / cap / overcap | Δ overcap |
+| Res | Before total / cap / overcap | After total / cap / overcap | Δ overcap |
 |---|---|---|---|
-| Fire | 111 / 78 / **+33** | 120 / 78 / **+42** | +9 |
-| Cold | 124 / 77 / **+47** | 98 / 77 / **+21** | −26 |
-| Lightning | 94 / 77 / **+17** | 142 / 77 / **+65** | +48 |
-| Chaos | −37 / 75 / — | −60 / 75 / — | −23 |
+| Fire | 108 / 75 / **+33** | 120 / 75 / **+45** | +12 |
+| Cold | 124 / 75 / **+49** | 98 / 75 / **+23** | −26 |
+| Lightning | 94 / 75 / **+19** | 142 / 75 / **+67** | +48 |
+| Chaos | −37 / — / — | −60 / — / — | −23 |
 
 Rules for that table:
 
 - Print **total, cap and overcap** per element — overcap alone hides whether the
   build was even capped before (chaos is often negative and has no overcap).
-- `overcap: 0` means **at or below cap**, not "fine". Chaos typically reads
-  `total −37 / cap −37 / overcap 0`; the number that matters is the total.
+- `overcap: 0` means **at or below cap**, not "fine". Chaos has no tracked cap or
+  overcap in the sim output — its cells print dashes and the total is the number that
+  matters.
 - Flag any element that **drops** below +20 overcap, and say which item change
   caused it (the replaced item's mods are the reason — check the XML, don't guess).
 - Flag any element that moves at all, even upward: a huge lightning gain usually
@@ -172,8 +181,11 @@ restate limits here (two copies drift into contradiction).
 - **One search per slot, per run. Hard cap: 4 searches per run.** A re-search to
   "confirm" a listing is the biggest time sink and the main way to trip the limit.
   To iterate on candidates, re-`fetch` by id (cheap) — never re-search.
-- **Space searches ≥10 s apart. Never batch them.** Four slots = four searches, ten
-  seconds apart. Fetches may run back-to-back inside that window.
+- **Space the searches out; never batch them.** search.mjs enforces the spacing and burst
+  gates mechanically, and the numbers are in `reference/trade-api.md`. Never bypass them
+  with `--force` for convenience: a run whose paste was aborted can be unmarked with
+  `search.mjs --unmark` and retried inside the gates instead. Fetches may run
+  back-to-back.
 - **Re-navigating a stored `qid` URL costs a search request.** The query id is not a
   cache: loading `trade/search/<league>/<qid>` re-runs the search server-side. Read the
   tab that is already open; navigate only when you mean to spend a search.
@@ -190,13 +202,15 @@ restate limits here (two copies drift into contradiction).
 - **Rare item names are not unique.** Ten different rares are called `Blood Loop`.
   A name-only tab is the reason the user "can't tell which one to buy". To hand over a
   listing unambiguously: use an **exact-roll filter** (`value: {min: N, max: N}` on the
-  distinctive mods) so the tab shows one row, and name the seller account next to it.
+  distinctive mods) to narrow the tab, and name the seller account next to it — the exact
+  roll on its own still may not leave a single row.
 - **Listings expire mid-run.** Before telling the user to buy, re-read the tab and
   confirm it still has rows and the same price. A cheap rare found two hours ago is usually
   gone — re-derive the candidate from live results instead of pinning to it.
 - **Persist the pool to disk as you go**: `~/pob/pool/<League>/<slot>.json` with
-  `{fetchedAt, query, rows}`, TTL 15 minutes. Agent context is not storage — tab ids and
-  in-page state (`window.__p`) die with the tab, and a closed tab must not cost a search.
+  `{fetchedAt, slot, qid, total, idsAvailable, rows}`, TTL 15 minutes. Agent context is
+  not storage — tab ids and in-page state (`window.__p`) die with the tab, and a closed
+  tab must not cost a search.
 - **One `execute` block per phase for the PoB side** (all simulations together, one
   reload per set). PoB import is ~7 s, re-`add_item` ~1 s; cache the XML, don't re-import.
 
@@ -204,7 +218,10 @@ restate limits here (two copies drift into contradiction).
 ## Report
 
 `node scripts/table.mjs --pick <set> --file <sim output>` renders the gates and both
-tables; the buy list comes from `pool.mjs show`. Every item handed over carries:
+tables; the buy list comes from `pool.mjs show`. table.mjs renders the per-item table as
+the `## Items (pick)` block (item · base · price · req · wear), and the full stat columns
+(Δlife/ΔEHP/Δarmour/overcap F/C/L/Δchaos/ΔDPS) come from the Sets table deltas. Every item
+handed over carries:
 price · item · base · **req** · Δlife · ΔEHP · Δarmour · overcap F/C/L · Δchaos · ΔDPS.
 Then the pick, the total spend vs budget, and what is left to upgrade.
 
@@ -215,8 +232,8 @@ A player shopping over an hour will lose the rare listing long before the common
 so the scarce item must be bought while it exists:
 
 - Rank by **how many comparable listings exist** — the search `total` for that slot and
-  filter set is the number to quote. `total: 1` is buy-it-now or lose-it; `total: 6593`
-  can wait.
+  filter set is the number to quote. A `total` of one is buy-it-now or lose-it; a total in
+  the thousands can wait.
 - Uniques with a specific roll, and rares needing several exact mods together (life +
   cold res + chaos res on gloves), are scarce. Armour helm with life + one res is not.
 - Say the count next to each item so the user can see the risk, and put a whole-budget
@@ -228,11 +245,11 @@ base are not enough (rare names repeat):
 - the open tab, **plus** the seller account and the price, e.g.
   `helm tab · row 2 · <account> · <price>`;
 - **highlight the row in the page** rather than describing where it is: outline it, insert
-  a label with name/price/seller, `scrollIntoView`, then screenshot to confirm. One glowing
-  row is what answers "mở link cũng không biết mua item nào" — prose does not. The marks
-  are cosmetic DOM injection and vanish on reload, so re-apply if the page refreshes;
-- an exact-roll filter is **not** guaranteed unique either (life 103 + cold 36 exact still
-  returned 6 rows) — combine it with the seller match to pin the row;
+  a label with name/price/seller, `scrollIntoView`, then screenshot to confirm. Prose does
+  not answer "which row do I buy" — one highlighted row does. The marks are cosmetic DOM
+  injection and vanish on reload, so re-apply if the page refreshes;
+- an exact-roll filter is **not** guaranteed unique either — combine it with the seller
+  match to pin the row;
 - and confirm the tab still has rows. "No results found" means the filter was too
   strict for that listing or it sold — rebuild the query, do not hand over an empty tab.
 

@@ -3,9 +3,9 @@
 One `execute` block. Never one tool call per candidate.
 
 ```js
-const it = (name, base, mods, quality = 0) =>
-  ["Rarity: RARE", name, base, "--------", "Quality: " + quality,
-   "Item Level: 85", "--------", ...mods].join("\n");
+const it = (name, base, mods, { quality = 0, price = null } = {}) =>
+  ["Rarity: RARE", name, base, "--------", "Item Level: 85", "Quality: " + quality,
+   "--------", ...mods].join("\n");
 
 const g = (t, k) => { const m = t.match(new RegExp(k + ":\\s*(-?[\\d.]+)")); return m ? +m[1] : null; };
 const n = (t, k) => { const m = t.match(new RegExp('"' + k + '":\\s*(-?[\\d.]+)')); return m ? +m[1] : null; };
@@ -38,9 +38,17 @@ return { before, after };
 `snap()` must be the **same function** for before and after, otherwise the two
 res readings use different keys and the diff is meaningless.
 
+`items.json` (the file `sim.mjs` consumes) is `{ "<key>": { name, base, mods } }` plus the
+optional `rarity`, `ilvl`, **`quality`** and **`price`** fields. `quality` is emitted as the
+`Quality:` line in the item text, so it changes the simulated item — read it from the
+listing (see *Quality* below). `price` is never simulated; it is carried through to the
+per-item report so the buy list and the numbers come from one file. The helper mirrors
+that: `it(name, base, mods, { quality, price })`.
+
+
 `overcap` comes back `0` when the element is **at or below** its cap — chaos at
-`−37` reads `cap −37 / overcap 0`. Report the total for chaos, the overcap for
-elements above cap.
+`−37` reads `total −37 / overcap 0`, with `MissingChaosResist` carrying the gap against
+the 75 cap. Report the total for chaos, the overcap for elements above cap.
 
 ## Reporting res (mandatory)
 
@@ -102,4 +110,19 @@ same swap, chaos always shown).
   ```
 
   Report the requirement next to the item (`S85 D62`) so the user can see it passes.
+- **Jewel slots are named `Jewel <passive-node-id>`, not `Jewel 1`.** Read the exact slot
+  name from `get_equipped_items` before calling `add_item` — a wrong slot name silently
+  adds the item unequipped, so the sim reports no change and looks like the jewel does
+  nothing.
 - Reload the original build when done, so the cached XML stays the baseline.
+
+## Known conservative gaps
+
+- **The attribute gate uses the BASE build's attributes.** Each item's requirement is
+  compared against `Str/Dex/Int` as the build stands before any swap, so a set whose items
+  grant each other `+Str/+Dex/+Int` can false-FAIL even though the equipped set is
+  wearable. Re-check such picks by hand (or simulate and read the requirement again) —
+  never reject a candidate on the gate alone in that case.
+- **Item level requirements are not checked by the gate.** Only `str/dex/int` are
+  compared; a listing whose `ilvl` is below the item's level requirement passes silently.
+  Read the level from the listing when the base is high-tier.

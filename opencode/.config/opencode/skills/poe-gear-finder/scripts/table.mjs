@@ -16,6 +16,10 @@ for (let i = 0; i < argv.length; i++) {
     args[k] = argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[++i] : true;
   }
 }
+if (!args.file && process.stdin.isTTY) {
+  console.error("usage: table.mjs --pick <set> [--file <sim-out.json>]  (or pipe the sim output on stdin)");
+  process.exit(2);
+}
 const raw = args.file ? readFileSync(args.file, "utf8") : readFileSync(0, "utf8");
 let data = raw;
 for (let i = 0; i < 4 && typeof data === "string"; i++) {
@@ -41,12 +45,16 @@ const signed = (v) => (v === null ? "–" : (v > 0 ? "+" : "") + v);
 const pct = (a, b) => (a ? signed(Math.round(((b / a) - 1) * 1000) / 10) + "%" : "–");
 const ocTxt = (s, e) => (short(s, e) ? `⚠short ${s[e].missing}` : signed(s[e].overcap));
 
-const labels = Object.keys(data).filter((k) => !["build", "own", "reqs", "base"].includes(k));
+const labels = Object.keys(data).filter((k) => !["build", "own", "reqs", "items", "base"].includes(k));
 const base = data.base;
-const pick = args.pick && data[args.pick] ? args.pick : labels[labels.length - 1];
+if (args.pick && !data[args.pick]) {
+  console.error(`unknown set: ${args.pick} (available: ${labels.join(", ") || "(none)"})`);
+  process.exit(2);
+}
+const pick = args.pick || labels[labels.length - 1];
 
 console.log("## Gate\n");
-const badReqs = Object.entries(data.reqs || {}).filter(([, r]) => !r || r.error || !r.ok);
+const badReqs = Object.entries(data.reqs || {}).filter(([, r]) => r && (r.error || !r.ok));
 console.log(
   `- attributes: ${badReqs.length ? "**FAIL** " + badReqs.map(([k]) => k).join(", ") : "pass"} ` +
     `(build Str ${data.own.Str} / Dex ${data.own.Dex} / Int ${data.own.Int})`
@@ -77,14 +85,44 @@ for (const label of labels) {
   );
 }
 
-console.log(`\n## Res before / after (${pick})\n`);
-console.log("| Res | Trước total / overcap | Sau total / overcap | Δ |");
-console.log("|---|---|---|---|");
-for (const e of SET_KEYS) {
-  const b = base[e], a = pickSet[e];
-  const txt = (x) => `${x.total} / ${short({ [e]: x }, e) ? `short ${x.missing}` : signed(x.overcap)}`;
-  const change = e === "chaos" ? (a.total ?? 0) - (b.total ?? 0) : short(pickSet, e) || short(base, e) ? (a.total ?? 0) - (b.total ?? 0) : (a.overcap ?? 0) - (b.overcap ?? 0);
-  console.log(`| ${e[0].toUpperCase() + e.slice(1)} | ${txt(b)} | ${txt(a)} | ${signed(change)} |`);
+if (data.items && typeof data.items === "object") {
+  console.log(`\n## Items (${pick})\n`);
+  console.log("| item | base | price | req | wear |");
+  console.log("|---|---|---|---|---|");
+  // Prefer the pick's own composition when the sim output carries it; fall back to
+  // every item for older outputs that predate the gear map.
+  const picked = pickSet.gear ? Object.values(pickSet.gear) : Object.keys(data.items);
+  for (const key of picked) {
+    const it = data.items[key];
+    if (!it) continue;
+    const r = (data.reqs || {})[key];
+    const req = r === undefined ? "–" : r === null ? "no reqs" : r.error ? r.error : `S${r.str} D${r.dex} I${r.int}`;
+    const wear = r === undefined ? "–" : r === null ? "no reqs" : r.error || !r.ok ? "FAIL" : "ok";
+    const price = it.price === null || it.price === undefined ? "–" : it.price;
+    console.log(`| ${it.name || key} | ${it.base ?? "–"} | ${price} | ${req} | ${wear} |`);
+  }
 }
 
-console.log(`\n_bleed chance ${pickSet.bleedChance}% · baseline life ${base.life} · base DPS ${base.dps}_`);
+console.log(`\n## Res before / after (${pick})\n`);
+console.log("| Res | Before total / cap / overcap | After total / cap / overcap | Δ |");
+console.log("|---|---|---|---|");
+// cap = total + missing when short, total - overcap when capped; never the clamped
+// ResistTotal, which reads as capped for a build that is 1% short.
+const capOf = (s, e) =>
+  short(s, e) ? (s[e].total ?? 0) + (s[e].missing ?? 0) : (s[e].total ?? 0) - (s[e].overcap ?? 0);
+for (const e of SET_KEYS) {
+  const b = base[e], a = pickSet[e];
+  // Chaos has no tracked cap/overcap in the sim output (total - overcap would echo the
+  // total as a fake "cap") — print dashes and let the total carry the meaning.
+  const txt = (s) =>
+    e === "chaos"
+      ? `${s[e].total} / — / —`
+      : `${s[e].total} / ${capOf(s, e)} / ${short(s, e) ? `short ${s[e].missing}` : signed(s[e].overcap)}`;
+  const change = e === "chaos" ? (a.total ?? 0) - (b.total ?? 0) : short(pickSet, e) || short(base, e) ? (a.total ?? 0) - (b.total ?? 0) : (a.overcap ?? 0) - (b.overcap ?? 0);
+  console.log(`| ${e[0].toUpperCase() + e.slice(1)} | ${txt(base)} | ${txt(pickSet)} | ${signed(change)} |`);
+}
+
+console.log(
+  `\n_bleed chance ${pickSet.bleedChance === null || pickSet.bleedChance === undefined ? "–" : pickSet.bleedChance + "%"} · baseline life ${base.life} · base DPS ${base.dps} · ` +
+    `unreserved mana ${pickSet.mana ?? "–"}_`
+);

@@ -25,7 +25,7 @@ League id comes from `https://www.pathofexile.com/api/leagues` (`Covens`, `Stand
 The **account** rule binds first: 3 searches per 5s. A 4th search inside 5s returns
 `{"code":3,"message":"Rate limit exceeded; Please wait 45/60 seconds"}` and the
 account state then reads `0:5:45` — the window escalates, so a burst costs 45-60s.
-Space searches ~2s apart and 4 slots never trip it.
+Four slots spaced per *Spacing searches* below never trip it.
 
 Sleep only when a state counter reaches its limit. IP headroom is large (8/10s); do
 not impose a fixed 60s pause per slot.
@@ -48,6 +48,10 @@ not impose a fixed 60s pause per slot.
   sort: { price: "asc" } }
 ```
 
+An empty result can be a category or stat-id mismatch, not an empty market — verify the
+category name and stat ids against `/api/trade/data/*` before relaxing filters. Only a
+query whose ids match the data (and still returns nothing) is a thin market.
+
 ## Sort options
 
 | Sort value | Meaning |
@@ -57,6 +61,10 @@ not impose a fixed 60s pause per slot.
 | `quality: "desc"` | highest quality first, regardless of price |
 
 Use `quality: "desc"` when you want the best items regardless of price, then take the first few candidates.
+
+Unknown sort keys **silently fall back** to the default instead of erroring — only use the
+documented keys above. Ranking by pDPS is done client-side from the fetched pool, never
+through the sort field.
 
 ## Getting a long candidate list
 
@@ -99,6 +107,8 @@ is already open costs nothing. So: keep the tab, read the DOM, and only navigate
 `qid` when you intend to spend a search.
 
 Categories: `armour.helmet`, `armour.gloves`, `armour.boots`, `armour.chest`,
+`accessory.ring`, `accessory.amulet`, `weapon.twoaxe`. The full list lives at
+`/api/trade/data/categories`.
 
 ## Stat ids (verified against /api/trade/data/stats)
 
@@ -154,8 +164,9 @@ row.style.background = "rgba(255,45,85,0.18)";
 row.scrollIntoView({ block: "center" });   // then screenshot to confirm
 ```
 
-Match on the **seller** plus price: an exact-roll filter is not unique on its own (life 103
-+ cold 36 exact still returned six rings). The marks are cosmetic and vanish on reload.
+Match on the **seller** plus price: an exact-roll filter is not unique on its own — the
+same name, base and rolls appear across accounts. The marks are cosmetic and vanish on
+reload.
 
 ## Travel to Hideout (instant buyout)
 
