@@ -20,6 +20,19 @@ One line each, added during a run, cleared when the contract is patched:
 
 ## Log
 
+- 2026-11-19 · rings ≤20c (life 65+ chaos 20+) · Ring 1 owns the build's fire res: every
+  Ring 1 swap uncapped or thinned fire, every Ring 2 swap kept all overcaps ≥ +20 →
+  ring sims must run per-slot before picking; the "safe" ring slot is a property of the
+  equipped gear, not the candidate.
+- 2026-11-19 · rings · +65 maximum Mana on a ring made unreserved mana WORSE
+  (−778 → −802): percentage reservations reserve more flat mana on a bigger pool →
+  on a % aura build, max-mana gear deepens the reservation defect instead of padding it.
+- 2026-11-19 · combo gate · gloves (−45 cold) + ring-2 swap (−24 cold) stacked to
+  uncapped cold (61 vs cap 77, missing 16) even though each single passed → combos
+  re-check caps on every combined set; the singles-first rule caught it before handover.
+- 2026-11-19 · code-mode paste · an identical sim-program paste failed once with
+  "Unterminated string constant" and succeeded on a plain retry — paste-retry first,
+  never rewrite the emitted program around a transport glitch.
 - 2026-11-19 · emitted page · the bracket-strip regex was structurally broken from the
   first version (`([^\]|]*)` closes its class early): pipe-free brackets corrupted to
   literal `$2` and `[x|y]` roll descriptions never stripped, under-crediting the digest
