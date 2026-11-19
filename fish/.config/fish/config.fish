@@ -74,6 +74,12 @@ if status is-interactive
     alias wtm "webtorrent --mpv -d 10000 -u 1000 -o ~/Downloads/webtorrent"
     alias wt "webtorrent --mpv -o ~/Downloads/webtorrent"
 
+    # Search: rg is the default (parallel, skips .gitignore, no regex blowups)
+    # grep NOT aliased to rg: flags differ (grep -r dir != rg -r, which means --replace)
+    abbr -a g "rg -S"
+    # cgrep: byte-mode grep, 2-10x faster on huge scans, but no UTF-8 case folding
+    alias cgrep "LC_ALL=C grep --color=auto"
+
     # Functions
     function connect --description "sesh connect via fzf"
         set -l selection (sesh list --icons | grep -v -E '(opencode|qwen)' | fzf --ansi --no-sort --height 40% --border --prompt='Select session: ')
