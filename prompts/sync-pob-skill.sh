@@ -4,11 +4,42 @@
 #
 #   prompts/sync-pob-skill.sh            # update in place
 #   prompts/sync-pob-skill.sh --check    # exit 1 if the prompt is out of date
+#   prompts/sync-pob-skill.sh --link     # link both skills into ~/.config/opencode/skills
+#
+# --link is the clone path: the repo ignores skills/* except the PoE ones, and stow
+# refuses absolute symlinks, so a fresh machine needs these two links to see the skills.
 set -euo pipefail
 
 SKILL_DIR="${SKILL_DIR:-$HOME/.config/opencode/skills/poe-gear-finder}"
 PROMPT="${PROMPT:-$(dirname "$(readlink -f "$0")")/pob-gear-finder-setup.md}"
+REPO_SKILLS="$(readlink -f "$(dirname "$(readlink -f "$0")")/../opencode/.config/opencode/skills")"
+DEST_SKILLS="${OPENCODE_CONFIG:-$HOME/.config/opencode}/skills"
 MODE="${1:-}"
+
+if [ "$MODE" = "--link" ]; then
+  mkdir -p "$DEST_SKILLS"
+  rc=0
+  for skill in poe-gear-finder poe-build-profile; do
+    src="$REPO_SKILLS/$skill"
+    dst="$DEST_SKILLS/$skill"
+    [ -f "$src/SKILL.md" ] || { echo "missing source: $src/SKILL.md" >&2; rc=1; continue; }
+    if [ -L "$dst" ]; then
+      if [ "$(readlink -f "$dst")" = "$(readlink -f "$src")" ]; then
+        echo "ok:       $dst"
+      else
+        echo "CONFLICT: $dst -> $(readlink -f "$dst") (expected $src)" >&2
+        rc=1
+      fi
+    elif [ -e "$dst" ]; then
+      echo "CONFLICT: $dst exists and is not a symlink — move it aside first" >&2
+      rc=1
+    else
+      ln -s "$src" "$dst"
+      echo "linked:   $dst -> $src"
+    fi
+  done
+  exit "$rc"
+fi
 
 [ -f "$SKILL_DIR/SKILL.md" ] || { echo "missing $SKILL_DIR/SKILL.md" >&2; exit 1; }
 [ -f "$PROMPT" ] || { echo "missing $PROMPT" >&2; exit 1; }

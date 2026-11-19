@@ -2024,6 +2024,9 @@ STEP 6 — restart opencode so the MCP registers, then prove BOTH halves:
   d) profiler: `node ~/.config/opencode/skills/poe-build-profile/scripts/profile.mjs
      --build <the build you loaded>` must print `syntax check: ok` on stderr and the
      program on stdout, e.g. `> /tmp/opencode/profile.js`.
+  e) if this machine has the dotfiles repo, skip STEP 5 next time and run
+     `prompts/sync-pob-skill.sh --link` instead: it symlinks both skills to the repo so
+     later edits propagate, and says `ok:` / `linked:` / `CONFLICT:` per skill.
 Report the paths you created, the PoB tree version loaded in the smoke test, and
 anything that needed a workaround.
 ```
