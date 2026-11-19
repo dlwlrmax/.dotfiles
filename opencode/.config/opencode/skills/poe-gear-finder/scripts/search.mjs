@@ -141,9 +141,10 @@ var it=it0.item,l=it0.listing||{},pr=l.price||null,pq={};
 (it.properties||[]).forEach(function(p){if(p.values&&p.values[0]){pq[p.name]=p.values[0][0]}});
 var ex=null,k;
 for(k in pq){if(K.indexOf("|"+k+"|")<0){ex=ex||{};ex[k]=pq[k]}}
-var mm=mods(it),t=mm.join(" | "),res={F:0,C:0,L:0,X:0};
+var mm=mods(it),t=mm.join(" | "),res={F:0,C:0,L:0,X:0},at={S:0,D:0,I:0};
 var one=function(re){var m=new RegExp(re).exec(t);return m?Number(m[1]):0};
 mm.forEach(function(m){var g=/[+](\\d+)% to (.*Resistance)/.exec(m);if(!g){return}var v=Number(g[1]),w=g[2];if(/all Elemental/.test(w)){res.F+=v;res.C+=v;res.L+=v}if(/Fire/.test(w)){res.F+=v}if(/Cold/.test(w)){res.C+=v}if(/Lightning/.test(w)){res.L+=v}if(/Chaos/.test(w)){res.X+=v}});
+mm.forEach(function(m){var g=/[+](\\d+) to (all attributes|.*Strength.*|.*Dexterity.*|.*Intelligence.*)/.exec(m);if(!g){return}var v=Number(g[1]),w=g[2];if(/all attributes/.test(w)){at.S+=v;at.D+=v;at.I+=v}if(/Strength/.test(w)){at.S+=v}if(/Dexterity/.test(w)){at.D+=v}if(/Intelligence/.test(w)){at.I+=v}});
 var an=parseFloat(pq["Attacks per Second"]||"")||0;
 return {
 n:it.name,b:it.baseType,p:pr?pr.amount:null,seller:l.account?l.account.name:null,
@@ -157,6 +158,7 @@ dotMulti:sm(t,"[+](\\\\d+)% to (?:Physical )?Damage over Time Multiplier"),
 faster:one("Bleeding you inflict deals Damage (\\\\d+)% Faster"),
 manaCraft:one("[-](\\\\d+) to Mana Cost"),
 fire:res.F,cold:res.C,lightning:res.L,chaos:res.X,
+str:at.S,dex:at.D,int:at.I,
 phys:(t.match(/Adds (\\d+) to (\\d+) Physical Damage/)||[0,0,0]).slice(1,3).join("-")
 };
 });

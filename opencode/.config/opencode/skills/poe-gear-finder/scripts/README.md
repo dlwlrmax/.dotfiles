@@ -110,6 +110,7 @@ One shape for every item class. Keys present for all items:
 below (flask charges, gem lines, weapon range...) · `life` / `fire` / `cold` / `lightning` /
 `chaos` resistances · `dotMulti` DoT multiplier · `faster` bleeding-deals-damage-faster roll ·
 `manaCraft` the `-N to Mana Cost` craft · `phys` the `Adds X to Y Physical Damage` roll as text.
+`str`/`dex`/`int` attribute grants (hybrid `to X and Y` and `all attributes` mods credit every side) — rank on them when headroom is thin: `window.__p.top(10, "dex")`.
 
 Class-specific, non-zero only when the item has them:
 
