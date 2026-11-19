@@ -148,7 +148,7 @@ The buyer's "I can't tell which one is mine" is solved by marking it, not descri
 
 ```js
 var row = [...document.querySelectorAll(".resultset .row")].find(
-  r => (r.querySelector("a[href*='/account/view-profile/']") || {}).innerText === "Seller#1234");
+  r => (r.querySelector("a[href*='/account/view-profile/']") || {}).innerText === "Seller#0000");
 row.style.outline = "4px solid #ff2d55";
 row.style.background = "rgba(255,45,85,0.18)";
 row.scrollIntoView({ block: "center" });   // then screenshot to confirm
@@ -169,7 +169,7 @@ Each fetched listing carries what the button needs:
 | `listing.indexed` | when it entered the index — old timestamp = price may be stale |
 
 What the button needs is in the listing, but **the call itself is not reproducible from
-the page** — verified by probing this session:
+the page** — every payload shape probed was rejected (details in `findings.md`):
 
 | attempt | result |
 |---|---|

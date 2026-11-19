@@ -10,7 +10,26 @@ from mod text. Whole run is ~90s; see *Speed rules* for why and how.
 
 References: `reference/trade-api.md` (query shapes, stat ids, rate limits),
 `reference/pob-sim.md` (simulation recipe), `scripts/README.md` (the runners),
-`specs/*.json` (trade filter specs).
+`specs/*.json` (trade filter specs), `findings.md` (evidence log).
+
+## This file is a contract; `findings.md` is the notebook
+
+`SKILL.md` and `reference/*` change only when a **rule** changes — something that would
+have changed an answer. Prices, sellers, item names and "what I measured last run" go in
+`findings.md`: an append-only log, read for context, **never** read as instructions.
+
+The skill is **read-only during a run**:
+
+- Do not edit `SKILL.md`, `reference/*` or `scripts/*` while working a request.
+- Something missing or awkward? Append one line under *Friction* in `findings.md` and
+  finish with the tools that exist.
+- A runner broken badly enough to stop the run is the one exception: fix it minimally,
+  append the `Friction:` line, and commit that fix **alone**
+  (`pob skill: fix …`) — never bundled with a gear answer.
+- Patch the contract afterwards, once, and only for a rule that cost an answer.
+
+`node scripts/check.mjs` (run by the repo's pre-commit hook) rejects run data leaking
+into the contract files: account handles, prices, dates, and references to the run.
 
 ## Definition of done — re-read this before sending the final message
 
@@ -118,17 +137,23 @@ Rules for that table:
 - Attribute ownership: armour bases are also the cheapest way to satisfy
   requirements — a Lion Pelt wants 120 Dex and a Hubris Circlet 154 Int, which a
   Str-stacked melee build cannot wear. Check the numbers before recommending.
-- Bleed: the DPS lever is **base/flat physical damage** on the weapon. Do not
-  filter or reason about bleed chance if the build already shows `BleedChance: 100`
-  in `export_full_stats({filter: "Bleed"})` — check the number, don't guess.
-- **On a bleed build, pDPS is the wrong sort.** Sorting two-hand axes by physical DPS
-  promotes the highest hit damage and hides the modifiers bleed actually reads, such as
-  "Bleeding you inflict deals Damage #% Faster". Measured this session: a 779-pDPS axe
-  gave +16.4% bleed, while a 712-pDPS axe with 21% faster bleeding gave **+32.2%** at a
-  third of the price. Sort by pDPS only to find a pool, then read the mods and simulate.
-- Cheap uniques are worth checking before rares: a league-variant unique axe carried
-  `309% increased Physical Damage` for 3c, which no rare sequence is going to match at
-  that price. Search the unique by name with a price cap before assuming rares win.
+- Bleed chance is **not** a filter. If `export_full_stats({filter: "Bleed"})` shows
+  `BleedChance: 100`, more bleed chance is worth nothing — check the number, never filter
+  on it.
+- Bleed: the DPS lever is **damage per hit**, not pDPS and not attack speed. Bleed does
+  not stack — each application takes that hit's damage — so a slow, hard-hitting base
+  beats a faster one with higher pDPS for the same mods. Use pDPS only to *find* a pool,
+  then read the mods and simulate; the ranking inverts often enough that sorting by pDPS
+  and buying the top row is a wrong answer.
+- The mods that pay on a bleed weapon are `#% increased Physical Damage`, flat
+  `Adds # to # Physical Damage`, `+#% to (Physical )Damage over Time Multiplier`
+  (including the `for Bleeding` variant) and `Bleeding you inflict deals Damage #% Faster`.
+  Read the number from the sim, not from mod text — a "faster bleeding" roll is worth more
+  than pDPS suggests, and elemental added damage is dead weight next to Brutality.
+- Cheap uniques are worth checking before rares, including league-variant bases with a
+  large local `increased Physical Damage`: search the unique by name under the same price
+  cap before assuming a rare wins. Both directions have failed a run — check, don't assume.
+- Sort order and the measured deltas behind these rules are in `findings.md`.
 
 ## Speed rules (the whole point)
 
@@ -159,7 +184,7 @@ restate limits here (two copies drift into contradiction).
   listing unambiguously: use an **exact-roll filter** (`value: {min: N, max: N}` on the
   distinctive mods) so the tab shows one row, and name the seller account next to it.
 - **Listings expire mid-run.** Before telling the user to buy, re-read the tab and
-  confirm it still has rows and the same price. A 1c rare found two hours ago is usually
+  confirm it still has rows and the same price. A cheap rare found two hours ago is usually
   gone — re-derive the candidate from live results instead of pinning to it.
 - **Persist the pool to disk as you go**: `~/pob/pool/<League>/<slot>.json` with
   `{fetchedAt, query, rows}`, TTL 15 minutes. Agent context is not storage — tab ids and
@@ -193,7 +218,7 @@ For **every** item handed over, give the buyer an unambiguous pointer — item n
 base are not enough (rare names repeat):
 
 - the open tab, **plus** the seller account and the price, e.g.
-  `helm tab · row 2 · gujin1987#4540 · 1c`;
+  `helm tab · row 2 · <account> · <price>`;
 - **highlight the row in the page** rather than describing where it is: outline it, insert
   a label with name/price/seller, `scrollIntoView`, then screenshot to confirm. One glowing
   row is what answers "mở link cũng không biết mua item nào" — prose does not. The marks

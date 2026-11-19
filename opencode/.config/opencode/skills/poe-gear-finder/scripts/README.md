@@ -63,14 +63,20 @@ program as a file rather than re-typing it.
 | `pool.mjs` | save/show/list + freshness gate; the only place rows are parsed |
 | `sim.mjs` | items + sets → code-mode PoB program with attribute checks |
 | `table.mjs` | sim output → gates + markdown report tables |
+| `check.mjs` | contract lint: no run data in `SKILL.md`/`reference/*`/`scripts/*`, no single-listing specs |
+
+`check.mjs` runs in the repo's pre-commit hook; run it by hand after editing the skill.
 
 ## Specs shipped
+
+Specs are **reusable filter sets**, not run artifacts. A spec that pins one listing
+exact rolls (`min === max`) is not reusable — write it to `/tmp/opencode` for the run
+and leave it out of the repo; `check.mjs` rejects it.
 
 | Spec | What it finds |
 |---|---|
 | `ring.json` | rare ring, life 90+, total elemental res 90+, ≤10c |
 | `ring-chaos.json` | rare ring with chaos res 20+ and life 65+, ≤20c |
-| `ring-exact-rapture.json` | one ring pinned by exact rolls (life 103, cold 36) |
 | `gloves-chaos-cold.json` | armour gloves, chaos 20+ / cold 25+ / life 80+, ≤20c |
 | `belt-ryslatha.json` | the unique by name, ≤60c |
 | `axe-cheap.json` | two-hand axe ≤10c, sorted by pDPS desc |

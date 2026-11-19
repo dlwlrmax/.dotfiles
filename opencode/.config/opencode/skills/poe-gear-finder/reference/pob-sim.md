@@ -3,8 +3,9 @@
 One `execute` block. Never one tool call per candidate.
 
 ```js
-const it = (name, base, mods) =>
-  ["Rarity: RARE", name, base, "--------", "Item Level: 85", "--------", ...mods].join("\n");
+const it = (name, base, mods, quality = 0) =>
+  ["Rarity: RARE", name, base, "--------", "Quality: " + quality,
+   "Item Level: 85", "--------", ...mods].join("\n");
 
 const g = (t, k) => { const m = t.match(new RegExp(k + ":\\s*(-?[\\d.]+)")); return m ? +m[1] : null; };
 const n = (t, k) => { const m = t.match(new RegExp('"' + k + '":\\s*(-?[\\d.]+)')); return m ? +m[1] : null; };
@@ -54,10 +55,9 @@ same swap, chaos always shown).
 - **Unique roll ranges live in PoB's own data, not in your sample.** Grep
   `PathOfBuilding/src/Data/Uniques/<slot>.lua` before quoting a max/min roll — e.g.
   Ryslatha's Coil is `(30-40)% more Maximum Physical Attack Damage`. Inferring the range
-  from the listings you happened to fetch is wrong: a ≤60c sample topped out at 36% and
-  missed the real 40% ceiling. League-modified uniques can also roll outside PoB's data
-  (observed `54% less Minimum` against a listed `(30-40)` range) — say which source the
-  number came from.
+  from the listings you happened to fetch is wrong: a small sample tops out early and
+  misses the real ceiling. League-modified uniques can also roll outside PoB's data —
+  say which source the number came from.
 - **Measure a roll's value by holding everything else fixed.** To price a mod roll,
   simulate the same item text twice with only that number changed, so the delta is
   attributable. A whole-range delta is the useful number ("more Maximum 30→40 = +7.7%
@@ -67,10 +67,16 @@ same swap, chaos always shown).
   else from the previous set; without a reload you diff against polluted state.
 - **Slots that remove stats matter.** Replacing a belt that gave 48% fire res
   silently drops fire — the diff shows it, reasoning does not.
-- **Item text format**: `Rarity / name / base / -------- / Item Level: N /
+- **Item text format**: `Rarity / name / base / -------- / Quality: N / Item Level: N /
   -------- / mods`. Do **not** emit an `Implicits: N` header — PoB's parser
   reports it as unparseable and can mis-assign the following lines. List implicit
   mods as ordinary mod lines instead; the numeric effect is identical.
+- **Quality comes from the listing, never from a guess.** Read `properties[].values` for
+  `Quality`; trade omits the property entirely when an item has 0, and `parse_item` still
+  reports `quality: 20`, so a text dump will happily simulate a better weapon than the one
+  for sale. Pass the number you will actually buy (0 for an uncrafted drop) into `it()`.
+  When the pick is within a few percent of the runner-up, simulate both at q0 before
+  recommending.
 - Base names must be exact (`Lacquered Helmet`, not `Lacquer Helmet`) or
   `add_item` fails with `failed to parse item`.
 - `lua_get_stats` returns **capped** resistances (`FireResist` = 78 even with 200%

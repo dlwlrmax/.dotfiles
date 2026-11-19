@@ -78,7 +78,7 @@ merge into "mcp", keep existing keys). Rewrite `pob` to exactly:
 "PoB Lua Bridge started successfully." Do not use `bash -lc` in `command`; it
 breaks MCP stdio registration.
 
-STEP 5 — write the skill (14 files, exact content):
+STEP 5 — write the skill (15 files, exact content):
 
 5a) ~/.config/opencode/skills/poe-gear-finder/SKILL.md
 
@@ -94,7 +94,26 @@ from mod text. Whole run is ~90s; see *Speed rules* for why and how.
 
 References: `reference/trade-api.md` (query shapes, stat ids, rate limits),
 `reference/pob-sim.md` (simulation recipe), `scripts/README.md` (the runners),
-`specs/*.json` (trade filter specs).
+`specs/*.json` (trade filter specs), `findings.md` (evidence log).
+
+## This file is a contract; `findings.md` is the notebook
+
+`SKILL.md` and `reference/*` change only when a **rule** changes — something that would
+have changed an answer. Prices, sellers, item names and "what I measured last run" go in
+`findings.md`: an append-only log, read for context, **never** read as instructions.
+
+The skill is **read-only during a run**:
+
+- Do not edit `SKILL.md`, `reference/*` or `scripts/*` while working a request.
+- Something missing or awkward? Append one line under *Friction* in `findings.md` and
+  finish with the tools that exist.
+- A runner broken badly enough to stop the run is the one exception: fix it minimally,
+  append the `Friction:` line, and commit that fix **alone**
+  (`pob skill: fix …`) — never bundled with a gear answer.
+- Patch the contract afterwards, once, and only for a rule that cost an answer.
+
+`node scripts/check.mjs` (run by the repo's pre-commit hook) rejects run data leaking
+into the contract files: account handles, prices, dates, and references to the run.
 
 ## Definition of done — re-read this before sending the final message
 
@@ -202,17 +221,23 @@ Rules for that table:
 - Attribute ownership: armour bases are also the cheapest way to satisfy
   requirements — a Lion Pelt wants 120 Dex and a Hubris Circlet 154 Int, which a
   Str-stacked melee build cannot wear. Check the numbers before recommending.
-- Bleed: the DPS lever is **base/flat physical damage** on the weapon. Do not
-  filter or reason about bleed chance if the build already shows `BleedChance: 100`
-  in `export_full_stats({filter: "Bleed"})` — check the number, don't guess.
-- **On a bleed build, pDPS is the wrong sort.** Sorting two-hand axes by physical DPS
-  promotes the highest hit damage and hides the modifiers bleed actually reads, such as
-  "Bleeding you inflict deals Damage #% Faster". Measured this session: a 779-pDPS axe
-  gave +16.4% bleed, while a 712-pDPS axe with 21% faster bleeding gave **+32.2%** at a
-  third of the price. Sort by pDPS only to find a pool, then read the mods and simulate.
-- Cheap uniques are worth checking before rares: a league-variant unique axe carried
-  `309% increased Physical Damage` for 3c, which no rare sequence is going to match at
-  that price. Search the unique by name with a price cap before assuming rares win.
+- Bleed chance is **not** a filter. If `export_full_stats({filter: "Bleed"})` shows
+  `BleedChance: 100`, more bleed chance is worth nothing — check the number, never filter
+  on it.
+- Bleed: the DPS lever is **damage per hit**, not pDPS and not attack speed. Bleed does
+  not stack — each application takes that hit's damage — so a slow, hard-hitting base
+  beats a faster one with higher pDPS for the same mods. Use pDPS only to *find* a pool,
+  then read the mods and simulate; the ranking inverts often enough that sorting by pDPS
+  and buying the top row is a wrong answer.
+- The mods that pay on a bleed weapon are `#% increased Physical Damage`, flat
+  `Adds # to # Physical Damage`, `+#% to (Physical )Damage over Time Multiplier`
+  (including the `for Bleeding` variant) and `Bleeding you inflict deals Damage #% Faster`.
+  Read the number from the sim, not from mod text — a "faster bleeding" roll is worth more
+  than pDPS suggests, and elemental added damage is dead weight next to Brutality.
+- Cheap uniques are worth checking before rares, including league-variant bases with a
+  large local `increased Physical Damage`: search the unique by name under the same price
+  cap before assuming a rare wins. Both directions have failed a run — check, don't assume.
+- Sort order and the measured deltas behind these rules are in `findings.md`.
 
 ## Speed rules (the whole point)
 
@@ -243,7 +268,7 @@ restate limits here (two copies drift into contradiction).
   listing unambiguously: use an **exact-roll filter** (`value: {min: N, max: N}` on the
   distinctive mods) so the tab shows one row, and name the seller account next to it.
 - **Listings expire mid-run.** Before telling the user to buy, re-read the tab and
-  confirm it still has rows and the same price. A 1c rare found two hours ago is usually
+  confirm it still has rows and the same price. A cheap rare found two hours ago is usually
   gone — re-derive the candidate from live results instead of pinning to it.
 - **Persist the pool to disk as you go**: `~/pob/pool/<League>/<slot>.json` with
   `{fetchedAt, query, rows}`, TTL 15 minutes. Agent context is not storage — tab ids and
@@ -277,7 +302,7 @@ For **every** item handed over, give the buyer an unambiguous pointer — item n
 base are not enough (rare names repeat):
 
 - the open tab, **plus** the seller account and the price, e.g.
-  `helm tab · row 2 · gujin1987#4540 · 1c`;
+  `helm tab · row 2 · <account> · <price>`;
 - **highlight the row in the page** rather than describing where it is: outline it, insert
   a label with name/price/seller, `scrollIntoView`, then screenshot to confirm. One glowing
   row is what answers "mở link cũng không biết mua item nào" — prose does not. The marks
@@ -296,8 +321,9 @@ Never whisper or buy without explicit confirmation.
 One `execute` block. Never one tool call per candidate.
 
 ```js
-const it = (name, base, mods) =>
-  ["Rarity: RARE", name, base, "--------", "Item Level: 85", "--------", ...mods].join("\n");
+const it = (name, base, mods, quality = 0) =>
+  ["Rarity: RARE", name, base, "--------", "Quality: " + quality,
+   "Item Level: 85", "--------", ...mods].join("\n");
 
 const g = (t, k) => { const m = t.match(new RegExp(k + ":\\s*(-?[\\d.]+)")); return m ? +m[1] : null; };
 const n = (t, k) => { const m = t.match(new RegExp('"' + k + '":\\s*(-?[\\d.]+)')); return m ? +m[1] : null; };
@@ -347,10 +373,9 @@ same swap, chaos always shown).
 - **Unique roll ranges live in PoB's own data, not in your sample.** Grep
   `PathOfBuilding/src/Data/Uniques/<slot>.lua` before quoting a max/min roll — e.g.
   Ryslatha's Coil is `(30-40)% more Maximum Physical Attack Damage`. Inferring the range
-  from the listings you happened to fetch is wrong: a ≤60c sample topped out at 36% and
-  missed the real 40% ceiling. League-modified uniques can also roll outside PoB's data
-  (observed `54% less Minimum` against a listed `(30-40)` range) — say which source the
-  number came from.
+  from the listings you happened to fetch is wrong: a small sample tops out early and
+  misses the real ceiling. League-modified uniques can also roll outside PoB's data —
+  say which source the number came from.
 - **Measure a roll's value by holding everything else fixed.** To price a mod roll,
   simulate the same item text twice with only that number changed, so the delta is
   attributable. A whole-range delta is the useful number ("more Maximum 30→40 = +7.7%
@@ -360,10 +385,16 @@ same swap, chaos always shown).
   else from the previous set; without a reload you diff against polluted state.
 - **Slots that remove stats matter.** Replacing a belt that gave 48% fire res
   silently drops fire — the diff shows it, reasoning does not.
-- **Item text format**: `Rarity / name / base / -------- / Item Level: N /
+- **Item text format**: `Rarity / name / base / -------- / Quality: N / Item Level: N /
   -------- / mods`. Do **not** emit an `Implicits: N` header — PoB's parser
   reports it as unparseable and can mis-assign the following lines. List implicit
   mods as ordinary mod lines instead; the numeric effect is identical.
+- **Quality comes from the listing, never from a guess.** Read `properties[].values` for
+  `Quality`; trade omits the property entirely when an item has 0, and `parse_item` still
+  reports `quality: 20`, so a text dump will happily simulate a better weapon than the one
+  for sale. Pass the number you will actually buy (0 for an uncrafted drop) into `it()`.
+  When the pick is within a few percent of the runner-up, simulate both at q0 before
+  recommending.
 - Base names must be exact (`Lacquered Helmet`, not `Lacquer Helmet`) or
   `add_item` fails with `failed to parse item`.
 - `lua_get_stats` returns **capped** resistances (`FireResist` = 78 even with 200%
@@ -543,7 +574,7 @@ The buyer's "I can't tell which one is mine" is solved by marking it, not descri
 
 ```js
 var row = [...document.querySelectorAll(".resultset .row")].find(
-  r => (r.querySelector("a[href*='/account/view-profile/']") || {}).innerText === "Seller#1234");
+  r => (r.querySelector("a[href*='/account/view-profile/']") || {}).innerText === "Seller#0000");
 row.style.outline = "4px solid #ff2d55";
 row.style.background = "rgba(255,45,85,0.18)";
 row.scrollIntoView({ block: "center" });   // then screenshot to confirm
@@ -564,7 +595,7 @@ Each fetched listing carries what the button needs:
 | `listing.indexed` | when it entered the index — old timestamp = price may be stale |
 
 What the button needs is in the listing, but **the call itself is not reproducible from
-the page** — verified by probing this session:
+the page** — every payload shape probed was rejected (details in `findings.md`):
 
 | attempt | result |
 |---|---|
@@ -669,14 +700,20 @@ program as a file rather than re-typing it.
 | `pool.mjs` | save/show/list + freshness gate; the only place rows are parsed |
 | `sim.mjs` | items + sets → code-mode PoB program with attribute checks |
 | `table.mjs` | sim output → gates + markdown report tables |
+| `check.mjs` | contract lint: no run data in `SKILL.md`/`reference/*`/`scripts/*`, no single-listing specs |
+
+`check.mjs` runs in the repo's pre-commit hook; run it by hand after editing the skill.
 
 ## Specs shipped
+
+Specs are **reusable filter sets**, not run artifacts. A spec that pins one listing
+exact rolls (`min === max`) is not reusable — write it to `/tmp/opencode` for the run
+and leave it out of the repo; `check.mjs` rejects it.
 
 | Spec | What it finds |
 |---|---|
 | `ring.json` | rare ring, life 90+, total elemental res 90+, ≤10c |
 | `ring-chaos.json` | rare ring with chaos res 20+ and life 65+, ≤20c |
-| `ring-exact-rapture.json` | one ring pinned by exact rolls (life 103, cold 36) |
 | `gloves-chaos-cold.json` | armour gloves, chaos 20+ / cold 25+ / life 80+, ≤20c |
 | `belt-ryslatha.json` | the unique by name, ≤60c |
 | `axe-cheap.json` | two-hand axe ≤10c, sorted by pDPS desc |
@@ -716,7 +753,120 @@ Write `specs/<slot>.json` (same shape as the existing ones: `status`, `filters`,
 `sort`), then run `search.mjs` with the spec. A spec with `"term"` searches by unique
 name; leave `term` out and filter by stat ids when the item is a rare.
 
-5e) ~/.config/opencode/skills/poe-gear-finder/scripts/pool.mjs
+5e) ~/.config/opencode/skills/poe-gear-finder/scripts/check.mjs
+
+#!/usr/bin/env node
+// Contract lint for the skill.
+//
+// The skill is a contract: SKILL.md and reference/ may only change when a rule
+// changes. Run data (prices, seller handles, dates, "this session") silently rots
+// those files and makes every run look like it needs another edit, so it is
+// rejected here instead. Evidence belongs in findings.md.
+//
+//   node scripts/check.mjs          # exit 1 on any violation
+//
+// Wired into the repo's pre-commit hook.
+
+import { readFileSync, readdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const problems = [];
+const warn = [];
+
+const read = (rel) => readFileSync(join(root, rel), "utf8");
+const list = (rel, ext) =>
+  readdirSync(join(root, rel))
+    .filter((f) => f.endsWith(ext))
+    .sort()
+    .map((f) => `${rel}/${f}`);
+
+// findings.md is the notebook: numbers, dates and sellers are its whole point.
+// This file is the checker; it necessarily names the patterns it rejects.
+const contract = [
+  "SKILL.md",
+  ...list("reference", ".md"),
+  ...list("scripts", ".mjs").filter((f) => !f.endsWith("/check.mjs")),
+];
+
+const rules = [
+  {
+    re: /\b\d+\s?(?:c|chaos|divine)\b/g,
+    why: "price — findings.md records prices, the contract states the filter",
+  },
+  {
+    re: /#\d{4}\b/g,
+    why: "account handle — findings.md",
+    allow: ["#0000"],
+  },
+  {
+    re: /\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/g,
+    why: "date — findings.md",
+  },
+  {
+    re: /\bthis session\b/gi,
+    why: '"this session" — a rule has to stand without the session',
+  },
+];
+
+for (const rel of contract) {
+  const text = read(rel);
+  const lines = text.split("\n");
+  for (const { re, why, allow = [] } of rules) {
+    re.lastIndex = 0;
+    for (const m of text.matchAll(re)) {
+      if (allow.some((a) => m[0].includes(a))) continue;
+      const line = text.slice(0, m.index).split("\n").length;
+      problems.push(`${rel}:${line}  "${m[0].trim()}"  — ${why}`);
+    }
+  }
+  if (!lines.length) problems.push(`${rel}: empty`);
+}
+
+// A spec pins a filter set. min === max is one listing's rolls, not a filter set:
+// it is a run artifact and must not accumulate in the repo.
+for (const rel of list("specs", ".json")) {
+  let spec;
+  try {
+    spec = JSON.parse(read(rel));
+  } catch (e) {
+    problems.push(`${rel}: invalid JSON (${e.message})`);
+    continue;
+  }
+  for (const group of spec.stats || []) {
+    for (const s of group.filters || []) {
+      const v = s.value || {};
+      if (v.min !== undefined && v.min === v.max) {
+        problems.push(
+          `${rel}: pins ${s.id} to exactly ${v.min} — one listing, not a filter set; ` +
+            `keep it in /tmp/opencode`
+        );
+      }
+    }
+  }
+}
+
+// Soft signal: a spec nobody documents is probably a leftover run artifact.
+const readme = read("scripts/README.md");
+for (const rel of list("specs", ".json")) {
+  const name = rel.slice("specs/".length);
+  if (!readme.includes(name)) warn.push(`${rel}: not listed in scripts/README.md`);
+}
+
+if (problems.length) {
+  console.error("skill contract check FAILED\n");
+  for (const p of problems) console.error("  " + p);
+  console.error(
+    "\nRules belong in SKILL.md/reference; evidence belongs in findings.md."
+  );
+  process.exit(1);
+}
+
+for (const w of warn) console.error("warn: " + w);
+console.log(`skill contract clean (${contract.length} files)`);
+
+5f) ~/.config/opencode/skills/poe-gear-finder/scripts/pool.mjs
 
 #!/usr/bin/env node
 // Persist and read the candidate pool. Agent context is not storage: a closed tab
@@ -888,7 +1038,7 @@ if (cmd === "show") {
 console.error(`unknown command: ${cmd}`);
 process.exit(2);
 
-5f) ~/.config/opencode/skills/poe-gear-finder/scripts/search.mjs
+5g) ~/.config/opencode/skills/poe-gear-finder/scripts/search.mjs
 
 #!/usr/bin/env node
 // Build the browser-side expression for a trade search, and enforce the search
@@ -1089,7 +1239,7 @@ console.log("");
 console.log("=== then save the returned rows to the pool");
 console.log(`node scripts/pool.mjs save --league ${league} --slot ${slot} --file /tmp/opencode/${slot}-rows.json`);
 
-5g) ~/.config/opencode/skills/poe-gear-finder/scripts/sim.mjs
+5h) ~/.config/opencode/skills/poe-gear-finder/scripts/sim.mjs
 
 #!/usr/bin/env node
 // Emit a complete, ready-to-paste code-mode program that simulates every gear set
@@ -1214,7 +1364,7 @@ console.error(`sim program ready: ${Object.keys(items).length} items, ${Object.k
 console.error(`paste it into the code-mode \`execute\` tool, then:`);
 console.error(`  node scripts/table.mjs --pick <label> --file /tmp/opencode/sim-out.json`);
 
-5h) ~/.config/opencode/skills/poe-gear-finder/scripts/table.mjs
+5i) ~/.config/opencode/skills/poe-gear-finder/scripts/table.mjs
 
 #!/usr/bin/env node
 // Render the sim output as the report tables, and run the mechanical gates:
@@ -1307,7 +1457,7 @@ for (const e of SET_KEYS) {
 
 console.log(`\n_bleed chance ${pickSet.bleedChance}% · baseline life ${base.life} · base DPS ${base.dps}_`);
 
-5i) ~/.config/opencode/skills/poe-gear-finder/specs/axe-cheap.json
+5j) ~/.config/opencode/skills/poe-gear-finder/specs/axe-cheap.json
 
 {
   "status": "securable",
@@ -1319,7 +1469,7 @@ console.log(`\n_bleed chance ${pickSet.bleedChance}% · baseline life ${base.lif
   "sort": { "pdps": "desc" }
 }
 
-5j) ~/.config/opencode/skills/poe-gear-finder/specs/belt-ryslatha.json
+5k) ~/.config/opencode/skills/poe-gear-finder/specs/belt-ryslatha.json
 
 {
   "status": "securable",
@@ -1331,7 +1481,7 @@ console.log(`\n_bleed chance ${pickSet.bleedChance}% · baseline life ${base.lif
   "sort": { "price": "asc" }
 }
 
-5k) ~/.config/opencode/skills/poe-gear-finder/specs/gloves-chaos-cold.json
+5l) ~/.config/opencode/skills/poe-gear-finder/specs/gloves-chaos-cold.json
 
 {
   "status": "securable",
@@ -1350,7 +1500,7 @@ console.log(`\n_bleed chance ${pickSet.bleedChance}% · baseline life ${base.lif
   "sort": { "price": "asc" }
 }
 
-5l) ~/.config/opencode/skills/poe-gear-finder/specs/ring-chaos.json
+5m) ~/.config/opencode/skills/poe-gear-finder/specs/ring-chaos.json
 
 {
   "status": "securable",
@@ -1362,23 +1512,6 @@ console.log(`\n_bleed chance ${pickSet.bleedChance}% · baseline life ${base.lif
     { "type": "and", "filters": [
       { "id": "explicit.stat_2923486259", "value": { "min": 20 }, "disabled": false },
       { "id": "explicit.stat_3299347043", "value": { "min": 65 }, "disabled": false }
-    ]}
-  ],
-  "sort": { "price": "asc" }
-}
-
-5m) ~/.config/opencode/skills/poe-gear-finder/specs/ring-exact-rapture.json
-
-{
-  "status": "securable",
-  "filters": {
-    "type_filters": { "filters": { "category": { "option": "accessory.ring" } } },
-    "trade_filters": { "filters": { "price": { "option": "chaos", "max": 6 } } }
-  },
-  "stats": [
-    { "type": "and", "filters": [
-      { "id": "explicit.stat_3299347043", "value": { "min": 103, "max": 103 }, "disabled": false },
-      { "id": "explicit.stat_4220027924", "value": { "min": 36, "max": 36 }, "disabled": false }
     ]}
   ],
   "sort": { "price": "asc" }
@@ -1401,12 +1534,66 @@ console.log(`\n_bleed chance ${pickSet.bleedChance}% · baseline life ${base.lif
   "sort": { "price": "asc" }
 }
 
+5o) ~/.config/opencode/skills/poe-gear-finder/findings.md
+
+# Findings — evidence log
+
+**Append-only, and not instructions.** The rules live in `SKILL.md` and `reference/*`;
+this file records what produced them, so a rule can be re-checked instead of re-derived.
+
+Write one line per finding, dated, with the numbers that made it true:
+
+```
+- YYYY-MM-DD · <slot> · <measurement> → <rule it implies>
+```
+
+Copy a finding into the contract only when it changes an answer, and strip the listing
+specifics on the way in (seller, price, that one item's name).
+
+## Friction (patch queue)
+
+One line each, added during a run, cleared when the contract is patched:
+
+- (nothing pending)
+
+## Log
+
+- 2026-11-18 · res · `lua_get_stats` reports `FireResist` clamped to the cap; a build 1%
+  short printed `76 / 76` and looked capped → cap checks must read
+  `Missing<Element>Resist` + `*ResistOverCap` from `export_full_stats({filter:"Resist"})`.
+- 2026-11-18 · travel-to-hideout · `POST /api/trade/whisper` with `{token}` → `403 code 6`;
+  with XHR headers → `400 "Invalid query"`; `{hideout_token}`, `{token,id}`,
+  `{tokens:[…]}`, `?token=` all `400` → the payload contract is not reachable from the
+  page. Stop probing; report `fee`, keep the tab, let the user press the button.
+- 2026-11-19 · axe · bleed scales with damage per hit, not pDPS: a 756-pDPS Ezomyte Axe
+  (40c) hit for 193.8k and gave **−7.8%** bleed, while the equipped 686-pDPS axe hit for
+  216.0k at **+0%**; a 659-pDPS Vaal Axe gave **−13.7%**. Attack speed only raises hit
+  count, and bleed does not stack.
+- 2026-11-19 · axe · a 3c Karui Chopper (103% inc phys, +43% DoT multi, q0) beat the
+  equipped axe by **+9.7%** bleed (477.4k vs 435.4k) — cheapest listing in the run.
+  Cheapest-10c rares otherwise ranged −5% to −48%.
+- 2026-11-19 · axe · a league-variant unique (Foulborn Uul-Netol's Embrace, 309% inc phys
+  + "Bleeding you inflict deals Damage 21% Faster") measured **+24.4% DPS / +32.2% bleed**
+  at 3c, but carries `80% reduced Intelligence` (Int 105 → 21) and reduced attack speed —
+  the attribute hit, not the speed, is the disqualifier.
+- 2026-11-19 · axe · quality is a trap. Trade returns no `Quality` property for an item
+  with 0 quality, and `parse_item` then reports `quality: 20`; feeding `Quality: 0` to
+  `add_item` changed nothing in one test but `Quality: 21` did change the result in
+  another. Never assume quality — read `properties[].values` for `Quality`, and when a
+  candidate sits within a few percent of the pick, simulate it at the quality you will
+  actually buy (q0 for an uncrafted drop).
+- 2026-11-19 · rings · an exact-roll filter (`life 103`, `cold 36`) still returned 6 rows;
+  rare names repeat across accounts → pin the row by seller match as well.
+
 STEP 6 — restart opencode so the MCP registers, then prove BOTH halves:
   a) PoB: load any build with pob.lua_import_code and print Life/TotalEHP.
   b) runners: `node ~/.config/opencode/skills/poe-gear-finder/scripts/search.mjs
      --league Smoke --slot ring --spec .../specs/ring.json` must print an expression
      and exit 0; a second run within 10s must exit 3 with "BLOCKED". Then
      `rm -rf ~/pob/pool/Smoke` so the spacing lock does not leak into real runs.
+  c) contract lint: `node ~/.config/opencode/skills/poe-gear-finder/scripts/check.mjs`
+     must exit 0. It rejects prices, seller handles, dates and run references in
+     SKILL.md/reference/scripts, and specs that pin one listing's exact rolls.
 Report the paths you created, the PoB tree version loaded in the smoke test, and
 anything that needed a workaround.
 ```

@@ -13,6 +13,12 @@ MODE="${1:-}"
 [ -f "$SKILL_DIR/SKILL.md" ] || { echo "missing $SKILL_DIR/SKILL.md" >&2; exit 1; }
 [ -f "$PROMPT" ] || { echo "missing $PROMPT" >&2; exit 1; }
 
+# Contract lint travels with the sync: this script is what the pre-commit hook runs,
+# so run data leaking into SKILL.md/reference/scripts blocks the commit here.
+if [ -f "$SKILL_DIR/scripts/check.mjs" ]; then
+  node "$SKILL_DIR/scripts/check.mjs" || exit 1
+fi
+
 python3 - "$SKILL_DIR" "$PROMPT" "$MODE" <<'PY'
 import sys, pathlib
 skill_dir, prompt_path, mode = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]), sys.argv[3]
@@ -22,12 +28,14 @@ def read(name):
     return p.read_text().rstrip("\n")
 
 # Everything the skill needs to run, not just the prose: the runners and specs are
-# part of the skill, so the setup prompt must recreate them too.
+# part of the skill, so the setup prompt must recreate them too. findings.md ships as
+# an empty log so a fresh machine has somewhere to write friction.
 names = ["SKILL.md"]
 names += sorted(str(p.relative_to(skill_dir)) for p in (skill_dir / "reference").glob("*.md"))
 names += ["scripts/README.md"]
 names += sorted(str(p.relative_to(skill_dir)) for p in (skill_dir / "scripts").glob("*.mjs"))
 names += sorted(str(p.relative_to(skill_dir)) for p in (skill_dir / "specs").glob("*.json"))
+names += ["findings.md"]
 
 letters = "abcdefghijklmnopqrstuvwxyz"
 files = []

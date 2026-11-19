@@ -37,4 +37,6 @@ Any "find gear / what should I buy / gear up this slot / check this item" reques
 Path of Exile: **load the `poe-gear-finder` skill first** (`skill` tool) and run its flow.
 Never ad-hoc search the trade site or reason about mod text from memory — every price
 and DPS/EHP number must come from that flow (real PoB calc + live trade listings).
-If the skill errors, fix the skill (`~/pob/setup-pob.sh`, references) instead of bypassing it.
+If the skill errors, fix the skill (`~/pob/setup-pob.sh`, references) instead of bypassing it,
+but fix it in its own commit: the skill is read-only during a run, and new findings go to
+`findings.md`, not into `SKILL.md`.
