@@ -73,6 +73,10 @@ hl.env("TERMINAL", M.terminal)
 -- Ozone / Electron
 hl.env("OZONE_PLATFORM", "wayland")
 hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
+-- Awakened PoE Trade must stay on XWayland (its hotkeys are uiohook X11 grabs,
+-- and keybinds.lua pass-binds deliver to its X window). AWT ≤3.29 forced
+-- --ozone-platform=x11 itself; 3.30.101+ honors this wrapper env knob instead.
+hl.env("AWAKENED_POE_TRADE_OZONE_PLATFORM", "x11")
 
 -- Gaming: SDL_VIDEODRIVER deliberately NOT set globally — forcing "wayland"
 -- breaks older SDL2/Proton titles. Opt in per game via Steam launch options:
