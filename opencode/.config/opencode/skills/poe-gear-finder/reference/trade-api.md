@@ -48,6 +48,16 @@ not impose a fixed 60s pause per slot.
   sort: { price: "asc" } }
 ```
 
+### Seller filter
+
+`trade_filters.filters.account` takes the account name as a PLAIN STRING —
+`"account": "NameHere"`. The object form (`{ "option": "NameHere" }`) is rejected with
+`400 "Invalid account name type"`. Use it to verify a listing without trusting stat pins:
+query the account + the item class and you see that seller's live stock directly. A
+`securable` query returning `total: 0` can mean the listing flipped to whisper-only
+rather than sold — re-check once with `status: "any"` before declaring it gone. The value
+to use is what the fetch returns under `listing.account.name`.
+
 An empty result can be a category or stat-id mismatch, not an empty market — verify the
 category name and stat ids against `/api/trade/data/*` before relaxing filters. Only a
 query whose ids match the data (and still returns nothing) is a thin market.
@@ -228,6 +238,10 @@ Rules:
 
 - `type_filters` at query level → `400 Unknown or invalid top-level filter`.
 - `armour_filters.filters.armour` → `400 Invalid filter: armour`; keys are `ar`, `ev`, `es`.
+- `armour_filters.ar` (likewise `ev`/`es`) matches a number that is NOT the displayed
+  Armour property — quality and local armour rolls shift the two apart, in both
+  directions. Never pin an exact listing by armour-filter numbers; pin by exact stat
+  rolls (`value: {min: N, max: N}` on distinctive mods) or by the seller-account filter.
 - `sort` with an unknown key silently falls back; `{price:"asc"}` is correct.
 - `listing.price.amount/currency` (not `price.value`) in `/api/trade/fetch` results.
 - Some listings carry `item.explicitMods` as objects `{description, hash, mods}`;

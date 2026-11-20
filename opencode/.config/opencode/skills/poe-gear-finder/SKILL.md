@@ -231,6 +231,12 @@ restate limits here (two copies drift into contradiction).
   listing unambiguously: use an **exact-roll filter** (`value: {min: N, max: N}` on the
   distinctive mods) to narrow the tab, and name the seller account next to it — the exact
   roll on its own still may not leave a single row.
+- **Verify a listing by seller, not by stat pins alone.** `trade_filters.filters.account`
+  takes the account name as a plain string (the object form 400s with "Invalid account
+  name type") — query the seller + the item class to see their live stock directly,
+  immune to stat-filter and armour-filter quirks. A `securable` query returning 0 can
+  mean the listing flipped to whisper-only rather than sold: re-check once with
+  `status: "any"` before declaring it gone.
 - **Listings expire mid-run.** Before telling the user to buy, re-read the tab and
   confirm it still has rows and the same price. A cheap rare found two hours ago is usually
   gone — re-derive the candidate from live results instead of pinning to it.
