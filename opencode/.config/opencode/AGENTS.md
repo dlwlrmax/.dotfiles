@@ -33,13 +33,15 @@ Figma specifics (tools, URLs, gotchas): see `figma-mcp` skill.
 
 ## ast_grep rule
 
-`ast_grep_search` is heavy — unscoped AST scans burn CPU and flood context. On machines
-where it is denied by config (`opencode.jsonc` permission rule) the call is rejected;
-don't attempt it there. Everywhere: code discovery goes through `grep`/`glob` first.
-Only when a query is truly structural (match AST shapes, not text) use
-`ast_grep_replace` with `dryRun` to locate matches — always with explicit `paths` or
-`globs`, never a whole-tree scan. `ast_grep_replace` rewrites: keep `dryRun` first,
-confirm matches, then apply.
+`ast_grep_search` re-enabled 2026-11-20 (deny removed from `opencode.jsonc`).
+Cost is low: ast-grep 0.51.3 respects `.gitignore`, and on a 236MB repo an unscoped
+scan measured 0.69s CPU / 17MB RAM; the plugin caps output at 500 matches / 1MB
+and kills runs at a 5-minute timeout. So the real cost is context flood, not CPU.
+Discipline unchanged: code discovery goes through `grep`/`glob` first;
+`ast_grep_search` only when a query is truly structural (match AST shapes, not
+text) — always with explicit `paths` or `globs`, never a whole-tree scan.
+No per-file size limit exists in ast-grep; the timeout is the only runaway guard.
+`ast_grep_replace` rewrites: keep `dryRun` first, confirm matches, then apply.
 
 ## PoE gear rule
 
