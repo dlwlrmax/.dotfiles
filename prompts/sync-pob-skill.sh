@@ -92,8 +92,9 @@ def collect(skill):
         out.append("scripts/README.md")
     out += sorted(str(p.relative_to(d)) for p in (d / "scripts").glob("*.mjs"))
     out += sorted(str(p.relative_to(d)) for p in (d / "specs").glob("*.json"))
-    if (d / "findings.md").exists():
-        out.append("findings.md")
+    # findings.md is untracked per-machine scratch and is usually absent on a fresh
+    # checkout; ship the template unconditionally, never the local log content.
+    out.append("findings.md")
     return [(skill, n) for n in out]
 
 # The gear skill starts every run by profiling the build, so both ship together.
