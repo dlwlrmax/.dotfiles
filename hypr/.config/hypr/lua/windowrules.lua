@@ -50,9 +50,11 @@ hl.window_rule({ match = { class = "^(Dictionary)$" }, float = true, center = tr
 hl.window_rule({ match = { title = "^(Library)$" }, float = true })
 hl.window_rule({ match = { title = ".*(Tài khoản Google|Google Account|accounts\\.google\\.com).*" }, float = true })
 hl.window_rule({ match = { title = ".*Tailscale.*" }, float = true })
+-- Chrome home workspace. Default 1 everywhere; lua/local.lua chrome_workspace
+-- overrides per machine (gitignored).
 hl.window_rule({
   match = { class = "^(google-chrome)$" },
-  workspace = 1,
+  workspace = overrides.chrome_workspace or 1,
 })
 hl.window_rule({
   match = { class = "^(steam|net.lutris.Lutris)$", title = "negative:^notificationtoasts.*$" },
