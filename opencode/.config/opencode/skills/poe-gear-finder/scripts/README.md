@@ -102,6 +102,11 @@ and leave it out of the repo; `check.mjs` rejects it.
 | `belt-ryslatha.json` | the unique by name, ≤60c |
 | `axe-cheap.json` | two-hand axe ≤10c; the trade query sorts price asc, pDPS ranking is client-side |
 
+A "best under budget" spec encodes a MIN on the ranking stat instead of trusting the
+sort — sort keys are price/quality only, and the API caps the id list near ~100 ids, so
+the cheapest slice never contains the metric-top of a big pool. Ratchet the MIN upward
+using each search's `total` as a probe (see the quality ratchet in `SKILL.md`).
+
 ## What the digest gives you
 
 One shape for every item class. Keys present for all items:

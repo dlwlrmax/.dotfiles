@@ -114,6 +114,11 @@ freshness gates for you.
    will not survive the trip back); the full mod text stays in the page, so pull it for
    the few picks with a second expression, `window.__p.full([i,j,k])` — no extra request —
    and use that to build `items.json`.
+   **Shopping for the best under a cap, not the cheapest?** Encode a minimum on the
+   ranking stat (armour, life, res) in the spec and ratchet it against the pool `total` —
+   the quality ratchet under *Speed rules* owns that loop. Keep `sort: price asc`: the
+   fetched slice is then the cheapest of the qualified, and the metric ranking happens
+   client-side.
 4. **Simulate** — `node scripts/sim.mjs --items <items.json> --sets <sets.json> > /tmp/opencode/sim.js`,
    then paste that program into the code-mode `execute` tool. It reloads the build per
    set, snapshots stats and resistances, and returns the attribute check. See
@@ -202,8 +207,18 @@ restate limits here (two copies drift into contradiction).
   cache: loading `trade/search/<league>/<qid>` re-runs the search server-side. Read the
   tab that is already open; navigate only when you mean to spend a search.
 - **Search returns 0 rows?** The filter was too strict, or the listing sold. Relax the
-  rarest requirement and re-search — that is the *one* legitimate re-search, and you
+  rarest requirement and re-search — a legitimate re-search, and you
   must tell the user what you dropped.
+- **Best under a cap is a ratchet, not a sort.** The search API hands back only the
+  first ~100 ids by sort order and has no armour/pDPS-style sort key, so a price-asc
+  pool always shows its cheapest slice — the metric-best listings sit deeper, where no
+  fetch can reach. When the brief is "best X under budget", put a MINIMUM on the ranking
+  stat in the spec and use each search's `total` as a free probe: a pool in the hundreds
+  means the top is still unseen — raise the stat floor and re-search until the pool
+  fits one fetch (~100 ids), then rank client-side from the digest and simulate the top.
+  Those ratchet steps are legitimate re-searches, but they share the 4-search cap: if the
+  brief says "don't care about price", start the floor high on the first query, and if
+  the cap runs out mid-ratchet, report the deepest slice reached instead of forcing more.
 - **Fetch long lists — 40+ ids, not the top 8.** Price-ascending top 8 routinely misses
   better items. Paginate in chunks of 10 before judging anything.
 - **Travel to Hideout cannot be triggered by the agent.** The listing carries
