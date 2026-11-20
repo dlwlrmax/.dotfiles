@@ -72,6 +72,24 @@
       "headers": {
         "Authorization": "Bearer {env:CONTEXT7_API_KEY}"
       }
+    },
+    // browse MCP. `browse install` wrote this under a stray "servers" key,
+    // which v2 does not read — moved to a direct mcp key, disabled globally
+    // per MCP scoping rule. Enable per project by repeating type+command
+    // (see the root opencode.json). Machine-absolute paths rewritten portable
+    // for dotfiles sync; re-apply {env:HOME} after re-running `browse install`.
+    "browse": {
+      "type": "local",
+      "command": [
+        "{env:HOME}/.local/bin/browse",
+        "mcp"
+      ],
+      "cwd": "{env:HOME}",
+      "pool": true,
+      "enabled": false,
+      "environment": {
+        "OPENCODE_BROWSER_RUNTIME": "auto-update"
+      }
     }
   },
   "provider": {

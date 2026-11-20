@@ -11,6 +11,17 @@
         "POB_DIRECTORY": "{env:HOME}/pob/builds",
         "LUA_PATH": "{env:HOME}/pob/PathOfBuilding/src/lua/?.lua;{env:HOME}/pob/PathOfBuilding/src/lua/?/init.lua;./lua/?.lua;./lua/?/init.lua;;"
       }
+    },
+    // browse MCP enabled per project (dotfiles repo) — global defines it
+    // disabled; this entry repeats type+command per the v2 override rule.
+    "browse": {
+      "type": "local",
+      "command": ["{env:HOME}/.local/bin/browse", "mcp"],
+      "cwd": "{env:HOME}",
+      "pool": true,
+      "environment": {
+        "OPENCODE_BROWSER_RUNTIME": "auto-update"
+      }
     }
   }
 }
