@@ -48,6 +48,24 @@ not impose a fixed 60s pause per slot.
   sort: { price: "asc" } }
 ```
 
+### Multiple stat groups are AND, not OR
+
+Every entry in `stats` must match — four groups demand all four mods, and a
+phys%-or-multi%-or-faster query built as four "and" groups returns `total: 0`
+on a market that provably has matches (measured: four and-groups → 0 results;
+the same filters as one count group → a full pool). The OR tool is ONE group
+of `"type": "count"` with `"value": { "min": 1 }`:
+
+```js
+stats: [{ type: "count", value: { min: 1 }, filters: [
+  { id: "explicit.stat_1509134228", value: { min: 160 }, disabled: false },
+  { id: "explicit.stat_3988349707", value: { min: 30 }, disabled: false },
+]}]   // min: 2 = any two of the filters
+```
+
+GGG's own answer for "how do I OR" is the count group (trade-site forum,
+Al_GGG 2020) — use it; never assume group-level OR.
+
 ### Seller filter
 
 `trade_filters.filters.account` takes the account name as a PLAIN STRING —
