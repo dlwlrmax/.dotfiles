@@ -54,3 +54,7 @@ nvim/.config/nvim/lazy-lock.json
 # Rules graduate into SKILL.md/reference; the log itself stays per-machine.
 opencode/.config/opencode/skills/poe-gear-finder/findings.md
 opencode/.config/opencode/skills/poe-build-profile/findings.md
+# PoE skills: specs encode league-market judgment, same class of local data as
+# findings.md — contract rules live in SKILL.md/reference/scripts only.
+opencode/.config/opencode/skills/poe-gear-finder/specs/
+opencode/.config/opencode/skills/poe-build-profile/specs/
