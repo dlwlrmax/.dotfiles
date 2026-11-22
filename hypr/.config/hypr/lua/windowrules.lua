@@ -270,6 +270,11 @@ hl.window_rule({
 -- separate X11 window and a fullscreen game covers it. Borderless at monitor
 -- size instead (in-game setting: Windowed Fullscreen). idle_inhibit switches to
 -- "always" because "fullscreen" idle inhibit no longer fires for this window.
+-- border_size 0 + rounding 0: with resize_on_border, a floating monitor-sized
+-- window puts its resize-hover zones (border ring + curved-corner zone) at the
+-- very edges of the screen, so focusing the game back with the mouse shows the
+-- WM resize cursor instead of the in-game cursor. Zero border/rounding kills
+-- every edge zone for this window (see InputManager::setCursorIconOnBorder).
 hl.window_rule({
   match = { class = "^(steam_app_.*|pathofexile\\.exe)$", title = "^(" .. vars.poeGameTitle .. ")$" },
   float = true,
@@ -279,6 +284,8 @@ hl.window_rule({
   center = false,
   size = "monitor_w monitor_h",
   move = "0 0",
+  border_size = 0,
+  rounding = 0,
   confine_pointer = true,
   idle_inhibit = "always",
   no_anim = true, -- the guard below corrects geometry after map: land instantly
