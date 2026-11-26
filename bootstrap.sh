@@ -48,10 +48,10 @@ FISHER_PLUGINS=(
 
 # Stow groups (mirrors README Installation section).
 STOW_GROUPS=(
-  "fish hypr rofi swaync"                 # core desktop (waybar -> quickshell)
+  "fish hypr rofi swaync mako"          # core desktop (waybar -> quickshell)
   "quickshell mpv stremio"                # live shell + media
   "opencode obscura wireplumber xdg-desktop-portal" # CLI + audio/portal
-  "ghostty tmux nvim gitui"               # terminal + dev (kitty/yazi unused)
+  "ghostty tmux nvim gitui lazygit yazi"  # terminal + dev (kitty unused)
   "gtk-3.0 gtk-4.0 qt6ct"                 # theming
   "portainer"                             # containers
 )
@@ -396,12 +396,28 @@ stage_stow() {
     info "skipped (--no-stow)"
     return 0
   fi
+
+  # Gitignored per-machine hypr lua modules (monitors/workspaces/local):
+  # seed any missing one from its committed *.lua.example so a fresh clone
+  # boots a working session; hyprland.lua pcall-guards the requires either way.
+  seed_hypr_lua() {
+    local lua_dir="$REPO_DIR/hypr/.config/hypr/lua" f
+    for f in monitors workspaces local; do
+      [ -f "$lua_dir/$f.lua" ] && continue
+      if [ -f "$lua_dir/$f.lua.example" ]; then
+        run_cmd cp "$lua_dir/$f.lua.example" "$lua_dir/$f.lua"
+        info "seeded hypr lua/$f.lua from example"
+      fi
+    done
+  }
+
   local group dir
   for group in "${STOW_GROUPS[@]}"; do
     for dir in $group; do
       stow_one "$HOME" "$dir"
     done
   done
+  seed_hypr_lua
   # traefik targets /etc and is opt-in via the --all profile.
   if [ "$PROFILE" != "all" ]; then
     info "traefik stow skipped (only under --all)"

@@ -107,14 +107,23 @@ installer, unrelated to this bootstrap script.
 
 ```bash
 # Stow configs (use only what you need)
-stow -t ~ fish hypr rofi swaync                 # core desktop (waybar -> quickshell)
+stow -t ~ fish hypr rofi swaync mako            # core desktop (waybar -> quickshell)
 stow -t ~ quickshell mpv stremio                # live shell + media
 stow -t ~ opencode obscura wireplumber xdg-desktop-portal # CLI + audio/portal
-stow -t ~ ghostty tmux nvim gitui               # terminal + dev (kitty/yazi unused)
+stow -t ~ ghostty tmux nvim gitui lazygit yazi   # terminal + dev (kitty unused)
 stow -t ~ gtk-3.0 gtk-4.0 qt6ct                # theming
 stow -t ~ portainer                             # containers
 # docker-config is not stowed (it would create ~/base);
 # run it via the docker-setup alias instead.
+```
+
+hypr's per-machine lua modules (`lua/monitors.lua`, `lua/workspaces.lua`,
+`lua/local.lua`) are gitignored. Bootstrap seeds any missing one from its
+committed `lua/*.lua.example`; after a manual stow, do it by hand:
+
+```bash
+cd ~/.dotfiles/hypr/.config/hypr/lua
+for f in monitors workspaces local; do cp -n "$f.lua.example" "$f.lua"; done
 ```
 
 For configs that target paths outside `~/.config`, use explicit target:
