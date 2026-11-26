@@ -78,6 +78,7 @@ Item {
         clip: true
 
         ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+        WheelScroll { flick: scroll }
 
         ColumnLayout {
             id: content

@@ -20,6 +20,8 @@ Item {
     property var missingDeps: []
     // Unstowed/broken configs from scripts/check-configs.sh --list: [{pkg, kind, desc}]
     property var badConfigs: []
+    // True while scripts/stow-configs.sh is putting the broken configs in place.
+    property bool fixingConfigs: false
 
     // [{id, title, detail, level: "warn"|"error"}] ordered by severity
     readonly property var issues: {
@@ -69,6 +71,14 @@ Item {
         if (!configsProc.running) configsProc.running = true
     }
 
+    // One-click fix for badConfigs: stows the broken packages, then re-checks
+    // so the warnings clear on their own.
+    function fixConfigs() {
+        if (fixConfigsProc.running) return
+        fixingConfigs = true
+        fixConfigsProc.running = true
+    }
+
     Process {
         id: depsProc
         command: ["bash", theme.scriptDir + "/check-deps.sh", "--list"]
@@ -95,6 +105,19 @@ Item {
                     if (f.length >= 2 && f[0]) out.push({ pkg: f[0], kind: f[1], desc: f[2] || "" })
                 }
                 root.badConfigs = out
+            }
+        }
+    }
+
+    Process {
+        id: fixConfigsProc
+        command: ["bash", theme.scriptDir + "/stow-configs.sh"]
+        stdout: StdioCollector {
+            // Output is not parsed; we only need to know the fixer finished,
+            // then re-check so the issue list reflects the stowed state.
+            onStreamFinished: {
+                root.fixingConfigs = false
+                root.checkConfigs()
             }
         }
     }

@@ -42,6 +42,7 @@ Item {
         boundsBehavior: Flickable.StopAtBounds
         clip: true
         ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+        WheelScroll { flick: scroll }
 
         ColumnLayout {
             id: content
@@ -266,6 +267,17 @@ Item {
                         }
                     }
 
+                    // Only meaningful while some config is reported unhealthy;
+                    // hidden again once the fixer has re-checked.
+                    Badge {
+                        visible: !!root.health && root.health.badConfigs.length > 0
+                        theme: root.theme
+                        text: (root.health && root.health.fixingConfigs ? "working\u2026" : Glyphs.check + " Stow configs")
+                        clr: theme.green
+                        clickable: !!root.health && !root.health.fixingConfigs
+                        onClicked: root.health.fixConfigs()
+                    }
+
                     Badge {
                         theme: root.theme
                         text: Glyphs.refresh + " Reload shell"
@@ -385,6 +397,28 @@ Item {
                         solid: Prefs.statsAllScreens
                         clickable: true
                         onClicked: Prefs.setStatsAllScreens(!Prefs.statsAllScreens)
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    Text {
+                        text: "Panel wheel speed"
+                        color: theme.subtext1
+                        font.pixelSize: theme.fontSize - 1
+                        font.family: theme.fontUi
+                        Layout.fillWidth: true
+                    }
+
+                    Badge {
+                        theme: root.theme
+                        text: Prefs.wheelStep > 0 ? "Fast" : "Native"
+                        clr: Prefs.wheelStep > 0 ? theme.green : theme.subtext0
+                        solid: Prefs.wheelStep > 0
+                        clickable: true
+                        onClicked: Prefs.setWheelStep(Prefs.wheelStep > 0 ? 0 : 120)
                     }
                 }
             }

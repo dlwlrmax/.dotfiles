@@ -344,6 +344,7 @@ Item {
                         model: picker.rows
                         boundsBehavior: Flickable.StopAtBounds
                         visible: picker.rows.length > 0
+                        WheelScroll { flick: list }
 
                         delegate: Item {
                             id: row

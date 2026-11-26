@@ -415,6 +415,7 @@ Item {
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                WheelScroll { flick: noteFlick }
 
                 TextEdit {
                     id: noteEdit

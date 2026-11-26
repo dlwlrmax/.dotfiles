@@ -44,6 +44,7 @@ Item {
         clip: true
 
         ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+        WheelScroll { flick: scrollView }
 
         ColumnLayout {
             id: content

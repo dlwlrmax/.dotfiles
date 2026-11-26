@@ -369,11 +369,13 @@ Item {
 
                 // text
                 Flickable {
+                    id: previewFlick
                     anchors.fill: parent
                     visible: root.previewImage === ""
                     contentHeight: previewLabel.implicitHeight
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
+                    WheelScroll { flick: previewFlick }
 
                     Text {
                         id: previewLabel

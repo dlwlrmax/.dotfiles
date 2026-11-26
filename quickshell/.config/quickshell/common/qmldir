@@ -26,3 +26,4 @@ singleton Prefs 1.0 Prefs.qml
 singleton ShellPalette 1.0 ShellPalette.qml
 FrameCorner 1.0 FrameCorner.qml
 Spinner 1.0 Spinner.qml
+WheelScroll 1.0 WheelScroll.qml

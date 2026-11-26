@@ -245,6 +245,7 @@ Item {
                 contentHeight: contentCol.implicitHeight
                 clip: true
                 ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                WheelScroll { flick: scroll }
                 readonly property bool nearEnd: contentHeight - (contentY + height) < 240
                 onNearEndChanged: if (nearEnd) root.loadMore()
                 onContentHeightChanged: if (nearEnd) root.loadMore()
