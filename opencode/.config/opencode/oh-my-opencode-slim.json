@@ -294,8 +294,6 @@
   "fallback": {
     "enabled": true,
     "maxRetries": 2,
-    "initialRetryDelayMs": 750,
-    "retryDelayMs": 1000,
-    "continuationPolicy": "stick-to-fallback"
+    "retryDelayMs": 1000
   }
 }
