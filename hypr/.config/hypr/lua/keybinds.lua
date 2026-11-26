@@ -168,12 +168,23 @@ local function is_poe_trade(w)
   return w ~= nil and w.class == vars.poeTradeClass
 end
 
+-- Any APT window left? A transient popup closing must not unbind the
+-- pass-binds while the overlay window remains (same guard as poefocus.lua).
+local function trade_remains()
+  local ok, wins = pcall(hl.get_windows)
+  if not (ok and wins) then return false end
+  for _, w in ipairs(wins) do
+    if is_poe_trade(w) then return true end
+  end
+  return false
+end
+
 pcall(hl.on, "window.open", function(w)
   if is_poe_trade(w) then poe_trade_attach() end
 end)
 for _, ev in ipairs({ "window.close", "window.destroy" }) do
   pcall(hl.on, ev, function(w)
-    if is_poe_trade(w) then poe_trade_detach() end
+    if is_poe_trade(w) and not trade_remains() then poe_trade_detach() end
   end)
 end
 

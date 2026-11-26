@@ -397,8 +397,7 @@ const it = (name, base, mods, { quality = 0, price = null } = {}) =>
   ["Rarity: RARE", name, base, "--------", "Item Level: 85", "Quality: " + quality,
    "--------", ...mods].join("\n");
 
-const g = (t, k) => { const m = t.match(new RegExp(k + ":\\s*(-?[\\d.]+)")); return m ? +m[1] : null; };
-const n = (t, k) => { const m = t.match(new RegExp('"' + k + '":\\s*(-?[\\d.]+)')); return m ? +m[1] : null; };
+const g = (t, k) => { const m = t.match(new RegExp(k + ":\\s*(-?[\\d.]+)")); return m ? +m[1] : null; };const n = (t, k) => { const m = t.match(new RegExp('"' + k + '":\\s*(-?[\\d.]+)')); return m ? +m[1] : null; };
 
 const snap = async () => {
   const a = String(await tools.pob.lua_get_stats({}));
@@ -429,11 +428,16 @@ return { before, after };
 res readings use different keys and the diff is meaningless.
 
 `items.json` (the file `sim.mjs` consumes) is `{ "<key>": { name, base, mods } }` plus the
-optional `rarity`, `ilvl`, **`quality`** and **`price`** fields. `quality` is emitted as the
-`Quality:` line in the item text, so it changes the simulated item — read it from the
-listing (see *Quality* below). `price` is never simulated; it is carried through to the
-per-item report so the buy list and the numbers come from one file. The helper mirrors
-that: `it(name, base, mods, { quality, price })`.
+optional `rarity`, `ilvl`, **`quality`** and **`price`** fields. `price` is never simulated;
+it is carried through to the per-item report so the buy list and the numbers come from
+one file. The helper mirrors that: `it(name, base, mods, { quality, price })`.
+
+**Quality is parsed but NOT applied by the calc** (measured: a q20 weapon sim is
+byte-identical to q0). A `Quality: N` line in the item text changes nothing. Weapon
+quality in PoE is `+N% increased Physical Damage` (local) — to simulate a quality
+listing, add that as an ordinary mod line; a q20 rare then sims ~1.2x its q0 bleed.
+Digest/display pdps on trade INCLUDES quality, so a q0 sim of a quality listing
+understates the item by that factor.
 
 
 `overcap` comes back `0` when the element is **at or below** its cap — chaos at
@@ -472,8 +476,9 @@ same swap, chaos always shown).
 - **Quality comes from the listing, never from a guess.** Read `properties[].values` for
   `Quality`; trade omits the property entirely when an item has 0, and `parse_item` still
   reports `quality: 20`, so a text dump will happily simulate a better weapon than the one
-  for sale. Pass the number you will actually buy (0 for an uncrafted drop) into `it()`.
-  When the pick is within a few percent of the runner-up, simulate both at q0 before
+  for sale. The `Quality:` line itself is inert in the sim (see above) — encode the
+  listing's quality as a `+N% increased Physical Damage` mod line, and when the pick is
+  within a few percent of the runner-up, simulate both at the same quality before
   recommending.
 - Base names must be exact (`Lacquered Helmet`, not `Lacquer Helmet`) or
   `add_item` fails with `failed to parse item`.
@@ -568,6 +573,24 @@ not impose a fixed 60s pause per slot.
   },
   sort: { price: "asc" } }
 ```
+
+### Multiple stat groups are AND, not OR
+
+Every entry in `stats` must match — four groups demand all four mods, and a
+phys%-or-multi%-or-faster query built as four "and" groups returns `total: 0`
+on a market that provably has matches (measured: four and-groups → 0 results;
+the same filters as one count group → a full pool). The OR tool is ONE group
+of `"type": "count"` with `"value": { "min": 1 }`:
+
+```js
+stats: [{ type: "count", value: { min: 1 }, filters: [
+  { id: "explicit.stat_1509134228", value: { min: 160 }, disabled: false },
+  { id: "explicit.stat_3988349707", value: { min: 30 }, disabled: false },
+]}]   // min: 2 = any two of the filters
+```
+
+GGG's own answer for "how do I OR" is the count group (trade-site forum,
+Al_GGG 2020) — use it; never assume group-level OR.
 
 ### Seller filter
 

@@ -4,8 +4,11 @@
 -- Path of Exile runs as a borderless monitor-sized window (windowrules.lua)
 -- exactly so the Awakened PoE Trade overlay can draw over it. Clicking back
 -- into the game raises the game window, which buries the overlay below it —
--- and the overlay can never win that back by itself: it never takes focus
--- (no_initial_focus rule) so no interaction re-raises it.
+-- and the overlay cannot win that back on its own: no_initial_focus keeps it
+-- unfocused at map, and while the game holds focus nothing re-raises it. (A
+-- price check can briefly steal focus — gaming.lua treats that as part of
+-- the game session — but once the game is re-focused the overlay stays
+-- buried.)
 --
 -- So: while APT is running, whenever the game becomes the active window,
 -- re-raise every APT window above it. alter_zorder touches the z-stack only —
