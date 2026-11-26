@@ -397,7 +397,8 @@ const it = (name, base, mods, { quality = 0, price = null } = {}) =>
   ["Rarity: RARE", name, base, "--------", "Item Level: 85", "Quality: " + quality,
    "--------", ...mods].join("\n");
 
-const g = (t, k) => { const m = t.match(new RegExp(k + ":\\s*(-?[\\d.]+)")); return m ? +m[1] : null; };const n = (t, k) => { const m = t.match(new RegExp('"' + k + '":\\s*(-?[\\d.]+)')); return m ? +m[1] : null; };
+const g = (t, k) => { const m = t.match(new RegExp(k + ":\\s*(-?[\\d.]+)")); return m ? +m[1] : null; };
+const n = (t, k) => { const m = t.match(new RegExp('"' + k + '":\\s*(-?[\\d.]+)')); return m ? +m[1] : null; };
 
 const snap = async () => {
   const a = String(await tools.pob.lua_get_stats({}));
