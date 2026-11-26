@@ -1,0 +1,40 @@
+# Config files the health panel verifies (companion to deps.list, packages).
+# Single source for scripts/check-configs.sh. Format (TAB-separated):
+#   <path-under-$HOME> <required|optional> <what it is> [<dotted.yaml.key>]
+# A file passes when it exists, is a symlink into ~/.dotfiles (stowed — file
+# level or through a stowed directory both count), parses as YAML, and — when
+# a 4th column is given — holds a non-empty value at that dotted key.
+# Only failing rows are reported (same contract as deps.list).
+
+# core stowed (bootstrap STOW_GROUPS creates these; checker verifies)
+.config/hypr/hyprland.lua	required	Hyprland WM config
+.config/quickshell/shell.qml	required	quickshell shell entry point
+.config/fish/config.fish	optional	fish shell config
+.config/ghostty/config	optional	ghostty terminal config
+.tmux.conf	optional	tmux config (stowed to ~)
+.config/nvim/init.lua	optional	neovim entry
+.config/swaync/config.json	optional	swaync notifications
+.config/rofi/config.rasi	optional	rofi launcher
+.config/mpv/mpv.conf	optional	mpv player
+.config/mako/config	optional	mako notification fallback
+.config/yazi/yazi.toml	optional	yazi file manager
+.config/gitui/theme.ron	optional	gitui theme
+.config/lazygit/config.yml	optional	lazygit theme config	gui.theme.selectedRangeBgColor
+
+# partial stow: file-level symlinks inside runtime dirs (NOT in STOW_GROUPS —
+# fresh machines must create these by hand or via the fixup one-liner; the
+# checker flags any machine where they are missing)
+.config/fcitx5/config	optional	fcitx5 input method (ALT+Z) main config
+.config/fcitx5/profile	optional	fcitx5 input method profile
+.config/qt6ct/qt6ct.conf	optional	Qt6 theme selector
+.config/zellij/config.kdl	optional	zellij multiplexer config
+.config/systemd/user/obscura.service	optional	obscura systemd unit
+.config/opencode/AGENTS.md	optional	opencode agent instructions
+.config/xdg-desktop-portal/portals.conf	optional	portal selection (hyprland;gtk)
+
+# gitignored per-machine hypr lua modules (seeded from *.lua.example by
+# bootstrap.sh; hyprland.lua pcall-skips them, so a missing file means
+# auto-configured monitors and no workspace rules until customized)
+.config/hypr/lua/monitors.lua	optional	hypr monitor layout (per-machine)
+.config/hypr/lua/workspaces.lua	optional	hypr workspace-to-monitor rules (per-machine)
+.config/hypr/lua/local.lua	optional	hypr per-machine overrides (autostart, windowrules)

@@ -38,6 +38,7 @@ ghostty                  required  terminal (SUPER+Return)
 dolphin                  required  file manager (SUPER+E)
 
 # optional features
+python-yaml              optional  config file validation (check-configs.sh)
 python-dbus              optional  KDE Connect panel (kdeconnect.sh)
 kdeconnect               optional  phone notifications + battery
 sqlite                   optional  WAL mode for the quickshell state DB

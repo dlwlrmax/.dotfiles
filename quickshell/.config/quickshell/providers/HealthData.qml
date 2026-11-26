@@ -18,6 +18,8 @@ Item {
 
     // Missing packages from scripts/check-deps.sh --list: [{pkg, kind, desc}]
     property var missingDeps: []
+    // Unstowed/broken configs from scripts/check-configs.sh --list: [{pkg, kind, desc}]
+    property var badConfigs: []
 
     // [{id, title, detail, level: "warn"|"error"}] ordered by severity
     readonly property var issues: {
@@ -37,6 +39,11 @@ Item {
             var d = missingDeps[i]
             out.push({ id: "dep:" + d.pkg, level: d.kind === "required" ? "error" : "warn",
                        title: "Missing package: " + d.pkg, detail: d.desc })
+        }
+        for (var i = 0; i < badConfigs.length; i++) {
+            var c = badConfigs[i]
+            out.push({ id: "cfg:" + c.pkg, level: c.kind === "required" ? "error" : "warn",
+                       title: "Config not healthy: " + c.pkg, detail: c.desc })
         }
         out.sort(function (a, b) { return (b.level === "error") - (a.level === "error") })
         return out
@@ -58,6 +65,10 @@ Item {
         if (!depsProc.running) depsProc.running = true
     }
 
+    function checkConfigs() {
+        if (!configsProc.running) configsProc.running = true
+    }
+
     Process {
         id: depsProc
         command: ["bash", theme.scriptDir + "/check-deps.sh", "--list"]
@@ -73,7 +84,22 @@ Item {
         }
     }
 
+    Process {
+        id: configsProc
+        command: ["bash", theme.scriptDir + "/check-configs.sh", "--list"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var rows = this.text.split("\n"), out = []
+                for (var i = 0; i < rows.length; i++) {
+                    var f = rows[i].split("\t")
+                    if (f.length >= 2 && f[0]) out.push({ pkg: f[0], kind: f[1], desc: f[2] || "" })
+                }
+                root.badConfigs = out
+            }
+        }
+    }
+
     // First check shortly after startup, then hourly.
-    Timer { interval: 20000; running: true; onTriggered: root.checkDeps() }
-    Timer { interval: 3600000; running: true; repeat: true; onTriggered: root.checkDeps() }
+    Timer { interval: 20000; running: true; onTriggered: { root.checkDeps(); root.checkConfigs() } }
+    Timer { interval: 3600000; running: true; repeat: true; onTriggered: { root.checkDeps(); root.checkConfigs() } }
 }
