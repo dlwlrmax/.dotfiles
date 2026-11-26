@@ -1,0 +1,8 @@
+-- EXAMPLE — per-machine monitor layout (copy to monitors.lua, gitignored).
+-- Fill output names from `hyprctl monitors`. If monitors.lua is missing,
+-- hyprland.lua falls back to Hyprland's automatic monitor configuration.
+-- This copy holds the current dual-1080p setup as a starting point.
+hl.monitor({ output = "DP-1", mode = "1920x1080@60.0", position = "0x0", scale = "1.0", vrr = 2 })
+hl.monitor({ output = "HDMI-A-1", mode = "1920x1080@60.0", position = "1920x0", scale = "1.0", vrr = 2 })
+-- Headless virtual monitor for Moonlight streaming (Sunshine)
+-- Created dynamically via hyprctl output create headless + hyprctl keyword monitor

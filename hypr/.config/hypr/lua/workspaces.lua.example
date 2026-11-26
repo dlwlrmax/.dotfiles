@@ -1,0 +1,14 @@
+-- EXAMPLE — per-machine workspace rules (copy to workspaces.lua, gitignored).
+-- Map workspaces to the output names from `hyprctl monitors`.
+-- (The old "auto-generated from workspaces.conf" note was stale: no
+-- generator exists; hand-edit this file instead.)
+hl.workspace_rule({ workspace = 1, monitor = "DP-1", default = true })
+hl.workspace_rule({ workspace = 2, monitor = "DP-1" })
+hl.workspace_rule({ workspace = 3, monitor = "DP-1" })
+hl.workspace_rule({ workspace = 4, monitor = "DP-1" })
+hl.workspace_rule({ workspace = 5, monitor = "DP-1" })
+hl.workspace_rule({ workspace = 6, monitor = "DP-1" })
+hl.workspace_rule({ workspace = 7, monitor = "DP-1" })
+hl.workspace_rule({ workspace = 8, monitor = "DP-1" })
+hl.workspace_rule({ workspace = 9, monitor = "DP-1" })
+hl.workspace_rule({ workspace = 10, monitor = "HDMI-A-1", default = true })

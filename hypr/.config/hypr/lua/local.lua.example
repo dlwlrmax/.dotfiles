@@ -1,0 +1,18 @@
+-- EXAMPLE — per-machine overrides (copy to local.lua, gitignored).
+-- Consumed defensively by autostart.lua and windowrules.lua:
+--   local ok, local_cfg = pcall(require, "lua/local")
+--   local overrides = ok and local_cfg or {}
+-- so a missing file simply means no overrides. This copy holds the
+-- current machine's values as a starting point.
+local M = {}
+
+M.mainMonitor = "HDMI-A-1"
+M.secondMonitor = "DP-1"
+-- Games go to the 100 Hz HDMI panel (DP-1 tops out at 60 Hz).
+M.gameMonitor = "HDMI-A-1"
+M.mpv_pip = true
+M.pipMonitor = 1
+-- Workspace on pipMonitor (DP-1 owns ws 1-9); needed so zen PiP is not sent to ws 10 (HDMI).
+M.pipWorkspace = 1
+
+return M
