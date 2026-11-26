@@ -48,7 +48,7 @@
     "timeout": 2250
   },
   "prompt": {
-    "image_preview": true
+    "image_preview": false
   },
   "attention": {
     "notifications": true,
